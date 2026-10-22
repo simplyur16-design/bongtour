@@ -20,6 +20,7 @@ import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-disp
 import {
   buildSimilarItineraryCompareHrefFromProduct,
   SIMILAR_ITINERARY_COMPARE_CTA_LABEL,
+  SIMILAR_ITINERARY_COMPARE_PATH,
 } from '@/lib/similar-itinerary-compare-href'
 import Link from 'next/link'
 
@@ -232,14 +233,13 @@ export default function PackageProductHeroInfoPanel({
         </>
       ) : null}
 
-      {similarCompareHref ? (
-        <Link
-          href={similarCompareHref}
-          className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-[#2f8fc7]/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-[#2f8fc7] hover:bg-[#dceef9]"
-        >
-          {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
-        </Link>
-      ) : null}
+      {/* REGRESSION-FREEZE[similar-itinerary-compare-entry]: 히어로 사실 비교 CTA 항상 노출 — manifest */}
+      <Link
+        href={similarCompareHref ?? SIMILAR_ITINERARY_COMPARE_PATH}
+        className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-[#2f8fc7]/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-[#2f8fc7] hover:bg-[#dceef9]"
+      >
+        {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
+      </Link>
     </>
   )
 }

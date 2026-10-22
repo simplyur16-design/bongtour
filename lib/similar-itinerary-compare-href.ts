@@ -5,30 +5,29 @@
  */
 
 import {
-  composeHeroDayToken,
-  durationHintFromTitle,
-  scrubKrDepartureFromPlaceLabel,
-} from '@/lib/bongtour-product-display-title-ssot'
+  normalizeCompareDurationLabel,
+  resolveComparePlaceCluster,
+} from '@/lib/similar-itinerary-compare-cluster'
 
 /** 공개 경로 — 상품 상세 CTA·프리셋 진입 */
 export const SIMILAR_ITINERARY_COMPARE_PATH = '/travel/similar-itinerary-compare'
 
 export const SIMILAR_ITINERARY_COMPARE_CTA_LABEL = '같은 일정, 공급사별 사실 비교'
 
-function normalizeDurationLabel(s: string): string {
-  return String(s || '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-/** compare 로더 firstPlaceToken 과 동일 */
+/** 메가메뉴 leaf 라벨 — 나라/탭 단독이면 빈 문자열 */
 export function similarItineraryComparePlaceFromProduct(input: {
   primaryDestination?: string | null
   destination?: string | null
+  title?: string | null
 }): string {
-  const scrubbed = scrubKrDepartureFromPlaceLabel(input.primaryDestination || input.destination || '')
-  const raw = scrubbed || String(input.primaryDestination || input.destination || '').trim()
-  return raw.split(/[·/,|，、]/)[0]?.trim() || ''
+  // REGRESSION-FREEZE[similar-itinerary-compare-entry]: place는 메가메뉴 leaf — manifest
+  return (
+    resolveComparePlaceCluster({
+      primaryDestination: input.primaryDestination,
+      destination: input.destination,
+      title: input.title,
+    })?.label || ''
+  )
 }
 
 export function similarItineraryCompareDurationFromProduct(input: {
@@ -36,20 +35,17 @@ export function similarItineraryCompareDurationFromProduct(input: {
   title?: string | null
   totalDays?: number | null
 }): string {
-  const fromDur = normalizeDurationLabel(input.duration || '')
-  if (fromDur) return fromDur
-  const composed = composeHeroDayToken(input.duration, input.totalDays)
-  if (composed) return normalizeDurationLabel(composed)
-  const hint = durationHintFromTitle(input.title || '')
-  return hint ? normalizeDurationLabel(hint) : ''
+  // REGRESSION-FREEZE[similar-itinerary-compare-entry]: duration은 compose·title 힌트만 (임의 문자열 통과 금지) — manifest
+  return normalizeCompareDurationLabel(input.duration, input.title, input.totalDays)
 }
 
 export function buildSimilarItineraryCompareHref(input: {
   place: string
   duration: string
 }): string | null {
-  const place = String(input.place || '').trim()
-  const duration = normalizeDurationLabel(input.duration)
+  const placeCluster = resolveComparePlaceCluster({ placeQuery: input.place })
+  const place = placeCluster?.label || ''
+  const duration = normalizeCompareDurationLabel(input.duration)
   if (!place || !duration) return null
   const qs = new URLSearchParams({ place, duration })
   return `${SIMILAR_ITINERARY_COMPARE_PATH}?${qs.toString()}`
@@ -63,7 +59,7 @@ export function buildSimilarItineraryCompareHrefFromProduct(input: {
   title?: string | null
   totalDays?: number | null
 }): string | null {
-  // REGRESSION-FREEZE[similar-itinerary-compare-entry]: place+duration exact match — manifest
+  // REGRESSION-FREEZE[similar-itinerary-compare-entry]: place+duration 메가메뉴 leaf 클러스터 — manifest
   return buildSimilarItineraryCompareHref({
     place: similarItineraryComparePlaceFromProduct(input),
     duration: similarItineraryCompareDurationFromProduct(input),

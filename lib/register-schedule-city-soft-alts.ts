@@ -1435,6 +1435,9 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     ],
   },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii cruise port islands soft — manifest
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Maui Hangul POI (와일레아·마케나) own-route — manifest
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii island bare city hubs — manifest
+  // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Hawaii island token≠cross-island own-route — manifest
   // 기항지 도시만 있고 공연관람·부대시설 잡음일 때 island별 명소 (하와이 단독 트리거 금지 — 섬 교차 bleed)
   // alts는 isBrokenRegisterLandmarkKeyword=false 만 (sunrise/Front Street/coffee farm/Bayfront 제외)
   {

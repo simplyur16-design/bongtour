@@ -7,7 +7,6 @@
 import { prisma } from '@/lib/prisma'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { publicProductPath } from '@/lib/product-public-path'
-import { scrubKrDepartureFromPlaceLabel } from '@/lib/bongtour-product-display-title-ssot'
 import {
   computeEffectivePricePerPersonKrwFromRow,
   PRODUCT_PRICE_FOR_BROWSE_INCLUDE,
@@ -25,6 +24,12 @@ import {
   isCanonicalOverseasSupplierKey,
   type CanonicalOverseasSupplierKey,
 } from '@/lib/overseas-supplier-canonical-keys'
+import {
+  compareDurationsMatch,
+  comparePlaceClustersMatch,
+  normalizeCompareDurationLabel,
+  resolveComparePlaceCluster,
+} from '@/lib/similar-itinerary-compare-cluster'
 
 export type TriStateFact =
   | { kind: 'yes'; detail?: string }
@@ -94,18 +99,6 @@ export const DEV_COMPARE_PRESETS = [
   { place: '다낭', duration: '3박 5일', note: '공급사 3곳+' },
 ] as const
 
-function normalizeDuration(s: string): string {
-  return String(s || '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function firstPlaceToken(primary: string | null, dest: string | null): string {
-  const scrubbed = scrubKrDepartureFromPlaceLabel(primary || dest || '')
-  const raw = scrubbed || String(primary || dest || '').trim()
-  return raw.split(/[·/,|，、]/)[0]?.trim() || ''
-}
-
 function toTriState(state: 'yes' | 'no' | 'unknown', visitCount?: number | null): TriStateFact {
   if (state === 'yes') {
     return visitCount != null && visitCount > 0
@@ -131,8 +124,18 @@ export async function loadSimilarItineraryCompare(opts: {
   place?: string | null
   duration?: string | null
 }): Promise<SimilarItineraryCompareBundle> {
-  const placeWant = String(opts.place || DEV_COMPARE_PRESETS[0].place).trim()
-  const durationWant = normalizeDuration(opts.duration || DEV_COMPARE_PRESETS[0].duration)
+  const hasPlaceOpt = Boolean(String(opts.place || '').trim())
+  const hasDurOpt = Boolean(String(opts.duration || '').trim())
+  const placeRaw = String(opts.place || DEV_COMPARE_PRESETS[0].place).trim()
+  const durationRaw = String(opts.duration || DEV_COMPARE_PRESETS[0].duration).trim()
+  // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: 로더는 메가메뉴 leaf·박일 정규화 — manifest
+  // 쿼리 place가 나라/탭만이면 프리셋으로 몰지 않음(빈 표). 미지정일 때만 프리셋.
+  const placeWant = hasPlaceOpt
+    ? resolveComparePlaceCluster({ placeQuery: placeRaw })
+    : resolveComparePlaceCluster({ placeQuery: DEV_COMPARE_PRESETS[0].place })
+  const durationWant = hasDurOpt
+    ? normalizeCompareDurationLabel(durationRaw)
+    : normalizeCompareDurationLabel(DEV_COMPARE_PRESETS[0].duration)
 
   const products = await prisma.product.findMany({
     where: { registrationStatus: 'registered', travelScope: 'overseas' },
@@ -181,11 +184,20 @@ export async function loadSimilarItineraryCompare(opts: {
     },
   })
 
-  const matched = products.filter((p) => {
-    const place = firstPlaceToken(p.primaryDestination, p.destination)
-    const dur = normalizeDuration(p.duration || '')
-    return place === placeWant && dur === durationWant
-  })
+  const matched = placeWant
+    ? products.filter((p) => {
+        const place = resolveComparePlaceCluster({
+          primaryDestination: p.primaryDestination,
+          destination: p.destination,
+          title: p.title,
+        })
+        const durOk = compareDurationsMatch(
+          normalizeCompareDurationLabel(p.duration, p.title),
+          durationWant,
+        )
+        return comparePlaceClustersMatch(placeWant, place) && durOk
+      })
+    : []
 
   const rows: SimilarItineraryCompareRow[] = matched.map((p) => {
     // REGRESSION-FREEZE[supplier-product-fact-ssot]: 비교표 사실 도출 — manifest
@@ -202,7 +214,7 @@ export async function loadSimilarItineraryCompare(opts: {
       supplierKey,
       supplierLabel: formatOriginSourceForDisplay(p.originSource),
       title: String(p.title || '').trim() || '(제목 없음)',
-      duration: normalizeDuration(p.duration || '') || '정보 없음',
+      duration: normalizeCompareDurationLabel(p.duration, p.title) || '정보 없음',
       priceLabel: priceLabel(computeEffectivePricePerPersonKrwFromRow(p)),
       airlineLabel: airline.airlineLabel,
       shopping: toTriState(shop.state, shop.visitCount),
@@ -222,7 +234,7 @@ export async function loadSimilarItineraryCompare(opts: {
   const missingSuppliers = missingCanonicalSuppliersFromOrigins(matched.map((p) => p.originSource))
 
   return {
-    placeLabel: placeWant,
+    placeLabel: placeWant?.label || placeRaw,
     durationLabel: durationWant,
     disclaimer:
       '동일한 상품이 아닙니다. 등록된 상품 중 목적지·박일이 비슷한 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다. 빈 필드는 「정보 없음」이며 「없음」(확인된 0/false)과 구분합니다. 모자란 공급사 수집은 등록대기로만 올리며 이 표에는 바로 넣지 않습니다.',

@@ -27153,6 +27153,45 @@
       ]
     },
     {
+      "id": "similar-itinerary-compare-cluster",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "비슷한 일정 비교 — 메가메뉴 leaf 클러스터(나라/탭 묶음 금지)·박일 정규화",
+      "checks": [
+        {
+          "file": "lib/similar-itinerary-compare-cluster.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-cluster]",
+            "메가메뉴 leaf만",
+            "중국≠홍콩·몽골",
+            "일본≠나라만",
+            "대만↔타이베이",
+            "청도≠홍콩",
+            "한글 부분일치 금지",
+            "비leaf 그룹 헤더 단독 금지",
+            "동률 다엽 모호하면 null",
+            "buildCompareLeavesFromMegaMenu",
+            "normalizeCompareDurationLabel",
+            "resolveComparePlaceCluster"
+          ]
+        },
+        {
+          "file": "lib/dev-similar-itinerary-compare.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-cluster]",
+            "resolveComparePlaceCluster",
+            "comparePlaceClustersMatch",
+            "normalizeCompareDurationLabel"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/similar-itinerary-compare-cluster.test.ts"
+      ]
+    },
+    {
       "id": "similar-itinerary-compare-entry",
       "tier": [
         "prebuild",
@@ -27168,7 +27207,10 @@
             "/travel/similar-itinerary-compare",
             "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
             "같은 일정, 공급사별 사실 비교",
-            "buildSimilarItineraryCompareHrefFromProduct"
+            "buildSimilarItineraryCompareHrefFromProduct",
+            "duration은 compose·title 힌트만",
+            "place는 메가메뉴 leaf",
+            "place+duration 메가메뉴 leaf 클러스터"
           ]
         },
         {
@@ -27176,7 +27218,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
             "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
-            "buildSimilarItineraryCompareHrefFromProduct"
+            "buildSimilarItineraryCompareHrefFromProduct",
+            "SIMILAR_ITINERARY_COMPARE_PATH",
+            "공유 위·href 없으면 프리셋 페이지"
           ]
         },
         {
@@ -27184,7 +27228,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
             "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
-            "buildSimilarItineraryCompareHrefFromProduct"
+            "buildSimilarItineraryCompareHrefFromProduct",
+            "SIMILAR_ITINERARY_COMPARE_PATH",
+            "히어로 사실 비교 CTA 항상 노출"
           ]
         },
         {
@@ -27205,8 +27251,37 @@
         }
       ],
       "vitestSuites": [
-        "lib/similar-itinerary-compare-href.test.ts"
+        "lib/similar-itinerary-compare-href.test.ts",
+        "lib/similar-itinerary-compare-cluster.test.ts"
       ]
+    },
+    {
+      "id": "product-detail-share-actions",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품 상세 공유하기 — 카카오톡·URL 복사 메뉴",
+      "checks": [
+        {
+          "file": "app/components/detail/ShareActions.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-detail-share-actions]",
+            "카톡·URL 복사 메뉴",
+            "카카오톡으로 공유",
+            "URL 복사",
+            "shareViaKakao",
+            "copyUrlOnly"
+          ]
+        },
+        {
+          "file": "app/components/detail/ProductLiveQuoteCard.tsx",
+          "mustInclude": [
+            "ShareActions"
+          ]
+        }
+      ],
+      "vitestSuites": []
     }
   ],
   "vitestSuites": [

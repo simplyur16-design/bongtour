@@ -25,7 +25,19 @@ describe('similar-itinerary-compare-href', () => {
     expect(buildSimilarItineraryCompareHref({ place: '방콕', duration: '' })).toBeNull()
   })
 
-  it('takes first place token after KR departure scrub', () => {
+  // REGRESSION-FREEZE[similar-itinerary-compare-entry]: place는 메가메뉴 leaf — manifest
+  it('returns null for bare country (일본/중국) — no country-level compare', () => {
+    expect(buildSimilarItineraryCompareHref({ place: '일본', duration: '3박 5일' })).toBeNull()
+    expect(buildSimilarItineraryCompareHref({ place: '중국', duration: '3박 4일' })).toBeNull()
+  })
+
+  it('maps 칭다오 query to mega leaf 청도', () => {
+    const qs = hrefParams(buildSimilarItineraryCompareHref({ place: '칭다오', duration: '3박4일' }))
+    expect(qs.get('place')).toBe('청도')
+    expect(qs.get('duration')).toBe('3박 4일')
+  })
+
+  it('takes mega leaf after KR departure scrub', () => {
     expect(
       similarItineraryComparePlaceFromProduct({
         primaryDestination: '부산 · 마츠야마',
@@ -54,5 +66,31 @@ describe('similar-itinerary-compare-href', () => {
     const qs = hrefParams(href)
     expect(qs.get('place')).toBe('방콕')
     expect(qs.get('duration')).toBe('3박 5일')
+  })
+
+  // REGRESSION-FREEZE[similar-itinerary-compare-entry]: duration은 compose·title 힌트만 — manifest
+  it('normalizes duration via compose; ignores non-duration DB strings', () => {
+    const href = buildSimilarItineraryCompareHrefFromProduct({
+      primaryDestination: '상해',
+      duration: '3박4일',
+      totalDays: 4,
+    })
+    expect(hrefParams(href).get('duration')).toBe('3박 4일')
+    expect(
+      buildSimilarItineraryCompareHrefFromProduct({
+        primaryDestination: '상해',
+        duration: '여행안내',
+        title: '상해 자유 2박3일',
+      }),
+    ).toBeTruthy()
+    expect(
+      hrefParams(
+        buildSimilarItineraryCompareHrefFromProduct({
+          primaryDestination: '상해',
+          duration: '여행안내',
+          title: '상해 자유 2박3일',
+        }),
+      ).get('duration'),
+    ).toBe('2박 3일')
   })
 })
