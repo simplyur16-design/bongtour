@@ -12,6 +12,10 @@ import {
   loadSimilarItineraryCompare,
   resolveCompareClusterGapIngestTargets,
 } from '@/lib/dev-similar-itinerary-compare'
+import {
+  parseSimilarItineraryCompareKind,
+  type SimilarItineraryCompareKind,
+} from '@/lib/similar-itinerary-compare-href'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import {
   ingestSupplierBrowseHome,
@@ -33,6 +37,8 @@ export type CompareClusterGapIngestOpts = {
   place: string
   /** 박일 — 갭 재계산(등록 클러스터)에만 쓰며 목록 API에는 강제하지 않음 */
   duration?: string | null
+  /** REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 갭도 package|fit 분리 — manifest */
+  kind?: SimilarItineraryCompareKind | string | null
   onlySuppliers?: string[] | null
   /** 공급사당 신규 pending 상한 (기본 1) */
   perSupplier?: number
@@ -116,7 +122,8 @@ export async function ingestCompareClusterSupplierGaps(
       ? Math.min(5, Math.floor(opts.perSupplier as number))
       : 1
 
-  const bundle = await loadSimilarItineraryCompare({ place, duration })
+  const kind = parseSimilarItineraryCompareKind(opts.kind)
+  const bundle = await loadSimilarItineraryCompare({ place, duration, kind })
   const presentOrigins = bundle.rows.map((r) => r.supplierKey)
   const missingSuppliers = bundle.missingSuppliers
   const targeted = resolveCompareClusterGapIngestTargets({

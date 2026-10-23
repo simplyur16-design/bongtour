@@ -5,11 +5,11 @@
  * REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 패키지↔자유여행 비교 혼입 금지 — manifest
  */
 
-import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import {
   normalizeCompareDurationLabel,
   resolveComparePlaceCluster,
 } from '@/lib/similar-itinerary-compare-cluster'
+import { isSimilarItineraryCompareFitProduct } from '@/lib/similar-itinerary-compare-kind'
 
 /** 공개 경로 — 상품 상세 CTA·프리셋 진입 */
 export const SIMILAR_ITINERARY_COMPARE_PATH = '/travel/similar-itinerary-compare'
@@ -33,8 +33,10 @@ export function parseSimilarItineraryCompareKind(
 export function similarItineraryCompareKindFromProduct(input: {
   listingKind?: string | null
   productType?: string | null
+  slug?: string | null
 }): SimilarItineraryCompareKind {
-  return isAirHotelProduct(input) ? 'fit' : 'package'
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: fit- 슬러그·air_hotel 판정 — manifest
+  return isSimilarItineraryCompareFitProduct(input) ? 'fit' : 'package'
 }
 
 /** 메가메뉴 leaf 라벨 — 나라/탭 단독이면 빈 문자열 */
@@ -85,12 +87,19 @@ export function buildSimilarItineraryCompareHrefFromProduct(input: {
   totalDays?: number | null
   listingKind?: string | null
   productType?: string | null
+  slug?: string | null
+  /** CTA가 속한 상세 표면 — 있으면 listingKind보다 우선 (패키지 상세=package, 자유여행 상세=fit) */
+  forceKind?: SimilarItineraryCompareKind | null
 }): string | null {
   // REGRESSION-FREEZE[similar-itinerary-compare-entry]: place+duration 메가메뉴 leaf 클러스터 — manifest
   // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: href에 kind=package|fit — manifest
+  const kind =
+    input.forceKind === 'package' || input.forceKind === 'fit'
+      ? input.forceKind
+      : similarItineraryCompareKindFromProduct(input)
   return buildSimilarItineraryCompareHref({
     place: similarItineraryComparePlaceFromProduct(input),
     duration: similarItineraryCompareDurationFromProduct(input),
-    kind: similarItineraryCompareKindFromProduct(input),
+    kind,
   })
 }

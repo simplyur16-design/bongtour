@@ -34,6 +34,32 @@ describe('similar-itinerary-compare-href', () => {
     expect(qs.get('kind')).toBe('fit')
   })
 
+  it('forceKind overrides mislabeled listingKind on package surface', () => {
+    const qs = hrefParams(
+      buildSimilarItineraryCompareHrefFromProduct({
+        primaryDestination: '상해',
+        duration: '3박 4일',
+        listingKind: 'air_hotel_free',
+        productType: 'air-hotel',
+        forceKind: 'package',
+      }),
+    )
+    expect(qs.get('kind')).toBe('package')
+  })
+
+  it('fit- slug alone yields kind=fit', () => {
+    const qs = hrefParams(
+      buildSimilarItineraryCompareHrefFromProduct({
+        primaryDestination: '다낭',
+        duration: '3박 5일',
+        listingKind: 'travel',
+        productType: 'travel',
+        slug: 'fit-danang-demo',
+      }),
+    )
+    expect(qs.get('kind')).toBe('fit')
+  })
+
   it('returns null when place or duration missing', () => {
     expect(buildSimilarItineraryCompareHref({ place: '', duration: '3박 5일' })).toBeNull()
     expect(buildSimilarItineraryCompareHref({ place: '방콕', duration: '' })).toBeNull()

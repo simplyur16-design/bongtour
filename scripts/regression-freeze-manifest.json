@@ -4885,7 +4885,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "중·하 메가메뉴 — 서버 geo WHERE fetch (전량 클라이언트 스캔 제거)",
+      "summary": "중·하 메가메뉴 — cold만 서버 geo WHERE; warm 카탈로그면 즉시 클라이언트 필터",
       "checks": [
         {
           "file": "lib/products-browse-hub-query.ts",
@@ -4926,7 +4926,9 @@
             "buildOverseasHubBrowseQueryKey",
             "fetchProductsBrowseClientJson",
             "REGRESSION-FREEZE[overseas-hub-server-geo-fetch]",
-            "server geo items skip client re-filter"
+            "REGRESSION-FREEZE[overseas-hub-mega-warm-catalog-instant]",
+            "peek 있으면 mid/leaf도 즉시",
+            "항상 URL 클라이언트 필터"
           ]
         }
       ],
@@ -23148,7 +23150,18 @@
             "SimilarItineraryCompareKind",
             "parseSimilarItineraryCompareKind",
             "kind=package|fit",
-            "kind 없으면 패키지"
+            "kind 없으면 패키지",
+            "forceKind"
+          ]
+        },
+        {
+          "file": "lib/similar-itinerary-compare-kind.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "prismaWhereForSimilarItineraryCompareKind",
+            "productMatchesSimilarItineraryCompareKind",
+            "DB where kind push-down",
+            "startsWith: 'fit-'"
           ]
         },
         {
@@ -23156,7 +23169,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
             "kind로 패키지/FIT 분리",
-            "패키지 표에 FIT 금지"
+            "패키지 표에 FIT 금지",
+            "prismaWhereForSimilarItineraryCompareKind",
+            "DB where kind push-down"
           ]
         },
         {
@@ -23167,10 +23182,18 @@
           ]
         },
         {
+          "file": "app/admin/similar-itinerary-compare/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind=package|fit"
+          ]
+        },
+        {
           "file": "app/components/detail/FitItineraryHeroInfoPanel.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
             "kind=fit",
+            "forceKind: 'fit'",
             "SIMILAR_ITINERARY_COMPARE_CTA_LABEL"
           ]
         },
@@ -23179,6 +23202,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
             "kind=fit",
+            "forceKind: 'fit'",
             "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
             "air_hotel_free"
           ]
@@ -23194,12 +23218,21 @@
           "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
-            "kind=package"
+            "kind=package",
+            "forceKind: 'package'"
+          ]
+        },
+        {
+          "file": "app/components/detail/ProductLiveQuoteCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "forceKind: 'package'"
           ]
         }
       ],
       "vitestSuites": [
-        "lib/similar-itinerary-compare-href.test.ts"
+        "lib/similar-itinerary-compare-href.test.ts",
+        "lib/similar-itinerary-compare-kind.test.ts"
       ]
     },
     {
@@ -26598,28 +26631,123 @@
         "prebuild",
         "ci"
       ],
-      "summary": "상품상세 히어로 우측 정보카드 — max-h를 히어로(100%) 기준으로 잡아 위·아래 잘림 금지 (100vh max-h 회귀 차단)",
+      "summary": "상품상세 히어로 우측 정보카드 — max-h=히어로 기준, 스크롤 금지·제목 폰트 맞춤",
       "checks": [
         {
           "file": "app/components/detail/PackageProductHeroSection.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[public-detail-hero-info-card-inset]",
-            "max-h-[calc(100%-3rem)]",
-            "overflow-y-auto"
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "HeroStickyInfoAside",
+            "fitTitleInSticky"
           ],
           "mustNotInclude": [
-            "max-h-[min(760px,calc(100vh-96px))]"
+            "max-h-[min(760px,calc(100vh-96px))]",
+            "overflow-y-auto overscroll-contain"
           ]
         },
         {
           "file": "app/components/detail/FitItineraryHeroSection.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[public-detail-hero-info-card-inset]",
-            "max-h-[calc(100%-3rem)]",
-            "overflow-y-auto"
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "HeroStickyInfoAside",
+            "fitTitleInSticky"
           ],
           "mustNotInclude": [
-            "max-h-[min(760px,calc(100vh-96px))]"
+            "max-h-[min(760px,calc(100vh-96px))]",
+            "overflow-y-auto overscroll-contain"
+          ]
+        },
+        {
+          "file": "app/components/detail/HeroStickyInfoAside.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "max-h-[calc(100%-3rem)]",
+            "overflow-hidden",
+            "data-hero-sticky-title",
+            "TITLE_MIN_PX"
+          ],
+          "mustNotInclude": [
+            "overflow-y-auto"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "public-detail-hero-sticky-fit-title",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "히어로 스티키 정보카드 — overflow 스크롤 금지·제목 자동 축소",
+      "checks": [
+        {
+          "file": "app/components/detail/HeroStickyInfoAside.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "overflow-hidden",
+            "data-hero-sticky-title",
+            "TITLE_MIN_PX"
+          ],
+          "mustNotInclude": [
+            "overflow-y-auto"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "fitTitleInSticky",
+            "data-hero-sticky-title"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "fitTitleInSticky",
+            "data-hero-sticky-title"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "HeroStickyInfoAside",
+            "fitTitleInSticky"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "HeroStickyInfoAside",
+            "fitTitleInSticky"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "overseas-hub-mega-warm-catalog-instant",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "메가메뉴 중·하 — 워밍 카탈로그면 서버 geo 대기 없이 즉시 클라이언트 필터",
+      "checks": [
+        {
+          "file": "app/components/travel/overseas/OverseasHubCatalogRoot.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-mega-warm-catalog-instant]",
+            "peekOverseasHubCatalogItems",
+            "peek 있으면 mid/leaf도 즉시",
+            "항상 URL 클라이언트 필터",
+            "filterOverseasHubCatalogByUrl"
+          ],
+          "mustNotInclude": [
+            "server geo items skip client re-filter",
+            "requestIdleCallback"
           ]
         }
       ]

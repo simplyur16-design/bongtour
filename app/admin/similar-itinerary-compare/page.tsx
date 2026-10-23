@@ -10,8 +10,11 @@ import { requireAdmin } from '@/lib/require-admin'
 import { SIMILAR_ITINERARY_COMPARE_ADMIN_PATH } from '@/lib/similar-itinerary-compare-admin-path'
 import {
   buildSimilarItineraryCompareHref,
+  parseSimilarItineraryCompareKind,
   SIMILAR_ITINERARY_COMPARE_PATH,
+  type SimilarItineraryCompareKind,
 } from '@/lib/similar-itinerary-compare-href'
+import { similarItineraryCompareKindLabel } from '@/lib/similar-itinerary-compare-kind'
 import { redirect } from 'next/navigation'
 import { enqueueCompareClusterGapIngestAction } from '@/app/travel/similar-itinerary-compare/actions'
 import '../../travel/similar-itinerary-compare/compare.css'
@@ -27,11 +30,25 @@ type PageProps = {
   searchParams?: Promise<{
     place?: string
     duration?: string
+    kind?: string
     gapCreated?: string
     gapSkipped?: string
     gapFailed?: string
     gapTargeted?: string
   }>
+}
+
+function adminCompareHref(opts: {
+  place: string
+  duration: string
+  kind: SimilarItineraryCompareKind
+}): string {
+  const q = new URLSearchParams({
+    place: opts.place,
+    duration: opts.duration,
+    kind: opts.kind,
+  })
+  return `${SIMILAR_ITINERARY_COMPARE_ADMIN_PATH}?${q.toString()}`
 }
 
 function FactCell({ value }: { value: string }) {
@@ -58,9 +75,13 @@ export default async function AdminSimilarItineraryComparePage({ searchParams }:
   const sp = (await searchParams) ?? {}
   const place = String(sp.place || DEV_COMPARE_PRESETS[0].place).trim()
   const duration = String(sp.duration || DEV_COMPARE_PRESETS[0].duration).trim()
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: admin도 kind=package|fit — manifest
+  const kind = parseSimilarItineraryCompareKind(sp.kind)
+  const kindLabel = similarItineraryCompareKindLabel(kind)
   const bundle = await loadSimilarItineraryCompare({
     place,
     duration,
+    kind,
     allowPresetFallback: true,
   })
 
@@ -87,24 +108,48 @@ export default async function AdminSimilarItineraryComparePage({ searchParams }:
       </header>
 
       <div className="sic-head">
-        <p className="sic-eyebrow">비교 클러스터 운영</p>
+        <p className="sic-eyebrow">비교 클러스터 운영 · {kindLabel}</p>
         <h1>
           {bundle.placeLabel}{' '}
           <span className="sic-head-duration">{bundle.durationLabel}</span>
         </h1>
         <p className="sic-sub">
           모자란 공급사만 목록 검색 → 등록대기로 올립니다. 공개 비교표(
-          <Link href={`${SIMILAR_ITINERARY_COMPARE_PATH}?place=${encodeURIComponent(bundle.placeLabel)}&duration=${encodeURIComponent(bundle.durationLabel)}`}>
+          <Link
+            href={
+              buildSimilarItineraryCompareHref({
+                place: bundle.placeLabel,
+                duration: bundle.durationLabel,
+                kind,
+              }) ?? SIMILAR_ITINERARY_COMPARE_PATH
+            }
+          >
             {SIMILAR_ITINERARY_COMPARE_PATH}
           </Link>
-          )에는 승인·등록 후에야 나타납니다.
+          )에는 승인·등록 후에야 나타납니다. 패키지·자유여행은 kind로 분리합니다.
         </p>
       </div>
+
+      <nav className="sic-presets" aria-label="상품 종류">
+        {(['package', 'fit'] as const).map((k) => {
+          const href = adminCompareHref({
+            place: bundle.placeLabel,
+            duration: bundle.durationLabel,
+            kind: k,
+          })
+          return (
+            <Link key={k} href={href} className={kind === k ? 'sic-chip sic-chip--on' : 'sic-chip'}>
+              <span>{similarItineraryCompareKindLabel(k)}</span>
+              <small>kind={k}</small>
+            </Link>
+          )
+        })}
+      </nav>
 
       <nav className="sic-presets" aria-label="예시 묶음">
         {DEV_COMPARE_PRESETS.map((p) => {
           const active = p.place === bundle.placeLabel && p.duration === bundle.durationLabel
-          const href = `${SIMILAR_ITINERARY_COMPARE_ADMIN_PATH}?place=${encodeURIComponent(p.place)}&duration=${encodeURIComponent(p.duration)}`
+          const href = adminCompareHref({ place: p.place, duration: p.duration, kind })
           return (
             <Link key={`${p.place}-${p.duration}`} href={href} className={active ? 'sic-chip sic-chip--on' : 'sic-chip'}>
               <span>
@@ -138,6 +183,7 @@ export default async function AdminSimilarItineraryComparePage({ searchParams }:
           <form action={enqueueCompareClusterGapIngestAction} className="sic-gap-form">
             <input type="hidden" name="place" value={bundle.placeLabel} />
             <input type="hidden" name="duration" value={bundle.durationLabel} />
+            <input type="hidden" name="kind" value={kind} />
             <button type="submit" className="sic-gap-btn">
               등록대기 수집
             </button>
@@ -153,11 +199,13 @@ export default async function AdminSimilarItineraryComparePage({ searchParams }:
       )}
 
       {bundle.rows.length === 0 ? (
-        <p className="sic-empty">이 목적지·박일로 등록된 후보가 없습니다.</p>
+        <p className="sic-empty">이 목적지·박일의 {kindLabel} 후보가 없습니다.</p>
       ) : (
         <div className="sic-table-wrap">
           <table className="sic-table">
-            <caption className="sic-caption">등록 후보 {bundle.rows.length}건 (운영 미리보기)</caption>
+            <caption className="sic-caption">
+              {kindLabel} 등록 후보 {bundle.rows.length}건 (운영 미리보기)
+            </caption>
             <thead>
               <tr>
                 <th scope="col">공급사</th>
@@ -210,6 +258,7 @@ export default async function AdminSimilarItineraryComparePage({ searchParams }:
             {buildSimilarItineraryCompareHref({
               place: bundle.placeLabel,
               duration: bundle.durationLabel,
+              kind,
             }) ?? SIMILAR_ITINERARY_COMPARE_PATH}
           </code>
         </p>

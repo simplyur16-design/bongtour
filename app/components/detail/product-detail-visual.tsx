@@ -235,10 +235,18 @@ type TitleProps = {
   style?: React.CSSProperties
   /** 모바일 히어로 등 어두운 배경 */
   tone?: 'light' | 'dark'
+  /** 히어로 스티키 카드 — HeroStickyInfoAside 폰트 맞춤 타깃 */
+  'data-hero-sticky-title'?: boolean
 }
 
 /** 상품명: `[]` 구간 줄 단위 + 보조 강조색 */
-export function ProductDetailTitle({ title, className, style, tone = 'light' }: TitleProps) {
+export function ProductDetailTitle({
+  title,
+  className,
+  style,
+  tone = 'light',
+  'data-hero-sticky-title': dataHeroStickyTitle,
+}: TitleProps) {
   // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 히어로 제목 IATA→한글 — manifest
   const lines = splitProductHeroTitleLines(expandAirlineIataCodesInPublicTitle(title))
   const tagCls = tone === 'dark' ? 'font-extrabold text-teal-200' : 'font-extrabold text-bt-card-accent-strong'
@@ -247,7 +255,11 @@ export function ProductDetailTitle({ title, className, style, tone = 'light' }: 
       ? 'bt-wrap mb-3 text-[1.35rem] font-black leading-[1.8] tracking-[0.02em] text-white sm:text-2xl'
       : 'bt-wrap text-2xl font-black leading-[1.8] tracking-[0.02em] text-bt-title sm:text-3xl'
   return (
-    <h1 className={className ?? defaultCls} style={style}>
+    <h1
+      className={className ?? defaultCls}
+      style={style}
+      {...(dataHeroStickyTitle ? { 'data-hero-sticky-title': '' } : {})}
+    >
       {lines.map((line, i) => {
         const isTag = line.startsWith('[') && line.endsWith(']')
         return (

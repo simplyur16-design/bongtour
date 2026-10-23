@@ -22,8 +22,11 @@ import {
 } from '@/lib/similar-itinerary-compare-href'
 import Link from 'next/link'
 
+const TITLE_MAX_STICKY_PX = 28
+
 export type FitItineraryHeroInfoPanelProps = {
   showTitle?: boolean
+  fitTitleInSticky?: boolean
   dataSourceLabel: string
   title: string
   originCode: string
@@ -54,6 +57,7 @@ export type FitItineraryHeroInfoPanelProps = {
 /** 자유여행 상세 — 패키지 hero 정보 카드와 동일 레이아웃 (코드 격리 fork) */
 export default function FitItineraryHeroInfoPanel({
   showTitle = false,
+  fitTitleInSticky = false,
   dataSourceLabel: _dataSourceLabel,
   title,
   originCode,
@@ -98,6 +102,7 @@ export default function FitItineraryHeroInfoPanel({
     totalDays: _masterTotalDays,
     listingKind: listingKind ?? 'air_hotel_free',
     productType: 'air-hotel',
+    forceKind: 'fit',
   })
 
   return (
@@ -105,7 +110,14 @@ export default function FitItineraryHeroInfoPanel({
       {showTitle ? (
         <ProductDetailTitle
           title={title}
-          className="bt-wrap mt-0 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl"
+          // REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: data-hero-sticky-title 자동 축소 — manifest
+          data-hero-sticky-title={fitTitleInSticky ? true : undefined}
+          className={
+            fitTitleInSticky
+              ? 'bt-wrap mt-0 font-black leading-[1.35] tracking-[0.02em] text-bt-title'
+              : 'bt-wrap mt-0 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl'
+          }
+          style={fitTitleInSticky ? { fontSize: `${TITLE_MAX_STICKY_PX}px` } : undefined}
         />
       ) : null}
 

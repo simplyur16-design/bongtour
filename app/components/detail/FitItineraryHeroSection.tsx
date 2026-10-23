@@ -4,6 +4,7 @@ import ProductHeroCarousel from '@/app/components/detail/ProductHeroCarousel'
 import FitItineraryHeroInfoPanel, {
   type FitItineraryHeroInfoPanelProps,
 } from '@/app/components/detail/FitItineraryHeroInfoPanel'
+import HeroStickyInfoAside from '@/app/components/detail/HeroStickyInfoAside'
 import { ProductHeroTitleLines } from '@/app/components/detail/product-detail-visual'
 import { resolvePublicDetailHeroTitles } from '@/lib/bongtour-product-display-title-ssot'
 
@@ -161,9 +162,10 @@ export default function FitItineraryHeroSection({
         </div>
 
         {/* REGRESSION-FREEZE[public-detail-hero-info-card-inset]: max-h=히어로 기준 — 100vh 중앙배치로 위·아래 잘림 금지 — manifest */}
-        <aside className="absolute right-6 top-1/2 z-[30] hidden max-h-[calc(100%-3rem)] w-[420px] -translate-y-1/2 overflow-y-auto overscroll-contain rounded-2xl bg-white p-5 shadow-xl lg:block xl:right-12 xl:w-[460px]">
-          <FitItineraryHeroInfoPanel {...infoPanelWithCta} showTitle />
-        </aside>
+        {/* REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: 스크롤 금지·제목 폰트 맞춤 — manifest */}
+        <HeroStickyInfoAside fitKey={infoPanelWithCta.title}>
+          <FitItineraryHeroInfoPanel {...infoPanelWithCta} showTitle fitTitleInSticky />
+        </HeroStickyInfoAside>
       </div>
 
       <div className="relative z-[30] mx-4 -mt-14 rounded-2xl bg-white p-5 shadow-lg sm:-mt-12 sm:p-6 lg:hidden">

@@ -85,6 +85,7 @@ export default function FitItineraryQuoteCard({
     title: productTitle,
     listingKind: 'air_hotel_free',
     productType: 'air-hotel',
+    forceKind: 'fit',
   })
 
   const unitByKey: Record<keyof FitPax, number> = {
