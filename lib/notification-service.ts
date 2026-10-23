@@ -11,6 +11,7 @@ import {
   type AdminInquiryLmsBodyInput,
 } from '@/lib/admin-inquiry-lms-content'
 import { buildEsimQrDeliveredLmsText } from '@/lib/bongsim/notifications/esim-qr-lms'
+import { enqueueSolapiSend, type SolapiSendPriority } from '@/lib/bongsim/notifications/solapi-send-queue'
 
 const MAX_RETRIES = 2
 
@@ -86,29 +87,34 @@ async function sendSolapiMessage(
   apiSecret: string,
   from: string,
   to: string,
-  text: string
+  text: string,
+  priority: SolapiSendPriority = 'normal',
 ): Promise<{ ok: true } | { ok: false; code?: string; message: string }> {
-  try {
-    const svc = new SolapiMessageService(apiKey, apiSecret)
-    await svc.send({
-      from,
-      to,
-      text,
-    })
-    return { ok: true }
-  } catch (e) {
-    const { code, message } = formatSolapiSendError(e)
-    console.error(
-      '[sendSolapiMessage] failed',
-      JSON.stringify({
+  // REGRESSION-FREEZE[bongsim-solapi-esim-priority-queue]: enqueue by priority — manifest
+  return enqueueSolapiSend(priority, async () => {
+    try {
+      const svc = new SolapiMessageService(apiKey, apiSecret)
+      await svc.send({
+        from,
         to,
-        code: code ?? null,
-        message,
-        errTag: e && typeof e === 'object' && '_tag' in e ? (e as { _tag: string })._tag : null,
+        text,
       })
-    )
-    return { ok: false, code, message }
-  }
+      return { ok: true as const }
+    } catch (e) {
+      const { code, message } = formatSolapiSendError(e)
+      console.error(
+        '[sendSolapiMessage] failed',
+        JSON.stringify({
+          to,
+          priority,
+          code: code ?? null,
+          message,
+          errTag: e && typeof e === 'object' && '_tag' in e ? (e as { _tag: string })._tag : null,
+        }),
+      )
+      return { ok: false as const, code, message }
+    }
+  })
 }
 
 /**
@@ -523,7 +529,15 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
     downloadLink: p.downloadLink,
   })
 
-  const r = await sendSolapiMessage(apiKey, apiSecret, from, toDigits, truncateForSms(text, 2000))
+  // REGRESSION-FREEZE[bongsim-solapi-esim-priority-queue]: eSIM LMS priority — manifest
+  const r = await sendSolapiMessage(
+    apiKey,
+    apiSecret,
+    from,
+    toDigits,
+    truncateForSms(text, 2000),
+    'esim',
+  )
   if (!r.ok) {
     console.error(
       '[sendEsimQrDeliveredLmsFallback] failed',

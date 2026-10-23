@@ -67,6 +67,15 @@ describe('instrumentation-process-role', () => {
     expect(resolveInstrumentationProcessRole()).toBe('worker')
   })
 
+  it('production forbids ROLE=all — forces web (no background on HTTP)', () => {
+    // REGRESSION-FREEZE[bongsim-fulfill-owner-split]: prod ROLE=all 금지 → web 강제 — manifest
+    process.env.NODE_ENV = 'production'
+    process.env.BONGTOUR_INSTRUMENTATION_ROLE = 'all'
+    expect(resolveInstrumentationProcessRole()).toBe('web')
+    expect(shouldRunBackgroundCrons()).toBe(false)
+    expect(shouldDrainOrderPaidInThisProcess()).toBe(true)
+  })
+
   it('disable flag turns off fulfillment crons on web too', () => {
     process.env.DISABLE_INSTRUMENTATION_BONGSIM_ORDER_PAID_OUTBOX_CRON = '1'
     expect(shouldRunFulfillmentCrons('worker')).toBe(false)

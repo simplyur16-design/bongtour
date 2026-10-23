@@ -28,7 +28,20 @@ export function resolveInstrumentationProcessRole(): InstrumentationProcessRole 
     return 'fulfill'
   }
   if (explicit === 'web' || explicit === 'http') return 'web'
-  if (explicit === 'all' || explicit === 'legacy' || explicit === 'combined') return 'all'
+  if (explicit === 'all' || explicit === 'legacy' || explicit === 'combined') {
+    // REGRESSION-FREEZE[bongsim-fulfill-owner-split]: prod ROLE=all 금지 → web 강제 — manifest
+    const prod =
+      process.env.NODE_ENV === 'production' ||
+      process.env.RAILWAY_ENVIRONMENT === 'production' ||
+      process.env.VERCEL_ENV === 'production'
+    if (prod) {
+      console.error(
+        '[instrumentation-role] BONGTOUR_INSTRUMENTATION_ROLE=all forbidden in production — forcing web (no background crons on HTTP)',
+      )
+      return 'web'
+    }
+    return 'all'
+  }
 
   const serviceName = (process.env.RAILWAY_SERVICE_NAME ?? '').trim().toLowerCase()
   if (serviceName.includes('fulfill')) return 'fulfill'
@@ -106,9 +119,10 @@ export function logInstrumentationProcessRole(): void {
     fulfillOwner,
     railwayService: process.env.RAILWAY_SERVICE_NAME ?? null,
   }
-  if (process.env.NODE_ENV === 'production' && role === 'all') {
+  // prod ROLE=all 은 resolve 단계에서 web 강제 — 여기 도달 시 비운영/레거시만
+  if (role === 'all') {
     console.warn(
-      '[instrumentation-role] BONGTOUR_INSTRUMENTATION_ROLE=all in production — web·cron이 한 프로세스에 공존합니다. web+worker 분리를 권장합니다.',
+      '[instrumentation-role] ROLE=all (non-prod) — web+background share process',
       payload,
     )
     return

@@ -1,4 +1,5 @@
 import { SolapiMessageService } from "solapi";
+import { enqueueSolapiSend } from "@/lib/bongsim/notifications/solapi-send-queue";
 
 export type EsimQrAlimtalkPayload = {
   customerPhone: string;
@@ -83,18 +84,21 @@ export async function sendEsimQrDeliveredAlimTalk(
   };
 
   try {
-    const svc = new SolapiMessageService(apiKey, apiSecret);
-    await svc.send({
-      to,
-      from,
-      type: "ATA",
-      kakaoOptions: {
-        pfId,
-        templateId,
-        variables,
-        /** 솔라피 자동 문자 방지 — LMS는 알림톡 실패 시에만 (`sendEsimQrDeliveredLmsFallback`) */
-        disableSms: true,
-      },
+    // REGRESSION-FREEZE[bongsim-solapi-esim-priority-queue]: alimtalk eSIM priority — manifest
+    await enqueueSolapiSend("esim", async () => {
+      const svc = new SolapiMessageService(apiKey, apiSecret);
+      await svc.send({
+        to,
+        from,
+        type: "ATA",
+        kakaoOptions: {
+          pfId,
+          templateId,
+          variables,
+          /** 솔라피 자동 문자 방지 — LMS는 알림톡 실패 시에만 (`sendEsimQrDeliveredLmsFallback`) */
+          disableSms: true,
+        },
+      });
     });
     return { ok: true };
   } catch (e) {

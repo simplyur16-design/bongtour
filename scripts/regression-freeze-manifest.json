@@ -1752,7 +1752,8 @@
             "REGRESSION-FREEZE[bongsim-fulfill-owner-split]",
             "shouldRunFulfillmentCrons",
             "resolveBongsimFulfillmentOwner",
-            "BONGSIM_FULFILL_OWNER"
+            "BONGSIM_FULFILL_OWNER",
+            "prod ROLE=all 금지 → web 강제"
           ]
         },
         {
@@ -26331,8 +26332,45 @@
             "REGRESSION-FREEZE[home-season-grid-no-itinerary-join]",
             "hero도 Suspense"
           ]
+        },
+        {
+          "file": "middleware.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-season-grid-no-itinerary-join]",
+            "홈은 마커 없으면 JWT decode skip"
+          ]
         }
       ]
+    },
+    {
+      "id": "bongsim-solapi-esim-priority-queue",
+      "tier": ["prebuild", "ci"],
+      "summary": "Solapi 발송 큐 — eSIM LMS/알림톡이 문의·관리자 SMS보다 우선",
+      "checks": [
+        {
+          "file": "lib/bongsim/notifications/solapi-send-queue.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-solapi-esim-priority-queue]",
+            "enqueueSolapiSend",
+            "esim"
+          ]
+        },
+        {
+          "file": "lib/notification-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-solapi-esim-priority-queue]",
+            "eSIM LMS priority"
+          ]
+        },
+        {
+          "file": "lib/bongsim/notifications/esim-qr-alimtalk.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-solapi-esim-priority-queue]",
+            "alimtalk eSIM priority"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/bongsim/notifications/solapi-send-queue.test.ts"]
     },
     {
       "id": "public-detail-hero-short-listing",

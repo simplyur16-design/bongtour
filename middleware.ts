@@ -21,6 +21,7 @@ import {
   isConsentAllowedPath,
   redirectToConsentSignup,
 } from '@/lib/middleware-consent'
+import { hasConsentPendingMarkerCookie } from '@/lib/auth-session-cookie'
 import { authDebugLog } from '@/lib/auth/auth-debug'
 import {
   isSimplyurSurfacePath,
@@ -114,10 +115,13 @@ export async function middleware(req: NextRequest) {
 
   const isAdminRoute = pathname.startsWith('/admin')
   const isAdminApiRoute = pathname.startsWith('/api/admin/')
+  // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: 홈은 마커 없으면 JWT decode skip — manifest
+  const isHomePath = pathname === '/' || pathname === '/m'
   const needsSessionDecode =
     isAdminRoute ||
     isAdminApiRoute ||
-    !isConsentAllowedPath(pathname)
+    (!isHomePath && !isConsentAllowedPath(pathname)) ||
+    (isHomePath && hasConsentPendingMarkerCookie(req))
 
   let token: MiddlewareToken | null = null
   if (needsSessionDecode) {
