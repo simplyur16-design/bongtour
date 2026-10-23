@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  areSimilarByMegaCityTagOverlap,
   comparePlaceClustersMatch,
   comparePlaceDbSearchTerms,
+  megaMenuCityTagOverlapCount,
+  megaMenuGroupCityKeys,
   normalizeCompareDurationLabel,
+  productInMegaGroupComparePool,
   resolveComparePlaceCluster,
   resolveComparePlaceClusterFromHay,
 } from '@/lib/similar-itinerary-compare-cluster'
@@ -116,5 +120,20 @@ describe('similar-itinerary-compare-cluster', () => {
     expect(terms).toContain('뉴질랜드')
     expect(terms.length).toBeGreaterThan(5)
     expect(terms.length).toBeLessThanOrEqual(40)
+  })
+
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 그룹 도시 1개라도 → 비교군 · ≥2 → similar — manifest
+  it('미동부 그룹 — 도시 1개라도 겹치면 비교군, 2개 이상이면 유사', () => {
+    const groupKeys = megaMenuGroupCityKeys('미동부')
+    expect(groupKeys.length).toBeGreaterThanOrEqual(2)
+    expect(productInMegaGroupComparePool(['nyc'], groupKeys)).toBe(true)
+    expect(productInMegaGroupComparePool(['new-york'], groupKeys)).toBe(true)
+    expect(productInMegaGroupComparePool(['niagara'], groupKeys)).toBe(false)
+    // nyc+washington vs nyc+dc → 뉴욕·워싱턴 2개 겹침 (dc≡워싱턴)
+    expect(megaMenuCityTagOverlapCount(['nyc', 'washington'], ['nyc', 'dc'])).toBe(2)
+    expect(areSimilarByMegaCityTagOverlap(['nyc', 'washington'], ['nyc', 'washington', 'niagara'])).toBe(
+      true,
+    )
+    expect(areSimilarByMegaCityTagOverlap(['nyc'], ['nyc', 'washington'])).toBe(false)
   })
 })

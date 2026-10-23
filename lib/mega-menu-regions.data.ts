@@ -247,7 +247,9 @@ const SEA: MegaMenuCountryGroupDef[] = [
     city('아그라', ['아그라', 'agra', '인도', '타지마할', '북인도', '골든트라이앵글']),
     city('바라나시', ['바라나시', 'varanasi', '인도', '북인도', '갠지스']),
   ]),
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 스리랑카=국가 leaf (콜롬보만 강제 금지) — manifest
   G('스리랑카', [
+    LC('스리랑카', ['스리랑카', 'sri lanka', 'srilanka', '세일론']),
     city('콜롬보', ['콜롬보', 'colombo', '스리랑카']),
     city('캔디', ['캔디', 'kandy', '스리랑카']),
     city('시기리야', ['시기리야', 'sigiriya', '스리랑카']),

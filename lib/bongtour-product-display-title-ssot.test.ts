@@ -293,6 +293,86 @@ describe('resolvePublicBrowseCardTitle', () => {
     expect(r.cardTitle).toBe('삿포로 3박 4일')
     expect(r.cardTitle).not.toMatch(/^일본\s/)
   })
+
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 미동부 card ≠ 나이아가라 — manifest
+  it('미동부 상품 카드가 나이아가라로 떨어지지 않음', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '미동부 핵심관광 8일',
+        duration: '7박 8일',
+        primaryDestination: '미동부',
+        cityKey: 'niagara',
+        countryKey: 'usa',
+        countryRowLabel: '미국',
+      },
+      '미동부 핵심관광 8일',
+    )
+    expect(r.cardTitle).not.toMatch(/나이아가라/)
+    expect(r.cardTitle).toMatch(/뉴욕/)
+  })
+
+  it('미동부, 캐나다 + dest 나이아가라(제목 미언급) 카드 ≠ 나이아가라', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '미동부, 캐나다 PICK 7박 10일',
+        duration: '7박 10일',
+        primaryDestination: '나이아가라',
+        cityKey: 'nyc',
+        countryKey: 'usa',
+        countryRowLabel: '미국',
+      },
+      '미동부, 캐나다 PICK 7박 10일',
+    )
+    expect(r.cardTitle).not.toMatch(/나이아가라/)
+    expect(r.cardTitle).toMatch(/뉴욕/)
+  })
+
+  it('인도 권역·제목에 도시 없으면 인도 short (자이푸르 cityKey 금지)', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '인도 골든트라이앵글 7일',
+        duration: '6박 7일',
+        primaryDestination: '자이푸르',
+        cityKey: 'jaipur',
+        countryKey: 'india',
+        countryRowLabel: '인도',
+      },
+      '인도 골든트라이앵글 7일',
+    )
+    expect(r.cardTitle).toMatch(/^인도\s/)
+    expect(r.cardTitle).not.toMatch(/자이푸르/)
+  })
+
+  it('제목에 바라나시가 있으면 대표 도시 short', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '북인도일주 9일 #타지마할,바라나시,갠지스강',
+        duration: '7박 9일',
+        primaryDestination: '자이푸르',
+        cityKey: 'india',
+        countryKey: 'india',
+        countryRowLabel: '인도',
+      },
+      '북인도일주 9일',
+    )
+    expect(r.cardTitle).toMatch(/^바라나시\s/)
+  })
+
+  it('스리랑카 권역 카드는 콜롬보가 아니라 스리랑카 short', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '스리랑카 일주 6일',
+        duration: '5박 6일',
+        primaryDestination: '콜롬보',
+        cityKey: 'colombo',
+        countryKey: 'sri-lanka',
+        countryRowLabel: '스리랑카',
+      },
+      '스리랑카 일주 6일',
+    )
+    expect(r.cardTitle).toMatch(/^스리랑카\s/)
+    expect(r.cardTitle).not.toMatch(/콜롬보/)
+  })
 })
 
 // REGRESSION-FREEZE[public-detail-hero-short-listing]: 상세 short·원명 — manifest

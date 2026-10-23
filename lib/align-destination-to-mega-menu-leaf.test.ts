@@ -105,4 +105,109 @@ describe('alignDestinationToMegaMenuLeaf', () => {
     })
     expect(fin.primaryDestination).toBe('삿포로')
   })
+
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 미동부≠캐나다 leaf — manifest
+  it('미동부 그룹 + cityKey niagara → 나이아가라 금지 (캐나다 leaf)', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '미동부',
+      title: '미동부 핵심관광 8일',
+      cityKey: 'niagara',
+      countryKey: 'usa',
+    })
+    expect(r.destination).not.toBe('나이아가라')
+    expect(r.destination).toBe('뉴욕')
+  })
+
+  it('이미 나이아가라 dest여도 제목 미동부면 미동부 그룹 leaf로 교정', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '나이아가라',
+      title: '미동부 뉴욕 워싱턴 일주',
+      cityKey: 'niagara',
+      countryKey: 'usa',
+    })
+    expect(r.destination).not.toBe('나이아가라')
+    expect(['뉴욕', '워싱턴']).toContain(r.destination)
+  })
+
+  it('미동부, 캐나다 제목 + dest 나이아가라(제목 미언급) → 미동부 leaf', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '나이아가라',
+      title: '미동부, 캐나다 PICK 7박 10일',
+      cityKey: 'nyc',
+      countryKey: 'usa',
+    })
+    expect(r.destination).not.toBe('나이아가라')
+    expect(r.destination).toBe('뉴욕')
+  })
+
+  it('제목에 나이아가라가 명시되면 유지', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '나이아가라',
+      title: '미동부 나이아가라 방문 10일',
+      cityKey: 'niagara',
+      countryKey: 'usa',
+    })
+    expect(r.destination).toBe('나이아가라')
+  })
+
+  it('인도 권역 + cityKey jaipur → 국가 leaf 인도 (자이푸르 강등 금지)', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '자이푸르',
+      title: '인도 골든트라이앵글 7일',
+      cityKey: 'jaipur',
+      countryKey: 'india',
+    })
+    expect(r.destination).toBe('인도')
+  })
+
+  it('스리랑카 권역 + cityKey colombo → 국가 leaf 스리랑카', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '콜롬보',
+      title: '스리랑카 일주 6일',
+      cityKey: 'colombo',
+      countryKey: 'sri-lanka',
+    })
+    expect(r.destination).toBe('스리랑카')
+  })
+
+  it('북유럽 그룹을 덴마크로 임의 강등하지 않음', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '북유럽 · 발트 발틱3국',
+      title: '북유럽 발트 발틱3국 10일',
+      cityKey: 'georgia',
+      countryKey: 'nordic-baltic',
+    })
+    expect(r.destination).not.toBe('덴마크')
+    expect(r.destination).not.toBe('조지아')
+  })
+
+  it('시즈오카 dest를 테마 트레킹으로 훔치지 않음', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '시즈오카',
+      title: '시즈오카 트레킹 3일',
+      cityKey: 'shizuoka',
+      countryKey: 'japan',
+    })
+    expect(r.destination).toBe('시즈오카')
+  })
+
+  it('미서부+하와이 하이브리드 — 호놀룰루를 로스앤젤레스로 뺏지 않음', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '호놀룰루',
+      title: '미서부, 하와이 11일',
+      cityKey: 'honolulu',
+      countryKey: 'united-states',
+    })
+    expect(r.destination).toBe('호놀룰루')
+  })
+
+  it('제목에 바라나시가 있으면 자이푸르 dest를 바라나시로', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '자이푸르',
+      title: '북인도일주 9일 #타지마할,바라나시',
+      cityKey: 'india',
+      countryKey: 'india',
+    })
+    expect(r.destination).toBe('바라나시')
+  })
 })

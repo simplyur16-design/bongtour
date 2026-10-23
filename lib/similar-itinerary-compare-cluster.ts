@@ -9,6 +9,7 @@ import {
   durationHintFromTitle,
   scrubKrDepartureFromPlaceLabel,
 } from '@/lib/bongtour-product-display-title-ssot'
+import { megaMenuClickLabelForCityKey } from '@/lib/mega-menu-click-label'
 import { buildMegaMenuSharedCityHaystackStopTerms } from '@/lib/mega-menu-city-haystack-terms'
 import { MEGA_MENU_TAB_DEFINITIONS, type MegaMenuLeafDef } from '@/lib/mega-menu-regions.data'
 import { citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
@@ -323,4 +324,78 @@ export function comparePlaceClustersMatch(
 ): boolean {
   if (!want?.key || !product?.key) return false
   return want.key === product.key
+}
+
+/** cityKey·slug 표기 흔들림(nyc↔new-york) → 메가메뉴 leaf 라벨로 정규화 */
+function megaCityKeyToLeafLabel(cityKey: string): string {
+  const k = String(cityKey || '').trim()
+  if (!k) return ''
+  return megaMenuClickLabelForCityKey(k) || k.toLowerCase()
+}
+
+/**
+ * 메가메뉴 중분류에 도시 leaf가 여러 개일 때 —
+ * 상품 cityTags가 그중 하나라도 겹치면 비교군에 포함.
+ * REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 그룹 도시 1개라도 → 비교군 — manifest
+ */
+export function productInMegaGroupComparePool(
+  productCityKeys: readonly string[],
+  groupCityKeys: readonly string[],
+): boolean {
+  if (!productCityKeys.length || !groupCityKeys.length) return false
+  const have = new Set(
+    productCityKeys.map((k) => megaCityKeyToLeafLabel(k)).filter(Boolean),
+  )
+  for (const k of groupCityKeys) {
+    const lab = megaCityKeyToLeafLabel(k)
+    if (lab && have.has(lab)) return true
+  }
+  return false
+}
+
+/** 두 상품 cityTags 교집합 개수 (메가메뉴 leaf 라벨 기준). */
+export function megaMenuCityTagOverlapCount(
+  aCityKeys: readonly string[],
+  bCityKeys: readonly string[],
+): number {
+  const have = new Set(aCityKeys.map((k) => megaCityKeyToLeafLabel(k)).filter(Boolean))
+  let n = 0
+  const seen = new Set<string>()
+  for (const k of bCityKeys) {
+    const lab = megaCityKeyToLeafLabel(k)
+    if (!lab || seen.has(lab) || !have.has(lab)) continue
+    seen.add(lab)
+    n++
+  }
+  return n
+}
+
+/**
+ * 겹치는 메가메뉴 도시가 2개 이상이면 비슷한 상품으로 묶음.
+ * REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: city overlap≥2 → similar — manifest
+ */
+export function areSimilarByMegaCityTagOverlap(
+  aCityKeys: readonly string[],
+  bCityKeys: readonly string[],
+  minOverlap = 2,
+): boolean {
+  return megaMenuCityTagOverlapCount(aCityKeys, bCityKeys) >= minOverlap
+}
+
+/** 메가메뉴 그룹 라벨 → 직속 city leaf slug(cityKey) 목록 */
+export function megaMenuGroupCityKeys(groupLabel: string): string[] {
+  const g = String(groupLabel || '').trim()
+  if (!g) return []
+  const keys: string[] = []
+  for (const tab of MEGA_MENU_TAB_DEFINITIONS) {
+    if (tab.localDeparture) continue
+    for (const group of tab.groups) {
+      if (group.countryLabel !== g) continue
+      for (const leaf of group.cities) {
+        if (leaf.kind !== 'city') continue
+        keys.push(citySlugFromTermsAndLabel(leaf.label, leaf.terms))
+      }
+    }
+  }
+  return keys
 }
