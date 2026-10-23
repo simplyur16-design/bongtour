@@ -2844,7 +2844,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]",
             "scheduleEsimQrNotifyDrainRetry",
-            "kickEsimQrNotifyDrain"
+            "kickEsimQrNotifyDrain",
+            "notify_send_failed는 시도 상한으로 종결 금지"
           ]
         },
         {
@@ -2862,7 +2863,8 @@
             "isBongsimPgNetworkUnreachable",
             "retry next tick (no skip)",
             "OrderPaid 포화 skip ≠ eSIM 문자 중단",
-            "saturated-window SMS drain"
+            "saturated-window SMS drain",
+            "문자(EsimQrNotify) 먼저"
           ]
         }
       ]
@@ -4302,7 +4304,7 @@
         {
           "file": "lib/persona-curated-destinations.ts",
           "mustInclude": [
-            "v11-no-empty-poison",
+            "v12-take240",
             "if (!cycle?.id) return empty",
             "cached.cards.length > 0"
           ]
@@ -26303,7 +26305,17 @@
           "file": "lib/persona-curated-destinations.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[home-season-grid-no-itinerary-join]",
-            "persona cover도 schedule JSON만"
+            "persona cover도 schedule JSON만",
+            "persona product scan take 상한",
+            "take: 240"
+          ]
+        },
+        {
+          "file": "lib/season-hero-city-keys.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-season-grid-no-itinerary-join]",
+            "hero eligible city scan take 상한",
+            "take: 400"
           ]
         },
         {
@@ -26311,6 +26323,13 @@
           "mustInclude": [
             "REGRESSION-FREEZE[home-season-grid-no-itinerary-join]",
             "air-hotel 시즌도 schedule JSON만"
+          ]
+        },
+        {
+          "file": "app/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-season-grid-no-itinerary-join]",
+            "hero도 Suspense"
           ]
         }
       ]

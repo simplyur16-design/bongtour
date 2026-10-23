@@ -95,7 +95,10 @@ export default async function Home() {
         <main className="flex-1">
           <section className="ow-live-shell" aria-label="Bong투어 메인 소개 및 서비스 허브">
             <HomeDocumentH1 />
-            <SeasonCurationHero sectionId="season-curation-main" />
+            {/* REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: hero도 Suspense — TTFB 블로킹 완화 — manifest */}
+            <Suspense fallback={<div className="min-h-[14rem]" aria-hidden />}>
+              <SeasonCurationHero sectionId="season-curation-main" />
+            </Suspense>
             <Suspense fallback={<div className="min-h-[10rem]" aria-hidden />}>
               <PersonaCuratedDestinations oceanWarm />
             </Suspense>

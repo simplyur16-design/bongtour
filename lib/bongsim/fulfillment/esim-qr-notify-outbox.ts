@@ -204,8 +204,9 @@ async function deferNotifyFailure(
       ? ((input.payload as Record<string, unknown>)._outbox_defer as { attempts?: number } | undefined)
       : undefined
   const attempts = (prev?.attempts ?? 0) + 1
-  if (attempts >= 5) {
-    // attempts already counted above — force terminal via max attempts path
+  // REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]: notify_send_failed는 시도 상한으로 종결 금지 — manifest
+  // invalid_payload 등만 기존 5회 terminal (아래). Solapi/일시 오류는 계속 재시도.
+  if (attempts >= 5 && input.reason !== 'notify_send_failed') {
     const forced = {
       ...(input.payload && typeof input.payload === 'object'
         ? (input.payload as Record<string, unknown>)
@@ -220,7 +221,7 @@ async function deferNotifyFailure(
     })
   }
 
-  const backoffSec = Math.min(180, 20 * attempts)
+  const backoffSec = Math.min(300, 20 * Math.min(attempts, 15))
   const errMsg =
     input.err instanceof Error ? input.err.message : input.err != null ? String(input.err) : undefined
   const base =

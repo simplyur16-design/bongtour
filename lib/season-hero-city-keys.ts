@@ -38,6 +38,7 @@ export async function loadHeroEligibleCityKeySet(
 
   const browseGeoByCity = await loadMegaMenuBrowseUrlGeoByCityKeys(pool)
 
+  // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: hero eligible city scan take 상한 — manifest
   const rows = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
@@ -56,6 +57,8 @@ export async function loadHeroEligibleCityKeySet(
       cityTags: { select: { cityKey: true } },
       countryTags: { select: { countryKey: true, nodeKey: true } },
     },
+    orderBy: { updatedAt: 'desc' },
+    take: 400,
   })
 
   const products: OverseasProductMatchInput[] = rows

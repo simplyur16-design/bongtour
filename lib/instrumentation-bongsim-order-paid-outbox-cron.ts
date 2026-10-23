@@ -150,9 +150,11 @@ async function unlockStaleFulfillOutboxes(): Promise<{ unlocked: number; agedPen
 
 async function drainFulfillOutboxes(): Promise<{ processed: number; deferred: number }> {
   await unlockStaleFulfillOutboxes();
-  await drainOrderPaidOutboxBestEffort(16);
+  // REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]: 문자(EsimQrNotify) 먼저 — OrderPaid 발급 backlog에 SMS 밀리지 않게 — manifest
   // REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: cron also drains EsimQrNotify — manifest
-  return drainEsimQrNotifyOutboxBestEffort(24);
+  const notify = await drainEsimQrNotifyOutboxBestEffort(24);
+  await drainOrderPaidOutboxBestEffort(16);
+  return notify;
 }
 
 async function tickBongsimOrderPaidOutboxCron(

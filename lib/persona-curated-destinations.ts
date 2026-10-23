@@ -162,6 +162,7 @@ async function loadPersonaCuratedDestinationsUncached(
     browseHrefs.filter(([, href]) => Boolean(href)).map(([ck, href]) => [ck, href!]),
   )
 
+  // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: persona product scan take 상한 — manifest
   const products = await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
@@ -183,6 +184,8 @@ async function loadPersonaCuratedDestinationsUncached(
       cityTags: { select: { cityKey: true } },
       countryTags: { select: { countryKey: true, nodeKey: true } },
     },
+    orderBy: { updatedAt: 'desc' },
+    take: 240,
   })
 
   const byCity = new Map<string, typeof products>()
@@ -270,10 +273,10 @@ export async function getPersonaCuratedDestinationsPayload(
   if (shouldSkipDbAtBuild()) return empty
   if (!cycle?.id) return empty
 
-  const cacheKey = ['persona-curated-destinations', cycle.id, 'v11-no-empty-poison']
+  const cacheKey = ['persona-curated-destinations', cycle.id, 'v12-take240']
   const run = unstable_cache(() => loadPersonaCuratedDestinationsUncached(cycle), cacheKey, {
     revalidate: 1_800,
-    tags: ['persona-curated-destinations-v11', `persona-curated-${cycle.id}`],
+    tags: ['persona-curated-destinations-v12', `persona-curated-${cycle.id}`],
   })
   const cached = await run()
   if (cached.cards.length > 0) return cached
