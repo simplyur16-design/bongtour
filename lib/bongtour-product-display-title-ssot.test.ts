@@ -34,15 +34,15 @@ describe('composeBongtourHeroDisplayTitle', () => {
     expect(r.placeKind).toBe('city')
   })
 
-  it('단일국·비브랜드 도시 → 국가 short + 도시 subtitle', () => {
+  it('단일국·메가 도시 leaf → 도시 short (일본 N박 금지)', () => {
     const r = composeBongtourHeroDisplayTitle({
       duration: '2박 3일',
       countryLabel: '일본',
       cities: ['가나자와', '다카야마'],
     })
-    expect(r.heroShortTitle).toBe('일본 2박 3일')
-    expect(r.heroSubtitle).toBe('가나자와 · 다카야마')
-    expect(r.placeKind).toBe('country')
+    expect(r.heroShortTitle).toBe('가나자와 2박 3일')
+    expect(r.heroSubtitle).toBe('일본')
+    expect(r.placeKind).toBe('city')
   })
 
   it('다국가 권역', () => {
@@ -144,18 +144,22 @@ describe('resolvePublicBrowseCardTitle', () => {
     expect(r.cardTitle).toBe(fb)
   })
 
-  it('목적지 괄호 조각 → 규슈 N박 M일 (반쪽 괄호 금지)', () => {
+  it('목적지 괄호 조각 → 도시 leaf short (규슈 중분류·반쪽 괄호 금지)', () => {
     const r = resolvePublicBrowseCardTitle(
       {
         title: '규슈 4일 #온천의 진수 #완벽한 동선',
         duration: '3박 4일',
         primaryDestination: '규슈 (후쿠오카, 벳푸, 유후인, 히타)',
+        cityKey: 'fukuoka',
+        countryKey: 'japan',
+        countryRowLabel: '일본',
       },
       '규슈 4일 #온천의 진수',
     )
     expect(r.usedHeroShort).toBe(true)
-    expect(r.cardTitle).toBe('규슈 3박 4일')
+    expect(r.cardTitle).toBe('후쿠오카 3박 4일')
     expect(r.cardTitle).not.toMatch(/[（(）)]/)
+    expect(r.cardTitle).not.toMatch(/^규슈\s|^일본\s/)
   })
 
   it('duration 비어도 제목 일수로 short', () => {
@@ -263,11 +267,31 @@ describe('resolvePublicBrowseCardTitle', () => {
         duration: '3박 4일',
         primaryDestination: '나하 국제거리',
         primaryRegion: '일본',
+        cityKey: 'okinawa',
+        countryKey: 'japan',
+        countryRowLabel: '일본',
       },
       '오키나와 4일 #츄라우미수족관',
     )
     expect(r.cardTitle).not.toMatch(/국제거리|여행\s*1박/)
-    expect(r.cardTitle).toMatch(/오키나와|일본/)
+    expect(r.cardTitle).toMatch(/오키나와/)
+    expect(r.cardTitle).not.toBe('일본 3박 4일')
+  })
+
+  it('홋카이도 그룹 dest + cityKey → 도시 short 일본 N박 금지', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '스타가이드와 함께하는 홋카이도 4일',
+        duration: '3박 4일',
+        primaryDestination: '홋카이도',
+        countryRowLabel: '일본',
+        cityKey: 'sapporo',
+        countryKey: 'japan',
+      },
+      '스타가이드와 함께하는 홋카이도 4일',
+    )
+    expect(r.cardTitle).toBe('삿포로 3박 4일')
+    expect(r.cardTitle).not.toMatch(/^일본\s/)
   })
 })
 
@@ -360,7 +384,7 @@ describe('resolvePublicBrowseCardTitle KR departure place', () => {
       },
       '[청주출발+동선최소화]몽골 울란바토르 3박5일',
     )
-    expect(r.cardTitle).toMatch(/울란바토르|몽골/)
+    expect(r.cardTitle).toMatch(/울란바토르|울란바타르|몽골/)
     expect(r.cardTitle).not.toMatch(/청주|동선최소화/)
   })
 })

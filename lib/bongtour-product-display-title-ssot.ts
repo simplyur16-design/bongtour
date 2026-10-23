@@ -12,6 +12,12 @@ import {
   decodePublicHtmlEntities,
 } from '@/lib/decode-public-html-entities'
 import { isRegisterDestinationScheduleActivityToken } from '@/lib/register-destination-schedule-activity-noise'
+import {
+  alignDestinationToMegaMenuLeaf,
+  classifyMegaMenuDestinationLabel,
+  firstMegaMenuLeafInText,
+} from '@/lib/align-destination-to-mega-menu-leaf'
+import { megaMenuClickLabelForCityKey } from '@/lib/mega-menu-click-label'
 
 export const BONGTOUR_PRODUCT_DISPLAY_TITLE_VERSION = 'v1-2026-10-15'
 
@@ -228,6 +234,24 @@ function pickBrandCity(cities: readonly string[]): string | null {
   return null
 }
 
+/** 메가메뉴 도시 leaf만 — 중분류(홋카이도·규슈)·오염 제외 */
+function pickMegaMenuCityPlace(cities: readonly string[]): string | null {
+  const megaCities = cities.filter((c) => classifyMegaMenuDestinationLabel(c) === 'city')
+  if (megaCities.length) return pickBrandCity(megaCities) || megaCities[0] || null
+  // 메가 도시 leaf는 없으나 카드용 soft 도시(시드니·파리 등)
+  for (const c of cities) {
+    if (/^(시드니|멜버른|오클랜드|파리|니스|보르도|울란바토르|울란바타르)$/u.test(c)) return c
+  }
+  return null
+}
+
+function pickMegaMenuCountryPlace(country: string | null | undefined): string | null {
+  const c = cleanToken(String(country || ''))
+  if (!c) return null
+  if (classifyMegaMenuDestinationLabel(c) === 'country') return c
+  return null
+}
+
 function detectTheme(hay: string): string | null {
   for (const t of BONGTOUR_HERO_THEME_WHITELIST) {
     if (hay.includes(t)) return t
@@ -267,27 +291,49 @@ export function composeBongtourHeroDisplayTitle(
   let place: string | null = null
   let placeKind: BongtourDisplayTitleResult['placeKind'] = null
 
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 카드 short — 도시 leaf 우선·국가 leaf만 나라 — manifest
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 일본 N박N일 ≠ 마츠야마/삿포로 상품 — manifest
+  const megaCity = pickMegaMenuCityPlace(cities)
+  const megaCountry = pickMegaMenuCountryPlace(country)
   const brandCity = pickBrandCity(cities)
-  if (!multi && brandCity && country) {
-    place = brandCity
+
+  if (!multi && megaCity) {
+    place = megaCity
     placeKind = 'city'
-  } else if (theme && country && dayToken) {
+  } else if (theme && (megaCountry || country) && dayToken) {
     // 아이슬란드 오로라 7일
-    place = `${country} ${theme}`
+    place = `${megaCountry || country} ${theme}`
     placeKind = 'theme'
-  } else if (multi || (!country && region)) {
-    place = region || country || cities[0] || null
+  } else if (multi || (!megaCountry && !country && region)) {
+    place = region || megaCountry || country || megaCity || cities[0] || null
     placeKind = region ? 'region' : place ? 'fallback' : null
-  } else if (country) {
-    place = country
+  } else if (megaCountry || (country && !megaCity)) {
+    // 메가 국가 leaf(홍콩·프랑스) 또는 도시 leaf 없을 때만 국가 short (일본 단독 등)
+    place = megaCountry || country
     placeKind = 'country'
-  } else if (brandCity || cities[0]) {
-    place = brandCity || cities[0]!
-    placeKind = 'city'
+  } else if (megaCity || brandCity || cities[0]) {
+    const c = megaCity || brandCity || cities[0]!
+    // 그룹명(홋카이도)은 short place 금지
+    if (classifyMegaMenuDestinationLabel(c) === 'group') {
+      place = megaCountry || null
+      placeKind = place ? 'country' : null
+    } else {
+      place = c
+      placeKind = classifyMegaMenuDestinationLabel(c) === 'city' ? 'city' : 'fallback'
+    }
   } else if (hay) {
-    const raw = sanitizePlaceLabel(hay.slice(0, 16).replace(/[^\p{L}\p{N}\s]/gu, ' '))
-    place = raw || '여행'
-    placeKind = 'fallback'
+    const fromHay = firstMegaMenuLeafInText(hay)
+    if (fromHay && classifyMegaMenuDestinationLabel(fromHay) === 'city') {
+      place = fromHay
+      placeKind = 'city'
+    } else if (fromHay && classifyMegaMenuDestinationLabel(fromHay) === 'country') {
+      place = fromHay
+      placeKind = 'country'
+    } else {
+      const raw = sanitizePlaceLabel(hay.slice(0, 16).replace(/[^\p{L}\p{N}\s]/gu, ' '))
+      place = raw && classifyMegaMenuDestinationLabel(raw) !== 'group' ? raw : null
+      placeKind = place ? 'fallback' : null
+    }
   }
 
   place = place ? sanitizePlaceLabel(place) : null
@@ -447,6 +493,9 @@ export type PublicBrowseCardTitleInput = {
   destinationRaw?: string | null
   primaryRegion?: string | null
   countryRowLabel?: string | null
+  /** 메가메뉴 도시 leaf 정합용 (있으면 그룹 dest→도시) */
+  cityKey?: string | null
+  countryKey?: string | null
 }
 
 export type PublicBrowseCardTitleResult = {
@@ -478,6 +527,39 @@ export function resolvePublicBrowseCardTitle(
     .map((c) => (c === '칭다오' ? '청도' : c === '베이징' ? '북경' : c === '상하이' ? '상해' : c))
     .filter((c) => !isEnLandmarkNoiseToken(c) && !isUmbrellaMegaRegionPlaceLabel(c))
 
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 카드 short에는 도시 leaf만 주입 (시드니→호주 강등 금지)
+  const alignedDest = alignDestinationToMegaMenuLeaf({
+    current: cities[0] || input.primaryDestination,
+    title: input.title,
+    cityKey: input.cityKey,
+    countryKey: input.countryKey,
+  })
+  if (
+    alignedDest.destination &&
+    classifyMegaMenuDestinationLabel(alignedDest.destination) === 'city'
+  ) {
+    cities = [alignedDest.destination, ...cities.filter((c) => c !== alignedDest.destination)]
+  }
+  const fromTitleLeaf = firstMegaMenuLeafInText(stripKrDepartureMarkersFromTitle(input.title))
+  if (fromTitleLeaf && classifyMegaMenuDestinationLabel(fromTitleLeaf) === 'city') {
+    cities = [fromTitleLeaf, ...cities.filter((c) => c !== fromTitleLeaf)]
+  }
+  // 제목에 시드니·파리 등(메가 도시 leaf 아님)이 있으면 short place로 유지
+  const titleHay = stripKrDepartureMarkersFromTitle(input.title)
+  for (const soft of ['시드니', '멜버른', '오클랜드', '파리', '니스', '보르도', '울란바토르']) {
+    if (titleHay.includes(soft) || cities.some((c) => c.includes(soft))) {
+      const norm = soft === '울란바토르' ? '울란바타르' : soft
+      if (!cities.includes(norm) && !cities.includes(soft)) cities = [soft, ...cities]
+      break
+    }
+  }
+  const fromCityKey = megaMenuClickLabelForCityKey(input.cityKey)
+  if (fromCityKey && classifyMegaMenuDestinationLabel(fromCityKey) === 'city') {
+    cities = [fromCityKey, ...cities.filter((c) => c !== fromCityKey)]
+  }
+  // 중분류 그룹명은 cities에서 제거 (일본 short로 떨어지지 않게)
+  cities = cities.filter((c) => classifyMegaMenuDestinationLabel(c) !== 'group')
+
   const countryLabel = cleanToken(String(input.countryRowLabel || ''))
   const regionLabel = cleanToken(String(input.primaryRegion || ''))
   const duration =
@@ -485,9 +567,22 @@ export function resolvePublicBrowseCardTitle(
   let regionClean = sanitizePlaceLabel(regionLabel)
   // REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 — manifest
   if (regionClean && isUmbrellaMegaRegionPlaceLabel(regionClean)) regionClean = ''
+  if (regionClean && classifyMegaMenuDestinationLabel(regionClean) === 'group') regionClean = ''
   let countryClean = sanitizePlaceLabel(countryLabel)
   if (countryClean && isKrHomeDeparturePlaceLabel(countryClean)) countryClean = ''
   if (countryClean && isUmbrellaMegaRegionPlaceLabel(countryClean)) countryClean = ''
+  // 「일본」은 메가메뉴 도시 leaf가 없을 때만 country short — 국가 leaf가 아니면(일본=그룹 상위) cityKey 없을 때 유지
+  if (countryClean === '일본' && cities.some((c) => classifyMegaMenuDestinationLabel(c) === 'city')) {
+    // keep country for subtitle path; compose will prefer mega city
+  } else if (
+    countryClean &&
+    classifyMegaMenuDestinationLabel(countryClean) !== 'country' &&
+    countryClean !== '일본' &&
+    countryClean !== '중국' &&
+    countryClean !== '미국'
+  ) {
+    // 비-leaf 국가 라벨은 유지(compose fallback). LC 국가만 pickMegaMenuCountryPlace가 씀.
+  }
 
   const multiCountry =
     Boolean(regionClean) &&

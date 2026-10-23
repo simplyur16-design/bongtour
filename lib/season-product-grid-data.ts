@@ -61,6 +61,8 @@ function toResultItem(p: {
       duration: p.duration,
       primaryDestination: p.primaryDestination,
       primaryRegion: p.primaryRegion,
+      cityKey: p.cityKey,
+      countryKey: p.countryKey,
     },
     planB,
   )

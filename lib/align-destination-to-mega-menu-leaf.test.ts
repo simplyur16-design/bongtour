@@ -1,0 +1,108 @@
+// REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 도시는 도시·나라는 나라 — manifest
+import { describe, expect, it } from 'vitest'
+import {
+  alignDestinationToMegaMenuLeaf,
+  classifyMegaMenuDestinationLabel,
+} from '@/lib/align-destination-to-mega-menu-leaf'
+import { megaMenuClickLabelForCityKey } from '@/lib/mega-menu-click-label'
+import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
+
+describe('alignDestinationToMegaMenuLeaf', () => {
+  it('classifies 홋카이도/규슈 as group not city leaf', () => {
+    expect(classifyMegaMenuDestinationLabel('홋카이도')).toBe('group')
+    expect(classifyMegaMenuDestinationLabel('규슈')).toBe('group')
+    expect(classifyMegaMenuDestinationLabel('오타루')).toBe('city')
+    expect(classifyMegaMenuDestinationLabel('후쿠오카')).toBe('city')
+    expect(classifyMegaMenuDestinationLabel('프랑스')).toBe('country')
+  })
+
+  it('group 홋카이도 + cityKey otaru → 오타루', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '홋카이도',
+      title: '스타가이드와 함께하는 홋카이도 4일',
+      cityKey: 'otaru',
+      countryKey: 'japan',
+    })
+    expect(r.destination).toBe('오타루')
+  })
+
+  it('group 규슈 + cityKey fukuoka → 후쿠오카', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '규슈',
+      title: '규슈 4일 후쿠오카 온천',
+      cityKey: 'fukuoka',
+      countryKey: 'japan',
+    })
+    expect(r.destination).toBe('후쿠오카')
+  })
+
+  it('does not map nordic title to georgia via bad cityKey', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '북유럽 · 발트 발틱3국',
+      title: '북유럽 발트 발틱3국 10일',
+      cityKey: 'georgia',
+      countryKey: 'nordic-baltic',
+    })
+    expect(r.destination).not.toBe('조지아')
+  })
+
+  it('cityKey prefers city leaf over country leaf (otaru)', () => {
+    expect(megaMenuClickLabelForCityKey('otaru')).toBe('오타루')
+  })
+
+  it('alias 동경→도쿄 · 상하이→상해 · 베이징→북경', () => {
+    expect(alignDestinationToMegaMenuLeaf({ current: '동경', title: '동경 3일' }).destination).toBe(
+      '도쿄',
+    )
+    expect(alignDestinationToMegaMenuLeaf({ current: '상하이', title: '상하이 3일' }).destination).toBe(
+      '상해',
+    )
+    expect(alignDestinationToMegaMenuLeaf({ current: '베이징', title: '베이징 3일' }).destination).toBe(
+      '북경',
+    )
+  })
+
+  it('cluster 펼침으로 kamakura가 요코하마 leaf가 되지 않음', () => {
+    expect(megaMenuClickLabelForCityKey('kamakura')).toBe('가마쿠라')
+    expect(megaMenuClickLabelForCityKey('yokohama')).toBe('요코하마')
+  })
+
+  it('cityKey hyphen 정규화 — bigisland→빅아일랜드 · grandcanyon→그랜드캐년', () => {
+    expect(megaMenuClickLabelForCityKey('bigisland')).toBe('빅아일랜드')
+    expect(megaMenuClickLabelForCityKey('grandcanyon')).toBe('그랜드캐년')
+  })
+
+  it('sydney는 호주 도시 leaf 없음 → dest는 LC 국가 leaf (click label 오매칭 금지)', () => {
+    expect(megaMenuClickLabelForCityKey('sydney')).toBe('')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '시드니',
+        title: '시드니 5일',
+        cityKey: 'sydney',
+        countryKey: 'australia',
+      }).destination,
+    ).toBe('호주/뉴질랜드')
+  })
+
+  it('does not map 니스 dest to 스페인 via cityKey es without evidence', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '니스 · 마세나 광장 외 13도시',
+      title: '남프랑스 니스 일주',
+      cityKey: 'es',
+      countryKey: 'spain',
+    })
+    expect(r.destination).not.toBe('스페인')
+    expect(r.destination).toBe('프랑스')
+  })
+
+  it('finalize coerces group dest when cityKey present', () => {
+    const fin = finalizeRegisterDestinationFields({
+      title: '홋카이도 4일 비에이',
+      primaryDestination: '홋카이도',
+      destination: '홋카이도',
+      countryKey: 'japan',
+      cityKey: 'sapporo',
+    })
+    expect(fin.primaryDestination).toBe('삿포로')
+  })
+})

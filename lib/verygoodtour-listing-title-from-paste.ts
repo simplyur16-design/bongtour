@@ -4,6 +4,7 @@
  */
 
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
+import { alignDestinationToMegaMenuLeaf } from '@/lib/align-destination-to-mega-menu-leaf'
 import { isSupplierTitleNotDestinationToken } from '@/lib/supplier-product-title-display'
 import { isSupplierRegisterDestinationUiLabel } from '@/lib/supplier-register-destination-forbidden'
 import {
@@ -173,6 +174,7 @@ export function resolveProductListDestinationLabel(input: {
   primaryRegion?: string | null
   title?: string | null
   countryKey?: string | null
+  cityKey?: string | null
 }): string {
   // REGRESSION-FREEZE[register-destination-reject-ilju]: list column uses heal SSOT — manifest
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 목록 dest에서 출발허브 제거 — manifest
@@ -184,6 +186,7 @@ export function resolveProductListDestinationLabel(input: {
   ]
     .map((s) => (s ?? '').trim())
     .filter(Boolean)
+  let picked: string | null = null
   for (const c of candidates) {
     if (isSupplierRegisterDestinationUiLabel(c)) continue
     if (isRegisterDestinationPollutionLabel(c)) continue
@@ -195,25 +198,49 @@ export function resolveProductListDestinationLabel(input: {
       const scrubbed = scrubRegisterDestinationComposedPlaceLabel(c)
       if (scrubbed && !isRegisterDestinationPollutionLabel(scrubbed)) {
         const dest = scrubKrDepartureFromPlaceLabel(scrubbed)
-        if (dest) return dest
+        if (dest) {
+          picked = dest
+          break
+        }
       }
       continue
     }
     const usable = extractNonPolicyDestinationFragment(c)
     if (usable && !isRegisterDestinationPollutionLabel(usable)) {
       const dest = scrubKrDepartureFromPlaceLabel(usable)
-      if (dest) return dest
+      if (dest) {
+        picked = dest
+        break
+      }
     }
   }
-  const healed = healRegisterDestinationLabel({
+  if (!picked) {
+    const healed = healRegisterDestinationLabel({
+      title: input.title,
+      countryKey: input.countryKey,
+      current: null,
+    })
+    if (healed) picked = healed
+  }
+  if (!picked) {
+    const fromBracketTitle = extractVerygoodDestinationFromBracketTitle(input.title ?? '')
+    if (fromBracketTitle && !isRegisterDestinationPollutionLabel(fromBracketTitle)) {
+      picked = fromBracketTitle
+    }
+  }
+  if (!picked) {
+    const fromTitle = extractDestinationFromTitle(input.title ?? '')
+    if (fromTitle !== '미지정' && !isRegisterDestinationPollutionLabel(fromTitle)) {
+      picked = fromTitle
+    }
+  }
+  if (!picked) return '—'
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 목록 지역 = 메가메뉴 leaf — manifest
+  const aligned = alignDestinationToMegaMenuLeaf({
+    current: picked,
     title: input.title,
+    cityKey: input.cityKey,
     countryKey: input.countryKey,
-    current: null,
   })
-  if (healed) return healed
-  const fromBracketTitle = extractVerygoodDestinationFromBracketTitle(input.title ?? '')
-  if (fromBracketTitle && !isRegisterDestinationPollutionLabel(fromBracketTitle)) return fromBracketTitle
-  const fromTitle = extractDestinationFromTitle(input.title ?? '')
-  if (fromTitle !== '미지정' && !isRegisterDestinationPollutionLabel(fromTitle)) return fromTitle
-  return '—'
+  return aligned.destination || picked
 }

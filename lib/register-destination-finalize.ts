@@ -18,6 +18,7 @@ import {
 import { extractDestinationFromTitle } from '@/lib/destination-from-title'
 import { resolveProductCountryToKoreanDisplay } from '@/lib/browse-country-url-resolve'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
+import { alignDestinationToMegaMenuLeaf } from '@/lib/align-destination-to-mega-menu-leaf'
 
 const AIRLINE_POLLUTION_RE =
   /항공|이코노미|비즈니스\s*클래스|승무원|에어프레미아|에어프리미아|\bLOT\b|클래스\s*외|폴란드항공/i
@@ -245,6 +246,8 @@ export function finalizeRegisterDestinationFields(input: {
   destinationRaw?: string | null
   primaryDestination?: string | null
   countryKey?: string | null
+  /** 있으면 메가메뉴 도시 leaf 우선 정합 (그룹명 홋카이도·규슈 등 금지) */
+  cityKey?: string | null
 }): {
   destination: string
   destinationRaw: string | null
@@ -263,7 +266,14 @@ export function finalizeRegisterDestinationFields(input: {
   const fromRaw = firstCleanStoredDestination(input.destinationRaw)
   const healed = fromPrimaryDest || fromTitle || fromRaw
 
-  const dest = healed || '미지정'
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 도시는 도시·나라는 나라 leaf — manifest
+  const megaAligned = alignDestinationToMegaMenuLeaf({
+    current: healed,
+    title: input.title,
+    cityKey: input.cityKey,
+    countryKey: input.countryKey,
+  })
+  const dest = megaAligned.destination || healed || '미지정'
   const rawCandidate = String(input.destinationRaw ?? '').trim()
   const scrubbedRaw = scrubRegisterDestinationRawPlaceList(rawCandidate)
   const raw =

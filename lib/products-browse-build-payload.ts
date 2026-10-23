@@ -717,6 +717,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
           primaryRegion: p.primaryRegion,
           title: p.title,
           countryKey: p.countryKey,
+          cityKey: p.cityKey,
         })
         const primaryDestination = destLabel !== '—' ? destLabel : p.primaryDestination
         const card = resolvePublicBrowseCardTitle(
@@ -727,6 +728,9 @@ export async function productsBrowseBuildPayload(queryKey: string) {
             destination: p.destination,
             destinationRaw: p.destinationRaw,
             primaryRegion: p.primaryRegion,
+            countryRowLabel: p.country,
+            cityKey: p.cityKey,
+            countryKey: p.countryKey,
           },
           planB,
         )

@@ -26080,6 +26080,50 @@
       ]
     },
     {
+      "id": "mega-menu-dest-city-country-leaf",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "primaryDestination = 메가메뉴 도시 leaf 또는 국가 leaf — 홋카이도·규슈 등 중분류 금지",
+      "checks": [
+        {
+          "file": "lib/align-destination-to-mega-menu-leaf.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]",
+            "alignDestinationToMegaMenuLeaf",
+            "classifyMegaMenuDestinationLabel",
+            "normalizeMegaMenuDestinationAlias"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-click-label.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]",
+            "cluster 펼침으로 가마쿠라→요코하마 금지",
+            "city kind first"
+          ]
+        },
+        {
+          "file": "lib/register-destination-finalize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]",
+            "alignDestinationToMegaMenuLeaf"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-listing-title-from-paste.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]",
+            "alignDestinationToMegaMenuLeaf"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/align-destination-to-mega-menu-leaf.test.ts"
+      ]
+    },
+    {
       "id": "register-pre-photo-dest-fuel-silsok-not-place",
       "tier": [
         "prebuild",
@@ -26243,21 +26287,24 @@
             "중복 place 토큰 붕괴",
             "일정 POI≠카드 place",
             "권역 혼선·POI place 거부",
-            "오염 Plan B 폴백 차단"
+            "오염 Plan B 폴백 차단",
+            "일본 N박N일 ≠ 마츠야마/삿포로 상품"
           ]
         },
         {
           "file": "lib/season-product-grid-data.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[public-card-hero-short-title]",
-            "resolvePublicBrowseCardTitle"
+            "resolvePublicBrowseCardTitle",
+            "cityKey"
           ]
         },
         {
           "file": "lib/products-browse-build-payload.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[public-card-hero-short-title]",
-            "resolvePublicBrowseCardTitle"
+            "resolvePublicBrowseCardTitle",
+            "cityKey"
           ]
         },
         {
@@ -27913,6 +27960,16 @@
       "summary": "옌타이·태항·브루나이·쏙쏙도쿄·잔여석 dest·옵션 소요시간 조각",
       "files": [
         "lib/mega-menu-misc6-geo.test.ts"
+      ]
+    },
+    {
+      "id": "mega-menu-dest-city-country-leaf",
+      "tier": [
+        "ci"
+      ],
+      "summary": "dest = 메가메뉴 도시·국가 leaf — 중분류 그룹명 금지",
+      "files": [
+        "lib/align-destination-to-mega-menu-leaf.test.ts"
       ]
     },
     {

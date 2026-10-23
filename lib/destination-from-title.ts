@@ -27,27 +27,36 @@ export function extractDestinationFromTitle(title: string): string {
       const word = m[0]
       if (/타이베이|대만/.test(word)) return '타이베이'
       if (/다낭|베트남/.test(word)) return '다낭'
-      if (/규슈|큐슈/.test(word)) return '규슈'
+      // 메가메뉴 city leaf 우선 — 규슈/홋카이도 등 중분류·관용 비메가 표기 금지
       if (/오사카/.test(word)) return '오사카'
       if (/오키나와/.test(word)) return '오키나와'
-      if (/도쿄/.test(word)) return '도쿄'
+      if (/도쿄|동경/.test(word)) return '도쿄'
       if (/후쿠오카/.test(word)) return '후쿠오카'
       if (/벳부/.test(word)) return '벳부'
       if (/나가사키/.test(word)) return '나가사키'
+      if (/구마모토/.test(word)) return '구마모토'
+      if (/유후인/.test(word)) return '유후인'
+      if (/삿포로/.test(word)) return '삿포로'
+      if (/교토/.test(word)) return '교토'
+      // 중분류·국가명만 매칭되면 leaf가 아님 → 스킵 (finalize/align이 cityKey·countryKey로 정합)
+      if (/규슈|큐슈|일본|중국|베트남|태국|필리핀|대만|유럽|호주|뉴질랜드|국내/.test(word)) continue
       if (/치앙마이/.test(word)) return '치앙마이'
       if (/치앙라이/.test(word)) return '치앙라이'
-      if (/방콕|태국/.test(word)) return '방콕'
-      if (/세부|필리핀/.test(word)) return '세부'
+      if (/방콕/.test(word)) return '방콕'
+      if (/세부/.test(word)) return '세부'
       if (/싱가포르/.test(word)) return '싱가포르'
       if (/괌/.test(word)) return '괌'
-      if (/상해|상하이/.test(word)) return '상하이'
-      if (/베이징|북경/.test(word)) return '베이징'
+      if (/상해|상하이/.test(word)) return '상해'
+      if (/베이징|북경/.test(word)) return '북경'
+      if (/청도|칭다오/.test(word)) return '청도'
       if (/홍콩/.test(word)) return '홍콩'
       if (/심천|선전/.test(word)) return '심천'
-      if (/인도|델리|아그라|자이푸르/.test(word)) return '인도'
+      if (/델리|아그라|자이푸르/.test(word)) return '델리'
+      if (/인도(?!네시아)/.test(word)) continue
       if (/파리/.test(word)) return '파리'
-      if (/제주|국내/.test(word)) return '제주'
-      return word.replace(/\s+/g, ' ').trim().slice(0, 30)
+      if (/제주/.test(word)) return '제주'
+      // 국가·권역 토큰을 city로 쓰지 않음
+      continue
     }
   }
   return '미지정'
