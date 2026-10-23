@@ -27201,7 +27201,12 @@
             "동률 다엽 모호하면 null",
             "buildCompareLeavesFromMegaMenu",
             "normalizeCompareDurationLabel",
-            "resolveComparePlaceCluster"
+            "resolveComparePlaceCluster",
+            "호주/뉴질랜드 LC — 도시 dest도 같은 leaf",
+            "시드니",
+            "멜버른",
+            "오클랜드",
+            "퀸스타운"
           ]
         },
         {

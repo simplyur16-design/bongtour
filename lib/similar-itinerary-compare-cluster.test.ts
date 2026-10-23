@@ -80,4 +80,29 @@ describe('similar-itinerary-compare-cluster', () => {
     expect(normalizeCompareDurationLabel('3박  4일')).toBe('3박 4일')
     expect(normalizeCompareDurationLabel('여행안내', '상해 자유 2박3일')).toBe('2박 3일')
   })
+
+  // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: 호주/뉴질랜드 LC — 도시 dest도 같은 leaf — manifest
+  it('maps AU/NZ city destinations into 호주/뉴질랜드 leaf (not null)', () => {
+    const au = resolveComparePlaceClusterFromHay('호주/뉴질랜드')
+    expect(au?.label).toBe('호주/뉴질랜드')
+    expect(resolveComparePlaceClusterFromHay('시드니')?.label).toBe('호주/뉴질랜드')
+    expect(resolveComparePlaceClusterFromHay('멜버른')?.label).toBe('호주/뉴질랜드')
+    expect(resolveComparePlaceClusterFromHay('케언즈 · 시드니')?.label).toBe('호주/뉴질랜드')
+    expect(resolveComparePlaceClusterFromHay('오클랜드')?.label).toBe('호주/뉴질랜드')
+    expect(resolveComparePlaceClusterFromHay('퀸스타운')?.label).toBe('호주/뉴질랜드')
+    expect(
+      comparePlaceClustersMatch(
+        resolveComparePlaceClusterFromHay('시드니'),
+        resolveComparePlaceClusterFromHay('뉴질랜드'),
+      ),
+    ).toBe(true)
+    // 괌·사이판은 별 leaf
+    expect(resolveComparePlaceClusterFromHay('괌')?.label).toBe('괌')
+    expect(
+      comparePlaceClustersMatch(
+        resolveComparePlaceClusterFromHay('시드니'),
+        resolveComparePlaceClusterFromHay('괌'),
+      ),
+    ).toBe(false)
+  })
 })
