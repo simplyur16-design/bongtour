@@ -71,11 +71,23 @@ export const BONGTOUR_HERO_BRAND_CITIES: readonly string[] = [
  * 위치 트리·메가메뉴 그룹 헤더 — short place로 쓰면 「중국권 홍콩 마카오… 2박3일」 오염.
  * REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 — manifest
  */
+/** browse 탭 id·영문 slug — 카드 place로 쓰지 않음 (oceania·southeast-asia…) */
+export function isBrowseRegionSlugPlaceLabel(s: string): boolean {
+  const t = String(s || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!t) return false
+  // 순수 영문/하이픈 권역 키 (한글 dest와 혼용 금지)
+  if (/^[a-z][a-z0-9_-]{1,40}$/i.test(t)) return true
+  return false
+}
+
 export function isUmbrellaMegaRegionPlaceLabel(s: string): boolean {
   const t = String(s || '')
     .replace(/\s+/g, ' ')
     .trim()
   if (!t || t.length < 4) return false
+  if (isBrowseRegionSlugPlaceLabel(t)) return true
   if (/중국권/.test(t)) return true
   if (/홍콩/.test(t) && /마카오/.test(t) && /몽골|중앙아/.test(t)) return true
   if (/괌/.test(t) && /사이판/.test(t) && /호주|뉴질랜드/.test(t)) return true
@@ -262,8 +274,8 @@ function detectTheme(hay: string): string | null {
 
 function detectRegion(hay: string, regionLabel?: string | null): string | null {
   const r = cleanToken(String(regionLabel || ''))
-  // REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 — manifest
-  if (r && !isUmbrellaMegaRegionPlaceLabel(r)) return r
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 · EN browse slug 금지 — manifest
+  if (r && !isUmbrellaMegaRegionPlaceLabel(r) && !isBrowseRegionSlugPlaceLabel(r)) return r
   for (const lab of REGION_LABELS) {
     if (hay.includes(lab)) return lab
   }
@@ -306,8 +318,27 @@ export function composeBongtourHeroDisplayTitle(
     place = `${megaCountry || country} ${theme}`
     placeKind = 'theme'
   } else if (multi || (!megaCountry && !country && region)) {
-    place = region || megaCountry || country || megaCity || cities[0] || null
-    placeKind = region ? 'region' : place ? 'fallback' : null
+    // 메가 leaf·도시 우선 — continent EN slug(oceania)로 short를 덮지 않음
+    const regionOk =
+      region && !isBrowseRegionSlugPlaceLabel(region) && !isUmbrellaMegaRegionPlaceLabel(region)
+        ? region
+        : null
+    if (multi && regionOk) {
+      // 다국가: 한글 권역(동유럽) short 유지
+      place = regionOk
+      placeKind = 'region'
+    } else {
+      place = megaCountry || megaCity || country || cities[0] || regionOk || null
+      placeKind = megaCountry
+        ? 'country'
+        : megaCity
+          ? 'city'
+          : regionOk && place === regionOk
+            ? 'region'
+            : place
+              ? 'fallback'
+              : null
+    }
   } else if (megaCountry || (country && !megaCity)) {
     // 메가 국가 leaf(홍콩·프랑스) 또는 도시 leaf 없을 때만 국가 short (일본 단독 등)
     place = megaCountry || country
@@ -342,7 +373,12 @@ export function composeBongtourHeroDisplayTitle(
     return { heroShortTitle: null, heroSubtitle: null, placeKind: null, dayToken }
   }
   // REGRESSION-FREEZE[public-card-hero-short-title]: 권역 혼선·POI place 거부 — manifest
-  if (isCrossRegionPollutedPlace(place) || isNonPlaceMarketingToken(place)) {
+  // EN browse slug(oceania 등)도 place 거부
+  if (
+    isCrossRegionPollutedPlace(place) ||
+    isNonPlaceMarketingToken(place) ||
+    isBrowseRegionSlugPlaceLabel(place)
+  ) {
     return { heroShortTitle: null, heroSubtitle: null, placeKind: null, dayToken }
   }
 
@@ -565,7 +601,13 @@ export function resolvePublicBrowseCardTitle(
 
   // 제목에 시드니·파리 등(메가 도시 leaf 아님)이 있으면 short place로 유지
   for (const soft of ['시드니', '멜버른', '오클랜드', '파리', '니스', '보르도', '울란바토르']) {
-    if (titleHay.includes(soft) || cities.some((c) => c.includes(soft))) {
+    // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 니스≠비즈니스 — manifest
+    const softRe =
+      soft.length <= 2
+        ? new RegExp(`(?<![가-힣])${soft}(?![가-힣])`)
+        : null
+    const inTitle = softRe ? softRe.test(titleHay) : titleHay.includes(soft)
+    if (inTitle || cities.some((c) => c === soft || (soft.length >= 3 && c.includes(soft)))) {
       const norm = soft === '울란바토르' ? '울란바타르' : soft
       if (!cities.includes(norm) && !cities.includes(soft)) cities = [soft, ...cities]
       break

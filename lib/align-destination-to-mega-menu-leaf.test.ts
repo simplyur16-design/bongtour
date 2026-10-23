@@ -243,4 +243,71 @@ describe('alignDestinationToMegaMenuLeaf', () => {
     })
     expect(r.destination).toBe('시모노세키')
   })
+
+  it('오염 dest에 트레킹·골프 테마 leaf를 쓰지 않음', () => {
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '호도협 · 호도협 미니트레킹 외',
+        title: '백두산 호도협 미니트레킹 4일',
+      }).destination,
+    ).not.toBe('트레킹')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: 'KOOLINA GOLF CLUB · 코올리나 골프 클럽',
+        title: '하와이 코올리나 골프 5일',
+        cityKey: 'honolulu',
+      }).destination,
+    ).not.toBe('골프')
+  })
+
+  it('계림·싱가폴·프라하 관용 → 메가 leaf', () => {
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '계림 · 세외도원 외',
+        title: '계림 양삭 4박5일',
+      }).destination,
+    ).toBe('구이린')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '싱가폴 4박',
+        title: '싱가폴 자유여행',
+      }).destination,
+    ).toBe('싱가포르')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '유럽 (프라하 성 · 성 비투스 성당)',
+        title: '동유럽 프라하 7일',
+      }).destination,
+    ).toBe('체코')
+  })
+
+  it('비즈니스 제목이 니스→프랑스로 오매칭되지 않음', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '골프',
+      title: '[비즈니스] 미션힐스 골프클럽 세계최대 규모 골프 리조트 5일',
+      cityKey: 'shenzhen',
+      countryKey: 'china',
+    })
+    expect(r.destination).not.toBe('프랑스')
+  })
+
+  it('하와이 제목 + cityKey honolulu → 호놀룰루 (골프장 dest)', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: 'KOOLINA GOLF CLUB · 코올리나 골프 클럽 외',
+      title: '하와이 골프와 진주만, 오아후 와이키키 1주일',
+      cityKey: 'honolulu',
+      countryKey: 'united-states',
+    })
+    expect(r.destination).toBe('호놀룰루')
+  })
+
+  it('오아후만 있는 제목도 호놀룰루 leaf', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: 'KOOLINA GOLF CLUB · 코올리나 골프 클럽 외',
+      title: '오아후 골프와 진주만의 여운 #코올리나',
+      cityKey: 'honolulu',
+      countryKey: 'united-states',
+    })
+    expect(r.destination).toBe('호놀룰루')
+  })
 })

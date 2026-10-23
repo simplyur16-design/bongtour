@@ -62,9 +62,11 @@ export function isRegisterDestinationScheduleActivityToken(token: string): boole
   ) {
     return true
   }
-  if (/테마\s*파크|대마술|공연|박물관|증류소|야시장|당일(?:\s*투어)?$|1박\s*2일|자율\s*감상|인생\s*별밤|초원\s*(?:일출|선셋|별밤)/i.test(t)) {
+  // 「1박 2일」단독 dest만 차단 — 「후쿠오카 1박 2일」카드 short는 허용
+  if (/테마\s*파크|대마술|공연|박물관|증류소|야시장|당일(?:\s*투어)?$|자율\s*감상|인생\s*별밤|초원\s*(?:일출|선셋|별밤)/i.test(t)) {
     return true
   }
+  if (/^(?:1박\s*2일)$/u.test(t)) return true
   // 일정 POI·혜택 라벨이 primaryDestination/카드 제목으로 새는 것 차단
   // REGRESSION-FREEZE[register-destination-reject-ilju]: 공장·가든·사이클링·식비 ≠ 도시 — manifest
   if (

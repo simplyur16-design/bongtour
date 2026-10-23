@@ -171,8 +171,53 @@ describe('resolvePublicBrowseCardTitle', () => {
       '뉴질랜드 남/북섬 9일 #자연그대로 #온천 #밀포드사운드',
     )
     expect(r.usedHeroShort).toBe(true)
-    expect(r.cardTitle).toMatch(/^뉴질랜드 \d+박 9일$/)
+    // 메가 LC leaf 정규화: 뉴질랜드 → 호주/뉴질랜드
+    expect(r.cardTitle).toMatch(/^(?:뉴질랜드|호주\/뉴질랜드) \d+박 9일$/)
     expect(r.cardTitle).not.toMatch(/#/)
+  })
+
+  // REGRESSION-FREEZE[public-card-hero-short-title]: EN browse slug≠카드 place — manifest
+  it('continent oceania/southeast-asia EN slug를 카드 short에 쓰지 않음', () => {
+    const au = resolvePublicBrowseCardTitle(
+      {
+        title: '[2030전용] 시드니 6일 #시드니시티투어',
+        duration: '4박 6일',
+        primaryDestination: '호주/뉴질랜드',
+        destination: '호주/뉴질랜드',
+        primaryRegion: 'oceania',
+      },
+      '[2030전용] 시드니 6일',
+    )
+    expect(au.cardTitle).not.toMatch(/oceania|southeast-asia|americas|europe-me/i)
+    expect(au.cardTitle).toMatch(/^(시드니|호주\/뉴질랜드) \d+박/)
+
+    const nt = resolvePublicBrowseCardTitle(
+      {
+        title: '[2030전용] 나트랑 5일 #전일정5성호텔',
+        duration: '3박 5일',
+        primaryDestination: '나트랑',
+        destination: '나트랑',
+        primaryRegion: 'southeast-asia',
+        countryRowLabel: '베트남',
+      },
+      '[2030전용] 나트랑 5일',
+    )
+    expect(nt.cardTitle).toBe('나트랑 3박 5일')
+  })
+
+  it('후쿠오카 1박 2일 short는 오염으로 보지 않음', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '[가볍게 떠나는 여행+LITE TRIP] 후쿠오카 1박 2일',
+        duration: '1박 2일',
+        primaryDestination: '후쿠오카',
+        destination: '후쿠오카',
+        countryRowLabel: '일본',
+      },
+      '후쿠오카 1박 2일',
+    )
+    expect(r.cardTitle).toBe('후쿠오카 1박 2일')
+    expect(r.usedHeroShort).toBe(true)
   })
 
   // REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 — manifest
