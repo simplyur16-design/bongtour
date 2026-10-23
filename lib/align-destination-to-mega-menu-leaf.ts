@@ -32,9 +32,16 @@ const MEGA_DEST_ALIASES: Record<string, string> = {
   터키: '튀르키예', // group — align via cityKey(istanbul)→이스탄불
   뉴질랜드: '호주/뉴질랜드',
   호주: '호주/뉴질랜드',
+  // 북유럽 다국가 — 그룹명 LC 중복 없이 발트3국 leaf로
+  발틱: '발트3국',
+  발틱3국: '발트3국',
+  발트: '발트3국',
 }
 
-/** LC-only 권역 — dest heal 시에만 도시명→국가 leaf (카드 short는 제목 도시명 유지). */
+/**
+ * LC 국가 leaf만 있는 권역의 수도·관용 도시 → 국가 leaf.
+ * 같은 권역에 city leaf를 새로 만들지 않음 (코펜하겐≠덴마크 city 중복 금지).
+ */
 const MEGA_DEST_CITY_TO_COUNTRY_LEAF: Record<string, string> = {
   시드니: '호주/뉴질랜드',
   멜버른: '호주/뉴질랜드',
@@ -42,6 +49,15 @@ const MEGA_DEST_CITY_TO_COUNTRY_LEAF: Record<string, string> = {
   파리: '프랑스',
   니스: '프랑스',
   보르도: '프랑스',
+  코펜하겐: '덴마크',
+  오슬로: '노르웨이',
+  베르겐: '노르웨이',
+  스톡홀름: '스웨덴',
+  헬싱키: '핀란드',
+  레이캬비크: '아이슬란드',
+  탈린: '에스토니아',
+  리가: '라트비아',
+  빌뉴스: '리투아니아',
 }
 
 function ensureLeafIndex(): void {
@@ -217,6 +233,15 @@ function resolveWithinGroup(
   const fromTitle = firstMegaMenuLeafInGroupFromText(groupLabel, hay)
   if (fromTitle && classifyMegaMenuDestinationLabel(fromTitle) === 'country') {
     return { destination: fromTitle, reason: 'group→title_leaf_in_group' }
+  }
+  // 수도·관용 도시(코펜하겐) → 같은 그룹 국가 leaf (city leaf 중복 생성 없이)
+  const softCityKeys = Object.keys(MEGA_DEST_CITY_TO_COUNTRY_LEAF).sort((a, b) => b.length - a.length)
+  for (const cityName of softCityKeys) {
+    if (!hay.includes(cityName)) continue
+    const countryLeaf = MEGA_DEST_CITY_TO_COUNTRY_LEAF[cityName]!
+    if (megaMenuLeafBelongsToGroup(countryLeaf, groupLabel)) {
+      return { destination: countryLeaf, reason: 'group→soft_city_country' }
+    }
   }
   // 인도·스리랑카만: 그룹명===국가 leaf 라벨일 때 권역=국가 (북유럽→덴마크 금지)
   const countryInGroup = megaMenuCountryLeafInGroup(groupLabel)

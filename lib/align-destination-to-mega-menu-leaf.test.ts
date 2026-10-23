@@ -210,4 +210,37 @@ describe('alignDestinationToMegaMenuLeaf', () => {
     })
     expect(r.destination).toBe('바라나시')
   })
+
+  it('북유럽·발틱 dest → 발트3국 leaf (북유럽 그룹 LC 중복 없이)', () => {
+    expect(classifyMegaMenuDestinationLabel('발트3국')).toBe('country')
+    expect(classifyMegaMenuDestinationLabel('에스토니아')).toBe('country')
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '북유럽 · 발트 발틱3국',
+      title: '북유럽 4국 발틱 3국 12일',
+      cityKey: null,
+      countryKey: 'nordic-baltic',
+    })
+    expect(r.destination).toBe('발트3국')
+  })
+
+  it('유럽 dest + 제목 코펜하겐 → 덴마크 (코펜하겐 city leaf 미추가)', () => {
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '유럽',
+      title: '발틱+북유럽 코펜하겐자유시간',
+      cityKey: 'denmark-mix',
+      countryKey: 'nordic-baltic',
+    })
+    expect(r.destination).toBe('덴마크')
+  })
+
+  it('시모노세키는 주고쿠 city leaf', () => {
+    expect(classifyMegaMenuDestinationLabel('시모노세키')).toBe('city')
+    const r = alignDestinationToMegaMenuLeaf({
+      current: '슈페리어룸 2박',
+      title: '리조나레 시모노세키',
+      cityKey: null,
+      countryKey: 'japan',
+    })
+    expect(r.destination).toBe('시모노세키')
+  })
 })

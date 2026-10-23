@@ -131,14 +131,20 @@ const EU: MegaMenuCountryGroupDef[] = [
     ],
     true,
   ),
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 북유럽+발트3국 LC (북유럽 그룹명 LC 중복 금지) — manifest
   G(
     '북유럽',
     [
-      LC('덴마크', ['덴마크', 'denmark', '코펜하겐']),
-      LC('노르웨이', ['노르웨이', 'norway', '오슬로', '피오르']),
-      LC('스웨덴', ['스웨덴', 'sweden', '스톡홀름']),
-      LC('핀란드', ['핀란드', 'finland', '헬싱키']),
-      LC('아이슬란드', ['아이슬란드', 'iceland', '레이캬비크']),
+      LC('덴마크', ['덴마크', 'denmark', 'denmark-mix', '코펜하겐', 'copenhagen']),
+      LC('노르웨이', ['노르웨이', 'norway', '오슬로', 'oslo', '베르겐', 'bergen', '피오르', '피오르드']),
+      LC('스웨덴', ['스웨덴', 'sweden', '스톡홀름', 'stockholm']),
+      LC('핀란드', ['핀란드', 'finland', '헬싱키', 'helsinki']),
+      LC('아이슬란드', ['아이슬란드', 'iceland', '레이캬비크', 'reykjavik']),
+      LC('에스토니아', ['에스토니아', 'estonia', '탈린', 'tallinn']),
+      LC('라트비아', ['라트비아', 'latvia', '리가', 'riga']),
+      LC('리투아니아', ['리투아니아', 'lithuania', '빌뉴스', 'vilnius']),
+      // 코카서스 3국과 동일 패턴 — 다국가 일주 dest. 북유럽 그룹명 LC는 만들지 않음(권역 중복).
+      LC('발트3국', ['발트3국', '발틱3국', '발트', '발틱', 'baltic', 'baltic3', 'nordic-baltic']),
     ],
     true,
   ),
@@ -321,6 +327,8 @@ const JP: MegaMenuCountryGroupDef[] = [
     city('다카마쓰', ['다카마쓰', 'takamatsu', '일본', '시코쿠']),
     city('도쿠시마', ['도쿠시마', 'tokushima', '일본', '시코쿠']),
     city('시마네', ['시마네', 'shimane', '일본', '주고쿠']),
+    // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 시모노세키(야마구치) — 주고쿠 leaf — manifest
+    city('시모노세키', ['시모노세키', '시모노세끼', 'shimonoseki', '일본', '주고쿠', '야마구치']),
   ]),
   GJp('규슈', [
     city('후쿠오카', ['후쿠오카', 'fukuoka', '일본', '규슈']),
