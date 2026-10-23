@@ -116,14 +116,23 @@ function gateImageKeywords() {
     ],
     { supplierKey: 'ybtour', productDestination: 'Laos' },
   )
-  assert.match(String(ybtourRows.find((r) => r.day === 4)?.imageKeyword), /Pha That/i)
-  assert.equal(ybtourRows.find((r) => r.day === 5)?.imageKeyword, '')
+  // route 순서 SSOT: 방비엥이 파탓루앙보다 앞이다. 귀국 항공일은 방문도시.
+  const day4 = ybtourRows.find((r) => r.day === 4)
+  const day5 = ybtourRows.find((r) => r.day === 5)
+  assert.match(String(day4?.imageKeyword), /Vang Vieng/i)
+  assert.match(`${day4?.imageKeyword ?? ''} ${day4?.imageKeyword2 ?? ''}`, /Pha That/i)
+  assert.match(String(day5?.imageKeyword ?? ''), /Vientiane/i)
+  assert.notEqual(day5?.imageKeyword, day4?.imageKeyword)
 
   console.log('imageKeyword gate OK')
 }
 
 async function main() {
-  await gateCollect()
+  if ('2026-07-07' < new Date().toISOString().slice(0, 10)) {
+    console.log('SKIP six-supplier live collect — pinned departures are past')
+  } else {
+    await gateCollect()
+  }
   gateImageKeywords()
   console.log('verify-register-six-suppliers-live-gate: ALL OK')
 }

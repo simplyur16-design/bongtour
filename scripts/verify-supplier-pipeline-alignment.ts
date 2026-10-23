@@ -54,7 +54,11 @@ function stableJson(v: unknown): string {
 type BrandRow = { brandKey: string }
 
 function databaseUrlConfigured(): boolean {
-  return Boolean((process.env.DATABASE_URL ?? '').trim())
+  const raw = (process.env.DATABASE_URL ?? '').trim()
+  if (!raw) return false
+  // GitHub Actions dummy URL is for Prisma module init, not a reachable database.
+  if (/@(?:127\.0\.0\.1|localhost):5432\b/i.test(raw)) return false
+  return true
 }
 
 async function oneProduct(prisma: PrismaClient, brandKey: string) {

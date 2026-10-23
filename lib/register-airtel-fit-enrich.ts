@@ -153,6 +153,12 @@ export async function enrichRegisterParsedWithAirtelFit(
     return { ...parsed, productType: AIR_HOTEL_PRODUCT_TYPE, extractionFieldIssues: issues }
   }
 
+  const geminiKey = (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
+  if (!geminiKey) {
+    issues.push(airtelFitFieldIssue('GEMINI_API_KEY unset — 예시 일정 Gemini 생략', 'info'))
+    return { ...parsed, productType: AIR_HOTEL_PRODUCT_TYPE, extractionFieldIssues: issues }
+  }
+
   try {
     const promptProduct = registerParsedToFitPromptProduct(parsed)
     const prompt = buildAirtelPrompt(promptProduct)

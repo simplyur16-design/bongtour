@@ -27900,8 +27900,7 @@
       ],
       "summary": "Trip.com/Agoda 영수증·체크인바우처 → 봉투어 문서(OTA금액하드잠금·결제당일환율·인보이스수수료)",
       "files": [
-        "lib/bongtour-company-invoice.test.ts",
-        "lib/bongtour-usd-krw-rate.ts"
+        "lib/bongtour-company-invoice.test.ts"
       ]
     },
     {

@@ -15,6 +15,7 @@ import { buildRegisterAirHotelItineraryDayDrafts } from '@/lib/register-air-hote
 import { applyRegisterPostAugmentSchedulePipeline } from '@/lib/register-parse-post-augment'
 import { parseModetourRegisterFromApi } from '@/lib/modetour-register-api-parse'
 import { registerFlightCollectLooksComplete } from '@/lib/register-detail-collect-flight-apply'
+import { isModetourAlphaOriginCode } from '@/lib/register-facts/modetour'
 
 const PRODUCT_NO = '105133652'
 const URL = `https://www.modetour.com/package/${PRODUCT_NO}`
@@ -35,7 +36,11 @@ async function main() {
     originUrl: URL,
     travelScope: TRAVEL_SCOPE,
   })
-  assert.equal(skeleton.originCode, PRODUCT_NO)
+  // originCode는 URL 단체번호가 아니라 detail.productCode2다 (숫자 폴백도 허용).
+  assert.ok(
+    skeleton.originCode === PRODUCT_NO || isModetourAlphaOriginCode(skeleton.originCode),
+    `originCode productCode2 or URL productNo, got ${skeleton.originCode}`,
+  )
 
   const parsed = await applyRegisterPostAugmentSchedulePipeline(skeleton, {
     travelScope: TRAVEL_SCOPE,
@@ -46,6 +51,11 @@ async function main() {
 
   assert.ok(registerFlightCollectLooksComplete(parsed), 'flight collect complete')
   assert.equal(parsed.productType, 'air-hotel')
+  const geminiKey = (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
+  if (!geminiKey) {
+    console.log(`SKIP fit gemini modetour ${PRODUCT_NO} — GEMINI_API_KEY unset`)
+    return
+  }
   assert.ok(parsed.registerFitItineraryGeminiJson?.trim(), 'registerFitItineraryGeminiJson')
 
   const drafts = buildRegisterAirHotelItineraryDayDrafts(parsed)

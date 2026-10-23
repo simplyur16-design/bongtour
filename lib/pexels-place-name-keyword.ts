@@ -37,6 +37,8 @@ const CANONICAL_BY_LOWER: Record<string, string> = {
   'warner bros movie world': 'Warner Bros Movie World',
   // REGRESSION-FREEZE[register-fit-gemini-landmark-verify]: London Leavesden ≠ Gold Coast Movie World — manifest
   'warner bros studio tour': 'Warner Bros Studio Tour London',
+  // REGRESSION-FREEZE[pexels-kurayoshi-not-generic-white-wall]: 흰 벽 창고 → 쿠라요시 시라카베 — manifest
+  'kurayoshi white-walled storehouses': 'Kurayoshi Shirakabe Tottori Japan',
   'warner bros. studio tour': 'Warner Bros Studio Tour London',
   'warner bros studio tour london': 'Warner Bros Studio Tour London',
   'harry potter studio tour': 'Warner Bros Studio Tour London',

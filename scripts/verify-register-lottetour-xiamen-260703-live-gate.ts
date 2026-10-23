@@ -92,6 +92,10 @@ function assertScheduleRouteAndDescription(
 }
 
 async function main() {
+  if ('2026-07-03' < new Date().toISOString().slice(0, 10)) {
+    console.log('SKIP lottetour xiamen 260703 live gate — pinned departure 2026-07-03 is past')
+    return
+  }
   const parsed = await parseLottetourRegisterFromApi('', 'lottetour', { originUrl: URL })
 
   assert.equal(parsed.evtCd, 'C11A260703KE006')

@@ -43,6 +43,8 @@ const BLOCKED_PATTERNS: RegExp[] = [
   /south\s+asia\s+historic\s+monument/i,
   /japan\s+city\s+street\s+skyline/i,
   /\bseoul\s+city\s+skyline\b/i,
+  // REGRESSION-FREEZE[pexels-kurayoshi-not-generic-white-wall]: 흰 벽 창고 generic Pexels 금지 — manifest
+  /white-walled\s+storehouses/i,
 ]
 
 /** 공항·지나치게 generic한 영문 키워드 — 1·2순위 모두 거부 */

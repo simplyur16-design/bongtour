@@ -17,6 +17,7 @@ import {
 import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
 import { isRegisterScheduleCrossContinentHallucinationKeyword } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { isBareCityOrCountryKeyword } from '@/lib/pexels-place-name-keyword'
+import { findAllMappedKoreanPoisInText } from '@/lib/pexels-keyword'
 import { scheduleImageKeywordsSemanticallyOverlap } from '@/lib/register-schedule-llm-image-keyword-fallback'
 
 export type RegisterScheduleRouteSupplierFallbackOpts = {
@@ -82,7 +83,7 @@ function mergeRouteTextKeywordWithSupplierKeyword<T extends RegisterScheduleRout
       productDestination,
       routeRows,
     )
-    const imageKeyword = routeKw || supplierKw
+    let imageKeyword = routeKw || supplierKw
     // REGRESSION-FREEZE[schedule-image-keyword-dual-slot]: route kw2∩primary → supplier kw2 — manifest
     // route SSOT가 Leh Palace를 kw1·kw2에 중복 넣으면 supplier Leh Market이 막힘
     // 출발·귀국은 kw2 금지 — routeKw2도 중간일만 유지
@@ -93,8 +94,32 @@ function mergeRouteTextKeywordWithSupplierKeyword<T extends RegisterScheduleRout
       !scheduleImageKeywordsSemanticallyOverlap(routeKw2, imageKeyword)
         ? routeKw2
         : ''
-    const imageKeyword2 =
+    let imageKeyword2: string | null =
       routeKw2Distinct || (slot === 'middle' && imageKeyword ? supplierKw2 : '') || null
+    // 자유일·관광일 route가 bare 도시뿐이면 공급사 명소(만따나니·반딧불)를 1순위로 올린다.
+    if (
+      slot === 'middle' &&
+      routeKw &&
+      isBareCityOrCountryKeyword(routeKw) &&
+      supplierKw &&
+      !isBareCityOrCountryKeyword(supplierKw)
+    ) {
+      imageKeyword = supplierKw
+      const kw2 = String(imageKeyword2 ?? '').trim()
+      if (!kw2 || isBareCityOrCountryKeyword(kw2) || scheduleImageKeywordsSemanticallyOverlap(kw2, imageKeyword)) {
+        const hay = [row.routeText, row.title, row.description].filter(Boolean).join('\n')
+        const second = findAllMappedKoreanPoisInText(hay).find(
+          (en) =>
+            !isBareCityOrCountryKeyword(en) &&
+            !scheduleImageKeywordsSemanticallyOverlap(en, imageKeyword),
+        )
+        imageKeyword2 = second
+          ? second
+          : scheduleImageKeywordsSemanticallyOverlap(routeKw, imageKeyword)
+            ? null
+            : routeKw
+      }
+    }
     return {
       ...row,
       imageKeyword,

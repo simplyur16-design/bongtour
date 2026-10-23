@@ -1475,6 +1475,7 @@ const POI_KO_TO_EN: Record<string, string> = {
   스베티츠호벨리: 'Svetitskhoveli Cathedral Mtskheta',
   '스베티츠호벨리 대성당': 'Svetitskhoveli Cathedral Mtskheta',
   '아일랜드 호핑': 'Kota Kinabalu island hopping',
+  '아일랜드 투어': 'Kota Kinabalu island hopping',
   껌벽: 'Juneau Waterfront Alaska',
   '파인애플 농장': 'Pineapple Farm Hawaii',
   상파울: 'Sao Paulo Cathedral',
@@ -1726,6 +1727,7 @@ const POI_KO_MAPPING_CONTEXT_RE: Record<string, RegExp> = {
   // REGRESSION-FREEZE[register-pre-photo-poi-ko-own-route-gap]: 국제거리·용궁 오매칭 방지 — manifest
   국제거리: /나하|오키나와|Naha|Okinawa|란타나|레아레아|츄라우미|슈리/i,
   용궁: /용궁|마령하|귀주|Guizhou|안순|라평|황과수|청암|Guiyang|뱃놀이|대협곡|동굴/i,
+  '아일랜드 투어': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia/i,
   '선셋 반딧불': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|만따나니|Mantanani/i,
   '선셋 반딧불이': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia|만따나니|Mantanani/i,
   '코타키나발루 시티 모스크': /코타|키나발루|Kinabalu|Kota|말레이|Malaysia/i,
@@ -1826,6 +1828,9 @@ function poiKoMappingAllowed(ko: string, text: string): boolean {
     // REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 다낭 작은 산토리니 ≠ 그리스 — manifest
     if (/다낭|베트남|Da\s*Nang|Vietnam|손짜|한시장/i.test(text)) return false
   }
+  // 선택관광 이름만 있는 「만따나니 아일랜드 호핑투어」는 도시명이 없어도 만따나니다.
+  // 맥락 정규식이 코타키나발루를 요구하면 더 짧은 「아일랜드 호핑」으로 떨어진다.
+  if (ko === '만따나니' || ko === '만따나니 아일랜드') return true
   const req = POI_KO_MAPPING_CONTEXT_RE[ko]
   if (!req) return true
   return req.test(text)

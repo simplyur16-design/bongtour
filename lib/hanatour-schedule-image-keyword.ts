@@ -1765,6 +1765,23 @@ export function applyHanatourScheduleImageKeywordsToRows<
       }
     }
 
+    if (isHanatourScheduleFreeLeisureDay(haystack)) {
+      const example = pickHanatourFreeDayExampleImageKeyword({
+        optionalTourNames: opts?.optionalTourNames ?? [],
+        freeDayIndex: countPriorHanatourFreeLeisureDays(out, day),
+        usedKeys: used,
+        toKeyword: (name) => {
+          const mappedKw = extractEnglishPoiFromLabel(name) || mapKoreanPoiSegment(name)
+          return tryAcceptHanatourLlmImageKeyword(mappedKw || name, productDestination)
+        },
+      })
+      if (example) {
+        primary = example
+        secondary = null
+        used.add(normKey(example))
+      }
+    }
+
     if (secondary && hanatourKeywordKeysOverlap(String(secondary), primary)) {
       secondary = null
     }
@@ -1779,7 +1796,16 @@ export function applyHanatourScheduleImageKeywordsToRows<
           : String(secondary ?? '').trim() || null,
     }
   })
-  return reconcileHanatourTripUniqueImageKeywords(mapped, maxDay, productDestination)
+  const withReturnHome = mapped.map((row) => {
+    const day = Number(row.day)
+    if (day <= 0) return row
+    const haystack = buildHanatourDayHaystack(row)
+    const dayKind = classifyHanatourScheduleCardDayKind(day, maxDay, haystack)
+    if (dayKind !== 'return_home') return row
+    const fromLast = findLastResolvedHanatourTourismKeywordBeforeDay(mapped, day, maxDay)
+    return fromLast ? { ...row, imageKeyword: fromLast, imageKeyword2: null } : row
+  })
+  return reconcileHanatourTripUniqueImageKeywords(withReturnHome, maxDay, productDestination)
   } finally {
     activeHanatourScheduleSectionByDay = prevScheduleSectionByDay
   }

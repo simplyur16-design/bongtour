@@ -24,6 +24,10 @@ function countJsonRows(raw: string | null | undefined): number {
 }
 
 async function main() {
+  if ('2026-07-07' < new Date().toISOString().slice(0, 10)) {
+    console.log('SKIP lottetour xiamen live gate — pinned departure 2026-07-07 is past')
+    return
+  }
   const base: RegisterParsed = {
     originUrl: URL,
     title: 'Y2627 호텔 UPGRADE 하문(샤먼),고랑서 4박 5일 메리어트 하이창',

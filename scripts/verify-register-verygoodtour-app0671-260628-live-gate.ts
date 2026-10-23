@@ -88,6 +88,10 @@ function assertScheduleRouteAndDescription(
 }
 
 async function main() {
+  if ('2026-06-28' < new Date().toISOString().slice(0, 10)) {
+    console.log('SKIP verygoodtour APP0671 live gate — pinned departure 2026-06-28 is past')
+    return
+  }
   const parsed = await parseVerygoodtourRegisterFromApi('', 'verygoodtour', { originUrl: URL })
 
   assert.match(parsed.originCode ?? '', /APP0671-260628KE/i)

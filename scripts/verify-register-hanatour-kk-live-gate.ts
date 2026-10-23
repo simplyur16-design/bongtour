@@ -90,8 +90,9 @@ async function main() {
   const d2 = schedule.find((d) => d.day === 2)
   const d4 = schedule.find((d) => d.day === 4)
   assert.ok((d3?.imageKeyword ?? '').length > 0, 'day3 free-day example keyword')
-  assert.ok((d5?.imageKeyword ?? '').length > 0, 'day5 return uses last tourism landmark')
-  assert.equal(d5?.imageKeyword, d4?.imageKeyword, 'return day matches last tourism day')
+  assert.ok((d5?.imageKeyword ?? '').length > 0, 'day5 return visit city')
+  assert.match(d5?.imageKeyword ?? '', /Kinabalu/i, 'return day keeps Kota Kinabalu')
+  assert.notEqual(d5?.imageKeyword, d4?.imageKeyword, 'return visit city is not the previous landmark')
   assert.ok((d2?.imageKeyword ?? '').length > 0, 'day2 kw1')
   assert.ok((d2?.imageKeyword2 ?? '').length > 0, 'day2 kw2')
 

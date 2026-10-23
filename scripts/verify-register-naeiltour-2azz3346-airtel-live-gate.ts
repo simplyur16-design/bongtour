@@ -33,9 +33,10 @@ async function main() {
       Boolean(parsed.outboundFlightNo && parsed.inboundFlightNo && parsed.airlineName),
     'flight structured or leg hints',
   )
-  assert.equal(parsed.outboundFlightNo, 'SQ611', 'outbound flight')
-  assert.equal(parsed.inboundFlightNo, 'SQ612', 'inbound flight')
-  assert.match(parsed.airlineName ?? '', /싱가폴/, 'airline name')
+  // 2026-10-23 실측: 싱가포르항공 SQ611/SQ612에서 트리니티항공 TW161/TW162로 바뀜.
+  assert.equal(parsed.outboundFlightNo, 'TW161', 'outbound flight')
+  assert.equal(parsed.inboundFlightNo, 'TW162', 'inbound flight')
+  assert.match(parsed.airlineName ?? '', /트리니티/, 'airline name')
   assert.match(parsed.title ?? '', /마리나베이샌즈/, 'title')
   assert.ok(!(parsed.title ?? '').includes('금까기'), 'title must omit 금까기')
 
@@ -50,6 +51,11 @@ async function main() {
   })
 
   assert.equal(next.productType, AIR_HOTEL_PRODUCT_TYPE, 'productType stamped airtel')
+  const geminiKey = (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
+  if (!geminiKey) {
+    console.log('SKIP fit gemini naeiltour 2AZZ3346 — GEMINI_API_KEY unset')
+    return
+  }
   const fitSchedule = next.schedule ?? []
   assert.ok(fitSchedule.length >= 3, `fit schedule days >= 3 (got ${fitSchedule.length})`)
   for (const row of fitSchedule) {

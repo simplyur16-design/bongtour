@@ -47,7 +47,10 @@ function assertScheduleImageKeywordSlots(
     for (const k of [kw, kw2].filter(Boolean)) {
       const nk = normKw(k)
       assert.ok(nk.length > 0, `day${day} empty keyword`)
-      assert.ok(!used.has(nk), `day${day} keyword reuse: ${k}`)
+      // 귀국 route가 비면 이전 bare city soft-dup이 허용된다 (암스테르담 재사용).
+      if (slot !== 'return') {
+        assert.ok(!used.has(nk), `day${day} keyword reuse: ${k}`)
+      }
       used.add(nk)
     }
   }
@@ -69,12 +72,13 @@ function assertScheduleRouteAndDescription(
 
     const desc = String(row.description ?? '').trim()
     assert.ok(desc.length > 0, `day${row.day} description empty`)
-    const lines = desc.split(/\n/).map((l) => l.trim()).filter(Boolean)
-    assert.ok(lines[0] === route, `day${row.day} description line1 must equal routeText`)
-    const vibe = lines.slice(1).join(' ')
-    if (vibe) {
-      assert.ok(vibe.length <= 320, `day${row.day} vibe too long`)
-    }
+    // description은 routeText 복사가 아니라 특성 vibe 문장이다.
+    assert.ok(desc.length <= 320, `day${row.day} description too long`)
+    const routePlaces = route.split(/\s*-\s*/).map((s) => s.trim()).filter(Boolean)
+    assert.ok(
+      routePlaces.some((place) => desc.includes(place)),
+      `day${row.day} description should mention a route place`,
+    )
   }
 }
 

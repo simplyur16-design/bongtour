@@ -13,6 +13,7 @@ import {
   collectRouteTextSpotScanLandmarkKeywords,
 } from '@/lib/register-schedule-route-text-image-keyword-ssot'
 import { findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
+import { findAllMappedKoreanPoisInText } from '@/lib/pexels-keyword'
 import { hasRioDeJaneiroContext } from '@/lib/schedule-rio-de-janeiro-context'
 import { finalizeScheduleImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { appendRegisterScheduleCitySoftAltKeywordKeys } from '@/lib/register-schedule-city-soft-alts'
@@ -64,6 +65,10 @@ export function buildRegisterScheduleTripRouteKeywordContext(
       if (nk) keywordKeys.add(nk)
     }
     const hay = rowRouteEvidenceHaystack(row)
+    for (const en of findAllMappedKoreanPoisInText(hay)) {
+      const nk = normScheduleImageKeywordKey(en)
+      if (nk) keywordKeys.add(nk)
+    }
     for (const hit of findAllScheduleSpotMatchesInText(hay)) {
       const nk = normScheduleImageKeywordKey(hit.en)
       if (nk) keywordKeys.add(nk)
@@ -188,12 +193,13 @@ export function sanitizeRegisterScheduleImageKeywordsFromRouteEvidence<
   return rows.map((row) => {
     const kw = String(row.imageKeyword ?? '').trim()
     const kw2 = String(row.imageKeyword2 ?? '').trim()
-    const passesKw =
-      registerScheduleKeywordPassesRouteEvidence(kw, row) &&
-      registerScheduleKeywordPassesTripRouteTextSsot(kw, tripCtx, row)
-    const passesKw2 =
-      registerScheduleKeywordPassesRouteEvidence(kw2, row) &&
-      registerScheduleKeywordPassesTripRouteTextSsot(kw2, tripCtx, row)
+    const freeDay = /전\s*일정\s*자유|자유\s*시간|자유\s*일정|free\s*time|at\s+leisure/i.test(
+      rowRouteEvidenceHaystack(row),
+    )
+    const passesTrip = (keyword: string) =>
+      freeDay || registerScheduleKeywordPassesTripRouteTextSsot(keyword, tripCtx, row)
+    const passesKw = registerScheduleKeywordPassesRouteEvidence(kw, row) && passesTrip(kw)
+    const passesKw2 = registerScheduleKeywordPassesRouteEvidence(kw2, row) && passesTrip(kw2)
     return {
       ...row,
       imageKeyword: kw && passesKw ? kw : '',

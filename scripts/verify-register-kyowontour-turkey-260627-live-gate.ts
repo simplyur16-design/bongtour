@@ -92,6 +92,10 @@ function assertScheduleRouteAndDescription(
 }
 
 async function main() {
+  if ('2026-06-27' < new Date().toISOString().slice(0, 10)) {
+    console.log('SKIP kyowontour turkey live gate — pinned departure 2026-06-27 is past')
+    return
+  }
   const parsed = await parseKyowontourRegisterFromApi('', 'kyowontour', { originUrl: URL })
 
   assert.equal(parsed.originCode, 'ECP102260627OZ01')
