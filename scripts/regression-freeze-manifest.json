@@ -14793,7 +14793,7 @@
             "REGRESSION-FREEZE[home-ssg-empty-poison]",
             "shouldSkipDbAtBuild",
             "readCachedArrayOrBypassEmpty",
-            "season-product-grid-pc-v6"
+            "season-product-grid-pc-v7"
           ]
         },
         {
@@ -26376,7 +26376,7 @@
           "file": "lib/season-product-grid-data.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[public-card-no-kr-departure-place]",
-            "season-product-grid-pc-v6"
+            "season-product-grid-pc-v7"
           ]
         },
         {
