@@ -233,7 +233,8 @@ describe('lottetour register detail collect', () => {
     const days = parseLottetourScheduleDaysFromScheduleAjax(MEETING_FIXTURE)
     expect(days.length).toBe(1)
     expect(days[0]?.day).toBe(1)
-    expect(days[0]?.title).toMatch(/인천|1일차/)
+    // 출발 허브 인천은 제목에서 빠지고 당일 도착지 푸꾸옥이 제목. 미팅 문구는 아래에서 인천공항을 유지.
+    expect(days[0]?.title).toMatch(/푸꾸옥/)
     expect(days[0]?.hotelText).toMatch(/래디슨/)
     const meeting = extractLottetourMeetingFromScheduleAjax(MEETING_FIXTURE)
     expect(meeting.meetingInfoRaw).toMatch(/인천공항/)
