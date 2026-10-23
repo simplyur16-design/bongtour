@@ -75,9 +75,13 @@ export function isUmbrellaMegaRegionPlaceLabel(s: string): boolean {
 
 /** soft-alt·키워드 EN 랜드마크가 도시 토큰/제목으로 새는 것 차단 */
 function isEnLandmarkNoiseToken(s: string): boolean {
-  const t = String(s || '').trim()
+  // 「ㅣ The Rocks ㅣ」같은 장식 파이프 dest 포함
+  const t = String(s || '')
+    .replace(/[ㅣ|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
   if (!t) return false
-  if (/^the\s+rocks\b/i.test(t)) return true
+  if (/\bthe\s+rocks\b/i.test(t)) return true
   if (/\brocks\b/i.test(t) && /sydney|harbor|harbour/i.test(t)) return true
   if (/^[A-Za-z][A-Za-z\s'-]{2,40}$/.test(t) && !/^(USA|UK)$/i.test(t)) {
     // 순수 영문 토큰은 카드 place로 쓰지 않음(한글 dest가 있을 때 호출측에서 걸러짐)
@@ -503,17 +507,38 @@ export type PublicDetailHeroTitlesResult = {
 }
 
 /**
+ * Plan B 원문이 권역 헤더·EN 랜드마크 키워드로 오염됐는지.
+ * REGRESSION-FREEZE[public-detail-hero-short-listing]: 오염 listingTitle 차단 — manifest
+ * REGRESSION-FREEZE[public-card-hero-short-title]: The Rocks·중국권 헤더≠상품명 — manifest
+ */
+export function isPollutedPublicProductTitle(raw: string): boolean {
+  const t = String(raw || '').trim()
+  if (!t) return false
+  if (isUmbrellaMegaRegionPlaceLabel(t)) return true
+  if (/중국권/.test(t) && /홍콩|마카오|몽골|중앙아/.test(t)) return true
+  if (/\bThe\s+Rocks\b/i.test(t)) return true
+  if (isEnLandmarkNoiseToken(t)) return true
+  return false
+}
+
+/**
  * 상품 상세 히어로 — 짧은 제목(오버레이) + 원 상품명(옆 정보 카드).
  * REGRESSION-FREEZE[public-detail-hero-short-listing]: 상세 short·원명 분리 — manifest
  */
 export function resolvePublicDetailHeroTitles(
   input: PublicBrowseCardTitleInput,
 ): PublicDetailHeroTitlesResult {
-  const listingTitle =
+  const rawListing =
     String(input.title || '').trim() ||
     String(input.primaryDestination || '').trim() ||
     '여행'
-  const card = resolvePublicBrowseCardTitle(input, listingTitle)
+  const card = resolvePublicBrowseCardTitle(input, rawListing)
+  // REGRESSION-FREEZE[public-detail-hero-short-listing]: 오염 listingTitle 차단 — manifest
+  const listingTitle = isPollutedPublicProductTitle(rawListing)
+    ? card.cardTitle ||
+      String(input.primaryDestination || '').trim() ||
+      '여행'
+    : rawListing
   return {
     heroTitle: card.cardTitle,
     listingTitle,

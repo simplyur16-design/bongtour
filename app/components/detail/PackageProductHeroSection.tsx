@@ -21,6 +21,7 @@ type CarouselProps = {
   heroImageSeoKeywordOverlay?: string | null
   primaryDestination?: string | null
   destination?: string | null
+  primaryRegion?: string | null
 }
 
 type Props = CarouselProps & {
@@ -44,6 +45,7 @@ export default function PackageProductHeroSection({
   heroImageSeoKeywordOverlay,
   primaryDestination,
   destination,
+  primaryRegion,
   infoPanel,
   onChangeDepartureDate,
   showChangeDepartureCta,
@@ -55,12 +57,15 @@ export default function PackageProductHeroSection({
     duration: infoPanel.duration || infoPanel.durationLabel,
     primaryDestination: primaryDestination ?? null,
     destination: destination ?? null,
-    primaryRegion: null,
+    primaryRegion: primaryRegion ?? null,
   })
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: SEO 칩·dest 출발허브 제거 — manifest
   const seoOverlayScrubbed = heroImageSeoKeywordOverlay
     ? (() => {
-        const s = scrubKrDepartureFromPlaceLabel(heroImageSeoKeywordOverlay)
+        // REGRESSION-FREEZE[public-card-hero-short-title]: The Rocks 등 EN 키워드≠상품명 — manifest
+        const raw = String(heroImageSeoKeywordOverlay || '').trim()
+        if (/\bThe\s+Rocks\b/i.test(raw) || /^the\s+rocks\b/i.test(raw)) return null
+        const s = scrubKrDepartureFromPlaceLabel(raw)
         return s || null
       })()
     : null

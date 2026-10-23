@@ -90,6 +90,12 @@ describe('register-destination-reject-ilju', () => {
     expect(isRegisterDestinationPollutionLabel('KE')).toBe(true)
     expect(isRegisterDestinationPollutionLabel('아일랜드 호핑')).toBe(true)
     expect(isRegisterDestinationPollutionLabel('KK 라운지')).toBe(true)
+    // REGRESSION-FREEZE[public-card-hero-short-title]: The Rocks·중국권 헤더 ≠ dest — manifest
+    expect(isRegisterDestinationPollutionLabel('ㅣ The Rocks ㅣ')).toBe(true)
+    expect(isRegisterDestinationPollutionLabel('The Rocks')).toBe(true)
+    expect(
+      isRegisterDestinationPollutionLabel('중국권 · 홍콩 · 마카오 · 몽골 · 중앙아'),
+    ).toBe(true)
   })
 
   it('KK schedule activities never become destination cities', () => {

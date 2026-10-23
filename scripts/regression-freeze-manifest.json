@@ -26276,7 +26276,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[public-detail-hero-short-listing]",
             "resolvePublicDetailHeroTitles",
-            "listingTitle"
+            "listingTitle",
+            "오염 listingTitle 차단",
+            "isPollutedPublicProductTitle"
           ]
         },
         {

@@ -114,7 +114,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
     imageKeyword: d.imageKeyword ?? null,
     city: d.city ?? null,
   }))
-  const detailScope = product.primaryRegion === '국내' ? 'domestic' : 'overseas'
+  const detailScope = product.primaryRegion === '�?��' ? 'domestic' : 'overseas'
   const labels = getHotelMealLabels(detailScope)
   const uiOptionalRows = useMemo(
     () => getPublicOptionalTourRowsFromProduct(product.optionalToursStructured, product.optionalToursPasteRaw),
@@ -247,7 +247,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
       try {
         const { ok, data } = await postRangeOnDemandDepartures(String(product.id), isoDate, 14)
         if (!ok) {
-          setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+          setOnDemandNotice('출발???�보�?불러?�는 �?문제가 발생?�습?�다. ?�시 ?�도??주세??')
           return
         }
         const parsed = parseRangeOnDemandResponse(String(product.id), isoDate, data)
@@ -267,17 +267,17 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
           return
         }
         if (parsed.kind === 'departure_not_found') {
-          setOnDemandNotice('선택하신 날짜에는 출발 가능한 상품이 없습니다.')
+          setOnDemandNotice('?�택?�신 ?�짜?�는 출발 가?�한 ?�품???�습?�다.')
           if (parsed.refreshRouter) router.refresh()
           return
         }
         if (parsed.kind === 'price_unavailable') {
-          setOnDemandNotice('해당 날짜 출발은 있으나 가격을 아직 확인하지 못했습니다.')
+          setOnDemandNotice('?�당 ?�짜 출발?� ?�으??가격을 ?�직 ?�인?��? 못했?�니??')
           return
         }
-        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+        setOnDemandNotice('출발???�보�?불러?�는 �?문제가 발생?�습?�다. ?�시 ?�도??주세??')
       } catch {
-        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+        setOnDemandNotice('출발???�보�?불러?�는 �?문제가 발생?�습?�다. ?�시 ?�도??주세??')
       } finally {
         setDepartureCollectOpen(false)
       }
@@ -396,7 +396,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
   const highRiskAlerts = useMemo(() => {
     const lines: string[] = []
     if (product.mandatoryLocalFee != null && product.mandatoryCurrency) {
-      lines.push(`현지에서 ${product.mandatoryCurrency} ${product.mandatoryLocalFee}(인당) 별도 지불이 필요한 상품입니다`)
+      lines.push(`?��??�서 ${product.mandatoryCurrency} ${product.mandatoryLocalFee}(?�당) 별도 지불이 ?�요???�품?�니??)
     }
     const points = product.counselingNotes?.counseling_points ?? []
     points.forEach((p) => {
@@ -472,7 +472,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
     return formatHanatourDepartureConditionForProduct(product)
   }, [product])
 
-  /** 꼭 알아야 할 사항: `mustKnowItems`만(공급사 공통). 비면 기본 안내 문구. */
+  /** �??�아?????�항: `mustKnowItems`�?공급??공통). 비면 기본 ?�내 문구. */
   const mustKnowFiltered = useMemo(
     () =>
       filterPublicMustKnowItemsForTripReadiness(
@@ -488,7 +488,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
     if (merged.trim()) return merged.trim()
     const fb = product.meetingFallbackText?.trim()
     if (fb) return fb
-    return '미팅장소는 상담 시 확인하여 안내드리겠습니다.'
+    return '미팅?�소???�담 ???�인?�여 ?�내?�리겠습?�다.'
   }, [product.meetingInfoRaw, product.meetingPlaceRaw, product.meetingFallbackText])
   const selectedDepartureCurrentPrice = priceRow
     ? computeKRWQuotation(priceRow, { adult: 1, childBed: 0, childNoBed: 0, infant: 0 }).total
@@ -518,7 +518,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
     )
 
   const travelCitiesLine = useMemo(
-    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: travelCities dest scrub — manifest
+    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: travelCities dest scrub ??manifest
     () => formatPublicDestinationDisplayLabel(product.primaryDestination, product.destination),
     [product.primaryDestination, product.destination],
   )
@@ -528,7 +528,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
     const seats = priceRow?.availableSeats
     const bits: string[] = []
     if (base) bits.push(base)
-    if (seats != null && seats >= 0) bits.push(`여유좌석 약 ${seats}석`)
+    if (seats != null && seats >= 0) bits.push(`?�유좌석 ??${seats}??)
     const rowStatus = priceRow?.status?.trim()
     if (rowStatus && !bits.some((b) => b.includes(rowStatus))) bits.push(rowStatus)
     if (normalizeSupplierOrigin(product.originSource) === 'hanatour') {
@@ -554,9 +554,9 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
   const periodContent = useMemo(
     () => (
       <>
-        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroDepartureDisplay ?? '—'}</span>
+        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroDepartureDisplay ?? '??}</span>
         <span className="text-bt-disabled"> ~ </span>
-        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '—'}</span>
+        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '??}</span>
         {rowDurationLabel ? (
           <>
             {' '}
@@ -580,6 +580,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
         heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
         primaryDestination={product.primaryDestination ?? null}
         destination={product.destination ?? null}
+        primaryRegion={product.primaryRegion ?? null}
         infoPanel={{
           dataSourceLabel: formatOriginSourceForDisplay(product.originSource),
           title: product.title,
@@ -650,10 +651,10 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
       </div>
 
       <section className="border-b border-bt-border-soft p-4">
-        <h2 className="mb-3 text-base font-semibold text-bt-card-title">일정 요약</h2>
+        <h2 className="mb-3 text-base font-semibold text-bt-card-title">?�정 ?�약</h2>
         {product.listingKind === 'air_hotel_free' ? (
           <p className="bt-wrap mb-4 rounded-xl border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-center text-xs font-semibold text-amber-950">
-            아래보시는 일정은 예시 일정입니다.
+            ?�래보시???�정?� ?�시 ?�정?�니??
           </p>
         ) : null}
         {product.listingKind !== 'air_hotel_free' &&
@@ -707,7 +708,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
             })}
           </div>
         ) : (
-          <p className="text-sm text-bt-meta">등록된 일정 요약이 없습니다.</p>
+          <p className="text-sm text-bt-meta">?�록???�정 ?�약???�습?�다.</p>
         )}
       </section>
 
@@ -720,9 +721,9 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
       ) : null}
 
       <section className="p-4 pb-10 text-center">
-        <h2 className="text-base font-semibold text-bt-card-title">안내</h2>
+        <h2 className="text-base font-semibold text-bt-card-title">?�내</h2>
         <p className="bt-wrap mt-2 text-sm font-medium leading-relaxed text-bt-muted">
-          문의·접수는 상단 <strong className="font-semibold text-bt-card-title">실시간 견적</strong> 카드에서 진행해 주세요. 본문은 정보 확인용입니다.
+          문의·?�수???�단 <strong className="font-semibold text-bt-card-title">?�시�?견적</strong> 카드?�서 진행??주세?? 본문?� ?�보 ?�인?�입?�다.
         </p>
       </section>
 

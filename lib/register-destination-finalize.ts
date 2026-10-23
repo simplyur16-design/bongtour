@@ -79,6 +79,9 @@ export function isRegisterDestinationPollutionLabel(raw: string | null | undefin
   ) {
     return true
   }
+  // REGRESSION-FREEZE[public-card-hero-short-title]: The Rocks·중국권 헤더 ≠ dest — manifest
+  if (/\bthe\s+rocks\b/i.test(t.replace(/[ㅣ|]/g, ' '))) return true
+  if (/중국권/.test(t) && /홍콩|마카오|몽골|중앙아/.test(t)) return true
   return false
 }
 

@@ -87,7 +87,7 @@ import TravelProductDetail from '@/app/components/travel/TravelProductDetail'
 import type { TravelProduct as PackageTravelProduct } from '@/app/components/travel/TravelProductDetail'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
 
-/** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
+/** Prisma ProductPrice + 견적??price* (lib/price-utils PriceRowLike ?�환) */
 export type ProductPriceRow = {
   id: string
   productId: string
@@ -103,9 +103,9 @@ export type ProductPriceRow = {
   priceChildNoBed: number | null
   priceInfant: number | null
   status?: string
-  /** 달력 행 잔여석 등 — 있으면 예약인원 행에 보조 표기 */
+  /** ?�력 ???�여???????�으�??�약?�원 ?�에 보조 ?�기 */
   availableSeats?: number
-  /** ProductDeparture.seatsStatusRaw — 숫자 좌석과 별도의 예약/잔여 문구 */
+  /** ProductDeparture.seatsStatusRaw ???�자 좌석�?별도???�약/?�여 문구 */
   seatsStatusRaw?: string
 }
 
@@ -154,12 +154,12 @@ export type TravelProduct = {
   itineraries: ProductItinerary[]
   schedule?: ScheduleDay[] | null
   bgImageUrl?: string | null
-  /** 대표 이미지 출처 타입(Product.bgImageSource) — 히어로 배지 */
+  /** ?�???��?지 출처 ?�??Product.bgImageSource) ???�어�?배�? */
   bgImageSource?: string | null
   bgImagePhotographer?: string | null
-  /** AI 생성 표기(Product.bgImageIsGenerated) */
+  /** AI ?�성 ?�기(Product.bgImageIsGenerated) */
   bgImageIsGenerated?: boolean | null
-  /** 일정 표시명 없을 때 image_assets 메타로 히어로 첫 슬라이드 캡션 보강 */
+  /** ?�정 ?�시�??�을 ??image_assets 메�?�??�어�?�??�라?�드 캡션 보강 */
   heroCoverCaptionFromAsset?: string | null
   heroImageSeoKeywordOverlay?: string | null
   optionalTours?: Array<{ id: string; name: string; priceUsd: number; duration: string; waitPlaceIfNotJoined: string }>
@@ -168,11 +168,11 @@ export type TravelProduct = {
   optionalTourNoticeRaw?: string | null
   optionalTourNoticeItems?: string[]
   optionalTourDisplayNoticeFinal?: string | null
-  /** structuredSignals.optionalToursPasteRaw — 구조화 0행 시 현지옵션 탭 SSOT 원문 */
+  /** structuredSignals.optionalToursPasteRaw ??구조??0?????��??�션 ??SSOT ?�문 */
   optionalToursPasteRaw?: string | null
   shoppingVisitCountTotal?: number | null
   shoppingNoticeRaw?: string | null
-  /** structuredSignals.shoppingPasteRaw — 구조화 0행 시 쇼핑 탭 SSOT 원문 */
+  /** structuredSignals.shoppingPasteRaw ??구조??0?????�핑 ??SSOT ?�문 */
   shoppingPasteRaw?: string | null
   shoppingStopsStructured?: ShoppingStopRow[] | null
   freeTimeSummaryText?: string | null
@@ -185,18 +185,18 @@ export type TravelProduct = {
   promotionLabelsRaw?: string | null
   priceFrom?: number | null
   priceCurrency?: string | null
-  /** 출발일별 항공·미팅 요약 (YYYY-MM-DD) */
+  /** 출발?�별 ??��·미팅 ?�약 (YYYY-MM-DD) */
   departureKeyFactsByDate?: Record<string, DepartureKeyFacts>
-  /** 출발 행 id별 facts — 대표 가격행과 1:1 SSOT */
+  /** 출발 ??id�?facts ???�??가격행�?1:1 SSOT */
   departureKeyFactsByDepartureId?: Record<string, DepartureKeyFacts>
-  /** rawMeta 항공 본문 — 출발행 비어 있을 때 항공 카드 보강 */
+  /** rawMeta ??�� 본문 ??출발??비어 ?�을 ????�� 카드 보강 */
   flightStructured?: FlightStructuredBody | null
-  /** 본문 가격표 원문 — 인원 카드 연령 기준 추출 */
+  /** 본문 가격표 ?�문 ???�원 카드 ?�령 기�? 추출 */
   priceTableRawText?: string | null
   hotelSummaryRaw?: string | null
   hotelSummaryText?: string | null
   hotelNames?: string[] | null
-  /** 일차별 예정호텔(서버에서 structured·일정·본문 파서 병합) */
+  /** ?�차�??�정?�텔(?�버?�서 structured·?�정·본문 ?�서 병합) */
   dayHotelPlans?: DayHotelPlan[] | null
   hotelInfoRaw?: string | null
   hotelStatusText?: string | null
@@ -208,7 +208,7 @@ export type TravelProduct = {
   childAgeRuleText?: string | null
   reservationNoticeRaw?: string | null
   mustKnowItems?: Array<{ category: string; title: string; body: string; raw?: string }>
-  /** rawMeta structured — 불포함 카드 병합용 */
+  /** rawMeta structured ??불포??카드 병합??*/
   singleRoomSurchargeDisplayText?: string | null
   singleRoomSurchargeAmount?: number | null
   singleRoomSurchargeCurrency?: string | null
@@ -222,15 +222,15 @@ export type TravelProduct = {
   meetingPlaceRaw?: string | null
   meetingFallbackText?: string | null
   flightExposurePolicy?: 'public_full' | 'public_limited' | 'admin_only' | null
-  /** structuredSignals.flightManualCorrection — legacy_parsed 표시 시 편명/시간만 */
+  /** structuredSignals.flightManualCorrection ??legacy_parsed ?�시 ???�명/?�간�?*/
   flightManualCorrection?: FlightManualCorrectionPayload | null
-  /** 본문 파싱 항공만 노출될 때 수동 보정 적용 */
+  /** 본문 ?�싱 ??���??�출?????�동 보정 ?�용 */
   applyFlightManualCorrectionOverlay?: boolean
-  /** 모두투어: 출발일 변경 CTA 바로 아래 현지 지불경비(인당) 한 줄 */
+  /** 모두?�어: 출발??변�?CTA 바로 ?�래 ?��? 지불경�??�당) ??�?*/
   modetourStickyLocalPayLine?: string | null
-  /** travel | private_trip | air_hotel_free — 항공권+호텔(자유여행) UI 분기 */
+  /** travel | private_trip | air_hotel_free ????���??�텔(?�유?�행) UI 분기 */
   listingKind?: string | null
-  /** 인천·김포(서울권)는 null — 부산·청주·대구·제주만 표기 */
+  /** ?�천·김???�울�???null ??부?�·청주·�?�?�제주만 ?�기 */
   departureAirportLabelDisplay?: string | null
 }
 
@@ -325,7 +325,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
       try {
         const { ok, data } = await postRangeOnDemandDepartures(String(product.id), isoDate, 14)
         if (!ok) {
-          setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+          setOnDemandNotice('출발???�보�?불러?�는 �?문제가 발생?�습?�다. ?�시 ?�도??주세??')
           return
         }
         const parsed = parseRangeOnDemandResponse(String(product.id), isoDate, data)
@@ -345,17 +345,17 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
           return
         }
         if (parsed.kind === 'departure_not_found') {
-          setOnDemandNotice('선택하신 날짜에는 출발 가능한 상품이 없습니다.')
+          setOnDemandNotice('?�택?�신 ?�짜?�는 출발 가?�한 ?�품???�습?�다.')
           if (parsed.refreshRouter) router.refresh()
           return
         }
         if (parsed.kind === 'price_unavailable') {
-          setOnDemandNotice('해당 날짜 출발은 있으나 가격을 아직 확인하지 못했습니다.')
+          setOnDemandNotice('?�당 ?�짜 출발?� ?�으??가격을 ?�직 ?�인?��? 못했?�니??')
           return
         }
-        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+        setOnDemandNotice('출발???�보�?불러?�는 �?문제가 발생?�습?�다. ?�시 ?�도??주세??')
       } catch {
-        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
+        setOnDemandNotice('출발???�보�?불러?�는 �?문제가 발생?�습?�다. ?�시 ?�도??주세??')
       } finally {
         setDepartureCollectOpen(false)
       }
@@ -476,7 +476,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
   const highRiskAlerts = useMemo(() => {
     const lines: string[] = []
     if (product.mandatoryLocalFee != null && product.mandatoryCurrency) {
-      lines.push(`현지에서 ${product.mandatoryCurrency} ${product.mandatoryLocalFee}(인당) 별도 지불이 필요한 상품입니다`)
+      lines.push(`?��??�서 ${product.mandatoryCurrency} ${product.mandatoryLocalFee}(?�당) 별도 지불이 ?�요???�품?�니??)
     }
     const points = product.counselingNotes?.counseling_points ?? []
     points.forEach((p) => {
@@ -526,7 +526,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
     [product.schedule]
   )
 
-  const detailScope = product.primaryRegion === '국내' ? 'domestic' : 'overseas'
+  const detailScope = product.primaryRegion === '�?��' ? 'domestic' : 'overseas'
   const labels = getHotelMealLabels(detailScope)
 
   const selectedDate = useMemo(
@@ -571,7 +571,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
       departureKeyFactsByDate: product.departureKeyFactsByDate ?? null,
       departureKeyFactsByDepartureId: product.departureKeyFactsByDepartureId ?? null,
     })
-    /** 출발행(ProductDeparture) SSOT — 본문·구조화 flightManualCorrection 이 leg/항공사를 덮어쓰면 11월가격+7월항공 같은 섞임 발생 */
+    /** 출발??ProductDeparture) SSOT ??본문·구조??flightManualCorrection ??leg/??��?��? ??��?�면 11?��?�?7?�항�?같�? ?�임 발생 */
     if (normalizeSupplierOrigin(product.originSource) === 'verygoodtour') return raw
     if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
       return applyFlightManualCorrectionForPublicOrigin(raw, product.flightManualCorrection, product.originSource)
@@ -607,7 +607,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
     return { ...product, airline: air }
   }, [product, selectedDepartureFacts])
 
-  /** 꼭 알아야 할 사항: `mustKnowItems`만(공급사 공통). 비면 기본 안내 문구. */
+  /** �??�아?????�항: `mustKnowItems`�?공급??공통). 비면 기본 ?�내 문구. */
   const mustKnowFiltered = useMemo(
     () =>
       filterPublicMustKnowItemsForTripReadiness(
@@ -647,7 +647,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
     if (merged.trim()) return merged.trim()
     const fb = product.meetingFallbackText?.trim()
     if (fb) return fb
-    return '미팅장소는 상담 시 확인하여 안내드리겠습니다.'
+    return '미팅?�소???�담 ???�인?�여 ?�내?�리겠습?�다.'
   }, [product.meetingInfoRaw, product.meetingPlaceRaw, product.meetingFallbackText])
 
   const selectedDepartureCurrentPrice = selectedPriceRow
@@ -665,7 +665,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
     )
 
   const travelCitiesLine = useMemo(
-    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: travelCities dest scrub — manifest
+    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: travelCities dest scrub ??manifest
     () => formatPublicDestinationDisplayLabel(product.primaryDestination, product.destination),
     [product.primaryDestination, product.destination],
   )
@@ -675,7 +675,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
     const seats = selectedPriceRow?.availableSeats
     const bits: string[] = []
     if (base) bits.push(base)
-    if (seats != null && seats >= 0) bits.push(`여유좌석 약 ${seats}석`)
+    if (seats != null && seats >= 0) bits.push(`?�유좌석 ??${seats}??)
     const rowStatus = selectedPriceRow?.status?.trim()
     if (rowStatus && !bits.some((b) => b.includes(rowStatus))) bits.push(rowStatus)
     if (normalizeSupplierOrigin(product.originSource) === 'hanatour') {
@@ -701,9 +701,9 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
   const periodContent = useMemo(
     () => (
       <>
-        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroDepartureDisplay ?? '—'}</span>
+        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroDepartureDisplay ?? '??}</span>
         <span className="text-bt-disabled"> ~ </span>
-        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '—'}</span>
+        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '??}</span>
         {rowDurationLabel ? (
           <>
             {' '}
@@ -740,6 +740,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
         heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
         primaryDestination={product.primaryDestination ?? null}
         destination={product.destination ?? null}
+        primaryRegion={product.primaryRegion ?? null}
         infoPanel={{
           dataSourceLabel: formatOriginSourceForDisplay(product.originSource),
           title: product.title,
@@ -770,7 +771,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
           href="/"
           className="inline-flex items-center text-sm font-medium text-bt-link hover:text-bt-link-hover hover:underline"
         >
-          ← 상품 목록
+          ???�품 목록
         </Link>
 
         {onDemandNotice ? (
@@ -813,10 +814,10 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
             />
 
             <section className="rounded-2xl border border-bt-border bg-bt-surface p-6">
-              <h2 className="mb-4 border-l-4 border-bt-card-title pl-3 text-lg font-semibold text-bt-card-title">일정 요약</h2>
+              <h2 className="mb-4 border-l-4 border-bt-card-title pl-3 text-lg font-semibold text-bt-card-title">?�정 ?�약</h2>
               {product.listingKind === 'air_hotel_free' ? (
                 <p className="bt-wrap mb-6 rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-center text-sm font-semibold text-amber-950">
-                  아래보시는 일정은 예시 일정입니다.
+                  ?�래보시???�정?� ?�시 ?�정?�니??
                 </p>
               ) : null}
               {product.listingKind !== 'air_hotel_free' &&
@@ -875,7 +876,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-bt-meta">등록된 일정 요약이 없습니다.</p>
+                <p className="text-sm text-bt-meta">?�록???�정 ?�약???�습?�다.</p>
               )}
             </section>
 
@@ -884,9 +885,9 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
             {showEsimCrossSell ? <EsimProductDetailCrossSell /> : null}
 
             <section className="rounded-2xl border border-bt-border-soft bg-bt-surface p-6 text-center">
-              <h2 className="text-base font-semibold text-bt-card-title">안내</h2>
+              <h2 className="text-base font-semibold text-bt-card-title">?�내</h2>
               <p className="bt-wrap mt-2 text-sm font-medium leading-relaxed text-bt-muted">
-                문의·접수는 상단 상품 정보 또는 상담 채널을 이용해 주세요. 본문은 정보 확인용입니다.
+                문의·?�수???�단 ?�품 ?�보 ?�는 ?�담 채널???�용??주세?? 본문?� ?�보 ?�인?�입?�다.
               </p>
             </section>
         </div>

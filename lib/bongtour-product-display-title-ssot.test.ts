@@ -201,6 +201,20 @@ describe('resolvePublicBrowseCardTitle', () => {
     expect(r.cardTitle).toBe('시드니 3박 4일')
     expect(r.cardTitle).not.toMatch(/Rocks|harbor/i)
   })
+
+  it('dest가 「ㅣ The Rocks ㅣ」여도 시드니 제목으로', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '[2030전용]시드니 6일#시드니시티투어',
+        duration: '5박 6일',
+        primaryDestination: 'ㅣ The Rocks ㅣ',
+        destination: 'ㅣ The Rocks ㅣ',
+      },
+      '[2030전용]시드니 6일#시드니시티투어',
+    )
+    expect(r.cardTitle).toMatch(/시드니/)
+    expect(r.cardTitle).not.toMatch(/Rocks/i)
+  })
 })
 
 // REGRESSION-FREEZE[public-detail-hero-short-listing]: 상세 short·원명 — manifest
@@ -217,6 +231,28 @@ describe('resolvePublicDetailHeroTitles', () => {
     expect(r.heroTitle).toBe('방콕 3박 5일')
     expect(r.listingTitle).toBe(listing)
     expect(r.heroTitle).not.toEqual(r.listingTitle)
+  })
+
+  // REGRESSION-FREEZE[public-detail-hero-short-listing]: 오염 listingTitle 차단 — manifest
+  it('중국권 헤더·The Rocks 원문은 listingTitle로 안 나감', () => {
+    const qingdao = resolvePublicDetailHeroTitles({
+      title: '중국권 · 홍콩 · 마카오 · 몽골 · 중앙아 2박 3일',
+      duration: '2박 3일',
+      primaryDestination: '칭다오',
+      primaryRegion: '중국권 · 홍콩 · 마카오 · 몽골 · 중앙아',
+    })
+    expect(qingdao.heroTitle).toBe('청도 2박 3일')
+    expect(qingdao.listingTitle).toBe('청도 2박 3일')
+    expect(qingdao.listingTitle).not.toMatch(/중국권|홍콩|마카오/)
+
+    const rocks = resolvePublicDetailHeroTitles({
+      title: 'The Rocks Sydney harbor',
+      duration: '3박 4일',
+      primaryDestination: '시드니',
+    })
+    expect(rocks.heroTitle).toBe('시드니 3박 4일')
+    expect(rocks.listingTitle).toBe('시드니 3박 4일')
+    expect(rocks.listingTitle).not.toMatch(/Rocks/i)
   })
 })
 
