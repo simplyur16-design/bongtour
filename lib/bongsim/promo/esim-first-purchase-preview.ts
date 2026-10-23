@@ -116,7 +116,13 @@ export async function resolveEsimFirstPurchasePreview(input: {
   const pool = getPgPool();
   if (!pool) return { eligible: false, reason: "db_unconfigured" };
 
-  const client = await pool.connect();
+  // CI dummy DATABASE_URL은 풀은 만들지만 postgres가 없다. 연결 실패는 미할인으로 돌린다.
+  let client: PoolClient;
+  try {
+    client = await pool.connect();
+  } catch {
+    return { eligible: false, reason: "db_unconfigured" };
+  }
   try {
     if (!simplyur && userId) {
       const occupationEligible = await loadUserOccupationDiscountEligible(client, userId);
