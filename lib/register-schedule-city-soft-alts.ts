@@ -1005,12 +1005,13 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
   {
     cityRe: /마나도|Manado|부나켄|Bunaken/i,
     alts: [
-      'Bunaken National Marine Park',
-      'Manado Bunaken National Marine Park',
+      // bare 마나도 일차는 도시 alt. 부나켄은 route에 부나켄이 있는 날만 (AIP102 D2 bleed 금지)
       'Manado Harbor Sulawesi',
-      'Bunaken Island dive reef',
       'Manado City Boulevard',
       'Likupang Beach Manado',
+      'Bunaken National Marine Park',
+      'Manado Bunaken National Marine Park',
+      'Bunaken Island dive reef',
     ],
   },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: Shenzhen day ≠ HK dest soft-alt only — manifest
@@ -1588,6 +1589,10 @@ export function pickUnusedRegisterScheduleCitySoftAltKeyword(
     // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
     // 세렝게티·나이로비 팩의 Manyara는 당일 route에 마니아라가 있을 때만.
     if (/manyara/i.test(candidate) && !/마니아라|Manyara/i.test(dayHay)) continue
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Manado cluster day-route evidence — AIP102 landmark bleed 금지 — manifest
+    // bare 마나도 일차가 부나켄·실라덴 soft-alt를 가져가지 않음.
+    if (/bunaken/i.test(candidate) && !/부나켄|Bunaken/i.test(dayHay)) continue
+    if (/siladen/i.test(candidate) && !/실라덴|Siladen/i.test(dayHay)) continue
     // soft-alt가 lodging/non-landmark면 verify를 깨뜨리므로 스킵 (Ngong Ping cable car 등)
     if (isBrokenRegisterLandmarkKeyword(candidate)) continue
     return candidate
