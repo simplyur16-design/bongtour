@@ -762,6 +762,12 @@ function reconcileLottetourDistinctPrimaryAcrossDays<
       productPrimaryDestination: opts?.productDestination ?? null,
     }
     if (slotKind === 'return') {
+      // 마지막 행이어도 당일 route 명소가 있으면 전일 soft-alt로 바꾸지 않음 (USS 날 ≠ Gardens).
+      const ownReturnLandmark =
+        landmarkFromRouteText(row.routeText) ?? firstLandmarkFromRouteText(row.routeText)
+      if (ownReturnLandmark && !isBareCityOrCountryKeyword(ownReturnLandmark)) {
+        primary = exitLottetourLandmark(ownReturnLandmark, ctx)
+      } else {
       const prev = rows[idx - 1]
       if (prev) {
         const usedOnPrev = new Set(
@@ -815,6 +821,7 @@ function reconcileLottetourDistinctPrimaryAcrossDays<
         const fromRoute =
           landmarkFromRouteText(row.routeText) ?? firstLandmarkFromRouteText(row.routeText)
         if (fromRoute) primary = exitLottetourLandmark(fromRoute, ctx)
+      }
       }
     }
     const pk = normLottetourKwKey(primary)
