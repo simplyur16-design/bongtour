@@ -220,6 +220,13 @@
   border-radius: var(--bt-ow-radius-card);
 }
 
+.sic-empty-path {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--bt-ow-meta);
+}
+
 .sic-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--sic-line);

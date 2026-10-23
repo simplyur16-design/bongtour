@@ -17,7 +17,6 @@ import {
 import {
   buildSimilarItineraryCompareHrefFromProduct,
   SIMILAR_ITINERARY_COMPARE_CTA_LABEL,
-  SIMILAR_ITINERARY_COMPARE_PATH,
 } from '@/lib/similar-itinerary-compare-href'
 import {
   PAX_STEP_BUTTON_CLASS,
@@ -290,13 +289,15 @@ export default function ProductLiveQuoteCard({
             : departurePriceCollectUiCopy.ctaHintPendingQuote}
         </p>
       ) : null}
-      {/* REGRESSION-FREEZE[similar-itinerary-compare-entry]: sticky 사실 비교 CTA — 공유 위·href 없으면 프리셋 페이지 — manifest */}
-      <Link
-        href={similarCompareHref ?? SIMILAR_ITINERARY_COMPARE_PATH}
-        className="mt-3 flex w-full items-center justify-center rounded-xl border border-[#2f8fc7]/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-[#2f8fc7] hover:bg-[#dceef9]"
-      >
-        {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
-      </Link>
+      {/* REGRESSION-FREEZE[similar-itinerary-compare-entry]: sticky 사실 비교 CTA — 공유 위·href 있을 때만(목업 프리셋 폴백 금지) — manifest */}
+      {similarCompareHref ? (
+        <Link
+          href={similarCompareHref}
+          className="mt-3 flex w-full items-center justify-center rounded-xl border border-[#2f8fc7]/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-[#2f8fc7] hover:bg-[#dceef9]"
+        >
+          {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
+        </Link>
+      ) : null}
       <ShareActions title={product.title} summaryLine={shareSummary} className="mt-2" />
       <button
         type="button"

@@ -1,7 +1,8 @@
 /**
- * draft-local — 「비슷한 일정」사실 체크리스트 비교 (우열·추천 문구 없음).
+ * 「비슷한 일정」사실 체크리스트 비교 (우열·추천 문구 없음).
  * 동일 상품이 아니라 목적지+박일 후보 묶음만.
- * REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]: 등록만 · missingCanonicalSuppliers — manifest
+ * REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]: 등록대기로만 · missingCanonicalSuppliers — manifest
+ * REGRESSION-FREEZE[similar-itinerary-compare-entry]: 공개는 place+duration 필수(프리셋 폴백 금지) — manifest
  */
 
 import { prisma } from '@/lib/prisma'
@@ -123,19 +124,43 @@ export function formatTriStateFact(f: TriStateFact): string {
 export async function loadSimilarItineraryCompare(opts: {
   place?: string | null
   duration?: string | null
+  /** admin/ops only — DEV_COMPARE_PRESETS 폴백. 공개 travel 페이지는 false. */
+  allowPresetFallback?: boolean
 }): Promise<SimilarItineraryCompareBundle> {
+  const allowPreset = opts.allowPresetFallback === true
   const hasPlaceOpt = Boolean(String(opts.place || '').trim())
   const hasDurOpt = Boolean(String(opts.duration || '').trim())
-  const placeRaw = String(opts.place || DEV_COMPARE_PRESETS[0].place).trim()
-  const durationRaw = String(opts.duration || DEV_COMPARE_PRESETS[0].duration).trim()
+  const placeRaw = String(
+    opts.place || (allowPreset ? DEV_COMPARE_PRESETS[0].place : ''),
+  ).trim()
+  const durationRaw = String(
+    opts.duration || (allowPreset ? DEV_COMPARE_PRESETS[0].duration : ''),
+  ).trim()
   // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: 로더는 메가메뉴 leaf·박일 정규화 — manifest
-  // 쿼리 place가 나라/탭만이면 프리셋으로 몰지 않음(빈 표). 미지정일 때만 프리셋.
-  const placeWant = hasPlaceOpt
-    ? resolveComparePlaceCluster({ placeQuery: placeRaw })
-    : resolveComparePlaceCluster({ placeQuery: DEV_COMPARE_PRESETS[0].place })
-  const durationWant = hasDurOpt
-    ? normalizeCompareDurationLabel(durationRaw)
-    : normalizeCompareDurationLabel(DEV_COMPARE_PRESETS[0].duration)
+  // REGRESSION-FREEZE[similar-itinerary-compare-entry]: 공개는 프리셋으로 몰지 않음 — manifest
+  const placeWant =
+    hasPlaceOpt || allowPreset
+      ? resolveComparePlaceCluster({
+          placeQuery: placeRaw || (allowPreset ? DEV_COMPARE_PRESETS[0].place : ''),
+        })
+      : null
+  const durationWant =
+    hasDurOpt || allowPreset
+      ? normalizeCompareDurationLabel(
+          durationRaw || (allowPreset ? DEV_COMPARE_PRESETS[0].duration : ''),
+        )
+      : ''
+
+  if (!placeWant || !durationWant) {
+    return {
+      placeLabel: placeWant?.label || placeRaw,
+      durationLabel: durationWant,
+      disclaimer:
+        '동일한 상품이 아닙니다. 등록된 상품 중 목적지·박일이 비슷한 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다.',
+      rows: [],
+      missingSuppliers: [],
+    }
+  }
 
   const products = await prisma.product.findMany({
     where: { registrationStatus: 'registered', travelScope: 'overseas' },
@@ -243,7 +268,7 @@ export async function loadSimilarItineraryCompare(opts: {
     placeLabel: placeWant?.label || placeRaw,
     durationLabel: durationWant,
     disclaimer:
-      '동일한 상품이 아닙니다. 등록된 상품 중 목적지·박일이 비슷한 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다. 빈 필드는 「정보 없음」이며 「없음」(확인된 0/false)과 구분합니다. 모자란 공급사 수집은 등록대기로만 올리며 이 표에는 바로 넣지 않습니다.',
+      '동일한 상품이 아닙니다. 등록된 상품 중 목적지·박일이 비슷한 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다. 빈 필드는 「정보 없음」이며 「없음」(확인된 0/false)과 구분합니다.',
     rows,
     missingSuppliers,
   }

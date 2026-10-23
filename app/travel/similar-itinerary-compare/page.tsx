@@ -1,17 +1,12 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
-  DEV_COMPARE_PRESETS,
   formatTriStateFact,
   loadSimilarItineraryCompare,
 } from '@/lib/dev-similar-itinerary-compare'
-import { OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
-import { requireAdmin } from '@/lib/require-admin'
 import {
-  buildSimilarItineraryCompareHref,
   SIMILAR_ITINERARY_COMPARE_PATH,
 } from '@/lib/similar-itinerary-compare-href'
-import { enqueueCompareClusterGapIngestAction } from './actions'
 import './compare.css'
 
 export const metadata: Metadata = {
@@ -25,10 +20,6 @@ type PageProps = {
   searchParams?: Promise<{
     place?: string
     duration?: string
-    gapCreated?: string
-    gapSkipped?: string
-    gapFailed?: string
-    gapTargeted?: string
   }>
 }
 
@@ -47,26 +38,12 @@ function FactCell({ value }: { value: string }) {
 }
 
 export default async function SimilarItineraryComparePage({ searchParams }: PageProps) {
-  // REGRESSION-FREEZE[similar-itinerary-compare-entry]: public travel path — manifest
+  // REGRESSION-FREEZE[similar-itinerary-compare-entry]: public travel path — 사실표만·등록대기/목업 프리셋 없음 — manifest
   const sp = (await searchParams) ?? {}
-  const bundle = await loadSimilarItineraryCompare({
-    place: sp.place,
-    duration: sp.duration,
-  })
-  const isAdmin = Boolean(await requireAdmin())
-
-  const gapFlash =
-    sp.gapCreated != null || sp.gapSkipped != null || sp.gapFailed != null
-      ? {
-          created: Number(sp.gapCreated ?? 0) || 0,
-          skipped: Number(sp.gapSkipped ?? 0) || 0,
-          failed: Number(sp.gapFailed ?? 0) || 0,
-          targeted: String(sp.gapTargeted ?? '')
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean),
-        }
-      : null
+  const place = String(sp.place || '').trim()
+  const duration = String(sp.duration || '').trim()
+  const bundle = await loadSimilarItineraryCompare({ place, duration })
+  const hasQuery = Boolean(place && duration)
 
   return (
     <div className="sic-root">
@@ -74,68 +51,29 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
         <Link href="/travel/overseas" className="sic-back">
           ← 해외여행
         </Link>
-        <span className="sic-draft">사실 체크리스트만 · 우열 없음</span>
       </header>
 
       <div className="sic-head">
-        <p className="sic-eyebrow">비슷한 일정 후보</p>
+        <p className="sic-eyebrow">비슷한 일정</p>
         <h1>
-          {bundle.placeLabel}{' '}
-          <span className="sic-head-duration">{bundle.durationLabel}</span>
+          {hasQuery ? (
+            <>
+              {bundle.placeLabel}{' '}
+              <span className="sic-head-duration">{bundle.durationLabel}</span>
+            </>
+          ) : (
+            '공급사별 사실 비교'
+          )}
         </h1>
         <p className="sic-sub">{bundle.disclaimer}</p>
       </div>
 
-      <nav className="sic-presets" aria-label="예시 묶음">
-        {DEV_COMPARE_PRESETS.map((p) => {
-          const active = p.place === bundle.placeLabel && p.duration === bundle.durationLabel
-          const href =
-            buildSimilarItineraryCompareHref({ place: p.place, duration: p.duration }) ??
-            SIMILAR_ITINERARY_COMPARE_PATH
-          return (
-            <Link key={`${p.place}-${p.duration}`} href={href} className={active ? 'sic-chip sic-chip--on' : 'sic-chip'}>
-              <span>
-                {p.place} {p.duration}
-              </span>
-              <small>{p.note}</small>
-            </Link>
-          )
-        })}
-      </nav>
-
-      {gapFlash ? (
-        <p className="sic-gap-flash" role="status">
-          등록대기 수집 완료 · 대상 {gapFlash.targeted.length || '—'}곳 · 생성 {gapFlash.created} · 스킵{' '}
-          {gapFlash.skipped} · 실패 {gapFlash.failed}
+      {!hasQuery ? (
+        <p className="sic-empty">
+          상품 상세의 「같은 일정, 공급사별 사실 비교」로 들어와 주세요.
+          <span className="sic-empty-path"> ({SIMILAR_ITINERARY_COMPARE_PATH}?place=…&amp;duration=…)</span>
         </p>
-      ) : null}
-
-      {isAdmin && bundle.missingSuppliers.length > 0 ? (
-        <section className="sic-gap" aria-label="모자란 공급사">
-          <div className="sic-gap-head">
-            <p className="sic-gap-label">없는 공급사</p>
-            <ul className="sic-gap-chips">
-              {bundle.missingSuppliers.map((key) => (
-                <li key={key} className="sic-gap-chip">
-                  {OVERSEAS_SUPPLIER_LABEL[key] ?? key}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <form action={enqueueCompareClusterGapIngestAction} className="sic-gap-form">
-            <input type="hidden" name="place" value={bundle.placeLabel} />
-            <input type="hidden" name="duration" value={bundle.durationLabel} />
-            <button type="submit" className="sic-gap-btn">
-              등록대기 수집
-            </button>
-            <p className="sic-gap-note">
-              목적지 키워드로 목록만 긁어 등록대기로 올립니다. 이 비교표에는 승인·등록 후에야 나타납니다.
-            </p>
-          </form>
-        </section>
-      ) : null}
-
-      {bundle.rows.length === 0 ? (
+      ) : bundle.rows.length === 0 ? (
         <p className="sic-empty">이 목적지·박일로 등록된 후보가 없습니다.</p>
       ) : (
         <div className="sic-table-wrap">
@@ -162,7 +100,6 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
                   <td className="sic-supplier">{r.supplierLabel}</td>
                   <td className="sic-title">
                     <Link href={r.href}>{r.title}</Link>
-                    {r.slug ? <code className="sic-slug">{r.slug}</code> : null}
                   </td>
                   <td>{r.duration}</td>
                   <td className="sic-price">{r.priceLabel}</td>
@@ -187,12 +124,6 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
           </table>
         </div>
       )}
-
-      <footer className="sic-foot">
-        <p>
-          예시 · <code>{SIMILAR_ITINERARY_COMPARE_PATH}?place=방콕&amp;duration=3박 5일</code>
-        </p>
-      </footer>
     </div>
   )
 }

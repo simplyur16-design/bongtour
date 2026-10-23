@@ -27014,19 +27014,39 @@
           ]
         },
         {
-          "file": "app/travel/similar-itinerary-compare/page.tsx",
+          "file": "app/admin/similar-itinerary-compare/page.tsx",
           "mustInclude": [
             "없는 공급사",
             "등록대기 수집",
             "enqueueCompareClusterGapIngestAction",
-            "missingSuppliers"
+            "missingSuppliers",
+            "REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]",
+            "admin only"
+          ]
+        },
+        {
+          "file": "app/travel/similar-itinerary-compare/page.tsx",
+          "mustNotInclude": [
+            "등록대기 수집",
+            "enqueueCompareClusterGapIngestAction",
+            "DEV_COMPARE_PRESETS",
+            "sic-draft"
           ]
         },
         {
           "file": "app/travel/similar-itinerary-compare/actions.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]",
-            "ingestCompareClusterSupplierGaps"
+            "ingestCompareClusterSupplierGaps",
+            "SIMILAR_ITINERARY_COMPARE_ADMIN_PATH"
+          ]
+        },
+        {
+          "file": "lib/similar-itinerary-compare-admin-path.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]",
+            "SIMILAR_ITINERARY_COMPARE_ADMIN_PATH",
+            "/admin/similar-itinerary-compare"
           ]
         },
         {
@@ -27231,8 +27251,11 @@
             "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
             "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
             "buildSimilarItineraryCompareHrefFromProduct",
-            "SIMILAR_ITINERARY_COMPARE_PATH",
-            "공유 위·href 없으면 프리셋 페이지"
+            "공유 위·href 있을 때만",
+            "목업 프리셋 폴백 금지"
+          ],
+          "mustNotInclude": [
+            "similarCompareHref ?? SIMILAR_ITINERARY_COMPARE_PATH"
           ]
         },
         {
@@ -27241,24 +27264,40 @@
             "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
             "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
             "buildSimilarItineraryCompareHrefFromProduct",
-            "SIMILAR_ITINERARY_COMPARE_PATH",
-            "히어로 사실 비교 CTA 항상 노출"
+            "href 있을 때만",
+            "목업 프리셋 폴백 금지"
+          ],
+          "mustNotInclude": [
+            "similarCompareHref ?? SIMILAR_ITINERARY_COMPARE_PATH"
           ]
         },
         {
           "file": "app/travel/similar-itinerary-compare/page.tsx",
           "mustInclude": [
-            "buildSimilarItineraryCompareHref",
             "SIMILAR_ITINERARY_COMPARE_PATH",
             "추천/우위 표시 없음",
-            "REGRESSION-FREEZE[similar-itinerary-compare-entry]"
+            "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
+            "사실표만·등록대기/목업 프리셋 없음"
+          ],
+          "mustNotInclude": [
+            "등록대기 수집",
+            "DEV_COMPARE_PRESETS",
+            "sic-draft"
+          ]
+        },
+        {
+          "file": "lib/dev-similar-itinerary-compare.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
+            "allowPresetFallback",
+            "공개는 프리셋으로 몰지 않음"
           ]
         },
         {
           "file": "app/dev/ocean-warm-home/OceanWarmTopNav.tsx",
           "mustInclude": [
-            "/travel/similar-itinerary-compare",
-            "사실 비교"
+            "/admin/similar-itinerary-compare",
+            "비교 운영"
           ]
         }
       ],

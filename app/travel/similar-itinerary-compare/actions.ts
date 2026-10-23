@@ -3,10 +3,10 @@
 import { redirect } from 'next/navigation'
 import { ingestCompareClusterSupplierGaps } from '@/lib/compare-cluster-supplier-gap-ingest'
 import { requireAdmin } from '@/lib/require-admin'
-import { SIMILAR_ITINERARY_COMPARE_PATH } from '@/lib/similar-itinerary-compare-href'
+import { SIMILAR_ITINERARY_COMPARE_ADMIN_PATH } from '@/lib/similar-itinerary-compare-admin-path'
 
 /**
- * REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]: 비교 페이지 → 등록대기 수집 — manifest
+ * REGRESSION-FREEZE[compare-cluster-supplier-gap-ingest]: admin 비교 페이지 → 등록대기 수집 — manifest
  */
 export async function enqueueCompareClusterGapIngestAction(formData: FormData): Promise<void> {
   const admin = await requireAdmin()
@@ -35,5 +35,5 @@ export async function enqueueCompareClusterGapIngestAction(formData: FormData): 
   qs.set('gapFailed', String(result.failed))
   qs.set('gapTargeted', result.targeted.join(','))
 
-  redirect(`${SIMILAR_ITINERARY_COMPARE_PATH}?${qs.toString()}`)
+  redirect(`${SIMILAR_ITINERARY_COMPARE_ADMIN_PATH}?${qs.toString()}`)
 }
