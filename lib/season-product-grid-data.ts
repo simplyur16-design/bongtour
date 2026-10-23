@@ -42,6 +42,8 @@ function toResultItem(p: {
   duration: string | null
   bgImageUrl: string | null
   schedule: string | null
+  cityKey: string | null
+  countryKey: string | null
   departures: { adultPrice: number | null; departureDate: Date }[]
   prices: { adult: number }[]
   priceFrom: number | null
