@@ -140,7 +140,7 @@ export default function MobileProductDetail({
     imageKeyword: d.imageKeyword ?? null,
     city: d.city ?? null,
   }))
-  const detailScope = product.primaryRegion === '�?��' ? 'domestic' : 'overseas'
+  const detailScope = product.primaryRegion === '국내' ? 'domestic' : 'overseas'
   const labels = getHotelMealLabels(detailScope)
   const uiOptionalRows = useMemo(
     () => getPublicOptionalTourRowsFromProduct(product.optionalToursStructured, product.optionalToursPasteRaw),
@@ -270,7 +270,7 @@ export default function MobileProductDetail({
       try {
         const { ok, data } = await postRangeOnDemandDepartures(String(product.id), isoDate, 14)
         if (!ok) {
-          setOnDemandNotice('출발???�보�?불러?�는 �?문제가 발생?�습?�다. ?�시 ?�도??주세??')
+          setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
           return
         }
         const parsed = parseRangeOnDemandResponse(String(product.id), isoDate, data)
@@ -290,17 +290,17 @@ export default function MobileProductDetail({
           return
         }
         if (parsed.kind === 'departure_not_found') {
-          setOnDemandNotice('?�택?�신 ?�짜?�는 출발 가?�한 ?�품???�습?�다.')
+          setOnDemandNotice('선택하신 날짜에는 출발 가능한 상품이 없습니다.')
           if (parsed.refreshRouter) router.refresh()
           return
         }
         if (parsed.kind === 'price_unavailable') {
-          setOnDemandNotice('?�당 ?�짜 출발?� ?�으??가격을 ?�직 ?�인?��? 못했?�니??')
+          setOnDemandNotice('해당 날짜 출발은 있으나 가격을 아직 확인하지 못했습니다.')
           return
         }
-        setOnDemandNotice('출발???�보�?불러?�는 �?문제가 발생?�습?�다. ?�시 ?�도??주세??')
+        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
       } catch {
-        setOnDemandNotice('출발???�보�?불러?�는 �?문제가 발생?�습?�다. ?�시 ?�도??주세??')
+        setOnDemandNotice('출발일 정보를 불러오는 중 문제가 발생했습니다. 다시 시도해 주세요.')
       } finally {
         setDepartureCollectOpen(false)
       }
@@ -463,7 +463,7 @@ export default function MobileProductDetail({
   const highRiskAlerts = useMemo(() => {
     const lines: string[] = []
     if (product.mandatoryLocalFee != null && product.mandatoryCurrency) {
-      lines.push(`?��??�서 ${product.mandatoryCurrency} ${product.mandatoryLocalFee}(?�당) 별도 지불이 ?�요???�품?�니??)
+      lines.push(`현지에서 ${product.mandatoryCurrency} ${product.mandatoryLocalFee}(인당) 별도 지불이 필요한 상품입니다`)
     }
     const points = product.counselingNotes?.counseling_points ?? []
     points.forEach((p) => {
@@ -482,7 +482,7 @@ export default function MobileProductDetail({
     return computeReturnDate(dep, packageTotalDays)
   }, [selectedDate, priceRow, departureDateFrom, packageTotalDays])
 
-  /** �??�아?????�항: `mustKnowItems`�?공급??공통). 비면 기본 ?�내 문구. */
+  /** 꼭 알아야 할 사항: `mustKnowItems`만(공급사 공통). 비면 기본 안내 문구. */
   const mustKnowFiltered = useMemo(
     () =>
       filterPublicMustKnowItemsForTripReadiness(
@@ -498,7 +498,7 @@ export default function MobileProductDetail({
     if (merged.trim()) return merged.trim()
     const fb = product.meetingFallbackText?.trim()
     if (fb) return fb
-    return '미팅?�소???�담 ???�인?�여 ?�내?�리겠습?�다.'
+    return '미팅장소는 상담 시 확인하여 안내드리겠습니다.'
   }, [product.meetingInfoRaw, product.meetingPlaceRaw, product.meetingFallbackText])
   const selectedDepartureCurrentPrice = priceRow
     ? computeKRWQuotation(priceRow, { adult: 1, childBed: 0, childNoBed: 0, infant: 0 }).total
@@ -576,7 +576,7 @@ export default function MobileProductDetail({
   )
 
   const travelCitiesLine = useMemo(
-    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: travelCities dest scrub ??manifest
+    // REGRESSION-FREEZE[public-card-no-kr-departure-place]: travelCities dest scrub — manifest
     () => formatPublicDestinationDisplayLabel(product.primaryDestination, product.destination),
     [product.primaryDestination, product.destination],
   )
@@ -586,7 +586,7 @@ export default function MobileProductDetail({
     const seats = priceRow?.availableSeats
     const bits: string[] = []
     if (base) bits.push(base)
-    if (seats != null && seats >= 0) bits.push(`?�유좌석 ??${seats}??)
+    if (seats != null && seats >= 0) bits.push(`여유좌석 약 ${seats}석`)
     if (normalizeSupplierOrigin(product.originSource) === 'hanatour') {
       const seatBlob = priceRow?.seatsStatusRaw?.trim() || priceRow?.status?.trim()
       const hay = buildHanatourDepartureEvidenceHaystack(product)
@@ -610,9 +610,9 @@ export default function MobileProductDetail({
   const periodContent = useMemo(
     () => (
       <>
-        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroDepartureDisplay ?? '??}</span>
+        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroDepartureDisplay ?? '—'}</span>
         <span className="text-bt-disabled"> ~ </span>
-        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '?�담 ???�내'}</span>
+        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '상담 시 안내'}</span>
         {product.duration?.trim() ? (
           <>
             {' '}
