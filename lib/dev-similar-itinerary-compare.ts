@@ -8,10 +8,8 @@
 import { prisma } from '@/lib/prisma'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { publicProductPath } from '@/lib/product-public-path'
-import {
-  computeEffectivePricePerPersonKrwFromRow,
-  PRODUCT_PRICE_FOR_BROWSE_INCLUDE,
-} from '@/lib/product-price-per-person'
+import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
+import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
 import {
   deriveAirlineFact,
   deriveHotelMealFact,
@@ -28,6 +26,7 @@ import {
 import {
   compareDurationsMatch,
   comparePlaceClustersMatch,
+  comparePlaceDbSearchTerms,
   normalizeCompareDurationLabel,
   resolveComparePlaceCluster,
 } from '@/lib/similar-itinerary-compare-cluster'
@@ -156,14 +155,37 @@ export async function loadSimilarItineraryCompare(opts: {
       placeLabel: placeWant?.label || placeRaw,
       durationLabel: durationWant,
       disclaimer:
-        '동일한 상품이 아닙니다. 등록된 상품 중 목적지·박일이 비슷한 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다.',
+        '동일한 상품이 아닙니다. 등록된 상품 중 비슷한 지역·박일 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다.',
       rows: [],
       missingSuppliers: [],
     }
   }
 
+  // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: DB는 leaf alias로 좁힘 — overseas 전량 금지 — manifest
+  const placeTerms = comparePlaceDbSearchTerms(placeWant)
+  if (placeTerms.length === 0) {
+    return {
+      placeLabel: placeWant.label,
+      durationLabel: durationWant,
+      disclaimer:
+        '동일한 상품이 아닙니다. 등록된 상품 중 비슷한 지역·박일 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다.',
+      rows: [],
+      missingSuppliers: [],
+    }
+  }
+  const placeOr = placeTerms.flatMap((t) => [
+    { primaryDestination: { contains: t } },
+    { destination: { contains: t } },
+    { title: { contains: t } },
+  ])
+
   const products = await prisma.product.findMany({
-    where: { registrationStatus: 'registered', travelScope: 'overseas' },
+    where: {
+      registrationStatus: 'registered',
+      travelScope: 'overseas',
+      OR: placeOr,
+    },
+    take: 400,
     select: {
       id: true,
       slug: true,
@@ -186,10 +208,13 @@ export async function loadSimilarItineraryCompare(opts: {
       includedText: true,
       excludedText: true,
       rawMeta: true,
-      schedule: true,
       // REGRESSION-FREEZE[browse-price-product-price-fallback]: 비교표 인당가 = ProductPriceSelect — manifest
       // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: departures는 가격+항공사 동시 select — manifest
-      prices: PRODUCT_PRICE_FOR_BROWSE_INCLUDE.prices,
+      prices: {
+        select: { adult: true },
+        take: 20,
+        orderBy: { date: 'asc' as const },
+      },
       departures: {
         select: {
           adultPrice: true,
@@ -197,7 +222,7 @@ export async function loadSimilarItineraryCompare(opts: {
           carrierName: true,
         },
         orderBy: { departureDate: 'asc' },
-        take: 80,
+        take: 16,
       },
       itineraryDays: {
         select: {
@@ -210,7 +235,7 @@ export async function loadSimilarItineraryCompare(opts: {
           dinnerText: true,
         },
         orderBy: { day: 'asc' },
-        take: 12,
+        take: 10,
       },
     },
   })
@@ -244,7 +269,19 @@ export async function loadSimilarItineraryCompare(opts: {
       href: publicProductPath({ id: p.id, slug: p.slug }),
       supplierKey,
       supplierLabel: formatOriginSourceForDisplay(p.originSource),
-      title: String(p.title || '').trim() || '(제목 없음)',
+      // REGRESSION-FREEZE[public-card-hero-short-title]: 비교표도 권역헤더·EN 키워드 오염 제거 — manifest
+      title:
+        resolvePublicBrowseCardTitle(
+          {
+            title: p.title,
+            duration: p.duration,
+            primaryDestination: p.primaryDestination,
+            destination: p.destination,
+          },
+          String(p.title || '').trim() || '(제목 없음)',
+        ).cardTitle ||
+        String(p.title || '').trim() ||
+        '(제목 없음)',
       duration: normalizeCompareDurationLabel(p.duration, p.title) || '정보 없음',
       priceLabel: priceLabel(computeEffectivePricePerPersonKrwFromRow(p)),
       airlineLabel: airline.airlineLabel,
@@ -268,7 +305,7 @@ export async function loadSimilarItineraryCompare(opts: {
     placeLabel: placeWant?.label || placeRaw,
     durationLabel: durationWant,
     disclaimer:
-      '동일한 상품이 아닙니다. 등록된 상품 중 목적지·박일이 비슷한 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다. 빈 필드는 「정보 없음」이며 「없음」(확인된 0/false)과 구분합니다.',
+      '동일한 상품이 아닙니다. 등록된 상품 중 비슷한 지역·박일 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다. 빈 필드는 「정보 없음」이며 「없음」(확인된 0/false)과 구분합니다.',
     rows,
     missingSuppliers,
   }

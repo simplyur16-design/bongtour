@@ -170,6 +170,37 @@ describe('resolvePublicBrowseCardTitle', () => {
     expect(r.cardTitle).toMatch(/^뉴질랜드 \d+박 9일$/)
     expect(r.cardTitle).not.toMatch(/#/)
   })
+
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 — manifest
+  it('칭다오 — china-circle 그룹 헤더를 short에 쓰지 않음', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '[하나투어] 칭다오 핵심관광 2박3일',
+        duration: '2박 3일',
+        primaryDestination: '칭다오',
+        destination: '청도',
+        primaryRegion: '중국권 · 홍콩 · 마카오 · 몽골 · 중앙아',
+      },
+      '[하나투어] 칭다오 핵심관광 2박3일',
+    )
+    expect(r.usedHeroShort).toBe(true)
+    expect(r.cardTitle).toBe('청도 2박 3일')
+    expect(r.cardTitle).not.toMatch(/중국권|홍콩|마카오|몽골|중앙아/)
+  })
+
+  // REGRESSION-FREEZE[public-card-hero-short-title]: The Rocks 등 EN 키워드≠상품명 — manifest
+  it('The Rocks soft-alt 문구를 카드 제목으로 쓰지 않음', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: 'The Rocks Sydney harbor',
+        duration: '3박 4일',
+        primaryDestination: '시드니',
+      },
+      'The Rocks Sydney harbor',
+    )
+    expect(r.cardTitle).toBe('시드니 3박 4일')
+    expect(r.cardTitle).not.toMatch(/Rocks|harbor/i)
+  })
 })
 
 // REGRESSION-FREEZE[public-detail-hero-short-listing]: 상세 short·원명 — manifest

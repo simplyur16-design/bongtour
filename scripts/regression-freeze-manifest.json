@@ -26229,7 +26229,12 @@
             "REGRESSION-FREEZE[public-card-hero-short-title]",
             "resolvePublicBrowseCardTitle",
             "sanitizePlaceLabel",
-            "durationHintFromTitle"
+            "durationHintFromTitle",
+            "그룹 헤더≠목적지",
+            "isUmbrellaMegaRegionPlaceLabel",
+            "중국권",
+            "The Rocks 등 EN 키워드≠상품명",
+            "isEnLandmarkNoiseToken"
           ]
         },
         {
@@ -27206,7 +27211,9 @@
             "시드니",
             "멜버른",
             "오클랜드",
-            "퀸스타운"
+            "퀸스타운",
+            "DB는 leaf alias로 좁힘",
+            "comparePlaceDbSearchTerms"
           ]
         },
         {
@@ -27220,7 +27227,13 @@
             "departureDate",
             "carrierName",
             "computeEffectivePricePerPersonKrwFromRow",
-            "PRODUCT_PRICE_FOR_BROWSE_INCLUDE.prices"
+            "comparePlaceDbSearchTerms",
+            "DB는 leaf alias로 좁힘",
+            "overseas 전량 금지",
+            "take: 400"
+          ],
+          "mustNotInclude": [
+            "where: { registrationStatus: 'registered', travelScope: 'overseas' }"
           ]
         }
       ],

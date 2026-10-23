@@ -47,7 +47,44 @@ export const BONGTOUR_HERO_BRAND_CITIES: readonly string[] = [
   '멜버른',
   '뉴욕',
   '밴쿠버',
+  '청도',
+  '칭다오',
+  '북경',
+  '베이징',
+  '상해',
+  '상하이',
 ] as const
+
+/**
+ * 위치 트리·메가메뉴 그룹 헤더 — short place로 쓰면 「중국권 홍콩 마카오… 2박3일」 오염.
+ * REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 — manifest
+ */
+export function isUmbrellaMegaRegionPlaceLabel(s: string): boolean {
+  const t = String(s || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!t || t.length < 4) return false
+  if (/중국권/.test(t)) return true
+  if (/홍콩/.test(t) && /마카오/.test(t) && /몽골|중앙아/.test(t)) return true
+  if (/괌/.test(t) && /사이판/.test(t) && /호주|뉴질랜드/.test(t)) return true
+  if (/유럽/.test(t) && /중동/.test(t) && /아프리카|성지/.test(t)) return true
+  // 「A · B · C」식 다단 권역 헤더
+  if ((t.match(/·/g) || []).length >= 2 && t.length >= 10) return true
+  return false
+}
+
+/** soft-alt·키워드 EN 랜드마크가 도시 토큰/제목으로 새는 것 차단 */
+function isEnLandmarkNoiseToken(s: string): boolean {
+  const t = String(s || '').trim()
+  if (!t) return false
+  if (/^the\s+rocks\b/i.test(t)) return true
+  if (/\brocks\b/i.test(t) && /sydney|harbor|harbour/i.test(t)) return true
+  if (/^[A-Za-z][A-Za-z\s'-]{2,40}$/.test(t) && !/^(USA|UK)$/i.test(t)) {
+    // 순수 영문 토큰은 카드 place로 쓰지 않음(한글 dest가 있을 때 호출측에서 걸러짐)
+    return /harbor|harbour|bridge|street|market|temple|palace|garden|island|beach|rock/i.test(t)
+  }
+  return false
+}
 
 /** 나라+테마+일수 허용 테마 (1토큰) */
 export const BONGTOUR_HERO_THEME_WHITELIST: readonly string[] = [
@@ -185,7 +222,8 @@ function detectTheme(hay: string): string | null {
 
 function detectRegion(hay: string, regionLabel?: string | null): string | null {
   const r = cleanToken(String(regionLabel || ''))
-  if (r) return r
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 — manifest
+  if (r && !isUmbrellaMegaRegionPlaceLabel(r)) return r
   for (const lab of REGION_LABELS) {
     if (hay.includes(lab)) return lab
   }
@@ -400,18 +438,26 @@ export function resolvePublicBrowseCardTitle(
       splitPlaceTokens(stripKrDepartureMarkersFromTitle(input.title)),
     )
   }
+  // REGRESSION-FREEZE[public-card-hero-short-title]: The Rocks 등 EN 키워드≠상품명 — manifest
+  cities = cities
+    .map((c) => (c === '칭다오' ? '청도' : c === '베이징' ? '북경' : c === '상하이' ? '상해' : c))
+    .filter((c) => !isEnLandmarkNoiseToken(c) && !isUmbrellaMegaRegionPlaceLabel(c))
+
   const countryLabel = cleanToken(String(input.countryRowLabel || ''))
   const regionLabel = cleanToken(String(input.primaryRegion || ''))
-  const multiCountry =
-    Boolean(regionLabel) &&
-    (/유럽|미주|중동|아프리카|중남미|남미|동남아|서남아|일주/.test(regionLabel) ||
-      cities.length >= 3)
-
   const duration =
     String(input.duration || '').trim() || durationHintFromTitle(input.title) || null
-  const regionClean = sanitizePlaceLabel(regionLabel)
+  let regionClean = sanitizePlaceLabel(regionLabel)
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 — manifest
+  if (regionClean && isUmbrellaMegaRegionPlaceLabel(regionClean)) regionClean = ''
   let countryClean = sanitizePlaceLabel(countryLabel)
   if (countryClean && isKrHomeDeparturePlaceLabel(countryClean)) countryClean = ''
+  if (countryClean && isUmbrellaMegaRegionPlaceLabel(countryClean)) countryClean = ''
+
+  const multiCountry =
+    Boolean(regionClean) &&
+    (/유럽|미주|중동|아프리카|중남미|남미|동남아|서남아|일주/.test(regionClean) ||
+      cities.length >= 3)
 
   const composed = composeBongtourHeroDisplayTitle({
     duration,
@@ -429,7 +475,7 @@ export function resolvePublicBrowseCardTitle(
     multiCountry,
   })
 
-  if (composed.heroShortTitle) {
+  if (composed.heroShortTitle && !isUmbrellaMegaRegionPlaceLabel(composed.heroShortTitle)) {
     return {
       cardTitle: composed.heroShortTitle,
       heroSubtitle: composed.heroSubtitle,
@@ -437,9 +483,13 @@ export function resolvePublicBrowseCardTitle(
     }
   }
 
-  // short 실패 시에도 해시태그·반쪽 괄호는 카드에 안 남김
+  // short 실패 시에도 해시태그·반쪽 괄호·EN 랜드마크는 카드에 안 남김
   const fbRaw = String(fallbackTitle || input.title || '').trim() || '여행'
-  const fb = sanitizePlaceLabel(fbRaw.replace(/#[^\s#]+/g, ' ')).replace(/\s{2,}/g, ' ').trim() || '여행'
+  let fb =
+    sanitizePlaceLabel(fbRaw.replace(/#[^\s#]+/g, ' ').replace(/\bThe\s+Rocks\b[^·,]*/gi, ' '))
+      .replace(/\s{2,}/g, ' ')
+      .trim() || '여행'
+  if (isEnLandmarkNoiseToken(fb) || isUmbrellaMegaRegionPlaceLabel(fb)) fb = '여행'
   return { cardTitle: fb, heroSubtitle: null, usedHeroShort: false }
 }
 

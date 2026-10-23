@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   comparePlaceClustersMatch,
+  comparePlaceDbSearchTerms,
   normalizeCompareDurationLabel,
   resolveComparePlaceCluster,
   resolveComparePlaceClusterFromHay,
@@ -104,5 +105,16 @@ describe('similar-itinerary-compare-cluster', () => {
         resolveComparePlaceClusterFromHay('괌'),
       ),
     ).toBe(false)
+  })
+
+  // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: DB는 leaf alias로 좁힘 — manifest
+  it('exposes DB search terms for AU/NZ leaf (no full overseas scan)', () => {
+    const au = resolveComparePlaceClusterFromHay('호주/뉴질랜드')
+    const terms = comparePlaceDbSearchTerms(au)
+    expect(terms).toContain('시드니')
+    expect(terms).toContain('멜버른')
+    expect(terms).toContain('뉴질랜드')
+    expect(terms.length).toBeGreaterThan(5)
+    expect(terms.length).toBeLessThanOrEqual(40)
   })
 })

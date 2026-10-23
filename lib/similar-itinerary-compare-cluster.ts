@@ -205,6 +205,27 @@ const COMPARE_LEAVES: readonly LeafDef[] = buildCompareLeavesFromMegaMenu()
 const LEAF_LABELS = collectLeafLabels()
 const NON_LEAF_HEADERS = collectNonLeafHeaderLabels(LEAF_LABELS)
 
+/**
+ * Prisma `contains` 후보 — 전량 overseas scan 금지. 긴 alias 우선·상한.
+ * REGRESSION-FREEZE[similar-itinerary-compare-cluster]: DB는 leaf alias로 좁힘 — manifest
+ */
+export function comparePlaceDbSearchTerms(cluster: ComparePlaceCluster | null): string[] {
+  if (!cluster?.key) return []
+  const leaf = COMPARE_LEAVES.find((l) => l.key === cluster.key)
+  const raw = leaf?.aliases?.length
+    ? leaf.aliases
+    : cluster.label
+      ? [cluster.label]
+      : []
+  const uniq = new Set<string>()
+  for (const a of raw) {
+    const t = String(a || '').trim()
+    if (t.length < 2) continue
+    uniq.add(t)
+  }
+  return [...uniq].sort((a, b) => b.length - a.length || a.localeCompare(b, 'ko')).slice(0, 40)
+}
+
 /** 박일 정규화 — `3박5일`·`3박  5일` → `3박 5일` */
 // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: 박일 정규화 — manifest
 export function normalizeCompareDurationLabel(
