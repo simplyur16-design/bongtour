@@ -23,15 +23,17 @@ import { isAirHotelProduct, parseAirHotelBrowseTypeParam } from '@/lib/air-hotel
 // REGRESSION-FREEZE[mega-menu-mid-leaf-tag-filter]: mid=group tags first, leaf=city narrow — manifest
 // REGRESSION-FREEZE[overseas-hub-package-fit-split]: type=travel|air-hotel 패키지/자유여행 — manifest
 
+/** 해외 허브는 패키지 기본. `all`은 레거시 URL 호환용이며 패키지와 동일(자유여행 혼입 금지). */
 export type OverseasHubTravelType = 'all' | 'package' | 'free'
 
 export function parseOverseasHubTravelType(searchParams: URLSearchParams): OverseasHubTravelType {
   const travelType = (searchParams.get('travelType') ?? '').trim().toLowerCase()
-  if (travelType === 'package' || travelType === 'free' || travelType === 'all') return travelType
+  if (travelType === 'free') return 'free'
+  if (travelType === 'package' || travelType === 'all') return 'package'
   const fromType = parseAirHotelBrowseTypeParam(searchParams.get('type'))
   if (fromType === 'air-hotel') return 'free'
-  if (fromType === 'travel') return 'package'
-  return 'all'
+  // REGRESSION-FREEZE[overseas-hub-package-fit-split]: type 없으면 패키지 — manifest
+  return 'package'
 }
 
 /**
@@ -53,7 +55,7 @@ export function filterOverseasHubCatalogByTravelType(
   items: ResultItem[],
   travelType: OverseasHubTravelType,
 ): ResultItem[] {
-  if (travelType === 'all') return items
+  // REGRESSION-FREEZE[overseas-hub-package-fit-split]: all=패키지(혼입 금지) — manifest
   if (travelType === 'free') {
     return items.filter((it) => isAirHotelProduct({ listingKind: it.listingKind, productType: it.productType }))
   }
@@ -193,7 +195,7 @@ function filterOverseasHubCatalogByMenuGroup(
 /**
  * 해외 허브 — 전량 카탈로그 또는 서버 geo 목록을 URL `region`/`country`/`city`/`menuGroup`로 클라이언트 필터.
  * 중분류=그룹 태그, 하분류=중분류 풀에서 city 재좁힘.
- * type=travel 패키지, type=air-hotel 자유여행. type 없으면 둘 다.
+ * type=travel·기본=패키지, type=air-hotel=자유여행. 혼입(all) 금지.
  */
 export function filterOverseasHubCatalogByUrl(
   items: ResultItem[],

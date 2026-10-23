@@ -6,10 +6,15 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { publicProductPath } from '@/lib/product-public-path'
 import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
+import {
+  parseSimilarItineraryCompareKind,
+  type SimilarItineraryCompareKind,
+} from '@/lib/similar-itinerary-compare-href'
 import {
   deriveAirlineFact,
   deriveHotelMealFact,
@@ -123,9 +128,13 @@ export function formatTriStateFact(f: TriStateFact): string {
 export async function loadSimilarItineraryCompare(opts: {
   place?: string | null
   duration?: string | null
+  /** package=해외패키지, fit=자유여행 — 혼입 금지 */
+  kind?: SimilarItineraryCompareKind | string | null
   /** admin/ops only — DEV_COMPARE_PRESETS 폴백. 공개 travel 페이지는 false. */
   allowPresetFallback?: boolean
 }): Promise<SimilarItineraryCompareBundle> {
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: kind로 패키지/FIT 분리 — manifest
+  const compareKind = parseSimilarItineraryCompareKind(opts.kind)
   const allowPreset = opts.allowPresetFallback === true
   const hasPlaceOpt = Boolean(String(opts.place || '').trim())
   const hasDurOpt = Boolean(String(opts.duration || '').trim())
@@ -193,6 +202,8 @@ export async function loadSimilarItineraryCompare(opts: {
       duration: true,
       primaryDestination: true,
       destination: true,
+      listingKind: true,
+      productType: true,
       originSource: true,
       priceFrom: true,
       minBookableAdultPrice: true,
@@ -251,7 +262,10 @@ export async function loadSimilarItineraryCompare(opts: {
           normalizeCompareDurationLabel(p.duration, p.title),
           durationWant,
         )
-        return comparePlaceClustersMatch(placeWant, place) && durOk
+        if (!comparePlaceClustersMatch(placeWant, place) || !durOk) return false
+        // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 패키지 표에 FIT 금지·반대도 금지 — manifest
+        const isFit = isAirHotelProduct(p)
+        return compareKind === 'fit' ? isFit : !isFit
       })
     : []
 

@@ -23071,7 +23071,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "해외 허브는 패키지+자유여행 포함, type=travel|air-hotel 칩이 실제로 거른다",
+      "summary": "해외여행(/travel/overseas·메가메뉴) 목록은 패키지만, 자유여행은 /travel/air-hotel만 — 혼입 금지",
       "checks": [
         {
           "file": "lib/overseas-hub-client-catalog-filter.ts",
@@ -23079,14 +23079,31 @@
             "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
             "parseOverseasHubTravelType",
             "filterOverseasHubCatalogByTravelType",
-            "type=travel"
+            "type 없으면 패키지",
+            "all=패키지(혼입 금지)"
           ]
         },
         {
           "file": "lib/products-browse-db-where.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
-            "browseType === 'travel'"
+            "type 없어도 overseas=패키지만",
+            "scope === 'overseas'"
+          ]
+        },
+        {
+          "file": "lib/products-browse-hub-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
+            "type', 'travel'",
+            "허브 전량 카탈로그도 패키지만"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
+            "해외 패키지 목록 메모리에서도 FIT 제거"
           ]
         },
         {
@@ -23094,13 +23111,14 @@
           "mustInclude": [
             "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
             "자유여행",
-            "type', 'air-hotel'"
+            "type', 'air-hotel'",
+            "/travel/air-hotel"
           ]
         },
         {
           "file": "app/travel/overseas/page.tsx",
           "mustInclude": [
-            "해외 패키지와 자유여행"
+            "해외 패키지 여행 상품"
           ]
         },
         {
@@ -23113,6 +23131,75 @@
       "vitestSuites": [
         "lib/overseas-hub-client-catalog-filter.test.ts",
         "lib/products-browse-db-where.test.ts"
+      ]
+    },
+    {
+      "id": "similar-itinerary-compare-kind-split",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "같은 일정 비교 — 패키지·자유여행 kind 분리(혼입 금지)",
+      "checks": [
+        {
+          "file": "lib/similar-itinerary-compare-href.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "SimilarItineraryCompareKind",
+            "parseSimilarItineraryCompareKind",
+            "kind=package|fit",
+            "kind 없으면 패키지"
+          ]
+        },
+        {
+          "file": "lib/dev-similar-itinerary-compare.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind로 패키지/FIT 분리",
+            "패키지 표에 FIT 금지"
+          ]
+        },
+        {
+          "file": "app/travel/similar-itinerary-compare/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind=package|fit"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind=fit",
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryQuoteCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind=fit",
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
+            "air_hotel_free"
+          ]
+        },
+        {
+          "file": "components/itinerary/ItineraryView.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "listingKind: 'air_hotel_free'"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind=package"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/similar-itinerary-compare-href.test.ts"
       ]
     },
     {
@@ -26503,6 +26590,38 @@
       ],
       "vitestSuites": [
         "lib/bongtour-product-display-title-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "public-detail-hero-info-card-inset",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품상세 히어로 우측 정보카드 — max-h를 히어로(100%) 기준으로 잡아 위·아래 잘림 금지 (100vh max-h 회귀 차단)",
+      "checks": [
+        {
+          "file": "app/components/detail/PackageProductHeroSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-info-card-inset]",
+            "max-h-[calc(100%-3rem)]",
+            "overflow-y-auto"
+          ],
+          "mustNotInclude": [
+            "max-h-[min(760px,calc(100vh-96px))]"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-info-card-inset]",
+            "max-h-[calc(100%-3rem)]",
+            "overflow-y-auto"
+          ],
+          "mustNotInclude": [
+            "max-h-[min(760px,calc(100vh-96px))]"
+          ]
+        }
       ]
     },
     {

@@ -19,11 +19,22 @@ const AIR_HOTEL_PRODUCT_TYPE_WHERE = [
   'air_hotel',
 ] as const
 
+function excludeAirHotelFitWhere(): Prisma.ProductWhereInput {
+  return {
+    NOT: {
+      OR: [
+        { listingKind: AIR_HOTEL_LISTING_KIND },
+        { productType: { in: [...AIR_HOTEL_PRODUCT_TYPE_WHERE] } },
+      ],
+    },
+  }
+}
+
 /**
  * browse `findMany` — listingKind·허브 슬라이스를 DB where로 push-down.
  * 국내 허브 기본 목록은 air_hotel_free 제외.
- * 해외 허브: type 없으면 패키지+자유여행. type=travel 패키지, type=air-hotel 자유여행.
- * REGRESSION-FREEZE[overseas-hub-package-fit-split]: type=travel 패키지 슬라이스 — manifest
+ * 해외 허브(`/travel/overseas`·메가메뉴): 기본·type=travel = 패키지만. 자유여행은 type=air-hotel(`/travel/air-hotel`)만.
+ * REGRESSION-FREEZE[overseas-hub-package-fit-split]: overseas default package-only — manifest
  */
 export function prismaWhereClausesForBrowseListingSlice(input: {
   scope: string | null
@@ -56,23 +67,13 @@ export function prismaWhereClausesForBrowseListingSlice(input: {
     return clauses
   }
 
-  if (browseType === 'travel') {
-    clauses.push({
-      NOT: {
-        OR: [
-          { listingKind: AIR_HOTEL_LISTING_KIND },
-          { productType: { in: [...AIR_HOTEL_PRODUCT_TYPE_WHERE] } },
-        ],
-      },
-    })
-    return clauses
-  }
-
   if (input.listingKindParsed) {
     if (input.listingKindParsed === 'travel') {
       clauses.push({
         OR: [{ listingKind: 'travel' }, { listingKind: null }, { listingKind: '' }],
       })
+      // REGRESSION-FREEZE[overseas-hub-package-fit-split]: listingKind=travel 에도 FIT productType 차단 — manifest
+      clauses.push(excludeAirHotelFitWhere())
     } else {
       clauses.push({ listingKind: input.listingKindParsed })
     }
@@ -80,6 +81,12 @@ export function prismaWhereClausesForBrowseListingSlice(input: {
   }
 
   const scope = (input.scope ?? '').trim().toLowerCase()
+  // REGRESSION-FREEZE[overseas-hub-package-fit-split]: type 없어도 overseas=패키지만 (자유여행 혼입 금지) — manifest
+  if (browseType === 'travel' || scope === 'overseas') {
+    clauses.push(excludeAirHotelFitWhere())
+    return clauses
+  }
+
   if (scope === 'domestic' && !wantsAirHotelHubSlice) {
     clauses.push({
       OR: [{ listingKind: null }, { listingKind: '' }, { listingKind: { not: AIR_HOTEL_LISTING_KIND } }],

@@ -140,7 +140,8 @@ export default function PackageProductHeroSection({
           </div>
         </div>
 
-        <aside className="absolute right-6 top-1/2 z-[30] hidden max-h-[min(760px,calc(100vh-96px))] w-[420px] -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl lg:block xl:right-12 xl:w-[460px]">
+        {/* REGRESSION-FREEZE[public-detail-hero-info-card-inset]: max-h=히어로 기준 — 100vh 중앙배치로 위·아래 잘림 금지 — manifest */}
+        <aside className="absolute right-6 top-1/2 z-[30] hidden max-h-[calc(100%-3rem)] w-[420px] -translate-y-1/2 overflow-y-auto overscroll-contain rounded-2xl bg-white p-5 shadow-xl lg:block xl:right-12 xl:w-[460px]">
           <PackageProductHeroInfoPanel {...infoPanelWithCta} showTitle />
         </aside>
       </div>

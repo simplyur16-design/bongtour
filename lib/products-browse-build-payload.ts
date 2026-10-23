@@ -496,6 +496,9 @@ export async function productsBrowseBuildPayload(queryKey: string) {
 
     if (wantsAirHotelHubSlice) {
       filteredRows = filteredRows.filter((p) => isAirHotelProduct(p))
+    } else if (overseasLike) {
+      // REGRESSION-FREEZE[overseas-hub-package-fit-split]: 해외 패키지 목록 메모리에서도 FIT 제거 — manifest
+      filteredRows = filteredRows.filter((p) => !isAirHotelProduct(p))
     }
 
     let scoringDestinationTerms = destinationTerms

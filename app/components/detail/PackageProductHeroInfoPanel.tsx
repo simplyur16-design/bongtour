@@ -99,12 +99,15 @@ export default function PackageProductHeroInfoPanel({
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 상세 dest 출발허브 제거 — manifest
   const destinationDisplay = formatPublicDestinationDisplayLabel(destination)
   // REGRESSION-FREEZE[similar-itinerary-compare-entry]: 히어로 가격 아래 사실 비교 CTA — manifest
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 패키지 히어로 비교는 kind=package — manifest
   const similarCompareHref = buildSimilarItineraryCompareHrefFromProduct({
     primaryDestination,
     destination,
     duration: durationLabel || _duration,
     title,
     totalDays: _masterTotalDays,
+    listingKind: listingKind === 'air_hotel_free' ? 'travel' : (listingKind ?? 'travel'),
+    productType: 'travel',
   })
 
   return (
@@ -112,7 +115,7 @@ export default function PackageProductHeroInfoPanel({
       {showTitle ? (
         <ProductDetailTitle
           title={title}
-          className="bt-wrap mt-4 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl"
+          className="bt-wrap mt-0 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl"
         />
       ) : null}
 

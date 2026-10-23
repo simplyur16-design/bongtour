@@ -5,6 +5,7 @@ import {
   loadSimilarItineraryCompare,
 } from '@/lib/dev-similar-itinerary-compare'
 import {
+  parseSimilarItineraryCompareKind,
   SIMILAR_ITINERARY_COMPARE_PATH,
 } from '@/lib/similar-itinerary-compare-href'
 import './compare.css'
@@ -20,6 +21,7 @@ type PageProps = {
   searchParams?: Promise<{
     place?: string
     duration?: string
+    kind?: string
   }>
 }
 
@@ -42,19 +44,25 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
   const sp = (await searchParams) ?? {}
   const place = String(sp.place || '').trim()
   const duration = String(sp.duration || '').trim()
-  const bundle = await loadSimilarItineraryCompare({ place, duration })
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: kind=package|fit — manifest
+  const kind = parseSimilarItineraryCompareKind(sp.kind)
+  const bundle = await loadSimilarItineraryCompare({ place, duration, kind })
   const hasQuery = Boolean(place && duration)
+  const isFitKind = kind === 'fit'
+  const backHref = isFitKind ? '/travel/air-hotel' : '/travel/overseas'
+  const backLabel = isFitKind ? '← 자유여행' : '← 해외여행'
+  const kindLabel = isFitKind ? '자유여행' : '해외 패키지'
 
   return (
     <div className="sic-root">
       <header className="sic-top">
-        <Link href="/travel/overseas" className="sic-back">
-          ← 해외여행
+        <Link href={backHref} className="sic-back">
+          {backLabel}
         </Link>
       </header>
 
       <div className="sic-head">
-        <p className="sic-eyebrow">비슷한 일정</p>
+        <p className="sic-eyebrow">비슷한 일정 · {kindLabel}</p>
         <h1>
           {hasQuery ? (
             <>
@@ -71,15 +79,15 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
       {!hasQuery ? (
         <p className="sic-empty">
           상품 상세의 「같은 일정, 공급사별 사실 비교」로 들어와 주세요.
-          <span className="sic-empty-path"> ({SIMILAR_ITINERARY_COMPARE_PATH}?place=…&amp;duration=…)</span>
+          <span className="sic-empty-path"> ({SIMILAR_ITINERARY_COMPARE_PATH}?place=…&amp;duration=…&amp;kind=package|fit)</span>
         </p>
       ) : bundle.rows.length === 0 ? (
-        <p className="sic-empty">이 목적지·박일로 등록된 후보가 없습니다.</p>
+        <p className="sic-empty">이 목적지·박일의 {kindLabel} 후보가 없습니다.</p>
       ) : (
         <div className="sic-table-wrap">
           <table className="sic-table">
             <caption className="sic-caption">
-              후보 {bundle.rows.length}건 · 추천/우위 표시 없음
+              {kindLabel} 후보 {bundle.rows.length}건 · 추천/우위 표시 없음
             </caption>
             <thead>
               <tr>

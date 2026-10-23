@@ -174,9 +174,9 @@ describe('filterOverseasHubCatalogByUrl travel type', () => {
     expect(out.map((it) => it.id)).toEqual(['fit'])
   })
 
-  it('no type keeps package and FIT', () => {
+  it('no type keeps package only (FIT excluded)', () => {
     const out = filterOverseasHubCatalogByUrl(items, new URLSearchParams(''))
-    expect(out.map((it) => it.id).sort()).toEqual(['fit', 'pkg'])
+    expect(out.map((it) => it.id)).toEqual(['pkg'])
   })
 })
 

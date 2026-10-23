@@ -18,6 +18,20 @@ describe('similar-itinerary-compare-href', () => {
     const qs = hrefParams(href)
     expect(qs.get('place')).toBe('방콕')
     expect(qs.get('duration')).toBe('3박 5일')
+    expect(qs.get('kind')).toBe('package')
+  })
+
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: FIT href kind=fit — manifest
+  it('FIT product href uses kind=fit', () => {
+    const qs = hrefParams(
+      buildSimilarItineraryCompareHrefFromProduct({
+        primaryDestination: '다낭',
+        duration: '3박 5일',
+        listingKind: 'air_hotel_free',
+        productType: 'air-hotel',
+      }),
+    )
+    expect(qs.get('kind')).toBe('fit')
   })
 
   it('returns null when place or duration missing', () => {

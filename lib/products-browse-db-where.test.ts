@@ -15,13 +15,15 @@ describe('prismaWhereClausesForBrowseListingSlice overseas hub type', () => {
     expect(blob).toContain('"NOT"')
   })
 
-  it('no type keeps package and FIT (no FIT exclude)', () => {
+  it('overseas with no type excludes FIT (package-only default)', () => {
     const clauses = prismaWhereClausesForBrowseListingSlice({
       scope: 'overseas',
       typeParam: null,
       listingKindParsed: null,
     })
     const blob = JSON.stringify(clauses)
-    expect(blob).not.toContain(AIR_HOTEL_LISTING_KIND)
+    expect(blob).toContain(AIR_HOTEL_LISTING_KIND)
+    expect(blob).toContain(AIR_HOTEL_PRODUCT_TYPE)
+    expect(blob).toContain('"NOT"')
   })
 })

@@ -16,6 +16,11 @@ import {
 } from '@/lib/promotion-copy-normalize'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
+import {
+  buildSimilarItineraryCompareHrefFromProduct,
+  SIMILAR_ITINERARY_COMPARE_CTA_LABEL,
+} from '@/lib/similar-itinerary-compare-href'
+import Link from 'next/link'
 
 export type FitItineraryHeroInfoPanelProps = {
   showTitle?: boolean
@@ -84,13 +89,23 @@ export default function FitItineraryHeroInfoPanel({
     heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 상세 dest 출발허브 제거 — manifest
   const destinationDisplay = formatPublicDestinationDisplayLabel(destination)
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 자유여행 비교 CTA kind=fit — manifest
+  const similarCompareHref = buildSimilarItineraryCompareHrefFromProduct({
+    primaryDestination: destination,
+    destination,
+    duration: durationLabel || _duration,
+    title,
+    totalDays: _masterTotalDays,
+    listingKind: listingKind ?? 'air_hotel_free',
+    productType: 'air-hotel',
+  })
 
   return (
     <>
       {showTitle ? (
         <ProductDetailTitle
           title={title}
-          className="bt-wrap mt-4 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl"
+          className="bt-wrap mt-0 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl"
         />
       ) : null}
 
@@ -202,6 +217,15 @@ export default function FitItineraryHeroInfoPanel({
             </p>
           ) : null}
         </>
+      ) : null}
+
+      {similarCompareHref ? (
+        <Link
+          href={similarCompareHref}
+          className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-[#2f8fc7]/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-[#2f8fc7] hover:bg-[#dceef9]"
+        >
+          {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
+        </Link>
       ) : null}
     </>
   )

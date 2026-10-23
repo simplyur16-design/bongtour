@@ -81,12 +81,15 @@ export default function ProductLiveQuoteCard({
 
   const totalDays = getProductTotalDays(product, masterTotalDays)
   // REGRESSION-FREEZE[similar-itinerary-compare-entry]: sticky 사실 비교 CTA — manifest
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: sticky 비교도 listingKind로 kind 분리 — manifest
   const similarCompareHref = buildSimilarItineraryCompareHrefFromProduct({
     primaryDestination: product.primaryDestination,
     destination: product.destination,
     duration: product.duration,
     title: product.title,
     totalDays,
+    listingKind: product.listingKind,
+    productType: product.productType,
   })
   const computedReturnDate = useMemo(() => {
     const dep = selectedDate ?? departureDateFrom ?? null
