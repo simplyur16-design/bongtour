@@ -215,6 +215,46 @@ describe('resolvePublicBrowseCardTitle', () => {
     expect(r.cardTitle).toMatch(/시드니/)
     expect(r.cardTitle).not.toMatch(/Rocks/i)
   })
+
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 일정 POI·중복·권역혼선 ≠ 카드 제목 — manifest
+  it('주조공장·식비 등 일정 POI dest를 카드 제목으로 쓰지 않음', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '후쿠오카 3박4일 #온천',
+        duration: '3박 4일',
+        primaryDestination: '마사히로주조공장',
+        primaryRegion: '일본',
+      },
+      '후쿠오카 3박4일 #온천',
+    )
+    expect(r.cardTitle).not.toMatch(/주조공장|식비/)
+    expect(r.cardTitle).toMatch(/일본|후쿠오카/)
+  })
+
+  it('홍콩실속 중복·&harr 엔티티를 카드에 남기지 않음', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '홍콩실속 홍콩실속 금까2박3일 A &harr; B',
+        duration: '2박 3일',
+        primaryDestination: '홍콩',
+      },
+      '홍콩실속 홍콩실속 금까2박3일 A &harr; B',
+    )
+    expect(r.cardTitle).toBe('홍콩 2박 3일')
+    expect(r.cardTitle).not.toMatch(/실속|&harr|금까/)
+  })
+
+  it('일본+미국 혼선 제목을 카드에 쓰지 않음', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '일본제품에 미국 2박3일',
+        duration: '2박 3일',
+        primaryDestination: '일본제품에 미국',
+      },
+      '일본제품에 미국 2박3일',
+    )
+    expect(r.cardTitle).not.toMatch(/일본제품|미국/)
+  })
 })
 
 // REGRESSION-FREEZE[public-detail-hero-short-listing]: 상세 short·원명 — manifest

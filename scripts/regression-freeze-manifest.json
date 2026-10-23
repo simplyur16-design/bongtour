@@ -2860,7 +2860,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]",
             "isBongsimPgNetworkUnreachable",
-            "retry next tick (no skip)"
+            "retry next tick (no skip)",
+            "OrderPaid 포화 skip ≠ eSIM 문자 중단",
+            "saturated-window SMS drain"
           ]
         }
       ]
@@ -26234,7 +26236,11 @@
             "isUmbrellaMegaRegionPlaceLabel",
             "중국권",
             "The Rocks 등 EN 키워드≠상품명",
-            "isEnLandmarkNoiseToken"
+            "isEnLandmarkNoiseToken",
+            "중복 place 토큰 붕괴",
+            "일정 POI≠카드 place",
+            "권역 혼선·POI place 거부",
+            "오염 Plan B 폴백 차단"
           ]
         },
         {
@@ -26261,6 +26267,52 @@
       ],
       "vitestSuites": [
         "lib/bongtour-product-display-title-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "decode-public-html-entities",
+      "tier": ["prebuild", "ci"],
+      "summary": "공개 텍스트 HTML 엔티티 — &harr;·&rarr; 디코드 + 중복 어절 붕괴",
+      "checks": [
+        {
+          "file": "lib/decode-public-html-entities.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[decode-public-html-entities]",
+            "harr",
+            "collapseAdjacentDuplicateTitlePhrases",
+            "decodePublicHtmlEntities"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/decode-public-html-entities.test.ts"]
+    },
+    {
+      "id": "home-season-grid-no-itinerary-join",
+      "tier": ["prebuild", "ci"],
+      "summary": "홈 시즌·페르소나 커버 — itineraries 조인 금지, schedule JSON만",
+      "checks": [
+        {
+          "file": "lib/season-product-grid-data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-season-grid-no-itinerary-join]",
+            "schedule JSON만",
+            "season-product-grid-pc-v7"
+          ]
+        },
+        {
+          "file": "lib/persona-curated-destinations.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-season-grid-no-itinerary-join]",
+            "persona cover도 schedule JSON만"
+          ]
+        },
+        {
+          "file": "lib/air-hotel-season-curation-content.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[home-season-grid-no-itinerary-join]",
+            "air-hotel 시즌도 schedule JSON만"
+          ]
+        }
       ]
     },
     {

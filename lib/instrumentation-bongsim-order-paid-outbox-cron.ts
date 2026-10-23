@@ -70,6 +70,15 @@ export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
         trigger,
         until: new Date(saturatedSkipUntil).toISOString(),
       });
+      // REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]: OrderPaid 포화 skip ≠ eSIM 문자 중단 — manifest
+      tickInFlight = true;
+      void drainEsimQrNotifyOutboxBestEffort(24)
+        .catch((e) => {
+          console.warn("[bongsim-order-paid-outbox-cron] saturated-window SMS drain", e);
+        })
+        .finally(() => {
+          tickInFlight = false;
+        });
       return;
     }
     tickInFlight = true;

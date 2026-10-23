@@ -31,8 +31,8 @@ const productSelect = {
   id: true,
   title: true,
   bgImageUrl: true,
+  // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: air-hotel 시즌도 schedule JSON만 — manifest
   schedule: true,
-  itineraries: { select: { day: true, description: true }, orderBy: { day: 'asc' as const }, take: 24 },
 } as const
 
 function formatMonthLabel(monthKey: string): string {
@@ -63,7 +63,6 @@ function parseMonthlyMessages(raw: unknown): Record<string, string> {
 function productCoverUrl(p: {
   bgImageUrl: string | null
   schedule: string | null
-  itineraries: { day: number; description: string }[]
 }): string {
   const scheduleRows = getScheduleFromProduct(p as Parameters<typeof getScheduleFromProduct>[0])
   return (getFinalCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays: scheduleRows }) ?? '').trim()

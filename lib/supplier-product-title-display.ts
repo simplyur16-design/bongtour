@@ -9,6 +9,10 @@
  */
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
 import { normalizeNaeiltourRegisterListingTitle } from '@/lib/naeiltour-register-product-title'
+import {
+  collapseAdjacentDuplicateTitlePhrases,
+  decodePublicHtmlEntities,
+} from '@/lib/decode-public-html-entities'
 
 export const SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION = 'plan-b-v4-2026-09-29'
 
@@ -199,7 +203,9 @@ function isPromoOnlyBadgeText(raw: string): boolean {
  * [다낭]·[동유럽]·#바나힐 등 지역·일반 해시는 유지.
  */
 export function normalizeSupplierRegisterListingTitle(s: string): string {
-  return stripSupplierTitlePromoBadges(stripSupplierTitleUiNoise(s))
+  // REGRESSION-FREEZE[supplier-product-title-plan-b]: HTML 엔티티·중복 어절 공개 정리 — manifest
+  const decoded = collapseAdjacentDuplicateTitlePhrases(decodePublicHtmlEntities(String(s ?? '')))
+  return stripSupplierTitlePromoBadges(stripSupplierTitleUiNoise(decoded))
 }
 
 function foldBusinessCabinKeepBrackets(s: string): string {

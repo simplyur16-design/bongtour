@@ -42,11 +42,11 @@ function toResultItem(p: {
   duration: string | null
   bgImageUrl: string | null
   schedule: string | null
-  itineraries: { day: number; description: string }[]
   departures: { adultPrice: number | null; departureDate: Date }[]
   prices: { adult: number }[]
   priceFrom: number | null
 }): ResultItem {
+  // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: schedule JSON SSOT — manifest
   const scheduleRows = getScheduleFromProduct(p as Parameters<typeof getScheduleFromProduct>[0])
   const coverUrl = getFinalCoverImageUrl({
     bgImageUrl: p.bgImageUrl,
@@ -95,8 +95,8 @@ const productSelect = {
   priceFrom: true,
   cityKey: true,
   countryKey: true,
+  // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: schedule JSON만 — itineraries N+1 금지 — manifest
   schedule: true,
-  itineraries: { select: { day: true, description: true }, orderBy: { day: 'asc' as const }, take: 24 },
   ...PRODUCT_PRICE_FOR_BROWSE_INCLUDE,
 } as const
 
@@ -134,7 +134,8 @@ async function loadSeasonProductGridUncached(): Promise<ResultItem[]> {
         AND: [{ OR: geoOr }, publicProductWhereClause(now)],
       },
       select: productSelect,
-      take: 36,
+      // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: related 상한 축소 — manifest
+      take: 16,
     })
   }
 
@@ -167,8 +168,8 @@ export async function getCachedSeasonProductGridItems(): Promise<ResultItem[]> {
   if (shouldSkipDbAtBuild()) return []
   const run = unstable_cache(
     () => loadSeasonProductGridUncached(),
-    // v6: strip KR departure hub from short title place
-    ['season-product-grid-pc-v6'],
+    // v7: no itineraries join + tighter related take
+    ['season-product-grid-pc-v7'],
     { revalidate: 21_600 },
   )
   return readCachedArrayOrBypassEmpty(run, () => loadSeasonProductGridUncached())

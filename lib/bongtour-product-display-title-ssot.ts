@@ -7,6 +7,11 @@
 
 import { getProductTotalDays } from '@/lib/package-rules'
 import { BONGTOUR_PRODUCT_TITLE_FORBIDDEN_TOKENS } from '@/lib/bongtour-product-title-tone-ssot'
+import {
+  collapseAdjacentDuplicateTitlePhrases,
+  decodePublicHtmlEntities,
+} from '@/lib/decode-public-html-entities'
+import { isRegisterDestinationScheduleActivityToken } from '@/lib/register-destination-schedule-activity-noise'
 
 export const BONGTOUR_PRODUCT_DISPLAY_TITLE_VERSION = 'v1-2026-10-15'
 
@@ -143,8 +148,14 @@ export type BongtourDisplayTitleResult = {
   dayToken: string | null
 }
 
+// REGRESSION-FREEZE[public-card-hero-short-title]: 중복 place 토큰 붕괴 — manifest
+export { collapseAdjacentDuplicateTitlePhrases } from '@/lib/decode-public-html-entities'
+
 function cleanToken(s: string): string {
-  let t = s.replace(/\s+/g, ' ').trim()
+  let t = decodePublicHtmlEntities(String(s || ''))
+    .replace(/\s+/g, ' ')
+    .trim()
+  t = collapseAdjacentDuplicateTitlePhrases(t)
   for (const tok of BONGTOUR_PRODUCT_TITLE_FORBIDDEN_TOKENS) {
     if (!tok.trim()) continue
     const re = new RegExp(tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
@@ -283,9 +294,16 @@ export function composeBongtourHeroDisplayTitle(
   if (!place || !dayToken) {
     return { heroShortTitle: null, heroSubtitle: null, placeKind: null, dayToken }
   }
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 권역 혼선·POI place 거부 — manifest
+  if (isCrossRegionPollutedPlace(place) || isNonPlaceMarketingToken(place)) {
+    return { heroShortTitle: null, heroSubtitle: null, placeKind: null, dayToken }
+  }
 
   const shortFinal = cleanToken(`${place} ${dayToken}`)
   if ([...shortFinal].length < 4 || /[（(）)]/.test(shortFinal)) {
+    return { heroShortTitle: null, heroSubtitle: null, placeKind: null, dayToken }
+  }
+  if (isPollutedPublicProductTitle(shortFinal)) {
     return { heroShortTitle: null, heroSubtitle: null, placeKind: null, dayToken }
   }
 
@@ -348,12 +366,12 @@ function stripKrDepartureMarkersFromTitle(title: string): string {
     .trim()
 }
 
-/** 목적지 라벨로 쓰기엔 부적합한 마케팅·조건·출발시각 토큰 */
+/** 목적지 라벨로 쓰기엔 부적합한 마케팅·조건·출발시각·일정 POI 토큰 */
 function isNonPlaceMarketingToken(s: string): boolean {
   const t = sanitizePlaceLabel(s)
   if (!t) return true
   if (
-    /최소화|포함|리무진|노쇼핑|노옵션|특가|긴급|모집|마감|확정|대기|할인|혜택|자유일정|핵심쏙쏙/u.test(
+    /최소화|포함|리무진|노쇼핑|노옵션|특가|긴급|모집|마감|확정|대기|할인|혜택|자유일정|핵심쏙쏙|식비|금까|실속|플러스/u.test(
       t,
     )
   ) {
@@ -361,7 +379,20 @@ function isNonPlaceMarketingToken(s: string): boolean {
   }
   // 「밤출발」「새벽출발」등 — 도시명 아님
   if (/^(?:밤|새벽|오전|오후|저녁|아침)?출발$/u.test(t)) return true
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 일정 POI≠카드 place — manifest
+  if (isRegisterDestinationScheduleActivityToken(t)) return true
   return false
+}
+
+/** 일본+미국처럼 권역이 섞인 짧은 제목 — 공개 카드에 쓰지 않음 */
+function isCrossRegionPollutedPlace(place: string): boolean {
+  const t = place.replace(/\s+/g, '')
+  const hasJp = /일본|도쿄|오사카|후쿠오카|홋카이도|훗카이도|규슈|오키나와/.test(t)
+  const hasUs = /미국|미주|하와이|뉴욕|LA|로스앤젤레스|괌|사이판/.test(t)
+  const hasEu = /유럽|이탈리아|프랑스|스페인|독일|스위스/.test(t)
+  const hasSea = /동남아|태국|베트남|방콕|다낭|세부/.test(t)
+  const axes = [hasJp, hasUs, hasEu, hasSea].filter(Boolean).length
+  return axes >= 2
 }
 
 function filterKrDeparturePlaceTokens(cities: readonly string[]): string[] {
@@ -487,14 +518,31 @@ export function resolvePublicBrowseCardTitle(
     }
   }
 
-  // short 실패 시에도 해시태그·반쪽 괄호·EN 랜드마크는 카드에 안 남김
-  const fbRaw = String(fallbackTitle || input.title || '').trim() || '여행'
+  // short 실패 시에도 해시태그·반쪽 괄호·EN 랜드마크·POI·엔티티는 카드에 안 남김
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 오염 Plan B 폴백 차단 — manifest
+  const fbRaw =
+    collapseAdjacentDuplicateTitlePhrases(
+      decodePublicHtmlEntities(String(fallbackTitle || input.title || '')),
+    ).trim() || '여행'
   let fb =
     sanitizePlaceLabel(fbRaw.replace(/#[^\s#]+/g, ' ').replace(/\bThe\s+Rocks\b[^·,]*/gi, ' '))
       .replace(/\s{2,}/g, ' ')
       .trim() || '여행'
-  if (isEnLandmarkNoiseToken(fb) || isUmbrellaMegaRegionPlaceLabel(fb)) fb = '여행'
-  return { cardTitle: fb, heroSubtitle: null, usedHeroShort: false }
+  fb = collapseAdjacentDuplicateTitlePhrases(fb)
+  if (
+    isEnLandmarkNoiseToken(fb) ||
+    isUmbrellaMegaRegionPlaceLabel(fb) ||
+    isPollutedPublicProductTitle(fb)
+  ) {
+    const dur = durationHintFromTitle(fbRaw) || durationHintFromTitle(input.title) || ''
+    const region = detectRegion(cleanToken(fbRaw), input.primaryRegion)
+    const brand = pickBrandCity(
+      filterKrDeparturePlaceTokens(splitPlaceTokens(fbRaw, input.primaryDestination)),
+    )
+    const place = brand || region || '여행'
+    fb = dur ? cleanToken(`${place} ${composeHeroDayToken(dur) || dur}`) : place
+  }
+  return { cardTitle: fb || '여행', heroSubtitle: null, usedHeroShort: false }
 }
 
 export type PublicDetailHeroTitlesResult = {
@@ -512,12 +560,27 @@ export type PublicDetailHeroTitlesResult = {
  * REGRESSION-FREEZE[public-card-hero-short-title]: The Rocks·중국권 헤더≠상품명 — manifest
  */
 export function isPollutedPublicProductTitle(raw: string): boolean {
-  const t = String(raw || '').trim()
+  const decoded = decodePublicHtmlEntities(String(raw || '')).trim()
+  const t = collapseAdjacentDuplicateTitlePhrases(decoded)
   if (!t) return false
   if (isUmbrellaMegaRegionPlaceLabel(t)) return true
   if (/중국권/.test(t) && /홍콩|마카오|몽골|중앙아/.test(t)) return true
   if (/\bThe\s+Rocks\b/i.test(t)) return true
   if (isEnLandmarkNoiseToken(t)) return true
+  // 미디코드 HTML 엔티티 잔존
+  if (/&(?:harr|rarr|larr|hearts|amp|nbsp|middot|mdash|ndash);?/i.test(t)) return true
+  // 연속 중복 어절이 원문에 남아 붕괴 전에도 잡힘
+  if (/([가-힣A-Za-z0-9]{2,})(?:\s+\1){1,}/u.test(decoded)) return true
+  if (isCrossRegionPollutedPlace(t)) return true
+  // 일정 POI·혜택이 제목 본문인 경우
+  if (
+    /주조\s*공장|양조장|스위트피아|덴마구|사이클링\s*코스|해안선|자유\s*식비|식비\s*제공|현지\s*투어\s*플러스/i.test(
+      t,
+    )
+  ) {
+    return true
+  }
+  if (isRegisterDestinationScheduleActivityToken(t) && t.length <= 40) return true
   return false
 }
 

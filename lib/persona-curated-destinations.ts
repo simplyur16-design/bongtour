@@ -178,8 +178,8 @@ async function loadPersonaCuratedDestinationsUncached(
       cityKey: true,
       personaLabels: true,
       bgImageUrl: true,
+      // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: persona cover도 schedule JSON만 — manifest
       schedule: true,
-      itineraries: { select: { day: true, description: true }, orderBy: { day: 'asc' as const }, take: 24 },
       cityTags: { select: { cityKey: true } },
       countryTags: { select: { countryKey: true, nodeKey: true } },
     },

@@ -1,14 +1,28 @@
 /**
- * 공개 UI용 HTML 엔티티 디코드 — 공급사 원문에 남은 `&rarr;` `&hearts` 등이
+ * 공개 UI용 HTML 엔티티 디코드 — 공급사 원문에 남은 `&rarr;` `&harr;` `&hearts` 등이
  * React 텍스트 노드에 그대로 보이지 않게 한다.
  * 세미콜론 생략형(`&rarr`)도 허용.
+ * REGRESSION-FREEZE[decode-public-html-entities]: harr·공개 제목 엔티티 — manifest
  */
+
+/** 「홍콩실속 홍콩실속」·연속 동일 토큰 붕괴 — 제목·dest 공통 */
+export function collapseAdjacentDuplicateTitlePhrases(s: string): string {
+  let t = String(s || '').replace(/\s+/g, ' ').trim()
+  if (!t) return t
+  t = t.replace(/([가-힣A-Za-z0-9]{2,})(?:\s+\1)+/gu, '$1')
+  t = t.replace(/([가-힣]{2,8})\1+/gu, '$1')
+  return t.replace(/\s{2,}/g, ' ').trim()
+}
 
 const NAMED: Record<string, string> = {
   rarr: '→',
   larr: '←',
   uarr: '↑',
   darr: '↓',
+  harr: '↔',
+  lrarr: '↔',
+  hArr: '⇔',
+  lrArr: '⇔',
   hearts: '♥',
   heart: '♥',
   middot: '·',

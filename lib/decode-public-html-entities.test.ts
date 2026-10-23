@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
+import {
+  collapseAdjacentDuplicateTitlePhrases,
+  decodePublicHtmlEntities,
+} from '@/lib/decode-public-html-entities'
 
 describe('decodePublicHtmlEntities', () => {
-  it('decodes rarr and hearts with or without semicolon', () => {
+  it('decodes rarr harr and hearts with or without semicolon', () => {
     expect(decodePublicHtmlEntities('A &rarr; B')).toBe('A → B')
     expect(decodePublicHtmlEntities('A &rarr B')).toBe('A → B')
+    expect(decodePublicHtmlEntities('A &harr; B')).toBe('A ↔ B')
+    expect(decodePublicHtmlEntities('A &harr B')).toBe('A ↔ B')
     expect(decodePublicHtmlEntities('love &hearts;')).toBe('love ♥')
     expect(decodePublicHtmlEntities('love &hearts')).toBe('love ♥')
   })
@@ -17,5 +22,11 @@ describe('decodePublicHtmlEntities', () => {
 
   it('leaves unknown entities', () => {
     expect(decodePublicHtmlEntities('&notanentity;')).toBe('&notanentity;')
+  })
+
+  it('collapses adjacent duplicate title phrases', () => {
+    expect(collapseAdjacentDuplicateTitlePhrases('홍콩실속 홍콩실속 금까2박3일')).toBe(
+      '홍콩실속 금까2박3일',
+    )
   })
 })

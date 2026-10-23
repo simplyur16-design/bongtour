@@ -65,6 +65,18 @@ export function isRegisterDestinationScheduleActivityToken(token: string): boole
   if (/테마\s*파크|대마술|공연|박물관|증류소|야시장|당일(?:\s*투어)?$|1박\s*2일|자율\s*감상|인생\s*별밤|초원\s*(?:일출|선셋|별밤)/i.test(t)) {
     return true
   }
+  // 일정 POI·혜택 라벨이 primaryDestination/카드 제목으로 새는 것 차단
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: 공장·가든·사이클링·식비 ≠ 도시 — manifest
+  if (
+    /주조\s*공장|양조장|가든|garden|사이클링|해안선|덴마구|스위트피아|식비\s*제공|자유\s*식비|현지\s*투어\s*플러스/i.test(
+      t,
+    )
+  ) {
+    return true
+  }
+  if (/공장$/u.test(t) && t.length >= 4) return true
+  if (/금까/i.test(t) || /직항$/u.test(t)) return true
+  if (/실속$/u.test(t) && t.length <= 10) return true
   if (/카페|cafe|비치\s*클럽|beach\s*club|루프\s*탑\s*바|네일\s*아트/i.test(t)) return true
   if (/쇼핑몰|shopping\s*mall|아울렛|outlet|면세점/i.test(t)) return true
   if (/반딧불|firefl|나들이\s*투어|플로팅\s*선셋|선셋\s*투어|시티\s*투어$/i.test(t)) return true
