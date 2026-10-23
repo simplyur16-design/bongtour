@@ -5185,6 +5185,10 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       )
     ) {
       primary = ''
+      // 인접일 명소 kw2를 올리면 자유·호핑일에 모스크가 붙는다. 당일 route 명소만 승격.
+      if (secondary && !registerScheduleDayRouteOwnsPrimaryKeyword(row, secondary)) {
+        secondary = ''
+      }
     }
     // REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: middle bare kw2는 반복(used)일 때만 제거 — manifest
     if (
@@ -5617,7 +5621,10 @@ export function allowRouteRevisitBareVisitCitySoftDup(city: string): boolean {
   // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: SF 공항 이동일 bare soft-dup — manifest
   // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: Singapore/Bangkok/Samarkand/Jaipur/LA/Lucerne revisit — manifest
   // REGRESSION-FREEZE[register-pre-photo-pkg-middle-kw-fill]: residual14 revisit bare — manifest
-  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Kota\s*Kinabalu|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Boracay|Hawaii|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey|Ulaanbaatar|Seville|Toledo|Valencia|Palermo|Naples|Vienna|Munich|Berlin|Kaohsiung|Kenting|Tainan|Lijiang|Konya|Sao\s*Paulo|Addis\s*Ababa|Easter\s*Island|Aomori|Akita|Hirosaki|Yantai|Kumamoto|Kochi|Toyama|Chiba|London|Paris|San\s*Francisco|Hurghada|Lugano|Ascona|Locarno|Hammamet|Kandy|Nuwara\s*Eliya|Bentota|Colombo|Tashkent|Seattle|Singapore|Bangkok|Samarkand|Jaipur|Los\s*Angeles|Lucerne|Yogyakarta|Udaipur|Jodhpur|Luoyang|Kaifeng|Zhengzhou|Santorini|Pokhara|Kathmandu|Nagarkot|Dali|Kunming|Chennai|Madurai|Mysore|Fresno|Barstow|Quebec|Baltimore|Leon|Arzua|Lourdes|Pamplona|Burgos|Ushuaia|Delhi|Wroclaw|Chengdu|Lima/i.test(
+  // Kota Kinabalu는 여기 넣지 않음 — 중간일 bare가 자유·호핑일까지 쌓이면
+  // register-pending-quality-keyword-desc-departure (Kota Kinabalu×5)가 깨진다.
+  // 귀국 soft-dup은 pickReturnSoftDupBareVisitCity가 따로 담당한다.
+  return /Sapporo|Jozankei|Maldives|Rotorua|Auckland|Queenstown|Sydney|Phu\s*Quoc|Sapa|New\s*York|Nha\s*Trang|Taipei|Nuremberg|Amman|Miyazaki|Kagoshima|Saga|Okinawa|Hanoi|Fukuoka|Cebu|Manado|Dubai|Hong\s*Kong|Saipan|Boracay|Hawaii|Honolulu|Almaty|Athens|Prague|Budapest|Venice|Istanbul|Cairo|Paris|Rome|Florence|Milan|La\s*Spezia|Guam|Da\s*Nang|Xian|Hoi\s*An|Tokyo|Nikko|Lisbon|Porto|Madrid|Barcelona|Zurich|Interlaken|Giza|Helsinki|Brussels|Nairobi|Tunis|Tbilisi|Cancun|Bordeaux|Marseille|Avignon|Copenhagen|Warsaw|Weihai|Macau|Macao|Zermatt|Sopot|Calafate|Abu\s*Dhabi|Buenos\s*Aires|Santiago|Oahu|Monterrey|Ulaanbaatar|Seville|Toledo|Valencia|Palermo|Naples|Vienna|Munich|Berlin|Kaohsiung|Kenting|Tainan|Lijiang|Konya|Sao\s*Paulo|Addis\s*Ababa|Easter\s*Island|Aomori|Akita|Hirosaki|Yantai|Kumamoto|Kochi|Toyama|Chiba|London|Paris|San\s*Francisco|Hurghada|Lugano|Ascona|Locarno|Hammamet|Kandy|Nuwara\s*Eliya|Bentota|Colombo|Tashkent|Seattle|Singapore|Bangkok|Samarkand|Jaipur|Los\s*Angeles|Lucerne|Yogyakarta|Udaipur|Jodhpur|Luoyang|Kaifeng|Zhengzhou|Santorini|Pokhara|Kathmandu|Nagarkot|Dali|Kunming|Chennai|Madurai|Mysore|Fresno|Barstow|Quebec|Baltimore|Leon|Arzua|Lourdes|Pamplona|Burgos|Ushuaia|Delhi|Wroclaw|Chengdu|Lima/i.test(
     String(city ?? '').trim(),
   )
 }

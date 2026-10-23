@@ -228,11 +228,10 @@ export function resolveScheduleKeywordSlotKind(
   maxDay: number,
   scheduleRowCount: number,
 ): ScheduleKeywordSlotKind {
+  // day===1을 먼저 보면 1행 카드가 출발 슬롯이 되어 kw2가 지워진다 (나트랑-달랏 단일 행).
+  if (scheduleRowCount === 1) return 'middle'
   if (day === 1) return 'departure'
-  if (maxDay >= 2 && day === maxDay) {
-    if (scheduleRowCount === 1) return 'middle'
-    return 'return'
-  }
+  if (maxDay >= 2 && day === maxDay) return 'return'
   return 'middle'
 }
 
