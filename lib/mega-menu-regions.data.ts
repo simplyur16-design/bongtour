@@ -258,12 +258,31 @@ const SEA: MegaMenuCountryGroupDef[] = [
     city('화롄', ['화롄', 'hualien', '대만', '타로코']),
   ]),
   // 서남아 — 4열 그리드 2행 이내 노출(패널 max-h 잘림 방지). 탭명 「동남아/대만/서남아」와 맞춤.
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 인도=국가 leaf only (도시 메가 폐기) — manifest
   G('인도', [
-    LC('인도', ['인도', 'india', '북인도', '뭄바이', 'mumbai', '라다크', 'ladakh', '골든트라이앵글']),
-    city('델리', ['델리', 'delhi', '인도', '북인도']),
-    city('자이푸르', ['자이푸르', 'jaipur', '인도', '북인도', '골든트라이앵글']),
-    city('아그라', ['아그라', 'agra', '인도', '타지마할', '북인도', '골든트라이앵글']),
-    city('바라나시', ['바라나시', 'varanasi', '인도', '북인도', '갠지스']),
+    LC('인도', [
+      '인도',
+      'india',
+      '북인도',
+      '남인도',
+      '서인도',
+      '골든트라이앵글',
+      '뭄바이',
+      'mumbai',
+      '라다크',
+      'ladakh',
+      '델리',
+      'delhi',
+      '뉴델리',
+      '자이푸르',
+      'jaipur',
+      '아그라',
+      'agra',
+      '타지마할',
+      '바라나시',
+      'varanasi',
+      '갠지스',
+    ]),
   ]),
   // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 스리랑카=국가 leaf (콜롬보만 강제 금지) — manifest
   G('스리랑카', [

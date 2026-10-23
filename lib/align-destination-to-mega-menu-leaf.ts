@@ -53,6 +53,12 @@ const MEGA_DEST_ALIASES: Record<string, string> = {
   퀸즐랜드: '호주/뉴질랜드',
   백두산: '장백산',
   선전: '심천',
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 인도 도시 관용→국가 leaf (메가 city 폐기) — manifest
+  델리: '인도',
+  뉴델리: '인도',
+  자이푸르: '인도',
+  아그라: '인도',
+  바라나시: '인도',
 }
 
 /** 제목 관용 그룹명 → 메가 중분류 (북해도·남미) */
@@ -126,6 +132,13 @@ const MEGA_DEST_CITY_TO_COUNTRY_LEAF: Record<string, string> = {
   로마: '이탈리아',
   밀라노: '이탈리아',
   베네치아: '이탈리아',
+  // 인도 — 도시 soft도 국가 leaf (메가 city leaf 없음)
+  델리: '인도',
+  뉴델리: '인도',
+  자이푸르: '인도',
+  아그라: '인도',
+  바라나시: '인도',
+  뭄바이: '인도',
 }
 
 function ensureLeafIndex(): void {
@@ -447,6 +460,16 @@ function resolveWithinGroup(
   return null
 }
 
+/** 북인도·남인도·골든트라이앵글·완전일주 — 단일 도시 dest로 쪼개지 않음 */
+export function isIndiaMultiCityCircuitTitle(title: string | null | undefined): boolean {
+  const t = String(title || '')
+  if (!t.trim()) return false
+  if (/북인도|남인도/.test(t)) return true
+  if (/(?:인도|india).{0,32}(?:골든\s*트라이앵글|완전\s*일주)/i.test(t)) return true
+  if (/(?:골든\s*트라이앵글|완전\s*일주).{0,32}(?:인도|india)/i.test(t)) return true
+  return false
+}
+
 /**
  * 현재 dest가 메가메뉴 leaf가 아니면 geo 키 기준 leaf로 교체.
  * cityKey→leaf가 제목/기존 dest에 안 보이면 countryKey만 시도 (오매칭 cityKey 방지).
@@ -474,6 +497,13 @@ export function alignDestinationToMegaMenuLeaf(input: {
   // (나이아가라 ← 미동부 상품). 중국권·홍콩·마카오처럼 그룹이 여러 개면 오염 제목으로 보고 스킵.
   if (kind === 'city') {
     const titleOnly = String(input.title ?? '')
+    // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 북인도/완전일주 ≠ 바라나시 dest — manifest
+    if (
+      isIndiaMultiCityCircuitTitle(titleOnly) &&
+      (current === '인도' || megaMenuLeafBelongsToGroup(current, '인도'))
+    ) {
+      return { destination: '인도', reason: 'india_circuit→country_leaf' }
+    }
     // 제목에 그룹이 여러 개(미동부, 캐나다)여도 — 현재 city가 제목에 없고
     // 제목에서 더 앞에 나온 그룹에 속하지 않으면 그 그룹으로 교정 (나이아가라 잔존 금지)
     const groupsInTitle = [...groupOnlyLabels]

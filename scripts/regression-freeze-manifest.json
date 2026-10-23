@@ -26213,7 +26213,23 @@
             "REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]",
             "alignDestinationToMegaMenuLeaf",
             "classifyMegaMenuDestinationLabel",
-            "normalizeMegaMenuDestinationAlias"
+            "normalizeMegaMenuDestinationAlias",
+            "인도 도시 관용→국가 leaf",
+            "바라나시: '인도'"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]",
+            "인도=국가 leaf only",
+            "LC('인도'"
+          ],
+          "mustNotInclude": [
+            "city('델리'",
+            "city('자이푸르'",
+            "city('아그라'",
+            "city('바라나시'"
           ]
         },
         {
@@ -26453,7 +26469,9 @@
             "오염 Plan B 폴백 차단",
             "일본 N박N일 ≠ 마츠야마/삿포로 상품",
             "isBannedPublicCardPlaceLabel",
-            "일본·동남아 N박 금지"
+            "일본·동남아 N박 금지",
+            "북인도 short ≠ 바라나시",
+            "indiaSubregionCardPlaceFromTitle"
           ]
         },
         {
@@ -26665,11 +26683,11 @@
             "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
             "max-h-[calc(100%-3rem)]",
             "overflow-hidden",
-            "data-hero-sticky-title",
-            "TITLE_MIN_PX"
+            "title line-clamp"
           ],
           "mustNotInclude": [
-            "overflow-y-auto"
+            "overflow-y-auto",
+            "TITLE_MIN_PX"
           ]
         }
       ]
@@ -26680,18 +26698,20 @@
         "prebuild",
         "ci"
       ],
-      "summary": "히어로 스티키 정보카드 — overflow 스크롤 금지·제목 자동 축소",
+      "summary": "히어로 스티키 정보카드 — overflow 스크롤 금지·제목 고정크기 line-clamp(폰트 자동축소 금지)",
       "checks": [
         {
           "file": "app/components/detail/HeroStickyInfoAside.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
             "overflow-hidden",
-            "data-hero-sticky-title",
-            "TITLE_MIN_PX"
+            "title line-clamp"
           ],
           "mustNotInclude": [
-            "overflow-y-auto"
+            "overflow-y-auto",
+            "TITLE_MIN_PX",
+            "fontSize",
+            "scale("
           ]
         },
         {
@@ -26699,7 +26719,11 @@
           "mustInclude": [
             "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
             "fitTitleInSticky",
+            "line-clamp-3",
             "data-hero-sticky-title"
+          ],
+          "mustNotInclude": [
+            "TITLE_MAX_STICKY_PX"
           ]
         },
         {
@@ -26707,6 +26731,18 @@
           "mustInclude": [
             "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
             "fitTitleInSticky",
+            "line-clamp-3",
+            "data-hero-sticky-title"
+          ],
+          "mustNotInclude": [
+            "TITLE_MAX_STICKY_PX"
+          ]
+        },
+        {
+          "file": "app/components/detail/product-detail-visual.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "line-clamp",
             "data-hero-sticky-title"
           ]
         },

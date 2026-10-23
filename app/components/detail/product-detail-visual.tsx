@@ -235,7 +235,7 @@ type TitleProps = {
   style?: React.CSSProperties
   /** 모바일 히어로 등 어두운 배경 */
   tone?: 'light' | 'dark'
-  /** 히어로 스티키 카드 — HeroStickyInfoAside 폰트 맞춤 타깃 */
+  /** 히어로 스티키 카드 — 고정 크기 + line-clamp (폰트 축소 금지) */
   'data-hero-sticky-title'?: boolean
 }
 
@@ -248,18 +248,38 @@ export function ProductDetailTitle({
   'data-hero-sticky-title': dataHeroStickyTitle,
 }: TitleProps) {
   // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 히어로 제목 IATA→한글 — manifest
-  const lines = splitProductHeroTitleLines(expandAirlineIataCodesInPublicTitle(title))
+  const displayTitle = expandAirlineIataCodesInPublicTitle(title)
+  const lines = splitProductHeroTitleLines(displayTitle)
   const tagCls = tone === 'dark' ? 'font-extrabold text-teal-200' : 'font-extrabold text-bt-card-accent-strong'
   const defaultCls =
     tone === 'dark'
       ? 'bt-wrap mb-3 text-[1.35rem] font-black leading-[1.8] tracking-[0.02em] text-white sm:text-2xl'
       : 'bt-wrap text-2xl font-black leading-[1.8] tracking-[0.02em] text-bt-title sm:text-3xl'
+
+  // REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: sticky는 line-clamp·인라인 (블록 줄바꿈이 clamp 깨뜨림) — manifest
+  if (dataHeroStickyTitle) {
+    return (
+      <h1
+        className={className ?? defaultCls}
+        style={style}
+        title={displayTitle}
+        data-hero-sticky-title=""
+      >
+        {lines.map((line, i) => {
+          const isTag = line.startsWith('[') && line.endsWith(']')
+          return (
+            <span key={i} className={isTag ? tagCls : undefined}>
+              {i > 0 ? ' ' : null}
+              {line}
+            </span>
+          )
+        })}
+      </h1>
+    )
+  }
+
   return (
-    <h1
-      className={className ?? defaultCls}
-      style={style}
-      {...(dataHeroStickyTitle ? { 'data-hero-sticky-title': '' } : {})}
-    >
+    <h1 className={className ?? defaultCls} style={style}>
       {lines.map((line, i) => {
         const isTag = line.startsWith('[') && line.endsWith(']')
         return (

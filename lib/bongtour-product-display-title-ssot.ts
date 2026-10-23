@@ -16,6 +16,7 @@ import {
   alignDestinationToMegaMenuLeaf,
   classifyMegaMenuDestinationLabel,
   firstMegaMenuLeafInText,
+  isIndiaMultiCityCircuitTitle,
   megaMenuLeafMentionedInHaystack,
 } from '@/lib/align-destination-to-mega-menu-leaf'
 import { megaMenuClickLabelForCityKey } from '@/lib/mega-menu-click-label'
@@ -584,6 +585,14 @@ export type PublicBrowseCardTitleResult = {
   usedHeroShort: boolean
 }
 
+/** 제목에 북인도/남인도가 있으면 카드 short place — 바라나시·자이푸르 금지 */
+export function indiaSubregionCardPlaceFromTitle(title: string | null | undefined): string | null {
+  const t = String(title || '')
+  if (/북인도/.test(t)) return '북인도'
+  if (/남인도/.test(t)) return '남인도'
+  return null
+}
+
 /**
  * 홈·browse 카드 공개 제목 — DB Product.title 덮어쓰지 않음.
  * REGRESSION-FREEZE[public-card-hero-short-title]: 카드는 heroShort · 원문은 폴백 — manifest
@@ -592,6 +601,23 @@ export function resolvePublicBrowseCardTitle(
   input: PublicBrowseCardTitleInput,
   fallbackTitle: string,
 ): PublicBrowseCardTitleResult {
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 북인도 short ≠ 바라나시 — manifest
+  // 인도 서킷·권역 — 도시 short 금지 (북인도/남인도 문구 우선, 없으면 인도)
+  const indiaPlaceForced =
+    indiaSubregionCardPlaceFromTitle(input.title) ||
+    (isIndiaMultiCityCircuitTitle(input.title) ? '인도' : null)
+  if (indiaPlaceForced) {
+    const duration =
+      String(input.duration || '').trim() || durationHintFromTitle(input.title) || null
+    const dayToken = composeHeroDayToken(duration, null)
+    if (dayToken) {
+      const cardTitle = cleanToken(`${indiaPlaceForced} ${dayToken}`)
+      if (cardTitle && !isBannedPublicCardPlaceLabel(indiaPlaceForced)) {
+        return { cardTitle, heroSubtitle: null, usedHeroShort: true }
+      }
+    }
+  }
+
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 출발 허브 도시 제거 — manifest
   let cities = filterKrDeparturePlaceTokens(
     splitPlaceTokens(input.primaryDestination, input.destination, input.destinationRaw),

@@ -22,10 +22,9 @@ import {
 } from '@/lib/similar-itinerary-compare-href'
 import Link from 'next/link'
 
-const TITLE_MAX_STICKY_PX = 28
-
 export type FitItineraryHeroInfoPanelProps = {
   showTitle?: boolean
+  /** 데스크톱 히어로 스티키 — 고정 크기 + 최대 3줄 말줄임 (폰트 축소 금지) */
   fitTitleInSticky?: boolean
   dataSourceLabel: string
   title: string
@@ -110,14 +109,13 @@ export default function FitItineraryHeroInfoPanel({
       {showTitle ? (
         <ProductDetailTitle
           title={title}
-          // REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: data-hero-sticky-title 자동 축소 — manifest
+          // REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: sticky 제목 line-clamp-3 — manifest
           data-hero-sticky-title={fitTitleInSticky ? true : undefined}
           className={
             fitTitleInSticky
-              ? 'bt-wrap mt-0 font-black leading-[1.35] tracking-[0.02em] text-bt-title'
+              ? 'bt-wrap mt-0 line-clamp-3 text-2xl font-black leading-snug tracking-[0.02em] text-bt-title'
               : 'bt-wrap mt-0 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl'
           }
-          style={fitTitleInSticky ? { fontSize: `${TITLE_MAX_STICKY_PX}px` } : undefined}
         />
       ) : null}
 

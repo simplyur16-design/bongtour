@@ -202,14 +202,37 @@ describe('alignDestinationToMegaMenuLeaf', () => {
     expect(r.destination).toBe('호놀룰루')
   })
 
-  it('제목에 바라나시가 있으면 자이푸르 dest를 바라나시로', () => {
-    const r = alignDestinationToMegaMenuLeaf({
-      current: '자이푸르',
-      title: '북인도일주 9일 #타지마할,바라나시',
-      cityKey: 'india',
-      countryKey: 'india',
-    })
-    expect(r.destination).toBe('바라나시')
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 인도=국가 leaf only (도시 메가 폐기) — manifest
+  it('인도 도시 관용 dest·북인도 일주는 모두 인도 leaf', () => {
+    // alias 정규화 후 country — 메가 city leaf 없음
+    expect(classifyMegaMenuDestinationLabel('바라나시')).toBe('country')
+    expect(classifyMegaMenuDestinationLabel('자이푸르')).toBe('country')
+    expect(classifyMegaMenuDestinationLabel('인도')).toBe('country')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '바라나시',
+        title: '준특급 북인도 완전일주 타지마할 7박9일',
+        cityKey: 'india',
+        countryKey: 'india',
+      }).destination,
+    ).toBe('인도')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '자이푸르',
+        title: '북인도일주 9일 #타지마할,바라나시',
+        cityKey: 'india',
+        countryKey: 'india',
+      }).destination,
+    ).toBe('인도')
+    // 레거시 DB 도시 dest만 있어도 alias→인도
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '아그라',
+        title: '타지마할 관광',
+        cityKey: 'india',
+        countryKey: 'india',
+      }).destination,
+    ).toBe('인도')
   })
 
   it('북유럽·발틱 dest → 발트3국 leaf (북유럽 그룹 LC 중복 없이)', () => {

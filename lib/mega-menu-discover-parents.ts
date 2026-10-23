@@ -41,6 +41,13 @@ const SOFT_CITY_TO_COUNTRY_LEAF: Record<string, string> = {
   런던: '영국',
   로마: '이탈리아',
   밀라노: '이탈리아',
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 인도 도시 soft→인도 (메가 city 폐기) — manifest
+  델리: '인도',
+  뉴델리: '인도',
+  자이푸르: '인도',
+  아그라: '인도',
+  바라나시: '인도',
+  뭄바이: '인도',
 }
 
 function stemsForGroup(tabId: string, groupLabel: string): string[] {

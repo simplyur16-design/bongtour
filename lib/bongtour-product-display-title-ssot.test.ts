@@ -461,7 +461,8 @@ describe('resolvePublicBrowseCardTitle', () => {
     ).not.toMatch(/유럽|동남아|일본/)
   })
 
-  it('제목에 바라나시가 있으면 대표 도시 short', () => {
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 북인도 short ≠ 바라나시 — manifest
+  it('북인도 일주·완전일주는 바라나시가 아니라 북인도 short', () => {
     const r = resolvePublicBrowseCardTitle(
       {
         title: '북인도일주 9일 #타지마할,바라나시,갠지스강',
@@ -473,7 +474,21 @@ describe('resolvePublicBrowseCardTitle', () => {
       },
       '북인도일주 9일',
     )
-    expect(r.cardTitle).toMatch(/^바라나시\s/)
+    expect(r.cardTitle).toMatch(/^북인도\s/)
+    expect(r.cardTitle).not.toMatch(/바라나시|자이푸르/)
+    expect(
+      resolvePublicBrowseCardTitle(
+        {
+          title: '준특급 북인도 완전일주 <노쇼핑/국내선1회/열차1회/특식3회/타지마할/19금사원> 7박 9일',
+          duration: '7박 9일',
+          primaryDestination: '바라나시',
+          cityKey: 'india',
+          countryKey: 'india',
+          countryRowLabel: '인도',
+        },
+        '준특급 북인도 완전일주',
+      ).cardTitle,
+    ).toBe('북인도 7박 9일')
   })
 
   it('스리랑카 권역 카드는 콜롬보가 아니라 스리랑카 short', () => {

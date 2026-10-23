@@ -142,7 +142,7 @@ export default function PackageProductHeroSection({
         </div>
 
         {/* REGRESSION-FREEZE[public-detail-hero-info-card-inset]: max-h=히어로 기준 — 100vh 중앙배치로 위·아래 잘림 금지 — manifest */}
-        {/* REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: 스크롤 금지·제목 폰트 맞춤 — manifest */}
+        {/* REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: 스크롤 금지·제목 line-clamp — manifest */}
         <HeroStickyInfoAside fitKey={heroTitles.listingTitle}>
           <PackageProductHeroInfoPanel {...infoPanelWithCta} showTitle fitTitleInSticky />
         </HeroStickyInfoAside>
