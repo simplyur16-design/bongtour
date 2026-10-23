@@ -60,12 +60,19 @@ function rejectRouteKeywordCandidate(kw: string): boolean {
   return false
 }
 
-/** SCHEDULE_SPOT 중 도시·스카이라인만 묘사하는 generic hub — routeText landmark 슬롯 제외 */
+/**
+ * SCHEDULE_SPOT 중 도시·스카이라인만 묘사하는 generic hub — routeText landmark 슬롯 제외.
+ * Burj Khalifa는 en에 skyline이 붙어도 당일 명소다. 도시 캐치올(두바이→같은 en)은
+ * finalize가 bare Dubai로 줄여 allowCity:false에서 빠진다.
+ */
 function isGenericCityHubSpotEn(en: string): boolean {
   return (
     /National Mall monuments|city view|skyline view|skyline|historic center view|townsite|coastal cliff park view/i.test(
       en,
-    ) && !/(Memorial|Museum|Falls|Tower|Bridge|Park|Palace|Temple|Cathedral|Opera|Colosseum|Duomo|Capitol|Harbour|Harbor|Opera House)/i.test(en)
+    ) &&
+    !/(Memorial|Museum|Falls|Tower|Bridge|Park|Palace|Temple|Cathedral|Opera|Colosseum|Duomo|Capitol|Harbour|Harbor|Opera House|Burj\s*Khalifa)/i.test(
+      en,
+    )
   )
 }
 
