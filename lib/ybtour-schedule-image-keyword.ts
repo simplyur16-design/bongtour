@@ -741,7 +741,8 @@ function collectYbtourRouteOrderedSegmentKeywords(
 
     const en = englishFromRouteSegment(seg)
     if (!en || isYbtourDomesticHubToken(en)) continue
-    if (out.some((x) => keysEqual(x, en))) continue
+    // Osaka와 Osaka Castle은 겹쳐도 둘 다 남긴다. overlap로 성을 지우면 다음 날이 Dotonbori로 밀린다.
+    if (out.some((x) => normKey(x) === normKey(en))) continue
     out.push(en)
   }
   return out
@@ -777,26 +778,45 @@ function collectYbtourDayOrderedKeywordCandidates(
   return out
 }
 
+function isYbtourReturnKeywordRejected(kw: string): boolean {
+  if (!kw || isBareCityOrCountryKeyword(kw)) return true
+  if (isScheduleAirportLikeImageKeyword(kw)) return true
+  return /\bairport\b/i.test(kw)
+}
+
 function pickYbtourReturnKeywordFromPrevDay(
   prevAlloc: { primary: string; secondary: string | null } | undefined,
   prevRouteOrdered: readonly string[],
   prevFullCandidates: readonly string[],
   used?: ReadonlySet<string>,
 ): string {
-  const pickFrom = (list: readonly string[]): string => {
+  const pickFrom = (list: readonly string[], allowUsed: boolean): string => {
     for (let i = list.length - 1; i >= 0; i--) {
       const kw = list[i]!
-      if (prevAlloc?.primary && keysEqual(kw, prevAlloc.primary)) continue
-      if (prevAlloc?.secondary && keysEqual(kw, prevAlloc.secondary)) continue
-      if (prevAlloc?.primary && ybtourKeywordKeysOverlap(kw, prevAlloc.primary)) continue
-      if (prevAlloc?.secondary && ybtourKeywordKeysOverlap(kw, prevAlloc.secondary)) continue
-      if (isBareCityOrCountryKeyword(kw)) continue
-      if (used?.has(normKey(kw))) continue
-      if (kw) return kw
+      if (isYbtourReturnKeywordRejected(kw)) continue
+      if (!allowUsed) {
+        if (prevAlloc?.primary && (keysEqual(kw, prevAlloc.primary) || ybtourKeywordKeysOverlap(kw, prevAlloc.primary))) {
+          continue
+        }
+        if (
+          prevAlloc?.secondary &&
+          (keysEqual(kw, prevAlloc.secondary) || ybtourKeywordKeysOverlap(kw, prevAlloc.secondary))
+        ) {
+          continue
+        }
+        if (used?.has(normKey(kw))) continue
+      }
+      return kw
     }
     return ''
   }
-  return pickFrom(prevRouteOrdered) || pickFrom(prevFullCandidates)
+  // 미사용 명소가 없으면 공항(치토세) 대신 전일 명소를 다시 쓴다.
+  return (
+    pickFrom(prevRouteOrdered, false) ||
+    pickFrom(prevFullCandidates, false) ||
+    pickFrom(prevRouteOrdered, true) ||
+    pickFrom(prevFullCandidates, true)
+  )
 }
 
 function isYbtourBlockedRouteImageKeyword(

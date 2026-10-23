@@ -1673,12 +1673,20 @@ export function applyHanatourScheduleImageKeywordsToRows<
       secondary = null
     }
 
+    const rawInputSecondary = String(inputRow?.imageKeyword2 ?? '').trim()
     const inputSecondary = tryAcceptHanatourLlmImageKeyword(inputRow?.imageKeyword2, productDestination)
     if (inputSecondary && primary && !hanatourKeywordKeysOverlap(inputSecondary, primary)) {
       secondary = inputSecondary
     }
+    // 타대륙 환각 kw2를 지운 뒤 도시명으로 다시 채우지 않는다 (Paris → Delhi 금지).
+    const rejectedHallucinatedKw2 = Boolean(rawInputSecondary) && !inputSecondary
 
-    if ((slotKind === 'middle' || slotKind === 'departure') && primary && !String(secondary ?? '').trim()) {
+    if (
+      !rejectedHallucinatedKw2 &&
+      (slotKind === 'middle' || slotKind === 'departure') &&
+      primary &&
+      !String(secondary ?? '').trim()
+    ) {
       const routeOrdered = collectHanatourRouteOrderedSegmentKeywords(
         row.routeText,
         productDestination,

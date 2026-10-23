@@ -27,7 +27,7 @@
  */
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
@@ -266,7 +266,11 @@ describe('register-pre-photo-listing-ingest', () => {
     assert.match(menu, /pick_kyowontour_mega_menu_label/)
     const root = process.cwd()
     const venvPy = resolve(root, '.venv', 'Scripts', 'python.exe')
-    const py = existsSync(venvPy) ? venvPy : 'python'
+    const py = existsSync(venvPy)
+      ? venvPy
+      : (['python3', 'python'] as const).find(
+          (bin) => spawnSync(bin, ['--version'], { encoding: 'utf8' }).status === 0,
+        ) ?? 'python3'
     const out = execFileSync(
       py,
       [

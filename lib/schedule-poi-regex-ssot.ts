@@ -1541,7 +1541,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   // REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 다낭 도시명 ≠ Da 조각 — manifest
   { re: /다낭/u, en: "Da Nang" },
   { re: /위해|웨이하이|Weihai/i, en: "Weihai" },
-  { re: /(?:^|[\s\-·,/])서안(?:$|[\s\-·,/])|시안|\bXian\b|Xi['’]?an/i, en: "Xian" },
+  // 폴리네시안 안의 「시안」은 서안(Xi'an)이 아니다.
+  { re: /(?:^|[\s\-·,/])서안(?:$|[\s\-·,/])|(?<![가-힣])시안(?![가-힣])|\bXian\b|Xi['’]?an/iu, en: "Xian" },
   { re: /하노이/u, en: "Hanoi Old Quarter" },
   { re: /호치민(?:시)?(?!\s*생가)|호찌민(?!\s*생가)|Ho\s*Chi\s*Minh\s*City/iu, en: "Ben Thanh Market Ho Chi Minh" },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 세부일정≠Cebu POI — manifest

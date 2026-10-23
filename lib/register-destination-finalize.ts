@@ -19,6 +19,10 @@ import { extractDestinationFromTitle } from '@/lib/destination-from-title'
 import { resolveProductCountryToKoreanDisplay } from '@/lib/browse-country-url-resolve'
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import { alignDestinationToMegaMenuLeaf } from '@/lib/align-destination-to-mega-menu-leaf'
+import {
+  inferOceanCruiseDestinationFromTitle,
+  isOceanCruiseProductTitle,
+} from '@/lib/register-ocean-cruise-product'
 
 const AIRLINE_POLLUTION_RE =
   /항공|이코노미|비즈니스\s*클래스|승무원|에어프레미아|에어프리미아|\bLOT\b|클래스\s*외|폴란드항공/i
@@ -265,6 +269,18 @@ export function finalizeRegisterDestinationFields(input: {
   // destinationRaw는 일정 places 덤프라 title보다 후순위 (카페·클럽·사막 잔류 방지)
   const fromRaw = firstCleanStoredDestination(input.destinationRaw)
   const healed = fromPrimaryDest || fromTitle || fromRaw
+
+  // 괄호 국가가 여러 개인 선박 크루즈는 도시 leaf 하나로 접지 않는다.
+  const cruiseLabel = isOceanCruiseProductTitle(input.title)
+    ? inferOceanCruiseDestinationFromTitle(input.title).trim()
+    : ''
+  if (cruiseLabel.includes('·')) {
+    return {
+      destination: cruiseLabel,
+      destinationRaw: cruiseLabel,
+      primaryDestination: cruiseLabel,
+    }
+  }
 
   // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 도시는 도시·나라는 나라 leaf — manifest
   const megaAligned = alignDestinationToMegaMenuLeaf({

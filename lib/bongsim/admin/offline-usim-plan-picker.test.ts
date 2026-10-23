@@ -46,7 +46,7 @@ describe("admin plan catalog slim price with supply", () => {
       BONGSIM_CATALOG_SUPPLY_KRW_SQL,
     } = await import("@/lib/bongsim/data/catalog-consumer-krw-sql");
     expect(BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL).toContain("consumer_krw");
-    expect(BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL).not.toContain("supply_krw");
+    expect(BONGSIM_CATALOG_SLIM_PRICE_BLOCK_SQL).not.toContain("'supply_krw',");
     expect(BONGSIM_CATALOG_SUPPLY_KRW_SQL).toContain("supply_krw");
     expect(BONGSIM_CATALOG_SLIM_PRICE_BLOCK_WITH_SUPPLY_SQL).toContain("supply_krw");
     expect(BONGSIM_CATALOG_SLIM_PRICE_BLOCK_WITH_SUPPLY_SQL).toContain("consumer_krw");

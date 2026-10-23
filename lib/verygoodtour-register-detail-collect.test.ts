@@ -45,7 +45,7 @@ describe('verygoodtour register detail collect', () => {
       },
     ])
     expect(days).toHaveLength(1)
-    expect(days[0]?.title).toBe('오사카')
+    expect(days[0]?.title).toBe('오사카 · 오사카성')
     expect(days[0]?.hotelText).toContain('오사카')
     expect(days[0]?.mealSummaryText).toContain('석식')
   })

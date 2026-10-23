@@ -216,9 +216,19 @@ function runStaticGuards(
 // REGRESSION-FREEZE[theme-travel-mingling-mega-menu]: tests/ uses node:test not vitest — manifest
 // REGRESSION-FREEZE[schedule-poi-regex-ssot-node-test]: tests/schedule-poi-regex-ssot.test.ts is node:test — manifest
 /** tests/ 아래는 node:test SSOT — vitest include가 lib|app만이라 CI에서 빈 필터로 깨진다. */
+function isNodeTestSourceFile(rel: string): boolean {
+  if (rel.startsWith('tests/')) return true
+  try {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8')
+    return /from ['"]node:test['"]/.test(src)
+  } catch {
+    return false
+  }
+}
+
 function runFreezeTestFile(guardId: string, file: string): void {
   const rel = file.replace(/\\/g, '/')
-  if (rel.startsWith('tests/')) {
+  if (isNodeTestSourceFile(rel)) {
     console.log(`\n[regression-freeze] ▶ node:test ${guardId} → ${rel}`)
     execSync(`npx tsx --test ${rel}`, { cwd: ROOT, stdio: 'inherit', env: process.env })
     return
@@ -255,10 +265,10 @@ function runVitestSuites(manifest: Manifest, runTier: Tier): number {
     }
     const nodeTestFiles = suite.files
       .map((f) => f.replace(/\\/g, '/'))
-      .filter((f) => f.startsWith('tests/'))
+      .filter((f) => isNodeTestSourceFile(f))
     const vitestFiles = suite.files
       .map((f) => f.replace(/\\/g, '/'))
-      .filter((f) => !f.startsWith('tests/'))
+      .filter((f) => !isNodeTestSourceFile(f))
     if (nodeTestFiles.length > 0) {
       console.log(`\n[regression-freeze] ▶ node:test ${suite.id}`)
       execSync(`npx tsx --test ${nodeTestFiles.join(' ')}`, {

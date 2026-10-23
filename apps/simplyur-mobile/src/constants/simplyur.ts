@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 import { SIMPLYUR_PALETTE } from './palette';
 
 /** Sync with BONGTOUR/lib/simplyur/constants.ts — foreign visitors to Korea only */
@@ -59,6 +57,8 @@ export function getApiBaseUrl(): string {
   // Android emulator cannot reach the host via localhost — use 10.0.2.2.
   // REGRESSION-FREEZE[simplyur-mobile-api-base-bongtour]: production host bongtour.com — manifest
   if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    // CI vitest에는 react-native가 없다. 개발 런타임에서만 로드한다.
+    const { Platform } = require('react-native') as { Platform: { OS: string } };
     if (Platform.OS === 'android') return 'http://10.0.2.2:3000';
     return 'http://localhost:3000';
   }

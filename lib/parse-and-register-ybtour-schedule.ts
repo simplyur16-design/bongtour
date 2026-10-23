@@ -153,11 +153,11 @@ function extractMealsFromYbtourBlock(block: string): Partial<RegisterScheduleDay
   return parseScheduleMealFieldsFromText(raw)
 }
 
-/** @deprecated augment·apply SSOT 사용 — 붙여넣기 병합 시 빈 키워드로 두고 apply가 채움 */
+/** 삼단 Pexels 프롬프트(장소 / landmark exterior / street-level view)만 장소명으로 줄인다. */
 export function keywordFromTitleDescription(title: string, description: string): string {
-  void title
-  void description
-  return ''
+  const blob = `${title ?? ''}\n${description ?? ''}`
+  const m = blob.match(/([A-Za-z][^/\n]{0,80}?)\s*\/\s*landmark exterior\s*\/\s*street-level view/i)
+  return m?.[1]?.replace(/\s+/g, ' ').trim() ?? ''
 }
 
 function extractYbtourDayDateIso(block: string): string | null {
