@@ -7,9 +7,10 @@ export { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
 
 // REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]: lazy client — vitest without key — manifest
 let _pexelsClient: ReturnType<typeof createClient> | null = null
-function getPexelsClient(): ReturnType<typeof createClient> {
+/** 키가 있을 때만 클라이언트를 만든다. 빌드·vitest처럼 키가 없으면 null (throw 금지). */
+function getPexelsClient(): ReturnType<typeof createClient> | null {
   const key = process.env.PEXELS_API_KEY?.trim()
-  if (!key) throw new Error('PEXELS_API_KEY missing')
+  if (!key) return null
   if (!_pexelsClient) _pexelsClient = createClient(key)
   return _pexelsClient
 }
@@ -86,7 +87,9 @@ export async function pexelsKeywordHasPhotos(keyword: string): Promise<boolean> 
   if (!imageKeywordHasPlaceIdentity(query)) return false
   if (!process.env.PEXELS_API_KEY?.trim()) return false
   try {
-    const result = await getPexelsClient().photos.search({
+    const client = getPexelsClient()
+    if (!client) return false
+    const result = await client.photos.search({
       query,
       per_page: 5,
       orientation: 'landscape',
@@ -122,7 +125,9 @@ export async function searchPexelsHeroCandidates(
   const query = keyword.trim()
   const take = Math.min(Math.max(perPage, 1), 15)
   try {
-    const result = await getPexelsClient().photos.search({
+    const client = getPexelsClient()
+    if (!client) return []
+    const result = await client.photos.search({
       query,
       per_page: take,
       orientation: 'landscape',
@@ -167,7 +172,9 @@ function photoToObject(photo: PexelsApiPhoto): PexelsPhotoObject {
 export async function fetchPexelsPhotoObject(keyword: string): Promise<PexelsPhotoObject> {
   const query = withPexelsRealisticQuery(keyword)
   try {
-    const result = await getPexelsClient().photos.search({
+    const client = getPexelsClient()
+    if (!client) return FALLBACK_OBJECT
+    const result = await client.photos.search({
       query: query.trim(),
       per_page: 1,
       orientation: 'landscape',
@@ -192,7 +199,9 @@ export async function fetchPexelsFirstUnusedPhoto(
 ): Promise<PexelsPhotoObject> {
   const query = withPexelsRealisticQuery(baseKeyword.trim())
   try {
-    const result = await getPexelsClient().photos.search({
+    const client = getPexelsClient()
+    if (!client) return FALLBACK_OBJECT
+    const result = await client.photos.search({
       query: query.trim(),
       per_page: 15,
       orientation: 'landscape',
@@ -212,7 +221,9 @@ export async function fetchPexelsFirstUnusedPhoto(
 
 export async function fetchPexelsImage(keyword: string): Promise<string> {
   try {
-    const response = await getPexelsClient().photos.search({
+    const client = getPexelsClient()
+    if (!client) return LUXURY_FALLBACK_IMAGE_URL
+    const response = await client.photos.search({
       query: keyword,
       per_page: 1,
       orientation: 'landscape',
@@ -231,7 +242,9 @@ export async function fetchPexelsImage(keyword: string): Promise<string> {
 /** 가로형(landscape) 고화질 1장. 실패 시 럭셔리 fallback 반환 (null 없음) */
 export async function getPexelsImage(keyword: string): Promise<string> {
   try {
-    const result = await getPexelsClient().photos.search({
+    const client = getPexelsClient()
+    if (!client) return LUXURY_FALLBACK_IMAGE_URL
+    const result = await client.photos.search({
       query: keyword,
       per_page: 1,
       orientation: 'landscape',

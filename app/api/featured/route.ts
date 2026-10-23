@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
 import { getPexelsImage } from '@/lib/pexels-service'
+import { LUXURY_FALLBACK_IMAGE_URL } from '@/lib/image-fallback'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
@@ -18,14 +19,13 @@ export const revalidate = 60
 export async function GET() {
   try {
     if (shouldSkipDbAtBuild()) {
-      const defaultCover = await getPexelsImage('tropical beach travel')
       return jsonWithLeakGuard(
         {
           title: null,
           departureDate: null,
           priceKrw: null,
           counselingPoints: null,
-          coverImageUrl: defaultCover,
+          coverImageUrl: LUXURY_FALLBACK_IMAGE_URL,
         },
         'api.featured.build-skip',
       )
@@ -88,6 +88,18 @@ export async function GET() {
     return jsonWithLeakGuard(payload, 'api.featured')
   } catch (e) {
     console.error('[GET /api/featured] Prisma 또는 후처리 실패 — 빈 페이로드로 응답 (UI 유지)', e)
+    if (shouldSkipDbAtBuild()) {
+      return jsonWithLeakGuard(
+        {
+          title: null,
+          departureDate: null,
+          priceKrw: null,
+          counselingPoints: null,
+          coverImageUrl: LUXURY_FALLBACK_IMAGE_URL,
+        },
+        'api.featured.build-skip',
+      )
+    }
     try {
       const defaultCover = await getPexelsImage('tropical beach travel')
       const fallback = {
