@@ -62,9 +62,10 @@ describe('register-destination-reject-ilju', () => {
     }
   })
 
-  it('kyowontour: 튀르키예/이탈리아 일주 → country not 일주', () => {
+  it('kyowontour: 튀르키예/이탈리아 일주 → leaf not 일주', () => {
+    // 튀르키예는 국가 LC가 아니라 그룹(이스탄불·카파도키아). 제목에 도시가 없으면 도시 leaf 이스탄불.
     expect(resolveKyowontourRegisterDestination('튀르키예 일주 9일 [여행의 정석]').destination).toBe(
-      '튀르키예',
+      '이스탄불',
     )
     expect(
       resolveKyowontourRegisterDestination('NO유류 차액! 출발가능 이탈리아 일주 11일').destination,
@@ -305,7 +306,7 @@ describe('register-destination-reject-ilju', () => {
         title: '튀르키예 일주 9일',
         countryKey: 'turkey',
       }),
-    ).toBe('튀르키예')
+    ).toBe('이스탄불')
     expect(
       resolveProductListDestinationLabel({
         primaryDestination: '노쇼핑',
