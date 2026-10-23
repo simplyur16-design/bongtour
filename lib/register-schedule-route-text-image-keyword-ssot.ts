@@ -6,6 +6,7 @@
 import {
   englishFromScheduleKoreanSegment,
   normScheduleImageKeywordKey,
+  scheduleImageKeywordsSemanticallyOverlap,
   splitRouteTextPlaceSegments,
 } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { mapKoreanPoiSegment } from '@/lib/pexels-keyword'
@@ -352,11 +353,27 @@ function pickMiddleDayPrimaryKeyword(
       }
     }
   }
-  return (
+  const preferred =
     pickFirstPreferLandmark(routeLandmarks, new Set()) ||
     pickFirstUnused(routeLandmarks, new Set()) ||
     pickFirstPreferLandmark(routeOrdered, new Set())
-  )
+  // 도시 soft-alt(사이판 마나가하)가 당일 세그먼트 명소(조텐)를 밀어내지 않음.
+  const owned = collectRouteTextOrderedLandmarkKeywords(routeText, { includeCitySoftAlt: false })
+  const ownedLead = owned.find((kw) => {
+    const t = String(kw ?? '').trim()
+    if (!t || rejectRouteKeywordCandidate(t)) return false
+    if (isBareCityOrCountryKeyword(finalizeRouteSegmentKeyword(t))) return false
+    return true
+  })
+  if (ownedLead && preferred) {
+    const preferredNk = normScheduleImageKeywordKey(preferred)
+    const ownedHit = owned.some((kw) => {
+      const nk = normScheduleImageKeywordKey(kw)
+      return Boolean(nk && preferredNk && (nk === preferredNk || scheduleImageKeywordsSemanticallyOverlap(kw, preferred)))
+    })
+    if (!ownedHit) return ownedLead
+  }
+  return preferred || ''
 }
 
 function pickSecondRouteKeyword(

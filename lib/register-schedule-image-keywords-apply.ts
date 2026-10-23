@@ -468,12 +468,24 @@ export function applyRegisterScheduleImageKeywordsBySupplier<
         !usedPrimary.has(nk)
       ) {
         const softCityOwned = softDupForeignVisitCityForMiddleRoute(row.routeText)
+        const kw2Nk = normScheduleImageKeywordKey(kw2)
         if (
           softCityOwned &&
           normScheduleImageKeywordKey(softCityOwned) !== nk &&
           !scheduleImageKeywordsSemanticallyOverlap(softCityOwned, kw)
         ) {
           kw = softCityOwned
+        } else if (
+          // 이미 kw2로 쓴 랜드마크를 primary로 다시 두면 trip-unique가 깨진다.
+          // 당일 다른 kw2가 있으면 그걸 올리고, 없을 때만 route landmark를 유지.
+          kw2 &&
+          kw2Nk &&
+          kw2Nk !== nk &&
+          !used.has(kw2Nk) &&
+          !scheduleImageKeywordsSemanticallyOverlap(kw2, kw)
+        ) {
+          kw = kw2
+          kw2 = ''
         }
         // else keep route landmark
       } else if (

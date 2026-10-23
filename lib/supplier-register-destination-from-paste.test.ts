@@ -44,8 +44,9 @@ describe('supplier register destination from paste', () => {
     })
     expect(r.destinationRaw).toMatch(/뉴욕/)
     expect(r.destinationRaw).toMatch(/토론토/)
-    expect(r.destination).toMatch(/미동부|캐나다/)
-    expect(r.destination).toMatch(/뉴욕/)
+    // mega-menu-dest-city-country-leaf: 그룹명(미동부·캐나다)은 dest가 아니다.
+    // 제목 첫 그룹 미동부의 도시 leaf (align 테스트: 미동부+캐나다 → 뉴욕).
+    expect(r.destination).toBe('뉴욕')
     expect(r.destination).not.toMatch(/폭포뷰|숙박/)
   })
 
@@ -67,8 +68,8 @@ describe('supplier register destination from paste', () => {
       llmDestination: 'VIP 리무진',
     })
     expect(r.destinationRaw).toMatch(/로스앤젤레스/)
-    expect(r.destination).toMatch(/미서부/)
-    expect(r.destination).toMatch(/로스앤젤레스|샌디에이고/)
+    // 그룹명 미서부 대신 일정에 나온 미서부 도시 leaf.
+    expect(r.destination).toBe('로스앤젤레스')
   })
 
   it('hanatour: URL-only — title slash cities, not full product title', () => {
@@ -98,7 +99,8 @@ describe('supplier register destination from paste', () => {
       llmDestination: '세도나캐년숙박',
     })
     expect(r.destinationRaw).toMatch(/로스앤젤레스/)
-    expect(r.destination).toMatch(/미서부|미동부|캐나다/)
+    // 제목 첫 그룹 미서부의 도시 leaf. 그룹명·LLM 특전은 dest가 아니다.
+    expect(r.destination).toBe('로스앤젤레스')
     expect(r.destination).not.toMatch(/세도나|숙박/)
   })
 

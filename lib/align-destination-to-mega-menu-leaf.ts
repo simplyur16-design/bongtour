@@ -134,16 +134,27 @@ export function megaMenuLeafBelongsToGroup(leaf: string, groupLabel: string): bo
   return Boolean(kids?.has(leaf))
 }
 
-/** 문장에 등장하는 첫 메가메뉴 중분류 그룹명 (긴 라벨 우선). */
+/**
+ * 문장에 등장하는 첫 메가메뉴 중분류 그룹명.
+ * 긴 라벨은 짧은 라벨이 그 안에 포함된 경우만 우선 (서부 ⊂ 미서부).
+ * 겹치지 않으면 문장 순서 (홍콩/마카오 → 홍콩, 마카오가 더 길어도).
+ */
 export function firstMegaMenuGroupInText(text: string): string | null {
   ensureLeafIndex()
   const t = String(text ?? '')
   if (!t.trim()) return null
-  const groups = [...groupOnlyLabels].sort((a, b) => b.length - a.length)
-  for (const g of groups) {
-    if (t.includes(g)) return g
-  }
-  return null
+  const hits = [...groupOnlyLabels]
+    .map((g) => ({ g, i: t.indexOf(g) }))
+    .filter((x) => x.i >= 0)
+  if (!hits.length) return null
+  const kept = hits.filter((h) => {
+    const end = h.i + h.g.length
+    return !hits.some(
+      (o) => o.g.length > h.g.length && o.i <= h.i && o.i + o.g.length >= end,
+    )
+  })
+  kept.sort((a, b) => a.i - b.i || b.g.length - a.g.length)
+  return kept[0]?.g ?? null
 }
 
 /** 그룹 직속 city leaf 중 문장에 라벨이 나온 첫 도시 (국가 leaf 제외). */

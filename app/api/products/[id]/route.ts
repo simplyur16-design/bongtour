@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { executeRangeOnDemandDepartures } from '@/lib/admin-execute-departures-rescrape'
+import { getClientIp } from '@/lib/admin-api-security'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { parseCounselingNotes } from '@/lib/parsed-product-types'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
@@ -7,6 +8,11 @@ import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import * as priceRowsHanatour from '@/lib/product-departure-to-price-rows-hanatour'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
+import { getRateLimitStore } from '@/lib/rate-limit-store'
+
+/** 익명 출발일 on-demand는 공급사 라이브 스크래핑을 연다. IP당 분당 30회. */
+const PRODUCT_ON_DEMAND_RATE_LIMIT_WINDOW_MS = 60_000
+const PRODUCT_ON_DEMAND_RATE_LIMIT_MAX = 30
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -134,6 +140,23 @@ export async function POST(request: Request, { params }: RouteParams) {
     const modesOk = o?.mode === 'range-on-demand' || o?.mode === 'single-date-on-demand'
     if (!modesOk || typeof o.departureDate !== 'string' || !o.departureDate.trim()) {
       return jsonWithLeakGuard({ error: 'Not found' }, 'api.products.detail.post.bad-body', { status: 404 })
+    }
+    const ip = getClientIp(request.headers)
+    const bucket = await getRateLimitStore().incr(
+      `public:products:on-demand:${ip}`,
+      PRODUCT_ON_DEMAND_RATE_LIMIT_WINDOW_MS,
+    )
+    if (bucket.count > PRODUCT_ON_DEMAND_RATE_LIMIT_MAX) {
+      return jsonWithLeakGuard(
+        { error: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.' },
+        'api.products.detail.post.rate-limit',
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.max(1, Math.ceil((bucket.resetAt - Date.now()) / 1000))),
+          },
+        },
+      )
     }
     /** 실브라우저·UI 검증 전용. 설정 시에만 지연(운영 미설정 권장). */
     if (o.mode === 'range-on-demand') {

@@ -4625,6 +4625,10 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
     const multiSegRoute = routeTextTourismSegmentCount(row.routeText) >= 2
     let primary = String(row.imageKeyword ?? '').trim()
     let secondary = String(row.imageKeyword2 ?? '').trim()
+    // 입력 자체가 같은 날 kw==kw2면 최종 kw2는 비운다. soft-alt 재충전(금문교·알카트라즈) 금지.
+    const sameDayInputDuplicate =
+      Boolean(normScheduleImageKeywordKey(primary)) &&
+      normScheduleImageKeywordKey(primary) === normScheduleImageKeywordKey(secondary)
     if (primary && isRejectedTripKeywordCandidate(primary)) primary = ''
     if (secondary && isRejectedTripKeywordCandidate(secondary)) secondary = ''
 
@@ -4666,6 +4670,14 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: airport-transfer middle no trip landmark bleed — manifest
       // Queenstown→Auckland 공항일: D6 Queenstown Lake soft-dup과 겹쳐도 Milford로 바꾸지 않음
       // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: middle empty → visit-city soft-dup — manifest
+      // 당일 route에 아직 안 쓴 명소(십리화랑·보봉호)가 있으면 도시 soft-alt(Avatar)보다 우선.
+      const routeOwnedFirst = pickUnusedRoutePrimaryLandmark(row, used)
+      if (
+        routeOwnedFirst &&
+        normScheduleImageKeywordKey(routeOwnedFirst) !== pk
+      ) {
+        primary = routeOwnedFirst
+      } else {
       // REGRESSION-FREEZE[register-pending-hard-kw-soft-alt-heal]: used landmark/bare → unused soft-alt — manifest
       const softAltFirst = pickUnusedRegisterScheduleCitySoftAltKeyword(used, {
         routeText: row.routeText,
@@ -4744,6 +4756,7 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
         }
       }
       } // softAltFirst else
+      } // route landmark before soft-alt
       } // Fansipan revisit keep
     }
     if (!primary) {
@@ -5186,11 +5199,13 @@ export function enforceRegisterScheduleTripUniqueImageKeywords<T extends Registe
     }
 
     // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: 같은 날 kw==kw2 최종 비움 — manifest
-    // fillMiddleDayKeyword2·cluster refill 이후에도 primary와 동일하면 kw2 강제 비움
+    // fillMiddleDayKeyword2·cluster refill 이후에도 primary와 동일하면 kw2 강제 비움.
+    // 입력이 처음부터 동일 키면 soft-alt로 다시 채우지 않고 비운다.
     if (
-      primary &&
-      secondary &&
-      normScheduleImageKeywordKey(secondary) === normScheduleImageKeywordKey(primary)
+      sameDayInputDuplicate ||
+      (primary &&
+        secondary &&
+        normScheduleImageKeywordKey(secondary) === normScheduleImageKeywordKey(primary))
     ) {
       secondary = ''
     }
