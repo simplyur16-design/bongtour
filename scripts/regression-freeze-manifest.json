@@ -15025,10 +15025,10 @@
           ]
         },
         {
-          "file": "lib/modetour-schedule-image-keyword.ts",
+          "file": "lib/schedule-poi-regex-ssot.ts",
           "mustInclude": [
-            "MODETOUR_ROUTE_POI_OVERRIDES",
-            "Japanese Covered Bridge"
+            "Japanese Covered Bridge",
+            "내원교"
           ]
         }
       ]
