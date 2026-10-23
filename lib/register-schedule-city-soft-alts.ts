@@ -512,7 +512,7 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     alts: [
       'Serengeti Savanna Wildlife',
       'Ngorongoro Crater Wildlife',
-      'Lake Manyara National Park',
+      // Manyara는 세렝게티·나이로비 팩에 두지 않음 — route에 마니아라가 없으면 bleed (SEQP01 D7)
       'Amboseli Kilimanjaro View',
       'Masai Mara Savanna',
     ],
@@ -1585,6 +1585,9 @@ export function pickUnusedRegisterScheduleCitySoftAltKeyword(
     const nk = normScheduleImageKeywordKey(candidate)
     if (!nk || used.has(nk)) continue
     if (isBareCityOrCountryKeyword(candidate)) continue
+    // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: Africa safari day-route evidence — SEQP01 bleed 금지 — manifest
+    // 세렝게티·나이로비 팩의 Manyara는 당일 route에 마니아라가 있을 때만.
+    if (/manyara/i.test(candidate) && !/마니아라|Manyara/i.test(dayHay)) continue
     // soft-alt가 lodging/non-landmark면 verify를 깨뜨리므로 스킵 (Ngong Ping cable car 등)
     if (isBrokenRegisterLandmarkKeyword(candidate)) continue
     return candidate
