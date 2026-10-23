@@ -574,12 +574,14 @@ export function isPollutedPublicProductTitle(raw: string): boolean {
   if (isCrossRegionPollutedPlace(t)) return true
   // 일정 POI·혜택이 제목 본문인 경우
   if (
-    /주조\s*공장|양조장|스위트피아|덴마구|사이클링\s*코스|해안선|자유\s*식비|식비\s*제공|현지\s*투어\s*플러스/i.test(
+    /주조\s*공장|양조장|스위트피아|덴마구|사이클링\s*코스|해안선|자유\s*식비|식비\s*제공|현지\s*투어\s*플러스|국제\s*거리|노렌\s*거리|롯카테이|캄파나/i.test(
       t,
     )
   ) {
     return true
   }
+  // 「여행 1박국제거리」「여행 …」폴백 오염
+  if (/^여행\b/.test(t) && /박|일|거리|공장|가든/.test(t)) return true
   if (isRegisterDestinationScheduleActivityToken(t) && t.length <= 40) return true
   return false
 }

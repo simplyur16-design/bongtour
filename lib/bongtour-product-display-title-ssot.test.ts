@@ -255,6 +255,20 @@ describe('resolvePublicBrowseCardTitle', () => {
     )
     expect(r.cardTitle).not.toMatch(/일본제품|미국/)
   })
+
+  it('나하 국제거리 dest → 오키나와 카드 (거리≠도시)', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '오키나와 4일 #츄라우미수족관',
+        duration: '3박 4일',
+        primaryDestination: '나하 국제거리',
+        primaryRegion: '일본',
+      },
+      '오키나와 4일 #츄라우미수족관',
+    )
+    expect(r.cardTitle).not.toMatch(/국제거리|여행\s*1박/)
+    expect(r.cardTitle).toMatch(/오키나와|일본/)
+  })
 })
 
 // REGRESSION-FREEZE[public-detail-hero-short-listing]: 상세 short·원명 — manifest

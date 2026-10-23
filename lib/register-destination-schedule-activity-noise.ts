@@ -74,9 +74,16 @@ export function isRegisterDestinationScheduleActivityToken(token: string): boole
   ) {
     return true
   }
+  // REGRESSION-FREEZE[register-destination-reject-ilju]: 국제거리·제과 브랜드 ≠ 도시 — manifest
+  if (/국제\s*거리|노렌\s*거리|롯카테이|캄파나|츄라우미|수족관|오션\s*타워|만좌모/i.test(t)) {
+    return true
+  }
+  // 「스타가이드와 함께하는…」제목 head 오추출
+  if (/가이드와|스타\s*가이드|강사와/i.test(t)) return true
   if (/공장$/u.test(t) && t.length >= 4) return true
   if (/금까/i.test(t) || /직항$/u.test(t)) return true
   if (/실속$/u.test(t) && t.length <= 10) return true
+  if (/거리$/u.test(t) && t.length >= 4 && !/^(서울|부산)/.test(t)) return true
   if (/카페|cafe|비치\s*클럽|beach\s*club|루프\s*탑\s*바|네일\s*아트/i.test(t)) return true
   if (/쇼핑몰|shopping\s*mall|아울렛|outlet|면세점/i.test(t)) return true
   if (/반딧불|firefl|나들이\s*투어|플로팅\s*선셋|선셋\s*투어|시티\s*투어$/i.test(t)) return true

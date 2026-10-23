@@ -16,7 +16,6 @@ import {
 import {
   isPollutedPublicProductTitle,
   isUmbrellaMegaRegionPlaceLabel,
-  resolvePublicBrowseCardTitle,
 } from '../../lib/bongtour-product-display-title-ssot'
 import { isRegisterDestinationScheduleActivityToken } from '../../lib/register-destination-schedule-activity-noise'
 import { finalizeRegisterDestinationFields } from '../../lib/register-destination-finalize'
@@ -161,26 +160,14 @@ async function main() {
       destHeal++
     }
 
+    // Plan B Product.title 은 short 카드명으로 절대 덮어쓰지 않음 — 엔티티·중복 어절만 정리
     if (titleNeedsScrub(p.title)) {
       const decoded = collapseAdjacentDuplicateTitlePhrases(decodePublicHtmlEntities(p.title))
       const planB = normalizeSupplierRegisterListingTitle(decoded)
-      const card = resolvePublicBrowseCardTitle(
-        {
-          title: planB || decoded,
-          duration: p.duration,
-          primaryDestination: data.primaryDestination ?? p.primaryDestination,
-          destination: data.destination ?? p.destination,
-          primaryRegion: data.primaryRegion === null ? null : p.primaryRegion,
-        },
-        planB || decoded,
-      )
-      // Plan B 원문은 유지하되 엔티티·중복만 정리. 완전 POI 제목만 short로 교체.
-      let next = planB || decoded
-      if (isPollutedPublicProductTitle(next) && card.cardTitle && card.cardTitle !== '여행') {
-        next = card.cardTitle
-      }
-      if (next !== p.title) {
-        data.title = next.slice(0, 90)
+      const next = (planB || decoded).slice(0, 90)
+      // short「X N박 M일」로 치환 금지
+      if (next && next !== p.title && !/^\S+\s+\d+박\s*\d+일$/.test(next.trim())) {
+        data.title = next
         reason.push('title')
         titleHeal++
       }
