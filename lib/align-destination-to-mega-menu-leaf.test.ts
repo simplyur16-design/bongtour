@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   alignDestinationToMegaMenuLeaf,
   classifyMegaMenuDestinationLabel,
+  firstMegaMenuLeafInText,
 } from '@/lib/align-destination-to-mega-menu-leaf'
 import { megaMenuClickLabelForCityKey } from '@/lib/mega-menu-click-label'
 import { finalizeRegisterDestinationFields } from '@/lib/register-destination-finalize'
@@ -309,5 +310,129 @@ describe('alignDestinationToMegaMenuLeaf', () => {
       countryKey: 'united-states',
     })
     expect(r.destination).toBe('호놀룰루')
+  })
+
+  it('2030/골프 테마 dest는 제목 leaf·cityKey geo로 교정', () => {
+    // 제목에 고치 leaf가 있으면 cityKey(다카마쓰)보다 제목 우선
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '2030',
+        title: '[2030전용] 고치 4일 #소규모여행',
+        cityKey: 'takamatsu',
+        countryKey: 'japan',
+      }).destination,
+    ).toBe('고치')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '2030',
+        title: '[2030전용] 규슈/사가 3일 #소도시투어',
+        cityKey: 'saga',
+        countryKey: 'japan',
+      }).destination,
+    ).toBe('사가')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '골프',
+        title: '[비즈니스] 심천 미션힐스 골프클럽 5일',
+        cityKey: 'shenzhen',
+        countryKey: 'china',
+      }).destination,
+    ).toBe('심천')
+  })
+
+  it('유럽 우산 + countryKey → 국가 leaf', () => {
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '유럽',
+        title: '동유럽 3국 9일 #할슈타트',
+        cityKey: 'at',
+        countryKey: 'austria',
+      }).destination,
+    ).toBe('오스트리아')
+  })
+
+  it('중남미·아프리카 일주는 그룹명 LC, 고유 term이면 국가 leaf', () => {
+    expect(classifyMegaMenuDestinationLabel('중남미')).toBe('country')
+    expect(classifyMegaMenuDestinationLabel('아프리카')).toBe('country')
+    // N개국 다도시 — 마추픽추 언급만으로 페루로 쪼개지 않음
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '중남미',
+        title: '중남미 20일 #6개국 #마추픽추 #이과수',
+        cityKey: 'cancun',
+        countryKey: 'latin-caribbean',
+      }).destination,
+    ).toBe('중남미')
+    // 마사이마라 term → 케냐 (국가 leaf, N개국이어도 구체 국가 허용)
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '아프리카',
+        title: '아프리카 6개국 13일 #마사이마라',
+        countryKey: 'africa',
+      }).destination,
+    ).toBe('케냐')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '『행운의 주문',
+        title: '[비즈니스] 아프리카 일주 6개국 13일',
+        countryKey: 'africa',
+      }).destination,
+    ).toBe('아프리카')
+    // 북인도 완전일주 — 타지마할≠아그라 dest
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '인도',
+        title: '준특급 북인도 완전일주 타지마할 7박9일',
+        cityKey: 'india',
+        countryKey: 'india',
+      }).destination,
+    ).toBe('인도')
+  })
+
+  it('「두 개의 나라」관용 ≠ 나라시 · 그리스 그룹→아테네', () => {
+    expect(
+      firstMegaMenuLeafInText('『에게 해를 품은 두 개의 나라』그리스 + 튀르키예 11일'),
+    ).toBeNull()
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '나라',
+        title: '『에게 해를 품은 두 개의 나라』그리스 + 튀르키예 11일',
+        cityKey: 'nara',
+        countryKey: 'japan',
+      }).destination,
+    ).toBe('아테네')
+  })
+
+  it('오염 dest — cityKey·관용 term으로 leaf', () => {
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '미지정',
+        title: '#아시아나항공 #비치리조트연박',
+        cityKey: 'okinawa-main',
+        countryKey: 'japan',
+      }).destination,
+    ).toBe('오키나와')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '옐로팡딜',
+        title: '[옐로팡딜] 부산출발 타이페이 4일',
+        cityKey: 'taipei',
+        countryKey: 'taiwan',
+      }).destination,
+    ).toBe('타이베이')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '대구출발',
+        title: '[대구출발] 프리미엄 북해도 4일_온천호텔',
+        countryKey: 'japan',
+      }).destination,
+    ).toBe('삿포로')
+    expect(
+      alignDestinationToMegaMenuLeaf({
+        current: '백두산 FAQ · 고속열차 이동 외',
+        title: '백두산(북파+서파)/장춘 4일',
+        countryKey: 'china',
+      }).destination,
+    ).toBe('장백산')
   })
 })

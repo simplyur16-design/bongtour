@@ -86,7 +86,10 @@ export function isUmbrellaMegaRegionPlaceLabel(s: string): boolean {
   const t = String(s || '')
     .replace(/\s+/g, ' ')
     .trim()
-  if (!t || t.length < 4) return false
+  if (!t) return false
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 유럽·미주·동남아 ≠ 카드 place — manifest
+  if (/^(유럽|미주|아시아|동남아|서남아|지중해)$/u.test(t)) return true
+  if (t.length < 4) return false
   if (isBrowseRegionSlugPlaceLabel(t)) return true
   if (/중국권/.test(t)) return true
   if (/홍콩/.test(t) && /마카오/.test(t) && /몽골|중앙아/.test(t)) return true
@@ -94,6 +97,23 @@ export function isUmbrellaMegaRegionPlaceLabel(s: string): boolean {
   if (/유럽/.test(t) && /중동/.test(t) && /아프리카|성지/.test(t)) return true
   // 「A · B · C」식 다단 권역 헤더
   if ((t.match(/·/g) || []).length >= 2 && t.length >= 10) return true
+  return false
+}
+
+/**
+ * 카드 short place 금지 — 메가 중분류·탭 권역·국가 상위(일본/중국/미국).
+ * REGRESSION-FREEZE[public-card-hero-short-title]: 일본·동남아 N박 금지 — manifest
+ */
+export function isBannedPublicCardPlaceLabel(s: string | null | undefined): boolean {
+  const t = String(s || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!t) return false
+  if (isUmbrellaMegaRegionPlaceLabel(t)) return true
+  if (classifyMegaMenuDestinationLabel(t) === 'group') return true
+  if (/^(일본|중국|미국)$/u.test(t)) return true
+  // primaryRegion 「동남아, 베트남」
+  if (/^(동남아|서남아)\b/.test(t) || /,\s*(동남아|서남아)\b/.test(t)) return true
   return false
 }
 
@@ -275,14 +295,21 @@ function detectTheme(hay: string): string | null {
 function detectRegion(hay: string, regionLabel?: string | null): string | null {
   const r = cleanToken(String(regionLabel || ''))
   // REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 · EN browse slug 금지 — manifest
-  if (r && !isUmbrellaMegaRegionPlaceLabel(r) && !isBrowseRegionSlugPlaceLabel(r)) return r
+  // 동유럽 multi 등 호출측 regionLabel은 허용. 동남아·유럽·일본 등 금지어·중분류는 거부.
+  if (
+    r &&
+    !isBannedPublicCardPlaceLabel(r) &&
+    !isBrowseRegionSlugPlaceLabel(r)
+  ) {
+    return r
+  }
   for (const lab of REGION_LABELS) {
-    if (hay.includes(lab)) return lab
+    if (!hay.includes(lab)) continue
+    if (isBannedPublicCardPlaceLabel(lab)) continue
+    if (classifyMegaMenuDestinationLabel(lab) === 'group') continue
+    return lab
   }
-  if (/일주/.test(hay)) {
-    if (/유럽/.test(hay)) return '유럽'
-    if (/미주|미국|캐나다/.test(hay)) return '미주'
-  }
+  // 유럽·미주 우산은 카드 region으로 쓰지 않음 (노르웨이·스위스 leaf 우선)
   return null
 }
 
@@ -309,44 +336,50 @@ export function composeBongtourHeroDisplayTitle(
   const megaCity = pickMegaMenuCityPlace(cities)
   const megaCountry = pickMegaMenuCountryPlace(country)
   const brandCity = pickBrandCity(cities)
+  // 일본·중국·미국·동남아 등은 country/region place 금지 — dest 도시(사가·다낭) 우선
+  const countryOk =
+    country && !isBannedPublicCardPlaceLabel(country) ? country : ''
+  const regionOkRaw =
+    region &&
+    !isBrowseRegionSlugPlaceLabel(region) &&
+    !isBannedPublicCardPlaceLabel(region)
+      ? region
+      : null
 
   if (!multi && megaCity) {
     place = megaCity
     placeKind = 'city'
-  } else if (theme && (megaCountry || country) && dayToken) {
+  } else if (theme && (megaCountry || countryOk) && dayToken) {
     // 아이슬란드 오로라 7일
-    place = `${megaCountry || country} ${theme}`
+    place = `${megaCountry || countryOk} ${theme}`
     placeKind = 'theme'
-  } else if (multi || (!megaCountry && !country && region)) {
+  } else if (multi || (!megaCountry && !countryOk && regionOkRaw)) {
     // 메가 leaf·도시 우선 — continent EN slug(oceania)로 short를 덮지 않음
-    const regionOk =
-      region && !isBrowseRegionSlugPlaceLabel(region) && !isUmbrellaMegaRegionPlaceLabel(region)
-        ? region
-        : null
-    if (multi && regionOk) {
-      // 다국가: 한글 권역(동유럽) short 유지
-      place = regionOk
+    if (multi && regionOkRaw) {
+      // 다국가: 호출측 regionLabel(동유럽) 또는 권역 LC short
+      place = regionOkRaw
       placeKind = 'region'
     } else {
-      place = megaCountry || megaCity || country || cities[0] || regionOk || null
+      place = megaCountry || megaCity || countryOk || cities[0] || regionOkRaw || null
+      if (place && isBannedPublicCardPlaceLabel(place)) place = megaCity || cities[0] || null
       placeKind = megaCountry
         ? 'country'
         : megaCity
           ? 'city'
-          : regionOk && place === regionOk
+          : regionOkRaw && place === regionOkRaw
             ? 'region'
             : place
               ? 'fallback'
               : null
     }
-  } else if (megaCountry || (country && !megaCity)) {
-    // 메가 국가 leaf(홍콩·프랑스) 또는 도시 leaf 없을 때만 국가 short (일본 단독 등)
-    place = megaCountry || country
+  } else if (megaCountry || (countryOk && !megaCity)) {
+    // 메가 국가 leaf(홍콩·프랑스)만 — 일본/중국 상위 금지
+    place = megaCountry || countryOk
     placeKind = 'country'
   } else if (megaCity || brandCity || cities[0]) {
     const c = megaCity || brandCity || cities[0]!
-    // 그룹명(홋카이도)은 short place 금지
-    if (classifyMegaMenuDestinationLabel(c) === 'group') {
+    // 그룹명(홋카이도)·일본 금지어는 short place 금지
+    if (isBannedPublicCardPlaceLabel(c) || classifyMegaMenuDestinationLabel(c) === 'group') {
       place = megaCountry || null
       placeKind = place ? 'country' : null
     } else {
@@ -369,6 +402,14 @@ export function composeBongtourHeroDisplayTitle(
   }
 
   place = place ? sanitizePlaceLabel(place) : null
+  if (place && isBannedPublicCardPlaceLabel(place)) {
+    place = megaCity || brandCity || cities.find((c) => !isBannedPublicCardPlaceLabel(c)) || null
+    placeKind = place
+      ? classifyMegaMenuDestinationLabel(place) === 'city'
+        ? 'city'
+        : 'fallback'
+      : null
+  }
   if (!place || !dayToken) {
     return { heroShortTitle: null, heroSubtitle: null, placeKind: null, dayToken }
   }
@@ -377,7 +418,8 @@ export function composeBongtourHeroDisplayTitle(
   if (
     isCrossRegionPollutedPlace(place) ||
     isNonPlaceMarketingToken(place) ||
-    isBrowseRegionSlugPlaceLabel(place)
+    isBrowseRegionSlugPlaceLabel(place) ||
+    isBannedPublicCardPlaceLabel(place)
   ) {
     return { heroShortTitle: null, heroSubtitle: null, placeKind: null, dayToken }
   }
@@ -569,7 +611,11 @@ export function resolvePublicBrowseCardTitle(
   const titleHay = stripKrDepartureMarkersFromTitle(input.title)
   // 해시태그 본문(#타지마할,바라나시)도 leaf 탐지에 포함 — strip이 #[^\s#]+ 통째 삭제함
   const titleHayForLeaf = `${titleHay} ${String(input.title || '').replace(/#/g, ' ')}`
-  const titleLeaf = firstMegaMenuLeafInText(titleHayForLeaf)
+  // 중국권·홍콩·마카오 우산 헤더 제목은 leaf 훔치기 금지 → primaryDestination align 우선
+  const titleUmbrella =
+    isUmbrellaMegaRegionPlaceLabel(titleHay) ||
+    isUmbrellaMegaRegionPlaceLabel(String(input.title || ''))
+  const titleLeaf = titleUmbrella ? null : firstMegaMenuLeafInText(titleHayForLeaf)
   const titleCityLeaf =
     titleLeaf && classifyMegaMenuDestinationLabel(titleLeaf) === 'city' ? titleLeaf : null
   const titleCountryLeaf =
@@ -650,35 +696,34 @@ export function resolvePublicBrowseCardTitle(
   const duration =
     String(input.duration || '').trim() || durationHintFromTitle(input.title) || null
   let regionClean = sanitizePlaceLabel(regionLabel)
-  // REGRESSION-FREEZE[public-card-hero-short-title]: 그룹 헤더≠목적지 — manifest
-  if (regionClean && isUmbrellaMegaRegionPlaceLabel(regionClean)) regionClean = ''
-  if (regionClean && classifyMegaMenuDestinationLabel(regionClean) === 'group') regionClean = ''
+  // 「동남아, 베트남」→ 국가 leaf 조각만 (동남아 카드 금지)
+  if (regionClean && /[,/]/.test(regionClean)) {
+    const parts = regionClean
+      .split(/[,/]/)
+      .map((p) => sanitizePlaceLabel(p))
+      .filter(Boolean)
+    regionClean =
+      parts.find((p) => classifyMegaMenuDestinationLabel(p) === 'country') ||
+      parts.find((p) => !isBannedPublicCardPlaceLabel(p)) ||
+      ''
+  }
+  // REGRESSION-FREEZE[public-card-hero-short-title]: 그룹·동남아·유럽·일본 ≠ 카드 place — manifest
+  if (regionClean && isBannedPublicCardPlaceLabel(regionClean)) regionClean = ''
   let countryClean = sanitizePlaceLabel(countryLabel)
   if (countryClean && isKrHomeDeparturePlaceLabel(countryClean)) countryClean = ''
-  if (countryClean && isUmbrellaMegaRegionPlaceLabel(countryClean)) countryClean = ''
+  if (countryClean && isBannedPublicCardPlaceLabel(countryClean)) countryClean = ''
   // align·제목 국가 leaf면 countryClean 맞춤 (스리랑카 일주 short)
   if (forceCountryScale && alignedKind === 'country' && alignedDest.destination) {
     countryClean = alignedDest.destination
   } else if (forceCountryScale && titleCountryLeaf) {
     countryClean = titleCountryLeaf
   }
-  // 「일본」은 메가메뉴 도시 leaf가 없을 때만 country short — 국가 leaf가 아니면(일본=그룹 상위) cityKey 없을 때 유지
-  if (countryClean === '일본' && cities.some((c) => classifyMegaMenuDestinationLabel(c) === 'city')) {
-    // keep country for subtitle path; compose will prefer mega city
-  } else if (
-    countryClean &&
-    classifyMegaMenuDestinationLabel(countryClean) !== 'country' &&
-    countryClean !== '일본' &&
-    countryClean !== '중국' &&
-    countryClean !== '미국'
-  ) {
-    // 비-leaf 국가 라벨은 유지(compose fallback). LC 국가만 pickMegaMenuCountryPlace가 씀.
-  }
+  if (countryClean && isBannedPublicCardPlaceLabel(countryClean)) countryClean = ''
 
   const multiCountry =
     Boolean(regionClean) &&
-    (/유럽|미주|중동|아프리카|중남미|남미|동남아|서남아|일주/.test(regionClean) ||
-      cities.length >= 3)
+    !isBannedPublicCardPlaceLabel(regionClean) &&
+    (/중동|아프리카|중남미|남미|일주/.test(regionClean) || cities.length >= 3)
 
   const composed = composeBongtourHeroDisplayTitle({
     duration,
@@ -696,7 +741,12 @@ export function resolvePublicBrowseCardTitle(
     multiCountry,
   })
 
-  if (composed.heroShortTitle && !isUmbrellaMegaRegionPlaceLabel(composed.heroShortTitle)) {
+  const shortPlace = (composed.heroShortTitle || '').replace(/\s*\d+\s*박.*$/, '').trim()
+  if (
+    composed.heroShortTitle &&
+    !isBannedPublicCardPlaceLabel(shortPlace) &&
+    !isBannedPublicCardPlaceLabel(composed.heroShortTitle)
+  ) {
     return {
       cardTitle: composed.heroShortTitle,
       heroSubtitle: composed.heroSubtitle,
@@ -715,17 +765,37 @@ export function resolvePublicBrowseCardTitle(
       .replace(/\s{2,}/g, ' ')
       .trim() || '여행'
   fb = collapseAdjacentDuplicateTitlePhrases(fb)
+  // 권역·국가 상위로 시작하는 Plan B는 카드 place로 쓰지 않음
+  // JS \b는 한글에 안 먹음 — 공백·끝·비한글로 경계
+  const fbStartsWithRegionGroup =
+    /^(북유럽|동유럽|서유럽|남유럽|미동부|미서부|중동|지중해|발칸|유럽|미주|아시아|동남아|서남아|일본|중국|미국)(?:\s|$|[^가-힣])/.test(
+      fb,
+    )
   if (
     isEnLandmarkNoiseToken(fb) ||
     isUmbrellaMegaRegionPlaceLabel(fb) ||
-    isPollutedPublicProductTitle(fb)
+    isPollutedPublicProductTitle(fb) ||
+    fbStartsWithRegionGroup
   ) {
     const dur = durationHintFromTitle(fbRaw) || durationHintFromTitle(input.title) || ''
-    const region = detectRegion(cleanToken(fbRaw), input.primaryRegion)
+    const region = detectRegion(cleanToken(fbRaw), fbStartsWithRegionGroup ? null : input.primaryRegion)
     const brand = pickBrandCity(
       filterKrDeparturePlaceTokens(splitPlaceTokens(fbRaw, input.primaryDestination)),
     )
-    const place = brand || region || '여행'
+    const alignedFb = fbStartsWithRegionGroup
+      ? alignDestinationToMegaMenuLeaf({
+          current: input.primaryDestination || cities[0],
+          title: input.title,
+          cityKey: input.cityKey,
+          countryKey: input.countryKey,
+        }).destination
+      : null
+    const place =
+      brand ||
+      (alignedFb && classifyMegaMenuDestinationLabel(alignedFb) !== 'group' ? alignedFb : null) ||
+      region ||
+      countryClean ||
+      '여행'
     fb = dur ? cleanToken(`${place} ${composeHeroDayToken(dur) || dur}`) : place
   }
   return { cardTitle: fb || '여행', heroSubtitle: null, usedHeroShort: false }

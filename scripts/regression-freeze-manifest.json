@@ -26331,7 +26331,9 @@
             "일정 POI≠카드 place",
             "권역 혼선·POI place 거부",
             "오염 Plan B 폴백 차단",
-            "일본 N박N일 ≠ 마츠야마/삿포로 상품"
+            "일본 N박N일 ≠ 마츠야마/삿포로 상품",
+            "isBannedPublicCardPlaceLabel",
+            "일본·동남아 N박 금지"
           ]
         },
         {

@@ -45,7 +45,7 @@ describe('composeBongtourHeroDisplayTitle', () => {
     expect(r.placeKind).toBe('city')
   })
 
-  it('다국가 권역', () => {
+  it('다국가 권역 — 중분류 동유럽 금지 · 도시 short', () => {
     const r = composeBongtourHeroDisplayTitle({
       duration: '8박 10일',
       multiCountry: true,
@@ -53,8 +53,8 @@ describe('composeBongtourHeroDisplayTitle', () => {
       cities: ['프라하', '부다페스트', '빈'],
       countryLabel: null,
     })
-    expect(r.heroShortTitle).toBe('동유럽 8박 10일')
-    expect(r.placeKind).toBe('region')
+    expect(r.heroShortTitle).toBe('프라하 8박 10일')
+    expect(r.heroShortTitle).not.toMatch(/동유럽/)
   })
 
   it('테마 화이트리스트 — 나라+테마+일수', () => {
@@ -386,6 +386,79 @@ describe('resolvePublicBrowseCardTitle', () => {
     )
     expect(r.cardTitle).toMatch(/^인도\s/)
     expect(r.cardTitle).not.toMatch(/자이푸르/)
+  })
+
+  it('북유럽 4국 카드 ≠ 중분류 북유럽 · 국가 leaf short', () => {
+    const r = resolvePublicBrowseCardTitle(
+      {
+        title: '북유럽 4국 9일 (덴마크/노르웨이/스웨덴/핀란드) 크루즈 2박',
+        duration: '8박 9일',
+        primaryDestination: '노르웨이',
+        cityKey: 'norway-mix',
+        countryKey: 'norway',
+        countryRowLabel: '노르웨이',
+        primaryRegion: 'europe',
+      },
+      '북유럽 4국 9일',
+    )
+    expect(r.cardTitle).not.toMatch(/북유럽/)
+    expect(r.cardTitle).toMatch(/노르웨이|덴마크/)
+  })
+
+  it('일본·동남아·유럽 region 카드 금지 — dest 도시/국가 leaf', () => {
+    expect(
+      resolvePublicBrowseCardTitle(
+        {
+          title: '[2030전용] 규슈/사가 3일',
+          duration: '2박 3일',
+          primaryDestination: '사가',
+          cityKey: 'saga',
+          countryKey: 'japan',
+          countryRowLabel: '일본',
+        },
+        '규슈/사가 3일',
+      ).cardTitle,
+    ).toBe('사가 2박 3일')
+    expect(
+      resolvePublicBrowseCardTitle(
+        {
+          title: '다낭 자유 5일',
+          duration: '3박 5일',
+          primaryDestination: '다낭',
+          cityKey: 'danang',
+          countryKey: 'vietnam',
+          countryRowLabel: '베트남',
+          primaryRegion: '동남아',
+        },
+        '다낭 자유 5일',
+      ).cardTitle,
+    ).toBe('다낭 3박 5일')
+    expect(
+      resolvePublicBrowseCardTitle(
+        {
+          title: '스위스 알프스 7일',
+          duration: '5박 7일',
+          primaryDestination: '스위스',
+          countryKey: 'switzerland',
+          countryRowLabel: '스위스',
+          primaryRegion: '유럽, 스위스',
+        },
+        '스위스 알프스 7일',
+      ).cardTitle,
+    ).toMatch(/^스위스\s/)
+    expect(
+      resolvePublicBrowseCardTitle(
+        {
+          title: '스위스 알프스 7일',
+          duration: '5박 7일',
+          primaryDestination: '스위스',
+          countryKey: 'switzerland',
+          countryRowLabel: '스위스',
+          primaryRegion: '유럽, 스위스',
+        },
+        '스위스 알프스 7일',
+      ).cardTitle,
+    ).not.toMatch(/유럽|동남아|일본/)
   })
 
   it('제목에 바라나시가 있으면 대표 도시 short', () => {
