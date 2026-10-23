@@ -89,23 +89,23 @@ const EU: MegaMenuCountryGroupDef[] = [
       LC('프랑스', ['프랑스', 'france', '파리', '니스', '보르도', 'bordeaux']),
       // REGRESSION-FREEZE[mega-menu-product-alignment]: 모나코 master countryKey — manifest
       LC('모나코', ['모나코', 'monaco', '몬테카를로', 'monte carlo']),
-      LC('스위스', ['스위스', 'switzerland', '취리히', '인터라켄']),
+      LC('스위스', ['스위스', 'switzerland', '취리히', '인터라켄', '융프라우', '루체른', '리기산']),
       // REGRESSION-FREEZE[mega-menu-compound-geo-haystack]: 영국일주 mega terms — manifest
       LC('영국', ['영국', '영국일주', 'UK', '런던', 'london', '잉글랜드', '스코틀랜드']),
       LC('독일', ['독일', 'germany', '베를린', '뮌헨']),
       LC('네덜란드', ['네덜란드', 'netherlands', '암스테르담']),
       LC('벨기에', ['벨기에', 'belgium', '브뤼셀']),
-      LC('오스트리아', ['오스트리아', 'austria', '비엔나', '잘츠부르크']),
+      LC('오스트리아', ['오스트리아', 'austria', '비엔나', '잘츠부르크', '할슈타트', 'hallstatt']),
     ],
     true,
   ),
   G(
     '동유럽',
     [
-      LC('체코', ['체코', 'czech', '프라하', 'prague']),
+      LC('체코', ['체코', 'czech', '프라하', 'prague', '브르노', 'brno']),
       LC('헝가리', ['헝가리', 'hungary', '부다페스트']),
       LC('폴란드', ['폴란드', 'poland', '바르샤바', 'warsaw']),
-      LC('크로아티아', ['크로아티아', 'croatia', '두브로브니크']),
+      LC('크로아티아', ['크로아티아', 'croatia', '두브로브니크', '발칸']),
       LC('슬로베니아', ['슬로베니아', 'slovenia', '류블랴나']),
     ],
     true,
@@ -186,12 +186,24 @@ const EU: MegaMenuCountryGroupDef[] = [
   G(
     '아프리카',
     [
+      // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 아프리카 일주=그룹명 LC (인도 패턴) — manifest
+      LC('아프리카', ['아프리카', 'africa', '아프리카일주']),
       LC('모로코', ['모로코', 'morocco', '마라케시']),
       LC('튀니지', ['튀니지', 'tunisia', '튀니스', 'tunis']),
       LC('남아공', ['남아공', 'south africa', '케이프타운', '요하네스버그']),
       LC('탄자니아', ['탄자니아', 'tanzania', '세렝게티', '킬리만자로']),
       LC('케냐', ['케냐', 'kenya', '나이로비', '마사이마라']),
-      LC('에티오피아', ['에티오피아', 'ethiopia', '아디스아바바']),
+      LC('에티오피아', ['에티오피아', 'ethiopia', '아디스아바바', '아디스 아바바']),
+      // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 빅토리아폭포 권역 LC — manifest
+      LC('짐바브웨', [
+        '짐바브웨',
+        'zimbabwe',
+        '빅토리아폭포',
+        '빅토리아 폭포',
+        '빅토리아폴스',
+        '빅토리아 폴스',
+        'victoria falls',
+      ]),
     ],
     true,
   ),
@@ -329,6 +341,8 @@ const JP: MegaMenuCountryGroupDef[] = [
     city('시마네', ['시마네', 'shimane', '일본', '주고쿠']),
     // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 시모노세키(야마구치) — 주고쿠 leaf — manifest
     city('시모노세키', ['시모노세키', '시모노세끼', 'shimonoseki', '일본', '주고쿠', '야마구치']),
+    // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 고치(시코쿠) — manifest
+    city('고치', ['고치', 'kochi', '일본', '시코쿠']),
   ]),
   GJp('규슈', [
     city('후쿠오카', ['후쿠오카', 'fukuoka', '일본', '규슈']),
@@ -348,9 +362,11 @@ const JP: MegaMenuCountryGroupDef[] = [
       'kurokawa onsen',
     ]),
     city('미야자키', ['미야자키', 'miyazaki', '일본', '규슈']),
+    // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 사가(규슈) — manifest
+    city('사가', ['사가', 'saga', '일본', '규슈']),
   ]),
   GJp('오키나와', [
-    city('오키나와', ['오키나와', 'okinawa', '일본']),
+    city('오키나와', ['오키나와', 'okinawa', 'okinawa-main', '일본']),
     city('나하', ['나하', 'naha', '일본', '오키나와']),
     city('미야코지마', ['미야코지마', 'miyakojima', '일본']),
     city('이시가키', ['이시가키', 'ishigaki', '일본']),
@@ -387,16 +403,27 @@ const CN: MegaMenuCountryGroupDef[] = [
     city('낙양', ['낙양', 'luoyang', '뤄양', '중국', '하남']),
     city('개봉', ['개봉', 'kaifeng', '카이펑', '중국', '하남']),
     city('초작', ['초작', 'jiaozuo', '자오쭤', '운대산', 'yuntaishan', '중국', '하남']),
+    // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 은시(호북) — manifest
+    city('은시', ['은시', 'enshi', '은시대협곡', '청강화랑', '중국', '호북']),
   ]),
   GCn('동북', [
     city('대련', ['대련', 'dalian', '중국']),
     city('하얼빈', ['하얼빈', 'harbin', '중국']),
     city('연길', ['연길', 'yanji', '중국']),
     city('심양', ['심양', 'shenyang', '중국']),
-    city('장백산', ['장백산', 'changbai', '백두산', '중국']),
+    city('장백산', ['장백산', 'changbai', '백두산', '장춘', '중국']),
   ]),
   GCn('복건', [
-    city('샤먼', ['샤먼', '하문', 'xiamen', '厦门', '중국']),
+    city('샤먼', [
+      '샤먼',
+      '하문',
+      'xiamen',
+      '厦门',
+      '천저우',
+      '망산',
+      'zhangzhou',
+      '중국',
+    ]),
     city('푸저우', ['푸저우', '복주', 'fuzhou', '福州', '중국']),
   ]),
   GCn('화남', [
@@ -407,6 +434,8 @@ const CN: MegaMenuCountryGroupDef[] = [
     city('중경', ['중경', 'chongqing', '충칭', '중국']),
     city('곤명', ['곤명', 'kunming', '중국']),
     city('여강', ['여강', 'lijiang', '리장', '중국']),
+    // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 심천(화남) — manifest
+    city('심천', ['심천', '선전', 'shenzhen', '深圳', '중국']),
     // REGRESSION-FREEZE[mega-menu-guizhou-china]: 귀주성(하나투어) 화남·중국 — manifest
     city('귀주', [
       '귀주',
@@ -472,13 +501,23 @@ const SA: MegaMenuCountryGroupDef[] = [
   G(
     '중남미',
     [
+      // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 중남미 일주=그룹명 LC — manifest
+      LC('중남미', ['중남미', '남미', 'latin america', 'latin-caribbean'], 'latin-caribbean'),
       LC('멕시코', ['멕시코', 'mexico', 'mexico city', '멕시코시티', 'cancun', '칸쿤'], 'mexico'),
       LC('쿠바', ['쿠바', 'cuba', 'havana', '아바나'], 'cuba'),
       LC('페루', ['페루', 'peru', '리마', '마추픽추', 'lima', 'cusco'], 'peru'),
-      LC('브라질', ['브라질', 'brazil', '리우데자네이루', '리우데자네이로', '상파울루', 'rio de janeiro'], 'brazil'),
+      LC('브라질', [
+        '브라질',
+        'brazil',
+        '리우데자네이루',
+        '리우데자네이로',
+        '상파울루',
+        'rio de janeiro',
+        '이과수',
+      ], 'brazil'),
       LC('아르헨티나', ['아르헨티나', 'argentina', '부에노스아이레스'], 'argentina'),
       // 산티아고 순례길(스페인) 오매칭 방지 — 칠레 수도는 chile/산티아고데칠레만
-      LC('칠레', ['칠레', 'chile', '산티아고데칠레'], 'chile'),
+      LC('칠레', ['칠레', 'chile', '산티아고데칠레', '파타고니아', '이스터섬', '모아이'], 'chile'),
       LC('볼리비아', ['볼리비아', 'bolivia', '라파스', 'la paz'], 'bolivia'),
       // REGRESSION-FREEZE[mega-menu-product-alignment]: dominican terms — no bare caribbean (남미 오매칭) — manifest
       LC('도미니카', ['도미니카', '도미니카공화국', 'dominican republic', 'dominican'], 'dominican-republic'),

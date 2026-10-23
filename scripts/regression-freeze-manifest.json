@@ -4885,7 +4885,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "중·하 메가메뉴 — 서버 geo WHERE fetch (전량 클라이언트 스캔 제거)",
+      "summary": "중·하 메가메뉴 — cold만 서버 geo WHERE; warm 카탈로그면 즉시 클라이언트 필터",
       "checks": [
         {
           "file": "lib/products-browse-hub-query.ts",
@@ -4926,7 +4926,9 @@
             "buildOverseasHubBrowseQueryKey",
             "fetchProductsBrowseClientJson",
             "REGRESSION-FREEZE[overseas-hub-server-geo-fetch]",
-            "server geo items skip client re-filter"
+            "REGRESSION-FREEZE[overseas-hub-mega-warm-catalog-instant]",
+            "peek 있으면 mid/leaf도 즉시",
+            "항상 URL 클라이언트 필터"
           ]
         }
       ],
@@ -23071,7 +23073,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "해외 허브는 패키지+자유여행 포함, type=travel|air-hotel 칩이 실제로 거른다",
+      "summary": "해외여행(/travel/overseas·메가메뉴) 목록은 패키지만, 자유여행은 /travel/air-hotel만 — 혼입 금지",
       "checks": [
         {
           "file": "lib/overseas-hub-client-catalog-filter.ts",
@@ -23079,14 +23081,31 @@
             "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
             "parseOverseasHubTravelType",
             "filterOverseasHubCatalogByTravelType",
-            "type=travel"
+            "type 없으면 패키지",
+            "all=패키지(혼입 금지)"
           ]
         },
         {
           "file": "lib/products-browse-db-where.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
-            "browseType === 'travel'"
+            "type 없어도 overseas=패키지만",
+            "scope === 'overseas'"
+          ]
+        },
+        {
+          "file": "lib/products-browse-hub-query.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
+            "type', 'travel'",
+            "허브 전량 카탈로그도 패키지만"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
+            "해외 패키지 목록 메모리에서도 FIT 제거"
           ]
         },
         {
@@ -23094,13 +23113,14 @@
           "mustInclude": [
             "REGRESSION-FREEZE[overseas-hub-package-fit-split]",
             "자유여행",
-            "type', 'air-hotel'"
+            "type', 'air-hotel'",
+            "/travel/air-hotel"
           ]
         },
         {
           "file": "app/travel/overseas/page.tsx",
           "mustInclude": [
-            "해외 패키지와 자유여행"
+            "해외 패키지 여행 상품"
           ]
         },
         {
@@ -23113,6 +23133,106 @@
       "vitestSuites": [
         "lib/overseas-hub-client-catalog-filter.test.ts",
         "lib/products-browse-db-where.test.ts"
+      ]
+    },
+    {
+      "id": "similar-itinerary-compare-kind-split",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "같은 일정 비교 — 패키지·자유여행 kind 분리(혼입 금지)",
+      "checks": [
+        {
+          "file": "lib/similar-itinerary-compare-href.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "SimilarItineraryCompareKind",
+            "parseSimilarItineraryCompareKind",
+            "kind=package|fit",
+            "kind 없으면 패키지",
+            "forceKind"
+          ]
+        },
+        {
+          "file": "lib/similar-itinerary-compare-kind.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "prismaWhereForSimilarItineraryCompareKind",
+            "productMatchesSimilarItineraryCompareKind",
+            "DB where kind push-down",
+            "startsWith: 'fit-'"
+          ]
+        },
+        {
+          "file": "lib/dev-similar-itinerary-compare.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind로 패키지/FIT 분리",
+            "패키지 표에 FIT 금지",
+            "prismaWhereForSimilarItineraryCompareKind",
+            "DB where kind push-down"
+          ]
+        },
+        {
+          "file": "app/travel/similar-itinerary-compare/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind=package|fit"
+          ]
+        },
+        {
+          "file": "app/admin/similar-itinerary-compare/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind=package|fit"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind=fit",
+            "forceKind: 'fit'",
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryQuoteCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind=fit",
+            "forceKind: 'fit'",
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
+            "air_hotel_free"
+          ]
+        },
+        {
+          "file": "components/itinerary/ItineraryView.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "listingKind: 'air_hotel_free'"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "kind=package",
+            "forceKind: 'package'"
+          ]
+        },
+        {
+          "file": "app/components/detail/ProductLiveQuoteCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
+            "forceKind: 'package'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/similar-itinerary-compare-href.test.ts",
+        "lib/similar-itinerary-compare-kind.test.ts"
       ]
     },
     {
@@ -26331,7 +26451,9 @@
             "일정 POI≠카드 place",
             "권역 혼선·POI place 거부",
             "오염 Plan B 폴백 차단",
-            "일본 N박N일 ≠ 마츠야마/삿포로 상품"
+            "일본 N박N일 ≠ 마츠야마/삿포로 상품",
+            "isBannedPublicCardPlaceLabel",
+            "일본·동남아 N박 금지"
           ]
         },
         {
@@ -26501,6 +26623,133 @@
       ],
       "vitestSuites": [
         "lib/bongtour-product-display-title-ssot.test.ts"
+      ]
+    },
+    {
+      "id": "public-detail-hero-info-card-inset",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품상세 히어로 우측 정보카드 — max-h=히어로 기준, 스크롤 금지·제목 폰트 맞춤",
+      "checks": [
+        {
+          "file": "app/components/detail/PackageProductHeroSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-info-card-inset]",
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "HeroStickyInfoAside",
+            "fitTitleInSticky"
+          ],
+          "mustNotInclude": [
+            "max-h-[min(760px,calc(100vh-96px))]",
+            "overflow-y-auto overscroll-contain"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-info-card-inset]",
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "HeroStickyInfoAside",
+            "fitTitleInSticky"
+          ],
+          "mustNotInclude": [
+            "max-h-[min(760px,calc(100vh-96px))]",
+            "overflow-y-auto overscroll-contain"
+          ]
+        },
+        {
+          "file": "app/components/detail/HeroStickyInfoAside.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "max-h-[calc(100%-3rem)]",
+            "overflow-hidden",
+            "data-hero-sticky-title",
+            "TITLE_MIN_PX"
+          ],
+          "mustNotInclude": [
+            "overflow-y-auto"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "public-detail-hero-sticky-fit-title",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "히어로 스티키 정보카드 — overflow 스크롤 금지·제목 자동 축소",
+      "checks": [
+        {
+          "file": "app/components/detail/HeroStickyInfoAside.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "overflow-hidden",
+            "data-hero-sticky-title",
+            "TITLE_MIN_PX"
+          ],
+          "mustNotInclude": [
+            "overflow-y-auto"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "fitTitleInSticky",
+            "data-hero-sticky-title"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroInfoPanel.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "fitTitleInSticky",
+            "data-hero-sticky-title"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "HeroStickyInfoAside",
+            "fitTitleInSticky"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroSection.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
+            "HeroStickyInfoAside",
+            "fitTitleInSticky"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "overseas-hub-mega-warm-catalog-instant",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "메가메뉴 중·하 — 워밍 카탈로그면 서버 geo 대기 없이 즉시 클라이언트 필터",
+      "checks": [
+        {
+          "file": "app/components/travel/overseas/OverseasHubCatalogRoot.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[overseas-hub-mega-warm-catalog-instant]",
+            "peekOverseasHubCatalogItems",
+            "peek 있으면 mid/leaf도 즉시",
+            "항상 URL 클라이언트 필터",
+            "filterOverseasHubCatalogByUrl"
+          ],
+          "mustNotInclude": [
+            "server geo items skip client re-filter",
+            "requestIdleCallback"
+          ]
+        }
       ]
     },
     {

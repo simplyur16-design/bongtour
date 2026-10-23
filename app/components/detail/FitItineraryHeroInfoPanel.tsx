@@ -16,9 +16,17 @@ import {
 } from '@/lib/promotion-copy-normalize'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
+import {
+  buildSimilarItineraryCompareHrefFromProduct,
+  SIMILAR_ITINERARY_COMPARE_CTA_LABEL,
+} from '@/lib/similar-itinerary-compare-href'
+import Link from 'next/link'
+
+const TITLE_MAX_STICKY_PX = 28
 
 export type FitItineraryHeroInfoPanelProps = {
   showTitle?: boolean
+  fitTitleInSticky?: boolean
   dataSourceLabel: string
   title: string
   originCode: string
@@ -49,6 +57,7 @@ export type FitItineraryHeroInfoPanelProps = {
 /** 자유여행 상세 — 패키지 hero 정보 카드와 동일 레이아웃 (코드 격리 fork) */
 export default function FitItineraryHeroInfoPanel({
   showTitle = false,
+  fitTitleInSticky = false,
   dataSourceLabel: _dataSourceLabel,
   title,
   originCode,
@@ -84,13 +93,31 @@ export default function FitItineraryHeroInfoPanel({
     heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 상세 dest 출발허브 제거 — manifest
   const destinationDisplay = formatPublicDestinationDisplayLabel(destination)
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 자유여행 비교 CTA kind=fit — manifest
+  const similarCompareHref = buildSimilarItineraryCompareHrefFromProduct({
+    primaryDestination: destination,
+    destination,
+    duration: durationLabel || _duration,
+    title,
+    totalDays: _masterTotalDays,
+    listingKind: listingKind ?? 'air_hotel_free',
+    productType: 'air-hotel',
+    forceKind: 'fit',
+  })
 
   return (
     <>
       {showTitle ? (
         <ProductDetailTitle
           title={title}
-          className="bt-wrap mt-4 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl"
+          // REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: data-hero-sticky-title 자동 축소 — manifest
+          data-hero-sticky-title={fitTitleInSticky ? true : undefined}
+          className={
+            fitTitleInSticky
+              ? 'bt-wrap mt-0 font-black leading-[1.35] tracking-[0.02em] text-bt-title'
+              : 'bt-wrap mt-0 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl'
+          }
+          style={fitTitleInSticky ? { fontSize: `${TITLE_MAX_STICKY_PX}px` } : undefined}
         />
       ) : null}
 
@@ -202,6 +229,15 @@ export default function FitItineraryHeroInfoPanel({
             </p>
           ) : null}
         </>
+      ) : null}
+
+      {similarCompareHref ? (
+        <Link
+          href={similarCompareHref}
+          className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-[#2f8fc7]/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-[#2f8fc7] hover:bg-[#dceef9]"
+        >
+          {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
+        </Link>
       ) : null}
     </>
   )

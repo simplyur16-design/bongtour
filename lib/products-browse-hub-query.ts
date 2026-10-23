@@ -1,3 +1,4 @@
+import { parseAirHotelBrowseTypeParam } from '@/lib/air-hotel-product-ssot'
 import { parseBrowseQuery } from '@/lib/products-browse-query'
 import { OVERSEAS_HUB_CATALOG_CLIENT_VERSION } from '@/lib/overseas-hub-catalog-version'
 
@@ -80,6 +81,8 @@ export function canonicalBrowseQueryKey(p: URLSearchParams): string {
 export function buildOverseasHubCatalogFetchQueryKey(): string {
   const p = new URLSearchParams()
   p.set('scope', 'overseas')
+  // REGRESSION-FREEZE[overseas-hub-package-fit-split]: 허브 전량 카탈로그도 패키지만 — manifest
+  p.set('type', 'travel')
   p.set('limit', OVERSEAS_HUB_BROWSE_LIMIT)
   /** 클라이언트 sessionStorage 구 캐시 무효화 — API는 무시 */
   p.set('hubCatalog', OVERSEAS_HUB_CATALOG_CLIENT_VERSION)
@@ -125,6 +128,10 @@ export function buildOverseasHubBrowseQueryKey(qsInput: URLSearchParams | string
     typeof qsInput === 'string' ? new URLSearchParams(qsInput) : new URLSearchParams(qsInput.toString())
   if (!p.get('scope')) p.set('scope', 'overseas')
   p.delete('listingKind')
+  // REGRESSION-FREEZE[overseas-hub-package-fit-split]: 해외 허브 browse 키는 패키지(travel) 고정 — manifest
+  if (parseAirHotelBrowseTypeParam(p.get('type')) !== 'air-hotel') {
+    p.set('type', 'travel')
+  }
   // REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: geo-focused limit — manifest
   p.set(
     'limit',

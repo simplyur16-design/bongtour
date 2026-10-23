@@ -534,8 +534,9 @@ export function ItineraryView({
           heroCouponText: null,
           departureConditionLine: travelCoreInfo?.departureConditionLine ?? null,
           productMetaChips: travelCoreInfo?.productMetaChips ?? [],
-          listingKind: null,
-          airportTransferType: null,
+          // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: FIT 상세 listingKind — manifest
+          listingKind: 'air_hotel_free',
+          airportTransferType: product.airportTransferType ?? null,
         }}
       />
 

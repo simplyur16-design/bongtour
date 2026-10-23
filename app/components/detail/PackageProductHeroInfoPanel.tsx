@@ -23,8 +23,13 @@ import {
 } from '@/lib/similar-itinerary-compare-href'
 import Link from 'next/link'
 
+/** 스티키 카드 제목 시작 크기 — HeroStickyInfoAside가 카드 높이에 맞춰 축소 */
+const TITLE_MAX_STICKY_PX = 28
+
 export type PackageProductHeroInfoPanelProps = {
   showTitle?: boolean
+  /** 데스크톱 히어로 스티키 — 제목 폰트를 카드 높이에 맞춤 (스크롤 대신) */
+  fitTitleInSticky?: boolean
   dataSourceLabel: string
   title: string
   originCode: string
@@ -59,6 +64,7 @@ export type PackageProductHeroInfoPanelProps = {
 /** 패키지 상세 — 코드·날짜·가격·무이자·출발확정·메타 칩 */
 export default function PackageProductHeroInfoPanel({
   showTitle = false,
+  fitTitleInSticky = false,
   dataSourceLabel: _dataSourceLabel,
   title,
   originCode,
@@ -99,12 +105,16 @@ export default function PackageProductHeroInfoPanel({
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 상세 dest 출발허브 제거 — manifest
   const destinationDisplay = formatPublicDestinationDisplayLabel(destination)
   // REGRESSION-FREEZE[similar-itinerary-compare-entry]: 히어로 가격 아래 사실 비교 CTA — manifest
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 패키지 히어로 비교는 kind=package — manifest
   const similarCompareHref = buildSimilarItineraryCompareHrefFromProduct({
     primaryDestination,
     destination,
     duration: durationLabel || _duration,
     title,
     totalDays: _masterTotalDays,
+    listingKind: listingKind === 'air_hotel_free' ? 'travel' : (listingKind ?? 'travel'),
+    productType: 'travel',
+    forceKind: 'package',
   })
 
   return (
@@ -112,7 +122,14 @@ export default function PackageProductHeroInfoPanel({
       {showTitle ? (
         <ProductDetailTitle
           title={title}
-          className="bt-wrap mt-4 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl"
+          // REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: data-hero-sticky-title 자동 축소 — manifest
+          data-hero-sticky-title={fitTitleInSticky ? true : undefined}
+          className={
+            fitTitleInSticky
+              ? 'bt-wrap mt-0 font-black leading-[1.35] tracking-[0.02em] text-bt-title'
+              : 'bt-wrap mt-0 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl'
+          }
+          style={fitTitleInSticky ? { fontSize: `${TITLE_MAX_STICKY_PX}px` } : undefined}
         />
       ) : null}
 

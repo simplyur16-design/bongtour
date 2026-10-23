@@ -20,6 +20,8 @@ const sportsThemeLeafLabels = new Set<string>()
 const groupChildLeaves = new Map<string, Set<string>>()
 /** leaf 라벨 → 소속 그룹 라벨들 */
 const leafToGroups = new Map<string, Set<string>>()
+/** 고유 한글 term → leaf 라벨 (마사이마라→케냐, 마추픽추→페루). 모호 term은 제외 */
+const uniqueHangulTermToLeaf = new Map<string, string>()
 
 /** 관용 → 메가메뉴 leaf (도시↔도시·국가↔국가만. 시드니→호주 같은 강등 금지 — 카드 short 오염). */
 const MEGA_DEST_ALIASES: Record<string, string> = {
@@ -49,7 +51,54 @@ const MEGA_DEST_ALIASES: Record<string, string> = {
   와이키키: '호놀룰루',
   베르사유: '프랑스',
   퀸즐랜드: '호주/뉴질랜드',
+  백두산: '장백산',
+  선전: '심천',
 }
+
+/** 제목 관용 그룹명 → 메가 중분류 (북해도·남미) */
+const MEGA_GROUP_ALIASES: Record<string, string> = {
+  북해도: '홋카이도',
+  남미: '중남미',
+  발칸: '동유럽',
+  발칸여행: '동유럽',
+}
+
+/** browse/오염 우산 dest — leaf가 아님, 제목·geo키로만 교정 */
+const UMBRELLA_DEST_LABELS = new Set(['유럽', '미주', '아시아', '미지정', '지중해'])
+
+/** term 인덱싱에서 제외 (다수 leaf 공유·너무 일반) */
+const TERM_INDEX_NOISE = new Set([
+  '중국',
+  '일본',
+  '미국',
+  '베트남',
+  '태국',
+  '하와이',
+  '캐나다',
+  '규슈',
+  '간토',
+  '간사이',
+  '홋카이도',
+  '오키나와',
+  '주고쿠',
+  '시코쿠',
+  '산동',
+  '화동',
+  '화북',
+  '화중',
+  '화남',
+  '동북',
+  '복건',
+  '하남',
+  '호북',
+  '몽골',
+  '사천',
+  '미동부',
+  '미서부',
+  '미국동부',
+  '미국서부',
+  '로키',
+])
 
 /**
  * LC 국가 leaf만 있는 권역의 수도·관용 도시 → 국가 leaf.
@@ -81,6 +130,8 @@ const MEGA_DEST_CITY_TO_COUNTRY_LEAF: Record<string, string> = {
 
 function ensureLeafIndex(): void {
   if (cityLeafLabels.size) return
+  type LeafRef = { label: string; terms: string[]; sports: boolean }
+  const allLeaves: LeafRef[] = []
   for (const tab of MEGA_MENU_TAB_DEFINITIONS) {
     if (tab.localDeparture) continue
     const isSports = tab.id === 'sports_theme'
@@ -96,10 +147,40 @@ function ensureLeafIndex(): void {
         const gs = leafToGroups.get(leaf.label) ?? new Set<string>()
         gs.add(g.countryLabel)
         leafToGroups.set(leaf.label, gs)
+        allLeaves.push({ label: leaf.label, terms: leaf.terms ?? [], sports: isSports })
       }
       groupChildLeaves.set(g.countryLabel, children)
     }
   }
+  const termHits = new Map<string, Set<string>>()
+  for (const leaf of allLeaves) {
+    if (leaf.sports) continue
+    for (const term of leaf.terms) {
+      const t = String(term || '').trim()
+      if (!t || t === leaf.label) continue
+      // 한글(+공백) 지명 term만 — 빅토리아 폭포 포함
+      if (!/^[가-힣]{2,}(?:\s+[가-힣]{2,})*$/u.test(t)) continue
+      if (TERM_INDEX_NOISE.has(t) || groupOnlyLabels.has(t)) continue
+      if (cityLeafLabels.has(t) || countryLeafLabels.has(t)) continue
+      const set = termHits.get(t) ?? new Set<string>()
+      set.add(leaf.label)
+      termHits.set(t, set)
+    }
+  }
+  for (const [term, leaves] of termHits) {
+    if (leaves.size === 1) uniqueHangulTermToLeaf.set(term, [...leaves][0]!)
+  }
+}
+
+/** 제목의 관용 그룹 표기를 메가 중분류로 펼침 (북해도→홋카이도). */
+function expandGroupAliasesInText(text: string): string {
+  let t = String(text ?? '')
+  const keys = Object.keys(MEGA_GROUP_ALIASES).sort((a, b) => b.length - a.length)
+  for (const from of keys) {
+    if (!t.includes(from)) continue
+    t = t.split(from).join(MEGA_GROUP_ALIASES[from]!)
+  }
+  return t
 }
 
 /** 테마여행 leaf인지 (골프·트레킹 dest 오적용 차단) */
@@ -134,27 +215,21 @@ export function megaMenuLeafBelongsToGroup(leaf: string, groupLabel: string): bo
   return Boolean(kids?.has(leaf))
 }
 
-/**
- * 문장에 등장하는 첫 메가메뉴 중분류 그룹명.
- * 긴 라벨은 짧은 라벨이 그 안에 포함된 경우만 우선 (서부 ⊂ 미서부).
- * 겹치지 않으면 문장 순서 (홍콩/마카오 → 홍콩, 마카오가 더 길어도).
- */
+/** 문장에 등장하는 첫 메가메뉴 중분류 그룹명 (긴 라벨 우선). */
 export function firstMegaMenuGroupInText(text: string): string | null {
   ensureLeafIndex()
-  const t = String(text ?? '')
+  const t = expandGroupAliasesInText(String(text ?? ''))
   if (!t.trim()) return null
+  // 제목에서 더 앞에 나온 그룹 우선 (아프리카 & 남미 → 아프리카)
   const hits = [...groupOnlyLabels]
-    .map((g) => ({ g, i: t.indexOf(g) }))
-    .filter((x) => x.i >= 0)
-  if (!hits.length) return null
-  const kept = hits.filter((h) => {
-    const end = h.i + h.g.length
-    return !hits.some(
-      (o) => o.g.length > h.g.length && o.i <= h.i && o.i + o.g.length >= end,
-    )
-  })
-  kept.sort((a, b) => a.i - b.i || b.g.length - a.g.length)
-  return kept[0]?.g ?? null
+    .filter((g) => t.includes(g) && !sportsThemeGroupLabels.has(g))
+    .sort((a, b) => {
+      const ia = t.indexOf(a)
+      const ib = t.indexOf(b)
+      if (ia !== ib) return ia - ib
+      return b.length - a.length
+    })
+  return hits[0] ?? null
 }
 
 /** 그룹 직속 city leaf 중 문장에 라벨이 나온 첫 도시 (국가 leaf 제외). */
@@ -176,30 +251,40 @@ export function firstMegaMenuCityLeafInGroupFromText(
   return null
 }
 
-/** 그룹 직속 leaf 중 문장에 라벨이 나온 첫 city → country. */
+/** 그룹 직속 leaf 중 문장에 라벨·고유 term이 나온 첫 city → country. */
 export function firstMegaMenuLeafInGroupFromText(groupLabel: string, text: string): string | null {
   const city = firstMegaMenuCityLeafInGroupFromText(groupLabel, text)
   if (city) return city
   ensureLeafIndex()
   const kids = groupChildLeaves.get(groupLabel)
   if (!kids?.size) return null
-  const t = String(text ?? '')
+  const t = expandGroupAliasesInText(String(text ?? ''))
   if (!t.trim()) return null
+  // 권역 LC(중남미·아프리카)는 세부 국가·term보다 후순위 — 마추픽추→페루 우선
   const countries = [...kids]
-    .filter((l) => countryLeafLabels.has(l))
+    .filter((l) => countryLeafLabels.has(l) && l !== groupLabel)
     .sort((a, b) => b.length - a.length)
   for (const lab of countries) {
-    // 그룹명===국가 leaf(인도)일 때는 제목에 그룹/국가명이 있을 때만
     if (t.includes(lab)) return lab
   }
+  // 고유 term (마사이마라→케냐, 마추픽추→페루)
+  const termKeys = [...uniqueHangulTermToLeaf.keys()].sort((a, b) => b.length - a.length)
+  for (const term of termKeys) {
+    if (!hangulPlaceTokenMentioned(t, term)) continue
+    const leaf = uniqueHangulTermToLeaf.get(term)!
+    if (kids.has(leaf) && leaf !== groupLabel) return leaf
+  }
+  if (countryLeafLabels.has(groupLabel) && t.includes(groupLabel)) return groupLabel
   return null
 }
 
-/** 그룹에 국가 leaf가 있으면(인도·스리랑카) 그 라벨 — 권역 스케일 dest용. */
+/** 그룹에 국가 leaf가 있으면(인도·스리랑카·아프리카) 그 라벨 — 권역 스케일 dest용. */
 export function megaMenuCountryLeafInGroup(groupLabel: string): string | null {
   ensureLeafIndex()
   const kids = groupChildLeaves.get(groupLabel)
   if (!kids) return null
+  // 그룹명===LC(인도·아프리카·중남미) 우선
+  if (kids.has(groupLabel) && countryLeafLabels.has(groupLabel)) return groupLabel
   for (const lab of kids) {
     if (countryLeafLabels.has(lab)) return lab
   }
@@ -214,11 +299,12 @@ export function firstMegaMenuLeafInText(text: string): string | null {
   const cityLabels = [...cityLeafLabels].sort((a, b) => b.length - a.length)
   for (const lab of cityLabels) {
     if (sportsThemeLeafLabels.has(lab)) continue
-    if (t.includes(lab)) return lab
+    // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 「두 개의 나라」≠나라시 — manifest
+    if (hangulPlaceTokenMentioned(t, lab)) return lab
   }
   const aliasKeys = Object.keys(MEGA_DEST_ALIASES).sort((a, b) => b.length - a.length)
   for (const from of aliasKeys) {
-    if (!t.includes(from)) continue
+    if (!hangulPlaceTokenMentioned(t, from)) continue
     const to = MEGA_DEST_ALIASES[from]!
     if (sportsThemeLeafLabels.has(to)) continue
     const k = classifyMegaMenuDestinationLabel(to)
@@ -235,7 +321,15 @@ export function firstMegaMenuLeafInText(text: string): string | null {
   const countryLabels = [...countryLeafLabels].sort((a, b) => b.length - a.length)
   for (const lab of countryLabels) {
     if (sportsThemeLeafLabels.has(lab)) continue
-    if (t.includes(lab)) return lab
+    if (hangulPlaceTokenMentioned(t, lab)) return lab
+  }
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 고유 term→leaf (마사이마라·마추픽추) — manifest
+  const termKeys = [...uniqueHangulTermToLeaf.keys()].sort((a, b) => b.length - a.length)
+  for (const term of termKeys) {
+    if (!hangulPlaceTokenMentioned(t, term)) continue
+    const leaf = uniqueHangulTermToLeaf.get(term)!
+    if (sportsThemeLeafLabels.has(leaf)) continue
+    return leaf
   }
   return null
 }
@@ -245,10 +339,20 @@ function hangulPlaceTokenMentioned(haystack: string, token: string): boolean {
   const h = String(haystack ?? '')
   const t = token.trim()
   if (!t || !h) return false
-  if (t.length >= 3) return h.includes(t)
-  // 2글자 이하: 한글 어절 경계 (니스≠비즈니스, 리가≠아르헨티나리가 등은 별도)
-  const re = new RegExp(`(?<![가-힣])${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![가-힣])`)
-  return re.test(h)
+  // 「두 개의 나라」「여러 나라」= 국가(nation) 관용 — 일본 나라시 leaf 금지
+  if (t === '나라' && /(?:개|몇|두|세|네|여러|모든|각|한)\s*의?\s*나라|나라\s*를\s*품/.test(h)) {
+    return false
+  }
+  if (h.includes(t)) {
+    if (t.length >= 3) return true
+    const re = new RegExp(`(?<![가-힣])${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![가-힣])`)
+    return re.test(h)
+  }
+  // 「빅토리아 폭포」↔「빅토리아폭포」공백 무시 매칭
+  const hCompact = h.replace(/\s+/g, '')
+  const tCompact = t.replace(/\s+/g, '')
+  if (tCompact.length >= 3 && hCompact.includes(tCompact)) return true
+  return false
 }
 
 /** haystack에 leaf 라벨이 지명으로 등장하는지 (과매칭 완화). */
@@ -281,22 +385,24 @@ function resolveWithinGroup(
   groupLabel: string,
   hay: string,
   cityKey: string | null | undefined,
+  countryKey?: string | null,
 ): { destination: string; reason: string } | null {
   ensureLeafIndex()
   if (sportsThemeGroupLabels.has(groupLabel)) return null
+  const hayN = expandGroupAliasesInText(hay)
   // 제목에 같은 그룹 도시 leaf가 있으면 그것 (미동부+뉴욕) — 대표 도시 short SSOT
-  const fromTitleCity = firstMegaMenuCityLeafInGroupFromText(groupLabel, hay)
+  const fromTitleCity = firstMegaMenuCityLeafInGroupFromText(groupLabel, hayN)
   if (fromTitleCity) {
     return { destination: fromTitleCity, reason: 'group→title_leaf_in_group' }
   }
-  const fromTitle = firstMegaMenuLeafInGroupFromText(groupLabel, hay)
+  const fromTitle = firstMegaMenuLeafInGroupFromText(groupLabel, hayN)
   if (fromTitle && classifyMegaMenuDestinationLabel(fromTitle) === 'country') {
     return { destination: fromTitle, reason: 'group→title_leaf_in_group' }
   }
   // 수도·관용 도시(코펜하겐) → 같은 그룹 국가 leaf (city leaf 중복 생성 없이)
   const softCityKeys = Object.keys(MEGA_DEST_CITY_TO_COUNTRY_LEAF).sort((a, b) => b.length - a.length)
   for (const cityName of softCityKeys) {
-    if (!hangulPlaceTokenMentioned(hay, cityName)) continue
+    if (!hangulPlaceTokenMentioned(hayN, cityName)) continue
     const countryLeaf = MEGA_DEST_CITY_TO_COUNTRY_LEAF[cityName]!
     if (megaMenuLeafBelongsToGroup(countryLeaf, groupLabel)) {
       return { destination: countryLeaf, reason: 'group→soft_city_country' }
@@ -304,20 +410,28 @@ function resolveWithinGroup(
   }
   // 인도·스리랑카만: 그룹명===국가 leaf 라벨일 때 권역=국가 (북유럽→덴마크 금지)
   const countryInGroup = megaMenuCountryLeafInGroup(groupLabel)
-  if (countryInGroup === groupLabel && hay.includes(groupLabel)) {
+  if (countryInGroup === groupLabel && hayN.includes(groupLabel)) {
     return { destination: countryInGroup, reason: 'group→country_leaf_in_group' }
   }
   const fromCity = megaMenuClickLabelForCityKey(cityKey)
+  if (fromCity && megaMenuLeafBelongsToGroup(fromCity, groupLabel)) {
+    const ck = classifyMegaMenuDestinationLabel(fromCity)
+    // cancun→멕시코(LC) · lima→페루 등 cityKey가 국가 leaf인 경우도 허용
+    if (ck === 'city' || ck === 'country') {
+      return { destination: fromCity, reason: 'group→cityKey_same_group' }
+    }
+  }
+  const fromCountryKey = megaMenuClickLabelForCountryKey(countryKey)
   if (
-    fromCity &&
-    classifyMegaMenuDestinationLabel(fromCity) === 'city' &&
-    megaMenuLeafBelongsToGroup(fromCity, groupLabel)
+    fromCountryKey &&
+    classifyMegaMenuDestinationLabel(fromCountryKey) === 'country' &&
+    megaMenuLeafBelongsToGroup(fromCountryKey, groupLabel)
   ) {
-    return { destination: fromCity, reason: 'group→cityKey_same_group' }
+    return { destination: fromCountryKey, reason: 'group→countryKey_same_group' }
   }
   // 제목에 그룹명만 있고 cityKey가 타 그룹(미동부+niagara)이면 메뉴 첫 도시 leaf
   // — 다국가 그룹(북유럽)은 임의 국가 leaf로 떨어뜨리지 않음
-  if (hay.includes(groupLabel)) {
+  if (hayN.includes(groupLabel)) {
     const kids = groupChildLeaves.get(groupLabel)
     if (kids) {
       const cityKids = [...kids].filter((l) => cityLeafLabels.has(l))
@@ -346,9 +460,15 @@ export function alignDestinationToMegaMenuLeaf(input: {
 }): { destination: string | null; reason: string } {
   ensureLeafIndex()
   const rawCurrent = String(input.current ?? '').trim()
-  const current = normalizeMegaMenuDestinationAlias(rawCurrent)
-  const kind = classifyMegaMenuDestinationLabel(current)
-  const hay = [input.title, current, rawCurrent].filter(Boolean).join(' ')
+  let current = normalizeMegaMenuDestinationAlias(rawCurrent)
+  // 우산 dest(유럽·미지정)는 leaf가 아님 — other로 취급해 제목·geo키 교정
+  let kind = classifyMegaMenuDestinationLabel(current)
+  if (UMBRELLA_DEST_LABELS.has(current) || UMBRELLA_DEST_LABELS.has(rawCurrent)) {
+    kind = 'other'
+  }
+  const hay = expandGroupAliasesInText(
+    [input.title, current, rawCurrent].filter(Boolean).join(' '),
+  )
 
   // 이미 city leaf인데 제목의 중분류 그룹과 소속이 다르면 교정
   // (나이아가라 ← 미동부 상품). 중국권·홍콩·마카오처럼 그룹이 여러 개면 오염 제목으로 보고 스킵.
@@ -407,7 +527,7 @@ export function alignDestinationToMegaMenuLeaf(input: {
     }
     // 중국권·홍콩·마카오·몽골처럼 그룹≥3 오염 제목은 스킵.
     if (primaryGroup && groupsInTitle.length <= 2) {
-      const fixed = resolveWithinGroup(primaryGroup, titleOnly, input.cityKey)
+      const fixed = resolveWithinGroup(primaryGroup, titleOnly, input.cityKey, input.countryKey)
       if (fixed) return fixed
     }
     // 같은 그룹: 제목에 다른 도시 leaf가 있으면 그걸 대표 dest (바라나시)
@@ -422,11 +542,19 @@ export function alignDestinationToMegaMenuLeaf(input: {
         const countryInGroup = megaMenuCountryLeafInGroup(g)
         if (!countryInGroup) continue
         const cityInTitle = megaMenuLeafMentionedInHaystack(current, titleOnly)
+        // 고유 term이 현재 city를 가리키면 유지 (타지마할→아그라 등 — 국가 승격·진동 금지)
+        const termKeepsCity = [...uniqueHangulTermToLeaf.entries()].some(
+          ([term, leaf]) => leaf === current && hangulPlaceTokenMentioned(titleOnly, term),
+        )
         if (
           !cityInTitle &&
           !titleCityInGroup &&
+          !termKeepsCity &&
           (titleOnly.includes(g) || titleOnly.includes(countryInGroup))
         ) {
+          // cityKey가 현재 도시를 가리키면 국가 승격 금지
+          const fromCk = megaMenuClickLabelForCityKey(input.cityKey)
+          if (fromCk === current) continue
           return { destination: countryInGroup, reason: 'city→country_leaf_scale' }
         }
       }
@@ -438,11 +566,11 @@ export function alignDestinationToMegaMenuLeaf(input: {
   }
 
   if (kind === 'country') {
-    // 테마 leaf(골프·트레킹)는 geo dest가 아님 — 제목·복합 dest에서 권역 leaf로 재교정
+    // 테마 leaf(골프·트레킹·2030)는 geo dest가 아님 — 제목·cityKey·countryKey로 권역 leaf 재교정
     if (sportsThemeLeafLabels.has(current)) {
       const groupInTitle = firstMegaMenuGroupInText(hay)
       if (groupInTitle && !sportsThemeGroupLabels.has(groupInTitle)) {
-        const fixed = resolveWithinGroup(groupInTitle, hay, input.cityKey)
+        const fixed = resolveWithinGroup(groupInTitle, hay, input.cityKey, input.countryKey)
         if (fixed) return fixed
       }
       const fromText = firstMegaMenuLeafInText(hay)
@@ -454,8 +582,53 @@ export function alignDestinationToMegaMenuLeaf(input: {
           return { destination: countryLeaf, reason: 'sports→lc_country_leaf' }
         }
       }
-      // geo 단서 없으면 테마 dest 유지하지 않음(unchanged) — heal이 스킵
+      // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 2030/골프 dest → cityKey 신뢰 — manifest
+      const fromCity = megaMenuClickLabelForCityKey(input.cityKey)
+      if (fromCity && !sportsThemeLeafLabels.has(fromCity)) {
+        const ck = classifyMegaMenuDestinationLabel(fromCity)
+        if (ck === 'city' || ck === 'country') {
+          return { destination: fromCity, reason: 'sports→cityKey' }
+        }
+      }
+      const fromCountry = megaMenuClickLabelForCountryKey(input.countryKey)
+      if (fromCountry && !sportsThemeLeafLabels.has(fromCountry)) {
+        return { destination: fromCountry, reason: 'sports→countryKey' }
+      }
       return { destination: current, reason: 'unchanged_sports_theme' }
+    }
+    // 권역 LC(중남미·아프리카·인도) — 제목에 더 구체적 leaf가 있으면 승격
+    // 단 「완전일주·골든트라이앵글·N개국」다도시 상품:
+    //   · 도시 leaf로 쪼개지 않음
+    //   · 서로 다른 국가 term이 2개 이상이면 권역 LC 유지 (마추픽추+이과수≠페루)
+    //   · 국가 term이 1개면 그 국가 leaf 허용 (마사이마라→케냐)
+    const scaleGroups = leafToGroups.get(current)
+    if (scaleGroups?.has(current)) {
+      const fromTitle = firstMegaMenuLeafInGroupFromText(current, hay)
+      if (fromTitle && fromTitle !== current) {
+        const multiCircuit = /완전\s*일주|골든\s*트라이앵글|\d+\s*개국/.test(hay)
+        const toCity = classifyMegaMenuDestinationLabel(fromTitle) === 'city'
+        if (multiCircuit && toCity) {
+          // keep region LC
+        } else if (multiCircuit) {
+          const kids = groupChildLeaves.get(current)
+          const hitLeaves = new Set<string>()
+          for (const [term, leaf] of uniqueHangulTermToLeaf) {
+            if (!kids?.has(leaf) || leaf === current) continue
+            if (hangulPlaceTokenMentioned(hay, term)) hitLeaves.add(leaf)
+          }
+          if (kids) {
+            for (const lab of kids) {
+              if (lab === current || !countryLeafLabels.has(lab)) continue
+              if (hay.includes(lab)) hitLeaves.add(lab)
+            }
+          }
+          if (hitLeaves.size <= 1) {
+            return { destination: fromTitle, reason: 'country_scale→title_leaf' }
+          }
+        } else {
+          return { destination: fromTitle, reason: 'country_scale→title_leaf' }
+        }
+      }
     }
     if (current !== rawCurrent) {
       return { destination: current, reason: 'alias→mega_leaf' }
@@ -465,17 +638,16 @@ export function alignDestinationToMegaMenuLeaf(input: {
 
   // 그룹 dest — 같은 그룹 leaf만 (미동부→뉴욕/워싱턴, 캐나다↛나이아가라로 훔치지 않음)
   if (kind === 'group') {
-    const fixed = resolveWithinGroup(current, hay, input.cityKey)
+    const fixed = resolveWithinGroup(current, hay, input.cityKey, input.countryKey)
     if (fixed) return fixed
-    // 그룹 교정 실패 시 타 그룹 cityKey로 떨어뜨리지 않음
     return { destination: current || null, reason: 'unchanged_group' }
   }
 
-  // 복합 dest「도쿄, 요코하마」「니스 · …」→ 문장 안 첫 메가 leaf (도시 우선)
+  // 복합 dest「도쿄, 요코하마」「니스 · …」·우산「유럽」→ 문장 안 첫 메가 leaf (도시 우선)
   if (kind === 'other' || kind === 'empty') {
     const groupInTitle = firstMegaMenuGroupInText(hay)
     if (groupInTitle) {
-      const fixed = resolveWithinGroup(groupInTitle, hay, input.cityKey)
+      const fixed = resolveWithinGroup(groupInTitle, hay, input.cityKey, input.countryKey)
       if (fixed) return fixed
     }
     const fromText = firstMegaMenuLeafInText(rawCurrent) || firstMegaMenuLeafInText(hay)
@@ -500,12 +672,21 @@ export function alignDestinationToMegaMenuLeaf(input: {
       if (cityKind === 'city' && megaMenuLeafMentionedInHaystack(fromCity, hay)) {
         return { destination: fromCity, reason: 'cityKey→mega_city_leaf' }
       }
-      // 제목에 도시명 없어도 소속 그룹명(하와이)·국가키 단서가 있으면 cityKey 허용
       if (cityKind === 'city') {
         const groups = leafToGroups.get(fromCity)
         if (groups && [...groups].some((g) => hay.includes(g) && !sportsThemeGroupLabels.has(g))) {
           return { destination: fromCity, reason: 'cityKey→group_in_title' }
         }
+      }
+      // 우산 dest·오염 dest: cityKey가 있으면 제목 미언급이어도 신뢰 (okinawa-main→오키나와)
+      if (
+        (cityKind === 'city' || cityKind === 'country') &&
+        (UMBRELLA_DEST_LABELS.has(rawCurrent) ||
+          UMBRELLA_DEST_LABELS.has(current) ||
+          kind === 'other' ||
+          kind === 'empty')
+      ) {
+        return { destination: fromCity, reason: 'cityKey→trust_other_dest' }
       }
       if (cityKind === 'country' && megaMenuLeafMentionedInHaystack(fromCity, hay)) {
         return { destination: fromCity, reason: 'cityKey→mega_country_leaf' }
@@ -514,8 +695,21 @@ export function alignDestinationToMegaMenuLeaf(input: {
   }
 
   const fromCountry = megaMenuClickLabelForCountryKey(input.countryKey)
-  if (fromCountry && megaMenuLeafMentionedInHaystack(fromCountry, hay)) {
-    return { destination: fromCountry, reason: 'countryKey→mega_country_leaf' }
+  if (fromCountry) {
+    if (megaMenuLeafMentionedInHaystack(fromCountry, hay)) {
+      return { destination: fromCountry, reason: 'countryKey→mega_country_leaf' }
+    }
+    // 유럽 우산 + countryKey=austria/hungary/switzerland
+    const groups = leafToGroups.get(fromCountry)
+    const groupInTitle = firstMegaMenuGroupInText(hay)
+    if (
+      groups &&
+      (UMBRELLA_DEST_LABELS.has(rawCurrent) ||
+        UMBRELLA_DEST_LABELS.has(current) ||
+        (groupInTitle && groups.has(groupInTitle)))
+    ) {
+      return { destination: fromCountry, reason: 'countryKey→umbrella_or_group' }
+    }
   }
 
   return { destination: current || null, reason: 'unchanged' }

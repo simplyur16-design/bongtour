@@ -6,10 +6,19 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import {
+  productMatchesSimilarItineraryCompareKind,
+  prismaWhereForSimilarItineraryCompareKind,
+  similarItineraryCompareDisclaimer,
+} from '@/lib/similar-itinerary-compare-kind'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { publicProductPath } from '@/lib/product-public-path'
 import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
+import {
+  parseSimilarItineraryCompareKind,
+  type SimilarItineraryCompareKind,
+} from '@/lib/similar-itinerary-compare-href'
 import {
   deriveAirlineFact,
   deriveHotelMealFact,
@@ -123,9 +132,13 @@ export function formatTriStateFact(f: TriStateFact): string {
 export async function loadSimilarItineraryCompare(opts: {
   place?: string | null
   duration?: string | null
+  /** package=해외패키지, fit=자유여행 — 혼입 금지 */
+  kind?: SimilarItineraryCompareKind | string | null
   /** admin/ops only — DEV_COMPARE_PRESETS 폴백. 공개 travel 페이지는 false. */
   allowPresetFallback?: boolean
 }): Promise<SimilarItineraryCompareBundle> {
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: kind로 패키지/FIT 분리 — manifest
+  const compareKind = parseSimilarItineraryCompareKind(opts.kind)
   const allowPreset = opts.allowPresetFallback === true
   const hasPlaceOpt = Boolean(String(opts.place || '').trim())
   const hasDurOpt = Boolean(String(opts.duration || '').trim())
@@ -154,8 +167,7 @@ export async function loadSimilarItineraryCompare(opts: {
     return {
       placeLabel: placeWant?.label || placeRaw,
       durationLabel: durationWant,
-      disclaimer:
-        '동일한 상품이 아닙니다. 등록된 상품 중 비슷한 지역·박일 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다.',
+      disclaimer: similarItineraryCompareDisclaimer(compareKind),
       rows: [],
       missingSuppliers: [],
     }
@@ -167,8 +179,7 @@ export async function loadSimilarItineraryCompare(opts: {
     return {
       placeLabel: placeWant.label,
       durationLabel: durationWant,
-      disclaimer:
-        '동일한 상품이 아닙니다. 등록된 상품 중 비슷한 지역·박일 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다.',
+      disclaimer: similarItineraryCompareDisclaimer(compareKind),
       rows: [],
       missingSuppliers: [],
     }
@@ -184,6 +195,8 @@ export async function loadSimilarItineraryCompare(opts: {
       registrationStatus: 'registered',
       travelScope: 'overseas',
       OR: placeOr,
+      // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: DB where kind push-down — take 전 적용 — manifest
+      AND: [prismaWhereForSimilarItineraryCompareKind(compareKind)],
     },
     take: 400,
     select: {
@@ -193,6 +206,8 @@ export async function loadSimilarItineraryCompare(opts: {
       duration: true,
       primaryDestination: true,
       destination: true,
+      listingKind: true,
+      productType: true,
       originSource: true,
       priceFrom: true,
       minBookableAdultPrice: true,
@@ -251,7 +266,9 @@ export async function loadSimilarItineraryCompare(opts: {
           normalizeCompareDurationLabel(p.duration, p.title),
           durationWant,
         )
-        return comparePlaceClustersMatch(placeWant, place) && durOk
+        if (!comparePlaceClustersMatch(placeWant, place) || !durOk) return false
+        // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 패키지 표에 FIT 금지·반대도 금지 — manifest
+        return productMatchesSimilarItineraryCompareKind(p, compareKind)
       })
     : []
 
@@ -304,8 +321,8 @@ export async function loadSimilarItineraryCompare(opts: {
   return {
     placeLabel: placeWant?.label || placeRaw,
     durationLabel: durationWant,
-    disclaimer:
-      '동일한 상품이 아닙니다. 등록된 상품 중 비슷한 지역·박일 후보를 나란히 둔 사실 표입니다. 우열·추천 문구는 없습니다. 빈 필드는 「정보 없음」이며 「없음」(확인된 0/false)과 구분합니다.',
+    // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: disclaimer도 kind 분리 — manifest
+    disclaimer: similarItineraryCompareDisclaimer(compareKind),
     rows,
     missingSuppliers,
   }

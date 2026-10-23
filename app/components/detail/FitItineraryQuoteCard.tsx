@@ -11,6 +11,10 @@ import {
   PAX_STEP_DECREMENT_GLYPH,
   PAX_STEP_INCREMENT_GLYPH,
 } from '@/lib/product-live-quote-pax-ui'
+import {
+  buildSimilarItineraryCompareHrefFromProduct,
+  SIMILAR_ITINERARY_COMPARE_CTA_LABEL,
+} from '@/lib/similar-itinerary-compare-href'
 
 type FitPax = { adult: number; childBed: number; infant: number }
 
@@ -72,6 +76,16 @@ export default function FitItineraryQuoteCard({
     airline,
     selectedDate,
     returnDate: computedReturnDate,
+  })
+  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 자유여행 견적카드 비교 CTA kind=fit — manifest
+  const similarCompareHref = buildSimilarItineraryCompareHrefFromProduct({
+    primaryDestination: destination,
+    destination,
+    duration,
+    title: productTitle,
+    listingKind: 'air_hotel_free',
+    productType: 'air-hotel',
+    forceKind: 'fit',
   })
 
   const unitByKey: Record<keyof FitPax, number> = {
@@ -192,6 +206,14 @@ export default function FitItineraryQuoteCard({
         ) : null}
       </div>
 
+      {similarCompareHref ? (
+        <Link
+          href={similarCompareHref}
+          className="mt-3 flex w-full items-center justify-center rounded-xl border border-[#2f8fc7]/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-[#2f8fc7] hover:bg-[#dceef9]"
+        >
+          {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
+        </Link>
+      ) : null}
       <ShareActions title={productTitle} summaryLine={shareSummary} className="mt-3" />
       <Link href={ctaHref} className={copy.bookingCtaButtonClass}>
         {copy.bookingCta}

@@ -3,11 +3,7 @@
 import OverseasHubCatalogGallery from '@/app/components/travel/overseas/OverseasHubCatalogGallery'
 import OverseasHubTravelTypeChips from '@/app/components/travel/overseas/OverseasHubTravelTypeChips'
 import type { ResultItem } from '@/components/products/ProductResultsList'
-import {
-  filterOverseasHubCatalogByTravelType,
-  filterOverseasHubCatalogByUrl,
-  parseOverseasHubTravelType,
-} from '@/lib/overseas-hub-client-catalog-filter'
+import { filterOverseasHubCatalogByUrl } from '@/lib/overseas-hub-client-catalog-filter'
 import {
   buildOverseasHubCatalogSectionsForUrl,
   type OverseasHubCatalogSection,
@@ -38,8 +34,10 @@ type Props = {
 /**
  * 해외 허브 상품 목록 —
  * - 상위탭(region-only): 전량 카탈로그 1회 + 클라이언트 필터
- * - 중·하(menuGroup/city/country): 서버 geo WHERE fetch (전량 스캔 병목 제거)
+ * - 중·하: 워밍 카탈로그 있으면 즉시 클라이언트 필터 (메가메뉴 클릭 지연 제거)
+ * - 중·하 cold(카탈로그 없음): 서버 geo WHERE fetch
  * REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: root wires server geo fetch — manifest
+ * REGRESSION-FREEZE[overseas-hub-mega-warm-catalog-instant]: warm mid/leaf no server wait — manifest
  */
 export default function OverseasHubCatalogRoot({
   initialSearchParamsString,
@@ -65,15 +63,20 @@ export default function OverseasHubCatalogRoot({
     const sp = new URLSearchParams(searchParamsString)
     const needsServerGeo = overseasHubUrlNeedsServerGeoFetch(sp)
 
-    if (!needsServerGeo) {
-      const peek = peekOverseasHubCatalogItems()
-      if (peek.length > 0) {
-        setCatalogItems(peek)
-        setCatalogLoading(false)
-        setError(null)
-        return
+    // REGRESSION-FREEZE[overseas-hub-mega-warm-catalog-instant]: peek 있으면 mid/leaf도 즉시 — manifest
+    const peek = peekOverseasHubCatalogItems()
+    if (peek.length > 0) {
+      setCatalogItems(peek)
+      setCatalogLoading(false)
+      setError(null)
+      // cold 대비: 백그라운드로 전량 카탈로그도 최신 유지
+      void ensureOverseasHubCatalog().catch(() => {})
+      return () => {
+        cancelled = true
       }
+    }
 
+    if (!needsServerGeo) {
       setCatalogLoading(true)
       void ensureOverseasHubCatalog()
         .then((items) => {
@@ -96,9 +99,19 @@ export default function OverseasHubCatalogRoot({
     const gen = ++geoFetchGenRef.current
     setCatalogLoading(true)
     const queryKey = buildOverseasHubBrowseQueryKey(sp)
+    // cold mid/leaf — 서버 geo + 전량 카탈로그 병행 (다음 클릭은 warm)
+    void ensureOverseasHubCatalog().catch(() => {})
     void fetchProductsBrowseClientJson(queryKey)
       .then((json) => {
         if (cancelled || gen !== geoFetchGenRef.current) return
+        // warm이 중간에 채워졌으면 서버 결과로 덮지 않음 (이미 즉시 경로)
+        const warm = peekOverseasHubCatalogItems()
+        if (warm.length > 0) {
+          setCatalogItems(warm)
+          setCatalogLoading(false)
+          setError(null)
+          return
+        }
         const items = (json.items ?? []) as ResultItem[]
         setCatalogItems(items)
         setCatalogLoading(false)
@@ -106,6 +119,13 @@ export default function OverseasHubCatalogRoot({
       })
       .catch((e) => {
         if (cancelled || gen !== geoFetchGenRef.current) return
+        const warm = peekOverseasHubCatalogItems()
+        if (warm.length > 0) {
+          setCatalogItems(warm)
+          setCatalogLoading(false)
+          setError(null)
+          return
+        }
         setError(e instanceof Error ? e.message : '목록을 불러오지 못했습니다.')
         setCatalogLoading(false)
       })
@@ -140,28 +160,16 @@ export default function OverseasHubCatalogRoot({
     const run = () => {
       if (cancelled) return
       const sp = new URLSearchParams(searchParamsString)
-      // REGRESSION-FREEZE[overseas-hub-server-geo-fetch]: server geo items skip client re-filter — manifest
-      // REGRESSION-FREEZE[overseas-hub-package-fit-split]: geo fetch 후에도 type 슬라이스 — manifest
-      const geoOrClient = overseasHubUrlNeedsServerGeoFetch(sp)
-        ? catalogItems
-        : filterOverseasHubCatalogByUrl(catalogItems, sp)
-      const filtered = overseasHubUrlNeedsServerGeoFetch(sp)
-        ? filterOverseasHubCatalogByTravelType(geoOrClient, parseOverseasHubTravelType(sp))
-        : geoOrClient
+      // REGRESSION-FREEZE[overseas-hub-mega-warm-catalog-instant]: 항상 URL 클라이언트 필터 — manifest
+      // (서버 geo 결과도 동일 URL 필터로 재적용 — 과다 노출 방지)
+      const filtered = filterOverseasHubCatalogByUrl(catalogItems, sp)
       const built = buildOverseasHubCatalogSectionsForUrl(filtered, sp)
       sectionsCacheRef.current.set(cacheKey, built)
       setSections(built)
       setSectionsBusy(false)
     }
 
-    if (typeof requestIdleCallback === 'function') {
-      const id = requestIdleCallback(run, { timeout: 80 })
-      return () => {
-        cancelled = true
-        cancelIdleCallback(id)
-      }
-    }
-
+    // 메가메뉴 클릭 체감 지연: idle 대기 제거 — 즉시 필터
     const t = setTimeout(run, 0)
     return () => {
       cancelled = true
