@@ -26124,6 +26124,49 @@
       ]
     },
     {
+      "id": "mega-menu-discover-parents",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공급사 GNB 메가메뉴 parent 펼침 = 우리 그룹·탭 줄기 JSON — 하드코딩 8단어 금지",
+      "checks": [
+        {
+          "file": "lib/mega-menu-discover-parents.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-discover-parents]",
+            "buildMegaMenuDiscoverParentsMap",
+            "TAB_SUPPLIER_GNB_STEMS"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_shared/mega_menu_parents.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-discover-parents]",
+            "mega_menu_discover_parents"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_hanatour/main.py",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-discover-parents]",
+            "listing_discover_shared.mega_menu_parents"
+          ]
+        },
+        {
+          "file": "scripts/listing_discover_shared/mega_menu_parents.json",
+          "mustInclude": [
+            "\"다낭\"",
+            "\"뉴욕\"",
+            "\"프랑스\""
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/mega-menu-discover-parents.test.ts"
+      ]
+    },
+    {
       "id": "register-pre-photo-dest-fuel-silsok-not-place",
       "tier": [
         "prebuild",

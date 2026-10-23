@@ -53,8 +53,9 @@ function main() {
     destination: '[노쇼핑, 노옵션, 노팁]',
     title: policyTitle,
   })
-  if (listLabel !== '규슈') {
-    errors.push(`list label from policy DB dest: expected 규슈, got ${JSON.stringify(listLabel)}`)
+  // REGRESSION-FREEZE[mega-menu-dest-city-country-leaf]: 규슈 그룹 → 도시 leaf (후쿠오카) — manifest
+  if (listLabel !== '후쿠오카') {
+    errors.push(`list label from policy DB dest: expected 후쿠오카, got ${JSON.stringify(listLabel)}`)
   }
 
   if (errors.length) {

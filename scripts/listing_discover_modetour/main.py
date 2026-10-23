@@ -435,17 +435,10 @@ async def _goto_collect(page, url: str, bag: list[str]) -> list[str]:
 
 
 def _parents(word: str) -> list[str]:
-    table = {
-        "프랑스": ["유럽"],
-        "파리": ["유럽", "프랑스"],
-        "오사카": ["일본"],
-        "도쿄": ["일본"],
-        "다낭": ["동남아", "동남아시아", "베트남"],
-        "스페인": ["유럽"],
-        "바르셀로나": ["유럽", "스페인"],
-        "마드리드": ["유럽", "스페인"],
-    }
-    return table.get(word, [])
+    # REGRESSION-FREEZE[mega-menu-discover-parents]: 공급사 GNB parent = 그룹·탭 줄기 — manifest
+    from scripts.listing_discover_shared.mega_menu_parents import mega_menu_discover_parents
+
+    return mega_menu_discover_parents(word)
 
 
 async def _click_label(page, word: str) -> bool:
