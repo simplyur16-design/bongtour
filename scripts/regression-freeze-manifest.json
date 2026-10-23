@@ -27190,7 +27190,12 @@
             "REGRESSION-FREEZE[similar-itinerary-compare-cluster]",
             "resolveComparePlaceCluster",
             "comparePlaceClustersMatch",
-            "normalizeCompareDurationLabel"
+            "normalizeCompareDurationLabel",
+            "adultPrice",
+            "departureDate",
+            "carrierName",
+            "computeEffectivePricePerPersonKrwFromRow",
+            "PRODUCT_PRICE_FOR_BROWSE_INCLUDE.prices"
           ]
         }
       ],

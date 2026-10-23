@@ -162,11 +162,17 @@ export async function loadSimilarItineraryCompare(opts: {
       excludedText: true,
       rawMeta: true,
       schedule: true,
-      ...PRODUCT_PRICE_FOR_BROWSE_INCLUDE,
+      // REGRESSION-FREEZE[browse-price-product-price-fallback]: 비교표 인당가 = ProductPriceSelect — manifest
+      // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: departures는 가격+항공사 동시 select — manifest
+      prices: PRODUCT_PRICE_FOR_BROWSE_INCLUDE.prices,
       departures: {
-        select: { carrierName: true },
+        select: {
+          adultPrice: true,
+          departureDate: true,
+          carrierName: true,
+        },
         orderBy: { departureDate: 'asc' },
-        take: 8,
+        take: 80,
       },
       itineraryDays: {
         select: {
