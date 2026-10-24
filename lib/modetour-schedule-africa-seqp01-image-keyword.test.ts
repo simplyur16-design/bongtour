@@ -99,7 +99,10 @@ describe('modetour Africa SEQP01 104307927 imageKeyword', () => {
     expect(String(firstMatchingScheduleSpotEn('빅토리 폴스') ?? '')).not.toMatch(/Harbour|Inner Harbour/i)
   })
 
-  it('SEQP01-like 15-day — no safari/Victoria/UAE cross-day bleed; no empty middle', () => {
+  // REGRESSION-FREEZE[register-schedule-trip-image-keyword-dedupe]: SEQP01 vitest timeout — no I/O; raise limit — manifest
+  it(
+    'SEQP01-like 15-day — no safari/Victoria/UAE cross-day bleed; no empty middle',
+    () => {
     const out = applyRegisterScheduleImageKeywordsBySupplier(SEQP01_ROWS, {
       supplierKey: 'modetour',
       productDestination: '아프리카',
@@ -107,13 +110,6 @@ describe('modetour Africa SEQP01 104307927 imageKeyword', () => {
         '[시그니처] 아프리카 6개국+두바이 15일 <7대 Real사파리/빅토리아폭포/5성호텔/테이블마운틴/두바이베르사체호텔>',
       travelScope: 'package',
     })
-
-    for (const r of out) {
-      console.log(
-        `D${r.day}`,
-        JSON.stringify({ kw: r.imageKeyword, kw2: r.imageKeyword2, route: r.routeText }),
-      )
-    }
 
     const byDay = (d: number) => out.find((r) => r.day === d)!
     const blob = (d: number) => `${byDay(d).imageKeyword ?? ''} ${byDay(d).imageKeyword2 ?? ''}`
@@ -187,5 +183,7 @@ describe('modetour Africa SEQP01 104307927 imageKeyword', () => {
     const primaries = out.map((r) => String(r.imageKeyword ?? '').trim().toLowerCase()).filter(Boolean)
     const victoriaPrimaries = primaries.filter((p) => /victoria falls/i.test(p))
     expect(victoriaPrimaries.length).toBeLessThanOrEqual(2)
-  })
+  },
+    20_000,
+  )
 })

@@ -1,0 +1,148 @@
+{
+  "title": "오사카 항공+호텔 3일 예시 일정",
+  "summary": "간사이 도착 후 난바·오사카성·우메다 동선. 이동은 리무진·지하철, 식사는 다코야키·라멘·오코노미야키.",
+  "persona": "mixed",
+  "days": [
+    {
+      "dayNumber": 1,
+      "title": "인천 출발 · 오사카 도착",
+      "summary": "공항에서 호텔까지 리무진 버스로 이동합니다. 저녁은 도톤보리에서 다코야키를 맛봅니다.",
+      "dayCityKey": "osaka",
+      "activities": [
+        {
+          "order": 1,
+          "category": "transport",
+          "title": "간사이공항 → 난바",
+          "description": "리무진 버스 또는 택시로 호텔 이동",
+          "location": "간사이공항 (Kansai Airport)",
+          "startTime": "15:00",
+          "durationMinutes": 60,
+          "estimatedCostKrw": 16000,
+          "estimatedCostNote": "리무진 약 1,600엔",
+          "transportMode": "리무진 버스",
+          "transportDuration": "60분"
+        },
+        {
+          "order": 2,
+          "category": "meal",
+          "title": "도톤보리 다코야키",
+          "description": "저녁 다코야키·라멘",
+          "location": "도톤보리 (Dotonbori Osaka)",
+          "startTime": "18:30",
+          "durationMinutes": 60,
+          "estimatedCostKrw": 12000,
+          "estimatedCostNote": "1인 약 1,200엔",
+          "transportMode": null,
+          "transportDuration": null
+        },
+        {
+          "order": 3,
+          "category": "attraction",
+          "title": "도톤보리 산책",
+          "description": "글리코 사인·네온 거리",
+          "location": "도톤보리 (Dotonbori Osaka)",
+          "startTime": "19:30",
+          "durationMinutes": 45,
+          "estimatedCostKrw": 0,
+          "estimatedCostNote": "무료",
+          "transportMode": "도보",
+          "transportDuration": "15분"
+        }
+      ]
+    },
+    {
+      "dayNumber": 2,
+      "title": "오사카 시내 자유",
+      "summary": "오사카성과 우메다 스카이빌딩을 둘러봅니다. 점심은 오코노미야키를 먹습니다.",
+      "dayCityKey": "osaka",
+      "activities": [
+        {
+          "order": 1,
+          "category": "attraction",
+          "title": "오사카성",
+          "description": "성곽·공원 산책",
+          "location": "오사카성 (Osaka Castle)",
+          "startTime": "10:00",
+          "durationMinutes": 120,
+          "estimatedCostKrw": 8000,
+          "estimatedCostNote": "입장 약 800엔",
+          "transportMode": "지하철",
+          "transportDuration": "25분"
+        },
+        {
+          "order": 2,
+          "category": "meal",
+          "title": "오코노미야키",
+          "description": "점심 오코노미야키",
+          "location": "우메다",
+          "startTime": "12:30",
+          "durationMinutes": 50,
+          "estimatedCostKrw": 15000,
+          "estimatedCostNote": "1인 약 1,500엔",
+          "transportMode": null,
+          "transportDuration": null
+        },
+        {
+          "order": 3,
+          "category": "attraction",
+          "title": "우메다 스카이빌딩",
+          "description": "전망대",
+          "location": "우메다 스카이빌딩 (Umeda Sky Building)",
+          "startTime": "15:00",
+          "durationMinutes": 90,
+          "estimatedCostKrw": 15000,
+          "estimatedCostNote": "약 1,500엔",
+          "transportMode": "도보",
+          "transportDuration": "20분"
+        }
+      ]
+    },
+    {
+      "dayNumber": 3,
+      "title": "귀국",
+      "summary": "호텔 체크아웃 후 공항으로 이동합니다. 난카이 라피트 또는 택시를 이용합니다.",
+      "dayCityKey": "osaka",
+      "activities": [
+        {
+          "order": 1,
+          "category": "hotel",
+          "title": "체크아웃",
+          "description": "호텔 수하물 정리",
+          "location": "난바 호텔",
+          "startTime": "10:00",
+          "durationMinutes": 30,
+          "estimatedCostKrw": 0,
+          "estimatedCostNote": "포함",
+          "transportMode": null,
+          "transportDuration": null
+        },
+        {
+          "order": 2,
+          "category": "transport",
+          "title": "공항 이동",
+          "description": "라피트 또는 택시",
+          "location": "간사이공항 (Kansai Airport)",
+          "startTime": "11:00",
+          "durationMinutes": 50,
+          "estimatedCostKrw": 20000,
+          "estimatedCostNote": "라피트 약 1,490엔",
+          "transportMode": "라피트",
+          "transportDuration": "45분"
+        },
+        {
+          "order": 3,
+          "category": "meal",
+          "title": "공항 식사",
+          "description": "간단한 식사",
+          "location": "간사이공항",
+          "startTime": "12:30",
+          "durationMinutes": 40,
+          "estimatedCostKrw": 10000,
+          "estimatedCostNote": "약 1,000엔",
+          "transportMode": null,
+          "transportDuration": null
+        }
+      ]
+    }
+  ]
+}

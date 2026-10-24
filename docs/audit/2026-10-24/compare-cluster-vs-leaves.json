@@ -1,0 +1,214 @@
+{
+  "generatedAt": "2026-10-24T09:24:03.603Z",
+  "megaLeafCount": 225,
+  "compareClusterKeyCount": 222,
+  "missingLabelInLeaves": [],
+  "aliasHits": [
+    {
+      "hay": "칭다오",
+      "key": "qingdao",
+      "label": "청도",
+      "labelInLeaves": true,
+      "keyInCitySlugs": true
+    },
+    {
+      "hay": "베이징",
+      "key": "beijing",
+      "label": "북경",
+      "labelInLeaves": true,
+      "keyInCitySlugs": true
+    },
+    {
+      "hay": "상하이",
+      "key": "shanghai",
+      "label": "상해",
+      "labelInLeaves": true,
+      "keyInCitySlugs": true
+    },
+    {
+      "hay": "광저우",
+      "key": "guangzhou",
+      "label": "광주",
+      "labelInLeaves": true,
+      "keyInCitySlugs": true
+    },
+    {
+      "hay": "시안",
+      "key": "xi-an",
+      "label": "서안",
+      "labelInLeaves": true,
+      "keyInCitySlugs": true
+    },
+    {
+      "hay": "타이페이",
+      "key": "taipei",
+      "label": "타이베이",
+      "labelInLeaves": true,
+      "keyInCitySlugs": true
+    },
+    {
+      "hay": "시드니",
+      "key": "australia",
+      "label": "호주/뉴질랜드",
+      "labelInLeaves": true,
+      "keyInCitySlugs": false
+    },
+    {
+      "hay": "멜버른",
+      "key": "australia",
+      "label": "호주/뉴질랜드",
+      "labelInLeaves": true,
+      "keyInCitySlugs": false
+    },
+    {
+      "hay": "오클랜드",
+      "key": "australia",
+      "label": "호주/뉴질랜드",
+      "labelInLeaves": true,
+      "keyInCitySlugs": false
+    },
+    {
+      "hay": "퀸스타운",
+      "key": "australia",
+      "label": "호주/뉴질랜드",
+      "labelInLeaves": true,
+      "keyInCitySlugs": false
+    },
+    {
+      "hay": "도쿄",
+      "key": "tokyo",
+      "label": "도쿄",
+      "labelInLeaves": true,
+      "keyInCitySlugs": true
+    },
+    {
+      "hay": "오사카",
+      "key": "osaka",
+      "label": "오사카",
+      "labelInLeaves": true,
+      "keyInCitySlugs": true
+    },
+    {
+      "hay": "홍콩",
+      "key": "hong-kong",
+      "label": "홍콩",
+      "labelInLeaves": true,
+      "keyInCitySlugs": false
+    },
+    {
+      "hay": "마카오",
+      "key": "macau",
+      "label": "마카오",
+      "labelInLeaves": true,
+      "keyInCitySlugs": false
+    },
+    {
+      "hay": "울란바타르",
+      "key": "ulaanbaatar",
+      "label": "울란바타르",
+      "labelInLeaves": true,
+      "keyInCitySlugs": true
+    },
+    {
+      "hay": "일본",
+      "key": null,
+      "label": null,
+      "labelInLeaves": null,
+      "keyInCitySlugs": null
+    },
+    {
+      "hay": "중국",
+      "key": null,
+      "label": null,
+      "labelInLeaves": null,
+      "keyInCitySlugs": null
+    },
+    {
+      "hay": "대만",
+      "key": "taipei",
+      "label": "타이베이",
+      "labelInLeaves": true,
+      "keyInCitySlugs": true
+    }
+  ],
+  "aliasKeyGroups": [
+    {
+      "key": "qingdao",
+      "hays": [
+        "칭다오"
+      ]
+    },
+    {
+      "key": "beijing",
+      "hays": [
+        "베이징"
+      ]
+    },
+    {
+      "key": "shanghai",
+      "hays": [
+        "상하이"
+      ]
+    },
+    {
+      "key": "guangzhou",
+      "hays": [
+        "광저우"
+      ]
+    },
+    {
+      "key": "xi-an",
+      "hays": [
+        "시안"
+      ]
+    },
+    {
+      "key": "taipei",
+      "hays": [
+        "타이페이",
+        "대만"
+      ]
+    },
+    {
+      "key": "australia",
+      "hays": [
+        "시드니",
+        "멜버른",
+        "오클랜드",
+        "퀸스타운"
+      ]
+    },
+    {
+      "key": "tokyo",
+      "hays": [
+        "도쿄"
+      ]
+    },
+    {
+      "key": "osaka",
+      "hays": [
+        "오사카"
+      ]
+    },
+    {
+      "key": "hong-kong",
+      "hays": [
+        "홍콩"
+      ]
+    },
+    {
+      "key": "macau",
+      "hays": [
+        "마카오"
+      ]
+    },
+    {
+      "key": "ulaanbaatar",
+      "hays": [
+        "울란바타르"
+      ]
+    }
+  ],
+  "collisions": [],
+  "note": "COMPARE_LEAVES built from MEGA_MENU_TAB_DEFINITIONS — key count should match unique leaf slugs"
+}

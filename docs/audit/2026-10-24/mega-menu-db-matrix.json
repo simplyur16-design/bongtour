@@ -1,0 +1,2298 @@
+{
+  "generatedAt": "2026-10-24T09:19:58.434Z",
+  "host": "aws-1-ap-northeast-2.pooler.supabase.com",
+  "registeredWithCityKey": 366,
+  "registeredMissingCityTag": 10,
+  "cardCityCount": 319,
+  "zeroCityTagLeafCount": 46,
+  "missingCardCityCount": 47,
+  "zeroCityTagLeaves": [
+    {
+      "leafLabel": "미코노스",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=greece&menuGroup=greece&city=mykonos",
+      "cityKey": "mykonos",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "아부다비",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=middle-east&menuGroup=middle-east&city=abu-dhabi",
+      "cityKey": "abu-dhabi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "나트랑",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=nha-trang",
+      "cityKey": "nha-trang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "호치민",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=hcm",
+      "cityKey": "hcm",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "푸꾸옥",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=phu-quoc",
+      "cityKey": "phu-quoc",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "치앙마이",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=thailand&menuGroup=thailand&city=chiang-mai",
+      "cityKey": "chiang-mai",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "아유타야",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=thailand&menuGroup=thailand&city=ayutthaya",
+      "cityKey": "ayutthaya",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "마닐라",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=philippines&menuGroup=philippines&city=manila",
+      "cityKey": "manila",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "화롄",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=taiwan&menuGroup=taiwan&city=hualien",
+      "cityKey": "hualien",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "코타키나발루",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=kota-kinabalu",
+      "cityKey": "kota-kinabalu",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "쿠알라룸푸르",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=kuala-lumpur",
+      "cityKey": "kuala-lumpur",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "랑카위",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=langkawi",
+      "cityKey": "langkawi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "페낭",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=penang",
+      "cityKey": "penang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "씨엠립",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=cambodia&menuGroup=cambodia&city=siem-reap",
+      "cityKey": "siem-reap",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "프놈펜",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=cambodia&menuGroup=cambodia&city=phnom-penh",
+      "cityKey": "phnom-penh",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "루앙프라방",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=laos&menuGroup=laos&city=luang-prabang",
+      "cityKey": "luang-prabang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "양곤",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=myanmar&menuGroup=myanmar&city=yangon",
+      "cityKey": "yangon",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "바간",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=myanmar&menuGroup=myanmar&city=bagan",
+      "cityKey": "bagan",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "도야",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=toya",
+      "cityKey": "toya",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "하코다테",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=hakodate",
+      "cityKey": "hakodate",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "노보리베츠",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=noboribetsu",
+      "cityKey": "noboribetsu",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "센다이",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=tohoku&city=sendai",
+      "cityKey": "sendai",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "아오모리",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=tohoku&city=aomori",
+      "cityKey": "aomori",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "아키타",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=tohoku&city=akita",
+      "cityKey": "akita",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "닛코",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kanto&city=nikko",
+      "cityKey": "nikko",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "히로시마",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=hiroshima",
+      "cityKey": "hiroshima",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "도쿠시마",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=tokushima",
+      "cityKey": "tokushima",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "시마네",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=shimane",
+      "cityKey": "shimane",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "시모노세키",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=shimonoseki",
+      "cityKey": "shimonoseki",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "고치",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=kochi",
+      "cityKey": "kochi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "오키나와",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=okinawa&city=okinawa",
+      "cityKey": "okinawa",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "대동",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huabei&city=datong",
+      "cityKey": "datong",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "서안",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huabei&city=xi-an",
+      "cityKey": "xi-an",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "장야",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huabei&city=zhangye",
+      "cityKey": "zhangye",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "은시",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huazhong&city=enshi",
+      "cityKey": "enshi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "광주",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=guangzhou",
+      "cityKey": "guangzhou",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "귀주",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=guiyang",
+      "cityKey": "guiyang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "내몽골",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=mongolia&city=inner-mongolia",
+      "cityKey": "inner-mongolia",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "빅아일랜드",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=hawaii&menuGroup=hawaii&city=big-island",
+      "cityKey": "big-island",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "로스앤젤레스",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=los-angeles",
+      "cityKey": "los-angeles",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "라스베가스",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=las-vegas",
+      "cityKey": "las-vegas",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "샌프란시스코",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=san-francisco",
+      "cityKey": "san-francisco",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "그랜드캐년",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=grand-canyon",
+      "cityKey": "grand-canyon",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "뉴욕",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-east&menuGroup=us-east&city=new-york",
+      "cityKey": "new-york",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "캘거리",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=canada&menuGroup=canada&city=calgary",
+      "cityKey": "calgary",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "옐로우나이프",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=canada&menuGroup=canada&city=yellowknife",
+      "cityKey": "yellowknife",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    }
+  ],
+  "missingCardCityLeaves": [
+    {
+      "leafLabel": "미코노스",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=greece&menuGroup=greece&city=mykonos",
+      "cityKey": "mykonos",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "카이로",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=egypt&menuGroup=egypt&city=cairo",
+      "cityKey": "cairo",
+      "cardCityExists": false,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "룩소르",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=egypt&menuGroup=egypt&city=luxor",
+      "cityKey": "luxor",
+      "cardCityExists": false,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "아부다비",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=middle-east&menuGroup=middle-east&city=abu-dhabi",
+      "cityKey": "abu-dhabi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "나트랑",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=nha-trang",
+      "cityKey": "nha-trang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "호치민",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=hcm",
+      "cityKey": "hcm",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "푸꾸옥",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=phu-quoc",
+      "cityKey": "phu-quoc",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "치앙마이",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=thailand&menuGroup=thailand&city=chiang-mai",
+      "cityKey": "chiang-mai",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "자카르타",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=indonesia&menuGroup=indonesia&city=jakarta",
+      "cityKey": "jakarta",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "족자카르타",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=indonesia&menuGroup=indonesia&city=yogyakarta",
+      "cityKey": "yogyakarta",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "콜롬보",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=srilanka&menuGroup=srilanka&city=colombo",
+      "cityKey": "colombo",
+      "cardCityExists": false,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "캔디",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=srilanka&menuGroup=srilanka&city=kandy",
+      "cityKey": "kandy",
+      "cardCityExists": false,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "시기리야",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=srilanka&menuGroup=srilanka&city=sigiriya",
+      "cityKey": "sigiriya",
+      "cardCityExists": false,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "카트만두",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=nepal&menuGroup=nepal&city=kathmandu",
+      "cityKey": "kathmandu",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "포카라",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=nepal&menuGroup=nepal&city=pokhara",
+      "cityKey": "pokhara",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "코타키나발루",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=kota-kinabalu",
+      "cityKey": "kota-kinabalu",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "랑카위",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=langkawi",
+      "cityKey": "langkawi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "페낭",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=penang",
+      "cityKey": "penang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "씨엠립",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=cambodia&menuGroup=cambodia&city=siem-reap",
+      "cityKey": "siem-reap",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "프놈펜",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=cambodia&menuGroup=cambodia&city=phnom-penh",
+      "cityKey": "phnom-penh",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "루앙프라방",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=laos&menuGroup=laos&city=luang-prabang",
+      "cityKey": "luang-prabang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "양곤",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=myanmar&menuGroup=myanmar&city=yangon",
+      "cityKey": "yangon",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "바간",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=myanmar&menuGroup=myanmar&city=bagan",
+      "cityKey": "bagan",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "시라카와고",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chubu&city=shirakawago",
+      "cityKey": "shirakawago",
+      "cardCityExists": false,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "마츠모토",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chubu&city=matsumoto",
+      "cityKey": "matsumoto",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "시마네",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=shimane",
+      "cityKey": "shimane",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "고치",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=kochi",
+      "cityKey": "kochi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "오키나와",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=okinawa&city=okinawa",
+      "cityKey": "okinawa",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "나하",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=okinawa&city=naha",
+      "cityKey": "naha",
+      "cardCityExists": false,
+      "registeredCityTagCount": 5
+    },
+    {
+      "leafLabel": "소주",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huadong&city=suzhou",
+      "cityKey": "suzhou",
+      "cardCityExists": false,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "남경",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huadong&city=nanjing",
+      "cityKey": "nanjing",
+      "cardCityExists": false,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "대동",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huabei&city=datong",
+      "cityKey": "datong",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "서안",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huabei&city=xi-an",
+      "cityKey": "xi-an",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "은시",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huazhong&city=enshi",
+      "cityKey": "enshi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "장백산",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=dongbei&city=changbai",
+      "cityKey": "changbai",
+      "cardCityExists": false,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "광주",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=guangzhou",
+      "cityKey": "guangzhou",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "귀주",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=guiyang",
+      "cityKey": "guiyang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "테를지",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=mongolia&menuGroup=mongolia&city=terelj",
+      "cityKey": "terelj",
+      "cardCityExists": false,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "내몽골",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=mongolia&city=inner-mongolia",
+      "cityKey": "inner-mongolia",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "빅아일랜드",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=hawaii&menuGroup=hawaii&city=big-island",
+      "cityKey": "big-island",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "로스앤젤레스",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=los-angeles",
+      "cityKey": "los-angeles",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "라스베가스",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=las-vegas",
+      "cityKey": "las-vegas",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "샌프란시스코",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=san-francisco",
+      "cityKey": "san-francisco",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "그랜드캐년",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=grand-canyon",
+      "cityKey": "grand-canyon",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "뉴욕",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-east&menuGroup=us-east&city=new-york",
+      "cityKey": "new-york",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "워싱턴",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-east&menuGroup=us-east&city=washington",
+      "cityKey": "washington",
+      "cardCityExists": false,
+      "registeredCityTagCount": 5
+    },
+    {
+      "leafLabel": "퀘벡",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=canada&menuGroup=canada&city=quebec",
+      "cityKey": "quebec",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    }
+  ],
+  "orphanCityTagTop": [
+    {
+      "cityKey": "at",
+      "count": 19
+    },
+    {
+      "cityKey": "cz",
+      "count": 17
+    },
+    {
+      "cityKey": "fukuoka",
+      "count": 16
+    },
+    {
+      "cityKey": "phuquoc",
+      "count": 13
+    },
+    {
+      "cityKey": "beppu",
+      "count": 12
+    },
+    {
+      "cityKey": "yufuin",
+      "count": 12
+    },
+    {
+      "cityKey": "hu",
+      "count": 11
+    },
+    {
+      "cityKey": "osaka",
+      "count": 11
+    },
+    {
+      "cityKey": "fr",
+      "count": 11
+    },
+    {
+      "cityKey": "honolulu",
+      "count": 10
+    },
+    {
+      "cityKey": "es",
+      "count": 10
+    },
+    {
+      "cityKey": "pt",
+      "count": 9
+    },
+    {
+      "cityKey": "macau",
+      "count": 9
+    },
+    {
+      "cityKey": "danang",
+      "count": 9
+    },
+    {
+      "cityKey": "singapore",
+      "count": 9
+    },
+    {
+      "cityKey": "istanbul",
+      "count": 9
+    },
+    {
+      "cityKey": "de",
+      "count": 8
+    },
+    {
+      "cityKey": "sydney",
+      "count": 8
+    },
+    {
+      "cityKey": "bangkok",
+      "count": 8
+    },
+    {
+      "cityKey": "kyoto",
+      "count": 8
+    },
+    {
+      "cityKey": "india",
+      "count": 8
+    },
+    {
+      "cityKey": "shanghai",
+      "count": 7
+    },
+    {
+      "cityKey": "cappadocia",
+      "count": 7
+    },
+    {
+      "cityKey": "ch",
+      "count": 7
+    },
+    {
+      "cityKey": "it",
+      "count": 7
+    },
+    {
+      "cityKey": "okinawa-main",
+      "count": 7
+    },
+    {
+      "cityKey": "ulaanbaatar",
+      "count": 6
+    },
+    {
+      "cityKey": "zhangjiajie",
+      "count": 6
+    },
+    {
+      "cityKey": "lasvegas",
+      "count": 6
+    },
+    {
+      "cityKey": "otaru",
+      "count": 6
+    },
+    {
+      "cityKey": "hongkong",
+      "count": 6
+    },
+    {
+      "cityKey": "bohol",
+      "count": 6
+    },
+    {
+      "cityKey": "agra",
+      "count": 6
+    },
+    {
+      "cityKey": "yonago",
+      "count": 5
+    },
+    {
+      "cityKey": "tottori",
+      "count": 5
+    },
+    {
+      "cityKey": "hulunbuir",
+      "count": 5
+    },
+    {
+      "cityKey": "dc",
+      "count": 5
+    },
+    {
+      "cityKey": "la",
+      "count": 5
+    },
+    {
+      "cityKey": "ordos",
+      "count": 5
+    },
+    {
+      "cityKey": "cotedazur",
+      "count": 5
+    },
+    {
+      "cityKey": "tokyo",
+      "count": 5
+    },
+    {
+      "cityKey": "bali",
+      "count": 5
+    },
+    {
+      "cityKey": "chifeng",
+      "count": 5
+    },
+    {
+      "cityKey": "washington",
+      "count": 5
+    },
+    {
+      "cityKey": "halong",
+      "count": 5
+    },
+    {
+      "cityKey": "grandcanyon",
+      "count": 5
+    },
+    {
+      "cityKey": "sapporo",
+      "count": 5
+    },
+    {
+      "cityKey": "naha",
+      "count": 5
+    },
+    {
+      "cityKey": "hanoi",
+      "count": 5
+    },
+    {
+      "cityKey": "jaipur",
+      "count": 5
+    },
+    {
+      "cityKey": "taipei",
+      "count": 4
+    },
+    {
+      "cityKey": "jinan",
+      "count": 4
+    },
+    {
+      "cityKey": "luxor",
+      "count": 4
+    },
+    {
+      "cityKey": "weihai",
+      "count": 4
+    },
+    {
+      "cityKey": "delhi",
+      "count": 4
+    },
+    {
+      "cityKey": "yantai",
+      "count": 4
+    },
+    {
+      "cityKey": "izu",
+      "count": 4
+    },
+    {
+      "cityKey": "shizuoka",
+      "count": 4
+    },
+    {
+      "cityKey": "nagoya",
+      "count": 4
+    },
+    {
+      "cityKey": "egypt",
+      "count": 4
+    },
+    {
+      "cityKey": "nagasaki",
+      "count": 4
+    },
+    {
+      "cityKey": "guam",
+      "count": 4
+    },
+    {
+      "cityKey": "abudhabi",
+      "count": 4
+    },
+    {
+      "cityKey": "kobe",
+      "count": 4
+    },
+    {
+      "cityKey": "sf",
+      "count": 4
+    },
+    {
+      "cityKey": "cairo",
+      "count": 4
+    },
+    {
+      "cityKey": "qingdao",
+      "count": 4
+    },
+    {
+      "cityKey": "nanjing",
+      "count": 4
+    },
+    {
+      "cityKey": "varanasi",
+      "count": 4
+    },
+    {
+      "cityKey": "kumamoto",
+      "count": 4
+    },
+    {
+      "cityKey": "nhatrang",
+      "count": 4
+    },
+    {
+      "cityKey": "yamanashi",
+      "count": 3
+    },
+    {
+      "cityKey": "pattaya",
+      "count": 3
+    },
+    {
+      "cityKey": "furano",
+      "count": 3
+    },
+    {
+      "cityKey": "alpen-route",
+      "count": 3
+    },
+    {
+      "cityKey": "changchun",
+      "count": 3
+    },
+    {
+      "cityKey": "kamakura",
+      "count": 3
+    },
+    {
+      "cityKey": "niagara",
+      "count": 3
+    },
+    {
+      "cityKey": "yanji",
+      "count": 3
+    },
+    {
+      "cityKey": "cebu",
+      "count": 3
+    }
+  ],
+  "matrixSampleSize": 152,
+  "matrix": [
+    {
+      "leafLabel": "아테네",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=greece&menuGroup=greece&city=athens",
+      "cityKey": "athens",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "산토리니",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=greece&menuGroup=greece&city=santorini",
+      "cityKey": "santorini",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "미코노스",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=greece&menuGroup=greece&city=mykonos",
+      "cityKey": "mykonos",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "이스탄불",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=turkey&menuGroup=turkey&city=istanbul",
+      "cityKey": "istanbul",
+      "cardCityExists": true,
+      "registeredCityTagCount": 9
+    },
+    {
+      "leafLabel": "카파도키아",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=turkey&menuGroup=turkey&city=cappadocia",
+      "cityKey": "cappadocia",
+      "cardCityExists": true,
+      "registeredCityTagCount": 7
+    },
+    {
+      "leafLabel": "카이로",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=egypt&menuGroup=egypt&city=cairo",
+      "cityKey": "cairo",
+      "cardCityExists": false,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "룩소르",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=egypt&menuGroup=egypt&city=luxor",
+      "cityKey": "luxor",
+      "cardCityExists": false,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "두바이",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=middle-east&menuGroup=middle-east&city=dubai",
+      "cityKey": "dubai",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "아부다비",
+      "tabId": "europe-me",
+      "href": "/travel/overseas?scope=overseas&region=europe-me&country=middle-east&menuGroup=middle-east&city=abu-dhabi",
+      "cityKey": "abu-dhabi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "다낭",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=danang",
+      "cityKey": "danang",
+      "cardCityExists": true,
+      "registeredCityTagCount": 9
+    },
+    {
+      "leafLabel": "나트랑",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=nha-trang",
+      "cityKey": "nha-trang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "호치민",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=hcm",
+      "cityKey": "hcm",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "하노이",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=hanoi",
+      "cityKey": "hanoi",
+      "cardCityExists": true,
+      "registeredCityTagCount": 5
+    },
+    {
+      "leafLabel": "푸꾸옥",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=phu-quoc",
+      "cityKey": "phu-quoc",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "달랏",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=vietnam&menuGroup=vietnam&city=dalat",
+      "cityKey": "dalat",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "방콕",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=thailand&menuGroup=thailand&city=bangkok",
+      "cityKey": "bangkok",
+      "cardCityExists": true,
+      "registeredCityTagCount": 8
+    },
+    {
+      "leafLabel": "푸켓",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=thailand&menuGroup=thailand&city=phuket",
+      "cityKey": "phuket",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "치앙마이",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=thailand&menuGroup=thailand&city=chiang-mai",
+      "cityKey": "chiang-mai",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "파타야",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=thailand&menuGroup=thailand&city=pattaya",
+      "cityKey": "pattaya",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "끄라비",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=thailand&menuGroup=thailand&city=krabi",
+      "cityKey": "krabi",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "아유타야",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=thailand&menuGroup=thailand&city=ayutthaya",
+      "cityKey": "ayutthaya",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "발리",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=indonesia&menuGroup=indonesia&city=bali",
+      "cityKey": "bali",
+      "cardCityExists": true,
+      "registeredCityTagCount": 5
+    },
+    {
+      "leafLabel": "마나도",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=indonesia&menuGroup=indonesia&city=manado",
+      "cityKey": "manado",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "자카르타",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=indonesia&menuGroup=indonesia&city=jakarta",
+      "cityKey": "jakarta",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "족자카르타",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=indonesia&menuGroup=indonesia&city=yogyakarta",
+      "cityKey": "yogyakarta",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "세부",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=philippines&menuGroup=philippines&city=cebu",
+      "cityKey": "cebu",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "보라카이",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=philippines&menuGroup=philippines&city=boracay",
+      "cityKey": "boracay",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "보홀",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=philippines&menuGroup=philippines&city=bohol",
+      "cityKey": "bohol",
+      "cardCityExists": true,
+      "registeredCityTagCount": 6
+    },
+    {
+      "leafLabel": "클락",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=philippines&menuGroup=philippines&city=clark",
+      "cityKey": "clark",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "마닐라",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=philippines&menuGroup=philippines&city=manila",
+      "cityKey": "manila",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "타이베이",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=taiwan&menuGroup=taiwan&city=taipei",
+      "cityKey": "taipei",
+      "cardCityExists": true,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "가오슝",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=taiwan&menuGroup=taiwan&city=kaohsiung",
+      "cityKey": "kaohsiung",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "타이중",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=taiwan&menuGroup=taiwan&city=taichung",
+      "cityKey": "taichung",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "화롄",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=taiwan&menuGroup=taiwan&city=hualien",
+      "cityKey": "hualien",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "콜롬보",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=srilanka&menuGroup=srilanka&city=colombo",
+      "cityKey": "colombo",
+      "cardCityExists": false,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "캔디",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=srilanka&menuGroup=srilanka&city=kandy",
+      "cityKey": "kandy",
+      "cardCityExists": false,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "시기리야",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=srilanka&menuGroup=srilanka&city=sigiriya",
+      "cityKey": "sigiriya",
+      "cardCityExists": false,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "카트만두",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=nepal&menuGroup=nepal&city=kathmandu",
+      "cityKey": "kathmandu",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "포카라",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=nepal&menuGroup=nepal&city=pokhara",
+      "cityKey": "pokhara",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "코타키나발루",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=kota-kinabalu",
+      "cityKey": "kota-kinabalu",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "쿠알라룸푸르",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=kuala-lumpur",
+      "cityKey": "kuala-lumpur",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "랑카위",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=langkawi",
+      "cityKey": "langkawi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "페낭",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=malaysia&menuGroup=malaysia&city=penang",
+      "cityKey": "penang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "씨엠립",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=cambodia&menuGroup=cambodia&city=siem-reap",
+      "cityKey": "siem-reap",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "프놈펜",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=cambodia&menuGroup=cambodia&city=phnom-penh",
+      "cityKey": "phnom-penh",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "루앙프라방",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=laos&menuGroup=laos&city=luang-prabang",
+      "cityKey": "luang-prabang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "비엔티안",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=laos&menuGroup=laos&city=vientiane",
+      "cityKey": "vientiane",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "양곤",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=myanmar&menuGroup=myanmar&city=yangon",
+      "cityKey": "yangon",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "바간",
+      "tabId": "southeast-asia",
+      "href": "/travel/overseas?scope=overseas&region=southeast-asia&country=myanmar&menuGroup=myanmar&city=bagan",
+      "cityKey": "bagan",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "삿포로",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=sapporo",
+      "cityKey": "sapporo",
+      "cardCityExists": true,
+      "registeredCityTagCount": 5
+    },
+    {
+      "leafLabel": "도야",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=toya",
+      "cityKey": "toya",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "오타루",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=otaru",
+      "cityKey": "otaru",
+      "cardCityExists": true,
+      "registeredCityTagCount": 6
+    },
+    {
+      "leafLabel": "후라노",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=furano",
+      "cityKey": "furano",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "하코다테",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=hakodate",
+      "cityKey": "hakodate",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "니세코",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=niseko",
+      "cityKey": "niseko",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "아사히카와",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=asahikawa",
+      "cityKey": "asahikawa",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "노보리베츠",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=hokkaido&city=noboribetsu",
+      "cityKey": "noboribetsu",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "센다이",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=tohoku&city=sendai",
+      "cityKey": "sendai",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "아오모리",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=tohoku&city=aomori",
+      "cityKey": "aomori",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "아키타",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=tohoku&city=akita",
+      "cityKey": "akita",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "도쿄",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kanto&city=tokyo",
+      "cityKey": "tokyo",
+      "cardCityExists": true,
+      "registeredCityTagCount": 5
+    },
+    {
+      "leafLabel": "요코하마",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kanto&city=yokohama",
+      "cityKey": "yokohama",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "닛코",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kanto&city=nikko",
+      "cityKey": "nikko",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "하코네",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kanto&city=hakone",
+      "cityKey": "hakone",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "가마쿠라",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kanto&city=kamakura",
+      "cityKey": "kamakura",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "시즈오카",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kanto&city=shizuoka",
+      "cityKey": "shizuoka",
+      "cardCityExists": true,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "나고야",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chubu&city=nagoya",
+      "cityKey": "nagoya",
+      "cardCityExists": true,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "가나자와",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chubu&city=kanazawa",
+      "cityKey": "kanazawa",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "다카야마",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chubu&city=takayama",
+      "cityKey": "takayama",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "시라카와고",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chubu&city=shirakawago",
+      "cityKey": "shirakawago",
+      "cardCityExists": false,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "마츠모토",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chubu&city=matsumoto",
+      "cityKey": "matsumoto",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "오사카",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kansai&city=osaka",
+      "cityKey": "osaka",
+      "cardCityExists": true,
+      "registeredCityTagCount": 11
+    },
+    {
+      "leafLabel": "교토",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kansai&city=kyoto",
+      "cityKey": "kyoto",
+      "cardCityExists": true,
+      "registeredCityTagCount": 8
+    },
+    {
+      "leafLabel": "고베",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kansai&city=kobe",
+      "cityKey": "kobe",
+      "cardCityExists": true,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "나라",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kansai&city=nara",
+      "cityKey": "nara",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "와카야마",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kansai&city=wakayama",
+      "cityKey": "wakayama",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "히로시마",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=hiroshima",
+      "cityKey": "hiroshima",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "요나고",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=yonago",
+      "cityKey": "yonago",
+      "cardCityExists": true,
+      "registeredCityTagCount": 5
+    },
+    {
+      "leafLabel": "돗토리",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=tottori",
+      "cityKey": "tottori",
+      "cardCityExists": true,
+      "registeredCityTagCount": 5
+    },
+    {
+      "leafLabel": "마츠야마",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=matsuyama",
+      "cityKey": "matsuyama",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "다카마쓰",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=takamatsu",
+      "cityKey": "takamatsu",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "도쿠시마",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=tokushima",
+      "cityKey": "tokushima",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "시마네",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=shimane",
+      "cityKey": "shimane",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "시모노세키",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=shimonoseki",
+      "cityKey": "shimonoseki",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "고치",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=chugoku-shikoku&city=kochi",
+      "cityKey": "kochi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "후쿠오카",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kyushu&city=fukuoka",
+      "cityKey": "fukuoka",
+      "cardCityExists": true,
+      "registeredCityTagCount": 16
+    },
+    {
+      "leafLabel": "나가사키",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kyushu&city=nagasaki",
+      "cityKey": "nagasaki",
+      "cardCityExists": true,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "벳부",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kyushu&city=beppu",
+      "cityKey": "beppu",
+      "cardCityExists": true,
+      "registeredCityTagCount": 12
+    },
+    {
+      "leafLabel": "유후인",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kyushu&city=yufuin",
+      "cityKey": "yufuin",
+      "cardCityExists": true,
+      "registeredCityTagCount": 12
+    },
+    {
+      "leafLabel": "가고시마",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kyushu&city=kagoshima",
+      "cityKey": "kagoshima",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "구마모토",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kyushu&city=kumamoto",
+      "cityKey": "kumamoto",
+      "cardCityExists": true,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "미야자키",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kyushu&city=miyazaki",
+      "cityKey": "miyazaki",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "사가",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=kyushu&city=saga",
+      "cityKey": "saga",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "오키나와",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=okinawa&city=okinawa",
+      "cityKey": "okinawa",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "나하",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=okinawa&city=naha",
+      "cityKey": "naha",
+      "cardCityExists": false,
+      "registeredCityTagCount": 5
+    },
+    {
+      "leafLabel": "미야코지마",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=okinawa&city=miyakojima",
+      "cityKey": "miyakojima",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "이시가키",
+      "tabId": "japan",
+      "href": "/travel/overseas?scope=overseas&region=japan&country=japan&menuGroup=okinawa&city=ishigaki",
+      "cityKey": "ishigaki",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "청도",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=shandong&city=qingdao",
+      "cityKey": "qingdao",
+      "cardCityExists": true,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "위해",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=shandong&city=weihai",
+      "cityKey": "weihai",
+      "cardCityExists": true,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "연태",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=shandong&city=yantai",
+      "cityKey": "yantai",
+      "cardCityExists": true,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "상해",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huadong&city=shanghai",
+      "cityKey": "shanghai",
+      "cardCityExists": true,
+      "registeredCityTagCount": 7
+    },
+    {
+      "leafLabel": "소주",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huadong&city=suzhou",
+      "cityKey": "suzhou",
+      "cardCityExists": false,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "항주",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huadong&city=hangzhou",
+      "cityKey": "hangzhou",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "남경",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huadong&city=nanjing",
+      "cityKey": "nanjing",
+      "cardCityExists": false,
+      "registeredCityTagCount": 4
+    },
+    {
+      "leafLabel": "황산",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huadong&city=huangshan",
+      "cityKey": "huangshan",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "태항산",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huadong&city=taihang",
+      "cityKey": "taihang",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "북경",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huabei&city=beijing",
+      "cityKey": "beijing",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "천진",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huabei&city=tianjin",
+      "cityKey": "tianjin",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "대동",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huabei&city=datong",
+      "cityKey": "datong",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "서안",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huabei&city=xi-an",
+      "cityKey": "xi-an",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "장야",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huabei&city=zhangye",
+      "cityKey": "zhangye",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "정주",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huazhong&city=zhengzhou",
+      "cityKey": "zhengzhou",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "낙양",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huazhong&city=luoyang",
+      "cityKey": "luoyang",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "개봉",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huazhong&city=kaifeng",
+      "cityKey": "kaifeng",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "초작",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huazhong&city=jiaozuo",
+      "cityKey": "jiaozuo",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "은시",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huazhong&city=enshi",
+      "cityKey": "enshi",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "대련",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=dongbei&city=dalian",
+      "cityKey": "dalian",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "하얼빈",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=dongbei&city=harbin",
+      "cityKey": "harbin",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "연길",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=dongbei&city=yanji",
+      "cityKey": "yanji",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "심양",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=dongbei&city=shenyang",
+      "cityKey": "shenyang",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "장백산",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=dongbei&city=changbai",
+      "cityKey": "changbai",
+      "cardCityExists": false,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "샤먼",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=fujian&city=xiamen",
+      "cityKey": "xiamen",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "푸저우",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=fujian&city=fuzhou",
+      "cityKey": "fuzhou",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "광주",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=guangzhou",
+      "cityKey": "guangzhou",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "구이린",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=guilin",
+      "cityKey": "guilin",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "장가계",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=zhangjiajie",
+      "cityKey": "zhangjiajie",
+      "cardCityExists": true,
+      "registeredCityTagCount": 6
+    },
+    {
+      "leafLabel": "성도",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=chengdu",
+      "cityKey": "chengdu",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "중경",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=chongqing",
+      "cityKey": "chongqing",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "곤명",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=kunming",
+      "cityKey": "kunming",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "여강",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=lijiang",
+      "cityKey": "lijiang",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "심천",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=shenzhen",
+      "cityKey": "shenzhen",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "귀주",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=huanan&city=guiyang",
+      "cityKey": "guiyang",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "울란바타르",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=mongolia&menuGroup=mongolia&city=ulaanbaatar",
+      "cityKey": "ulaanbaatar",
+      "cardCityExists": true,
+      "registeredCityTagCount": 6
+    },
+    {
+      "leafLabel": "테를지",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=mongolia&menuGroup=mongolia&city=terelj",
+      "cityKey": "terelj",
+      "cardCityExists": false,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "내몽골",
+      "tabId": "china-hk-mo",
+      "href": "/travel/overseas?scope=overseas&region=china-hk-mo&country=china&menuGroup=mongolia&city=inner-mongolia",
+      "cityKey": "inner-mongolia",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "호놀룰루",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=hawaii&menuGroup=hawaii&city=honolulu",
+      "cityKey": "honolulu",
+      "cardCityExists": true,
+      "registeredCityTagCount": 10
+    },
+    {
+      "leafLabel": "마우이",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=hawaii&menuGroup=hawaii&city=maui",
+      "cityKey": "maui",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "빅아일랜드",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=hawaii&menuGroup=hawaii&city=big-island",
+      "cityKey": "big-island",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "카우아이",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=hawaii&menuGroup=hawaii&city=kauai",
+      "cityKey": "kauai",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "로스앤젤레스",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=los-angeles",
+      "cityKey": "los-angeles",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "라스베가스",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=las-vegas",
+      "cityKey": "las-vegas",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "샌프란시스코",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=san-francisco",
+      "cityKey": "san-francisco",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "그랜드캐년",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-west&menuGroup=us-west&city=grand-canyon",
+      "cityKey": "grand-canyon",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "뉴욕",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-east&menuGroup=us-east&city=new-york",
+      "cityKey": "new-york",
+      "cardCityExists": false,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "워싱턴",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=us-east&menuGroup=us-east&city=washington",
+      "cityKey": "washington",
+      "cardCityExists": false,
+      "registeredCityTagCount": 5
+    },
+    {
+      "leafLabel": "밴쿠버",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=canada&menuGroup=canada&city=vancouver",
+      "cityKey": "vancouver",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "토론토",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=canada&menuGroup=canada&city=toronto",
+      "cityKey": "toronto",
+      "cardCityExists": true,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "캘거리",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=canada&menuGroup=canada&city=calgary",
+      "cityKey": "calgary",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    },
+    {
+      "leafLabel": "퀘벡",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=canada&menuGroup=canada&city=quebec",
+      "cityKey": "quebec",
+      "cardCityExists": false,
+      "registeredCityTagCount": 1
+    },
+    {
+      "leafLabel": "밴프",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=canada&menuGroup=canada&city=banff",
+      "cityKey": "banff",
+      "cardCityExists": true,
+      "registeredCityTagCount": 2
+    },
+    {
+      "leafLabel": "나이아가라",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=canada&menuGroup=canada&city=niagara",
+      "cityKey": "niagara",
+      "cardCityExists": true,
+      "registeredCityTagCount": 3
+    },
+    {
+      "leafLabel": "옐로우나이프",
+      "tabId": "americas",
+      "href": "/travel/overseas?scope=overseas&region=americas&country=canada&menuGroup=canada&city=yellowknife",
+      "cityKey": "yellowknife",
+      "cardCityExists": true,
+      "registeredCityTagCount": 0
+    }
+  ]
+}

@@ -12,6 +12,16 @@ import {
 } from '@/lib/similar-itinerary-compare-cluster'
 
 describe('similar-itinerary-compare-cluster', () => {
+  // REGRESSION-FREEZE[mega-menu-browse-slug-master-city-key]: 푸꾸옥 compare key = phuquoc — manifest
+  it('uses master cityKey for 푸꾸옥 (phuquoc) not browse slug phu-quoc', () => {
+    expect(resolveComparePlaceClusterFromHay('푸꾸옥')).toEqual({
+      key: 'phuquoc',
+      label: '푸꾸옥',
+    })
+    expect(resolveComparePlaceClusterFromHay('phu-quoc')?.key).toBe('phuquoc')
+    expect(resolveComparePlaceClusterFromHay('phuquoc')?.key).toBe('phuquoc')
+  })
+
   // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: 청도≠홍콩·몽골·중앙아시아 — manifest
   it('resolves 칭다오/청도 to mega leaf 청도, not 홍콩·마카오·몽골', () => {
     const qingdao = resolveComparePlaceClusterFromHay('칭다오 3박4일')

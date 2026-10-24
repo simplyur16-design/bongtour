@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-10-24T09:30:00.000Z",
+  "host": "aws-1-ap-northeast-2.pooler.supabase.com",
+  "method": "READ ONLY tx via scripts/audit/read-only-pipeline-sample.ts",
+  "notes": [
+    "Full L1 live API skip (no supplier live calls).",
+    "tripNights/tripDays often null on Product — duration may live in duration string or departures only.",
+    "Browse SSR HTML does not embed /products/ hrefs — list card price crawl inconclusive from static HTML."
+  ],
+  "highlights": [
+    {
+      "slug": "pkg-hn-0056",
+      "origin": "hanatour",
+      "issue": "registered Baltic product countryKey=nordic-baltic but countryTagCount=0 cityTagCount=0 cityKey=null",
+      "severity": "PL-02"
+    },
+    {
+      "slug": "fit-hn-0053",
+      "origin": "hanatour",
+      "cityKey": "phuquoc",
+      "note": "DB cityKey phuquoc vs mega leaf browse slug phu-quoc — matrix zero-tag for leaf slug is slug-space mismatch",
+      "severity": "MM-02"
+    },
+    {
+      "slug": "pkg-hn-0047",
+      "origin": "hanatour",
+      "titleHint": "내몽골",
+      "countryKey": "china",
+      "cityKey": "ordos",
+      "note": "Inner Mongolia on china key — heal-candidate mongoliaOnChinaKey includes similar titles",
+      "severity": "PL-01"
+    }
+  ],
+  "supplierSampleCounts": {
+    "hanatour": 5,
+    "modetour": 5,
+    "ybtour": 5,
+    "verygoodtour": 5,
+    "lottetour": "see pipeline-sample.json",
+    "kyowontour": "see pipeline-sample.json",
+    "naeiltour": "see pipeline-sample.json"
+  }
+}

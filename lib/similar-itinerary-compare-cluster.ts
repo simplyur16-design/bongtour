@@ -9,6 +9,7 @@ import {
   durationHintFromTitle,
   scrubKrDepartureFromPlaceLabel,
 } from '@/lib/bongtour-product-display-title-ssot'
+import { resolveBrowseCityKeysFromLocationTree } from '@/lib/browse-country-url-resolve'
 import { megaMenuClickLabelForCityKey } from '@/lib/mega-menu-click-label'
 import { buildMegaMenuSharedCityHaystackStopTerms } from '@/lib/mega-menu-city-haystack-terms'
 import { MEGA_MENU_TAB_DEFINITIONS, type MegaMenuLeafDef } from '@/lib/mega-menu-regions.data'
@@ -120,8 +121,20 @@ function aliasHits(hay: string, alias: string): boolean {
   return false
 }
 
+/**
+ * 비교 클러스터 키 = 마스터 cityKey 우선 (browse `phu-quoc` → `phuquoc`).
+ * URL browse 슬러그는 그대로 두고, 키 공간만 Product.cityKey 와 맞춘다.
+ * REGRESSION-FREEZE[mega-menu-browse-slug-master-city-key]: compare leafKey = master cityKey — manifest
+ */
 function leafKey(leaf: MegaMenuLeafDef): string {
-  return citySlugFromTermsAndLabel(leaf.label, leaf.terms)
+  const browseSlug = citySlugFromTermsAndLabel(leaf.label, leaf.terms)
+  const compact = browseSlug.replace(/-/g, '')
+  const masters = resolveBrowseCityKeysFromLocationTree(browseSlug)
+  if (masters.includes(compact)) return compact
+  // 트리 nodeKey 중 browse 슬러그와 compact 동치인 것만 (국가키 오염 방지)
+  const cityHit = masters.find((k) => k.replace(/-/g, '') === compact)
+  if (cityHit) return cityHit
+  return browseSlug
 }
 
 function collectLeafLabels(): Set<string> {
@@ -181,11 +194,13 @@ function buildCompareLeavesFromMegaMenu(): readonly LeafDef[] {
     if (tab.localDeparture) continue
     for (const group of tab.groups) {
       for (const leaf of group.cities) {
+        const browseSlug = citySlugFromTermsAndLabel(leaf.label, leaf.terms)
         const key = leafKey(leaf)
         if (seenKey.has(key)) continue
         seenKey.add(key)
 
-        const raw = new Set<string>([leaf.label, ...leaf.terms])
+        // REGRESSION-FREEZE[mega-menu-browse-slug-master-city-key]: alias에 browse+master key — manifest
+        const raw = new Set<string>([leaf.label, ...leaf.terms, key, browseSlug])
         for (const extra of EXTRA_ALIASES_BY_LABEL[leaf.label] || []) raw.add(extra)
 
         const aliases = [...raw]
