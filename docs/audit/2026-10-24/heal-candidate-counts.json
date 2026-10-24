@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-10-24T09:24:07.770Z",
+  "host": "aws-1-ap-northeast-2.pooler.supabase.com",
+  "registered": 378,
+  "healLikeMissingCityTag": 10,
+  "healLikeMissingCountryTag": 7,
+  "guamEuropeClampCandidates": 0,
+  "mongoliaOnChinaKeyCandidates": 4,
+  "macauHongkongSwapCandidates": 0
+}

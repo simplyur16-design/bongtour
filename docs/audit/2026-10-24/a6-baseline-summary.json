@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-10-24T10:01:00.000Z",
+  "verify:regression-freeze:prebuild": "PASS",
+  "verify:regression-freeze:ci": {
+    "result": "FAIL",
+    "classification": "기존 실패 후보",
+    "detail": "lib/modetour-schedule-africa-seqp01-image-keyword.test.ts timed out in 5000ms",
+    "databaseUrl": "postgresql://audit:audit@localhost:5432/audit (placeholder; not prod)"
+  },
+  "npm run test:node": {
+    "result": "FAIL",
+    "failures": [
+      "tests/mega-menu-panel-layout.test.ts",
+      "tests/mega-menu-south-america-tab.test.ts (expected 8 tabs, actual 9)",
+      "tests/schedule-image-keyword-empty-fallback.test.ts ('' !== 'Osaka')"
+    ]
+  },
+  "npm test": "SKIP",
+  "npm run build": "PASS"
+}

@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-10-24T09:20:20.320Z",
+  "ssotLeafCount": 225,
+  "subNavEntryCount": 3,
+  "landingEntryCount": 0,
+  "notes": [
+    "travel-landing-mega-menu-data: export shape differs — path check",
+    "TopMegaMenu + MobileDrilldownMenu: both import MEGA_MENU_TAB_DEFINITIONS (same SSOT set)"
+  ],
+  "verdict": "COMPARED"
+}

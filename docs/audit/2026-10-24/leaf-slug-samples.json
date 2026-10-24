@@ -1,0 +1,50 @@
+{
+  "cityLeafCount": 152,
+  "interesting": [
+    {
+      "label": "미코노스",
+      "browseSlug": "mykonos",
+      "tab": "europe-me"
+    },
+    {
+      "label": "아부다비",
+      "browseSlug": "abu-dhabi",
+      "tab": "europe-me"
+    },
+    {
+      "label": "나트랑",
+      "browseSlug": "nha-trang",
+      "tab": "southeast-asia"
+    },
+    {
+      "label": "호치민",
+      "browseSlug": "hcm",
+      "tab": "southeast-asia"
+    },
+    {
+      "label": "푸꾸옥",
+      "browseSlug": "phu-quoc",
+      "tab": "southeast-asia"
+    },
+    {
+      "label": "푸켓",
+      "browseSlug": "phuket",
+      "tab": "southeast-asia"
+    },
+    {
+      "label": "치앙마이",
+      "browseSlug": "chiang-mai",
+      "tab": "southeast-asia"
+    },
+    {
+      "label": "광주",
+      "browseSlug": "guangzhou",
+      "tab": "china-hk-mo"
+    },
+    {
+      "label": "중경",
+      "browseSlug": "chongqing",
+      "tab": "china-hk-mo"
+    }
+  ]
+}

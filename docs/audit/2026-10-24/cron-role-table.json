@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-10-24T09:30:00.000Z",
+  "sources": ["instrumentation.ts", "lib/instrumentation-process-role.ts"],
+  "roles": {
+    "web": {
+      "env": "BONGTOUR_INSTRUMENTATION_ROLE=web (or production default when not worker)",
+      "crons": [
+        "bongsim order-paid outbox (fulfill) — always on web when enabled",
+        "season curation (web)",
+        "calendar cron — only if ENABLE_INSTRUMENTATION_CALENDAR_CRON=1 or web-fallback when no worker",
+        "product-detail-payload rebuild — web-fallback when no worker",
+        "supplier-sweep daily API — web-fallback when no worker (DISABLE_WEB_SUPPLIER_SWEEP_CRON=1 to turn off)",
+        "register-pre-photo self-heal — gated; heal-only may still register"
+      ]
+    },
+    "worker": {
+      "env": "BONGTOUR_INSTRUMENTATION_ROLE=worker",
+      "crons": [
+        "curation",
+        "master integrity",
+        "publish reminder",
+        "price freshness",
+        "coupon",
+        "supplier sweep crontab (6 suppliers daily)",
+        "register-pre-photo self-heal",
+        "monthly publish",
+        "air-hotel season",
+        "product sales policy",
+        "cache warm",
+        "rehost images",
+        "sync bookable derived",
+        "product detail payload daily rebuild",
+        "meta token refresh",
+        "insight sync",
+        "curation event"
+      ]
+    },
+    "all": {
+      "env": "BONGTOUR_INSTRUMENTATION_ROLE=all",
+      "note": "Forbidden in production — forced to web (no background crons on HTTP)"
+    }
+  },
+  "phaseA": "No cron processes executed. Local next against prod DB forbidden (payload update + crons)."
+}
