@@ -15001,7 +15001,9 @@
             "105133652",
             "air_hotel_free",
             "registerFitItineraryGeminiJson",
-            "applyRegisterPostAugmentSchedulePipeline"
+            "applyRegisterPostAugmentSchedulePipeline",
+            "LIVE_GATES",
+            "fixture"
           ]
         }
       ]
@@ -17891,7 +17893,9 @@
             "2AZZ3346",
             "air_hotel_free",
             "parseNaeiltourRegisterFromApi",
-            "applyRegisterPostAugmentSchedulePipeline"
+            "applyRegisterPostAugmentSchedulePipeline",
+            "LIVE_GATES",
+            "fixture"
           ]
         }
       ]
@@ -26503,7 +26507,10 @@
     },
     {
       "id": "decode-public-html-entities",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "공개 텍스트 HTML 엔티티 — &harr;·&rarr; 디코드 + 중복 어절 붕괴",
       "checks": [
         {
@@ -26516,11 +26523,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/decode-public-html-entities.test.ts"]
+      "vitestSuites": [
+        "lib/decode-public-html-entities.test.ts"
+      ]
     },
     {
       "id": "home-season-grid-no-itinerary-join",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "홈 시즌·페르소나 커버 — itineraries 조인 금지, schedule JSON만",
       "checks": [
         {
@@ -26573,7 +26585,10 @@
     },
     {
       "id": "bongsim-solapi-esim-priority-queue",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Solapi 발송 큐 — eSIM LMS/알림톡이 문의·관리자 SMS보다 우선",
       "checks": [
         {
@@ -26599,7 +26614,9 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/bongsim/notifications/solapi-send-queue.test.ts"]
+      "vitestSuites": [
+        "lib/bongsim/notifications/solapi-send-queue.test.ts"
+      ]
     },
     {
       "id": "public-detail-hero-short-listing",

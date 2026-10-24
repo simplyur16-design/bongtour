@@ -1,0 +1,148 @@
+{
+  "title": "싱가포르 항공+호텔 3일 예시 일정",
+  "summary": "창이공항에서 마리나베이로 이동합니다. 가든스바이더베이와 머라이언을 보고 MRT로 이동합니다.",
+  "persona": "mixed",
+  "days": [
+    {
+      "dayNumber": 1,
+      "title": "인천 출발 · 싱가포르 도착",
+      "summary": "창이공항에서 MRT로 마리나베이로 이동합니다. 저녁은 마리나베이샌즈 근처에서 식사합니다.",
+      "dayCityKey": "singapore",
+      "activities": [
+        {
+          "order": 1,
+          "category": "transport",
+          "title": "창이 → 마리나베이",
+          "description": "MRT 또는 택시",
+          "location": "창이공항 (Changi Airport)",
+          "startTime": "16:00",
+          "durationMinutes": 40,
+          "estimatedCostKrw": 25000,
+          "estimatedCostNote": "택시 약 25–40 SGD",
+          "transportMode": "택시",
+          "transportDuration": "35분"
+        },
+        {
+          "order": 2,
+          "category": "meal",
+          "title": "마리나베이 저녁",
+          "description": "호텔 근처 식사",
+          "location": "마리나베이샌즈 (Marina Bay Sands)",
+          "startTime": "19:00",
+          "durationMinutes": 60,
+          "estimatedCostKrw": 30000,
+          "estimatedCostNote": "약 30 SGD",
+          "transportMode": null,
+          "transportDuration": null
+        },
+        {
+          "order": 3,
+          "category": "attraction",
+          "title": "마리나베이 야경",
+          "description": "베이샌즈 야경",
+          "location": "마리나베이샌즈 (Marina Bay Sands)",
+          "startTime": "20:30",
+          "durationMinutes": 40,
+          "estimatedCostKrw": 0,
+          "estimatedCostNote": "무료",
+          "transportMode": "도보",
+          "transportDuration": "10분"
+        }
+      ]
+    },
+    {
+      "dayNumber": 2,
+      "title": "시내 자유",
+      "summary": "가든스바이더베이와 머라이언을 둘러봅니다. 점심은 칠리크랩을 먹습니다.",
+      "dayCityKey": "singapore",
+      "activities": [
+        {
+          "order": 1,
+          "category": "attraction",
+          "title": "가든스바이더베이",
+          "description": "수퍼트리·돔",
+          "location": "가든스바이더베이 (Gardens by the Bay)",
+          "startTime": "10:00",
+          "durationMinutes": 150,
+          "estimatedCostKrw": 28000,
+          "estimatedCostNote": "약 28 SGD",
+          "transportMode": "MRT",
+          "transportDuration": "20분"
+        },
+        {
+          "order": 2,
+          "category": "meal",
+          "title": "칠리크랩",
+          "description": "점심 칠리크랩",
+          "location": "동해안",
+          "startTime": "13:00",
+          "durationMinutes": 70,
+          "estimatedCostKrw": 45000,
+          "estimatedCostNote": "약 45 SGD",
+          "transportMode": null,
+          "transportDuration": null
+        },
+        {
+          "order": 3,
+          "category": "attraction",
+          "title": "머라이언",
+          "description": "머라이언 파크",
+          "location": "머라이언 (Merlion)",
+          "startTime": "16:00",
+          "durationMinutes": 45,
+          "estimatedCostKrw": 0,
+          "estimatedCostNote": "무료",
+          "transportMode": "MRT",
+          "transportDuration": "15분"
+        }
+      ]
+    },
+    {
+      "dayNumber": 3,
+      "title": "귀국",
+      "summary": "호텔 체크아웃 후 창이공항으로 이동합니다. MRT 또는 택시를 이용합니다.",
+      "dayCityKey": "singapore",
+      "activities": [
+        {
+          "order": 1,
+          "category": "hotel",
+          "title": "체크아웃",
+          "description": "수하물 정리",
+          "location": "마리나베이 호텔",
+          "startTime": "10:00",
+          "durationMinutes": 30,
+          "estimatedCostKrw": 0,
+          "estimatedCostNote": "포함",
+          "transportMode": null,
+          "transportDuration": null
+        },
+        {
+          "order": 2,
+          "category": "transport",
+          "title": "공항 이동",
+          "description": "MRT 또는 택시",
+          "location": "창이공항 (Changi Airport)",
+          "startTime": "11:00",
+          "durationMinutes": 45,
+          "estimatedCostKrw": 25000,
+          "estimatedCostNote": "약 25 SGD",
+          "transportMode": "택시",
+          "transportDuration": "35분"
+        },
+        {
+          "order": 3,
+          "category": "meal",
+          "title": "공항 식사",
+          "description": "간단한 식사",
+          "location": "창이공항",
+          "startTime": "12:30",
+          "durationMinutes": 40,
+          "estimatedCostKrw": 15000,
+          "estimatedCostNote": "약 15 SGD",
+          "transportMode": null,
+          "transportDuration": null
+        }
+      ]
+    }
+  ]
+}
