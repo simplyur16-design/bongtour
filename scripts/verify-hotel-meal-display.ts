@@ -78,20 +78,21 @@ assert.deepEqual(
 // day.hotelText 우선
 assert.equal(
   formatScheduleDayHotelLine({
-    hotelNames: ['A', 'B'],
+    hotelNames: ['힐튼 서울', '롯데호텔 서울'],
     hotelSummaryText: '요약',
     dayHotelText: '  당일 투숙 호텔 원문  ',
   }),
   '당일 투숙 호텔 원문'
 )
 
+// 대표 숙소명 + 외 N (scrub 통과하는 실숙소명 픽스처; 한 글자 가짜명 금지)
 assert.equal(
   formatScheduleDayHotelLine({
-    hotelNames: ['A', 'B'],
+    hotelNames: ['힐튼 서울', '롯데호텔 서울'],
     hotelSummaryText: null,
     dayHotelText: null,
   }),
-  'A 외 1'
+  '힐튼 서울 외 1'
 )
 
 // 마지막 귀국 도착일: dayHotelText 없을 때 상품 hotelNames 폴백 금지 (모두투어 pkg-mt-0054 유형)
@@ -116,7 +117,7 @@ const descLast = expandVerygoodScheduleDescriptionForPublicDetail(
 )
 assert.equal(
   shouldOmitVerygoodScheduleDayHotelProductFallback({
-    hotelNames: ['A', 'B'],
+    hotelNames: ['힐튼 서울', '롯데호텔 서울'],
     hotelSummaryText: null,
     dayHotelText: null,
     isLastScheduleRow: true,
