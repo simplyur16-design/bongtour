@@ -673,9 +673,6 @@ export default function TravelProductDetail({
             outboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.outbound ?? null),
             inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
           }}
-          onChangeDepartureDate={handleChangeDepartureDate}
-          showChangeDepartureCta={mergedPrices.length > 0}
-          modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
         />
 
         <div className={`${SITE_CONTENT_CLASS} bg-[#FAFAFC] pt-4 py-6 sm:py-8 lg:pt-8`}>
@@ -708,6 +705,7 @@ export default function TravelProductDetail({
             highRiskAlerts={highRiskAlerts}
             onBookingOpen={openBookingIntake}
             onOpenDeparturePicker={handleChangeDepartureDate}
+            showChangeDepartureCta={mergedPrices.length > 0}
             variant="mobile"
             fromScreen="product_detail_mobile"
             departureConditionLine={departureConditionLine}
@@ -753,6 +751,7 @@ export default function TravelProductDetail({
                 highRiskAlerts={highRiskAlerts}
                 onBookingOpen={openBookingIntake}
                 onOpenDeparturePicker={handleChangeDepartureDate}
+                showChangeDepartureCta={mergedPrices.length > 0}
                 variant="desktop"
                 fromScreen="product_detail_desktop"
                 departureConditionLine={departureConditionLine}

@@ -16,15 +16,10 @@ import {
 } from '@/lib/promotion-copy-normalize'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
-import {
-  buildSimilarItineraryCompareHrefFromProduct,
-  SIMILAR_ITINERARY_COMPARE_CTA_LABEL,
-} from '@/lib/similar-itinerary-compare-href'
-import Link from 'next/link'
 
 export type FitItineraryHeroInfoPanelProps = {
   showTitle?: boolean
-  /** 데스크톱 히어로 스티키 — 고정 크기 + 최대 3줄 말줄임 (폰트 축소 금지) */
+  /** 데스크톱 히어로 스티키 — 원 상품명 line-clamp (폰트 축소·short 치환 금지). 액션 CTA는 상세 견적카드만. */
   fitTitleInSticky?: boolean
   dataSourceLabel: string
   title: string
@@ -48,12 +43,9 @@ export type FitItineraryHeroInfoPanelProps = {
   productMetaChips: ProductMetaChip[]
   listingKind?: string | null
   airportTransferType?: string | null
-  onChangeDepartureDate: () => void
-  showChangeDepartureCta?: boolean
-  modetourStickyLocalPayLine?: string | null
 }
 
-/** 자유여행 상세 — 패키지 hero 정보 카드와 동일 레이아웃 (코드 격리 fork) */
+/** 자유여행 상세 — 패키지 hero 정보 카드와 동일 레이아웃 (날짜 변경·사실 비교 CTA는 견적카드) */
 export default function FitItineraryHeroInfoPanel({
   showTitle = false,
   fitTitleInSticky = false,
@@ -79,9 +71,6 @@ export default function FitItineraryHeroInfoPanel({
   productMetaChips,
   listingKind,
   airportTransferType,
-  onChangeDepartureDate,
-  showChangeDepartureCta = true,
-  modetourStickyLocalPayLine,
 }: FitItineraryHeroInfoPanelProps) {
   const isAirHotelFree = isAirHotelFreeListingForUi(listingKind)
   const heroMetaChips = isAirHotelFree
@@ -92,28 +81,17 @@ export default function FitItineraryHeroInfoPanel({
     heroPriceSsot.selectedDeparturePrice != null || heroBenefitWhenNoDiscount || heroCouponText
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 상세 dest 출발허브 제거 — manifest
   const destinationDisplay = formatPublicDestinationDisplayLabel(destination)
-  // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 자유여행 비교 CTA kind=fit — manifest
-  const similarCompareHref = buildSimilarItineraryCompareHrefFromProduct({
-    primaryDestination: destination,
-    destination,
-    duration: durationLabel || _duration,
-    title,
-    totalDays: _masterTotalDays,
-    listingKind: listingKind ?? 'air_hotel_free',
-    productType: 'air-hotel',
-    forceKind: 'fit',
-  })
 
-  return (
+  const body = (
     <>
       {showTitle ? (
         <ProductDetailTitle
           title={title}
-          // REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: sticky 제목 line-clamp-3 — manifest
+          // REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: sticky 원명 line-clamp-2 — manifest
           data-hero-sticky-title={fitTitleInSticky ? true : undefined}
           className={
             fitTitleInSticky
-              ? 'bt-wrap mt-0 line-clamp-3 text-2xl font-black leading-snug tracking-[0.02em] text-bt-title'
+              ? 'bt-wrap mt-0 line-clamp-2 text-xl font-black leading-snug tracking-[0.02em] text-bt-title'
               : 'bt-wrap mt-0 text-2xl font-black leading-[1.45] tracking-[0.02em] text-bt-title sm:text-3xl'
           }
         />
@@ -179,10 +157,14 @@ export default function FitItineraryHeroInfoPanel({
           {heroCouponText ? (
             <p className="bt-wrap mt-1 text-center text-xs text-bt-muted">{heroCouponText}</p>
           ) : null}
-          <div className="mt-2 border-t border-bt-card-accent-border/40 pt-2 text-center">
-            <p className="text-xs font-bold text-bt-card-accent-strong">{CARD_INSTALLMENT_SUMMARY}</p>
-            <p className="bt-wrap mt-0.5 text-[11px] leading-relaxed text-bt-meta">{CARD_INSTALLMENT_DISCLAIMER}</p>
-          </div>
+          {!fitTitleInSticky ? (
+            <div className="mt-2 border-t border-bt-card-accent-border/40 pt-2 text-center">
+              <p className="text-xs font-bold text-bt-card-accent-strong">{CARD_INSTALLMENT_SUMMARY}</p>
+              <p className="bt-wrap mt-0.5 text-[11px] leading-relaxed text-bt-meta">{CARD_INSTALLMENT_DISCLAIMER}</p>
+            </div>
+          ) : (
+            <p className="mt-2 text-center text-xs font-bold text-bt-card-accent-strong">{CARD_INSTALLMENT_SUMMARY}</p>
+          )}
         </div>
       ) : null}
 
@@ -192,7 +174,7 @@ export default function FitItineraryHeroInfoPanel({
         </p>
       ) : null}
 
-      {heroMetaChips.length > 0 ? (
+      {!fitTitleInSticky && heroMetaChips.length > 0 ? (
         <div className="mt-2 border-t border-bt-border-soft pt-2">
           <ProductMetaChips chips={heroMetaChips} variant="light" className="w-full gap-1.5" />
         </div>
@@ -211,32 +193,13 @@ export default function FitItineraryHeroInfoPanel({
           </span>
         </div>
       ) : null}
-
-      {showChangeDepartureCta ? (
-        <>
-          <button
-            type="button"
-            onClick={onChangeDepartureDate}
-            className="mt-3 w-full rounded-xl bg-[#1F1B2D] py-2.5 font-medium text-white transition hover:bg-[#2c2740]"
-          >
-            출발일 변경
-          </button>
-          {modetourStickyLocalPayLine?.trim() ? (
-            <p className="mt-1.5 text-center text-[11px] font-semibold leading-snug text-bt-body">
-              {modetourStickyLocalPayLine.trim()}
-            </p>
-          ) : null}
-        </>
-      ) : null}
-
-      {similarCompareHref ? (
-        <Link
-          href={similarCompareHref}
-          className="mt-2.5 flex w-full items-center justify-center rounded-xl border border-[#2f8fc7]/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-[#2f8fc7] hover:bg-[#dceef9]"
-        >
-          {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
-        </Link>
-      ) : null}
     </>
   )
+
+  // REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: sticky info-only overflow-hidden — manifest
+  if (fitTitleInSticky) {
+    return <div className="h-full min-h-0 overflow-hidden">{body}</div>
+  }
+
+  return body
 }

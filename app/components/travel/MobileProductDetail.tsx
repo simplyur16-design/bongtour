@@ -660,9 +660,6 @@ export default function MobileProductDetail({
           outboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.outbound ?? null),
           inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
         }}
-        onChangeDepartureDate={handleChangeDepartureDate}
-        showChangeDepartureCta={mergedPrices.length > 0}
-        modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
       />
 
       {onDemandNotice ? (
@@ -687,6 +684,7 @@ export default function MobileProductDetail({
           highRiskAlerts={highRiskAlerts}
           onBookingOpen={openBookingIntake}
           onOpenDeparturePicker={handleChangeDepartureDate}
+          showChangeDepartureCta={mergedPrices.length > 0}
           variant="mobile"
           fromScreen="product_detail_mobile"
           departureConditionLine={departureConditionLine}

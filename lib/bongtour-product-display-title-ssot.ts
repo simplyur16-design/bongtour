@@ -869,6 +869,22 @@ export function isPollutedPublicProductTitle(raw: string): boolean {
 }
 
 /**
+ * 스티키 카드 listing — 권역헤더·EN 랜드마크만 short로 대체.
+ * 중복어절·일정 POI 등은 원문을 유지하고 line-clamp로 축약 (나라 N박N일로 바꾸지 않음).
+ * REGRESSION-FREEZE[public-detail-hero-short-listing]: sticky 원명 ≠ short 폴백 — manifest
+ */
+export function isSeverePollutedStickyListingTitle(raw: string): boolean {
+  const decoded = decodePublicHtmlEntities(String(raw || '')).trim()
+  if (!decoded) return false
+  if (isUmbrellaMegaRegionPlaceLabel(decoded)) return true
+  if (/중국권/.test(decoded) && /홍콩|마카오|몽골|중앙아/.test(decoded)) return true
+  if (/\bThe\s+Rocks\b/i.test(decoded)) return true
+  if (isEnLandmarkNoiseToken(decoded)) return true
+  if (/&(?:harr|rarr|larr|hearts|amp|nbsp|middot|mdash|ndash);?/i.test(decoded)) return true
+  return false
+}
+
+/**
  * 상품 상세 히어로 — 짧은 제목(오버레이) + 원 상품명(옆 정보 카드).
  * REGRESSION-FREEZE[public-detail-hero-short-listing]: 상세 short·원명 분리 — manifest
  */
@@ -880,12 +896,14 @@ export function resolvePublicDetailHeroTitles(
     String(input.primaryDestination || '').trim() ||
     '여행'
   const card = resolvePublicBrowseCardTitle(input, rawListing)
-  // REGRESSION-FREEZE[public-detail-hero-short-listing]: 오염 listingTitle 차단 — manifest
-  const listingTitle = isPollutedPublicProductTitle(rawListing)
+  // REGRESSION-FREEZE[public-detail-hero-short-listing]: sticky 원명 ≠ short 폴백 — manifest
+  // 권역헤더·The Rocks만 short. 그 외는 원 상품명(중복 붕괴만) — 나라 N박N일 치환 금지
+  const listingTitle = isSeverePollutedStickyListingTitle(rawListing)
     ? card.cardTitle ||
       String(input.primaryDestination || '').trim() ||
       '여행'
-    : rawListing
+    : collapseAdjacentDuplicateTitlePhrases(decodePublicHtmlEntities(rawListing)).trim() ||
+      rawListing
   return {
     heroTitle: card.cardTitle,
     listingTitle,

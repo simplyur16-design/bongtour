@@ -26,13 +26,7 @@ type CarouselProps = {
 }
 
 type Props = CarouselProps & {
-  infoPanel: Omit<
-    PackageProductHeroInfoPanelProps,
-    'onChangeDepartureDate' | 'showChangeDepartureCta' | 'modetourStickyLocalPayLine'
-  >
-  onChangeDepartureDate: () => void
-  showChangeDepartureCta?: boolean
-  modetourStickyLocalPayLine?: string | null
+  infoPanel: PackageProductHeroInfoPanelProps
 }
 
 /** 패키지(travel/private/semi) 상세 — 풀폭 히어로 + 좌측 제목 + 우측 정보 카드(데스크톱) / 모바일 스택 */
@@ -48,9 +42,6 @@ export default function PackageProductHeroSection({
   destination,
   primaryRegion,
   infoPanel,
-  onChangeDepartureDate,
-  showChangeDepartureCta,
-  modetourStickyLocalPayLine,
 }: Props) {
   // REGRESSION-FREEZE[public-detail-hero-short-listing]: 히어로 short · 옆 원 상품명 — manifest
   const heroTitles = resolvePublicDetailHeroTitles({
@@ -70,14 +61,11 @@ export default function PackageProductHeroSection({
         return s || null
       })()
     : null
-  const infoPanelWithCta: PackageProductHeroInfoPanelProps = {
+  const panelProps: PackageProductHeroInfoPanelProps = {
     ...infoPanel,
     title: heroTitles.listingTitle,
     destination: formatPublicDestinationDisplayLabel(infoPanel.destination),
     primaryDestination: primaryDestination ?? infoPanel.primaryDestination ?? null,
-    onChangeDepartureDate,
-    showChangeDepartureCta,
-    modetourStickyLocalPayLine,
   }
   return (
     <section className="relative w-full overflow-hidden" aria-label="상품 소개">
@@ -144,12 +132,12 @@ export default function PackageProductHeroSection({
         {/* REGRESSION-FREEZE[public-detail-hero-info-card-inset]: max-h=히어로 기준 — 100vh 중앙배치로 위·아래 잘림 금지 — manifest */}
         {/* REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: 스크롤 금지·제목 line-clamp — manifest */}
         <HeroStickyInfoAside fitKey={heroTitles.listingTitle}>
-          <PackageProductHeroInfoPanel {...infoPanelWithCta} showTitle fitTitleInSticky />
+          <PackageProductHeroInfoPanel {...panelProps} showTitle fitTitleInSticky />
         </HeroStickyInfoAside>
       </div>
 
       <div className="relative z-[30] mx-4 -mt-14 rounded-2xl bg-white p-5 shadow-lg sm:-mt-12 sm:p-6 lg:hidden">
-        <PackageProductHeroInfoPanel {...infoPanelWithCta} showTitle />
+        <PackageProductHeroInfoPanel {...panelProps} showTitle />
       </div>
     </section>
   )

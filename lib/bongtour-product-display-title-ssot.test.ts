@@ -545,6 +545,22 @@ describe('resolvePublicDetailHeroTitles', () => {
     expect(rocks.listingTitle).toBe('시드니 3박 4일')
     expect(rocks.listingTitle).not.toMatch(/Rocks/i)
   })
+
+  // REGRESSION-FREEZE[public-detail-hero-short-listing]: sticky 원명 ≠ short 폴백 — manifest
+  it('일반 긴 상품명은 sticky listing에 원문 유지 (나라 N박N일 치환 금지)', () => {
+    const listing =
+      '준특급 북인도 완전일주 <노쇼핑/국내선1회/열차1회/특식3회/타지마할/19금사원> 7박 9일'
+    const r = resolvePublicDetailHeroTitles({
+      title: listing,
+      duration: '7박 9일',
+      primaryDestination: '인도',
+      countryKey: 'india',
+    })
+    expect(r.heroTitle).toMatch(/^북인도\s/)
+    expect(r.listingTitle).toBe(listing)
+    expect(r.listingTitle).not.toMatch(/^인도\s+\d+\s*박/)
+    expect(r.listingTitle).not.toMatch(/^북인도\s+\d+\s*박/)
+  })
 })
 
 // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 출발지≠목적지 — manifest

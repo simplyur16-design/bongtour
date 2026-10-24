@@ -42,6 +42,9 @@ type Props = {
   selectedDate: string | null
   computedReturnDate: string | null
   variant?: 'desktop' | 'mobile'
+  /** 출발일 변경 CTA — 날짜 블록 바로 아래(히어로 금지) */
+  showChangeDepartureCta?: boolean
+  onChangeDepartureDate?: () => void
 }
 
 /** 자유여행 상세 — 패키지 인원 선택 카드와 동일 레이아웃 (코드 격리 fork) */
@@ -63,6 +66,8 @@ export default function FitItineraryQuoteCard({
   selectedDate,
   computedReturnDate,
   variant = 'desktop',
+  showChangeDepartureCta = false,
+  onChangeDepartureDate,
 }: Props) {
   const copy = PRODUCT_LIVE_QUOTE_CARD_COPY
   const isMobile = variant === 'mobile'
@@ -135,6 +140,16 @@ export default function FitItineraryQuoteCard({
             </div>
           )}
         </div>
+      ) : null}
+      {/* REGRESSION-FREEZE[detail-quote-departure-change-cta]: 출발일 변경은 견적카드 날짜 밑만 — manifest */}
+      {showChangeDepartureCta && onChangeDepartureDate ? (
+        <button
+          type="button"
+          onClick={onChangeDepartureDate}
+          className="mb-4 w-full rounded-xl bg-[#1F1B2D] py-2.5 font-medium text-white transition hover:bg-[#2c2740]"
+        >
+          출발일 변경
+        </button>
       ) : null}
 
       <div>

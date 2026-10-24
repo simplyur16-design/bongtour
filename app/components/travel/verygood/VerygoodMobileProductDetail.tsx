@@ -602,15 +602,29 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
           outboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.outbound ?? null),
           inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
         }}
-        onChangeDepartureDate={handleChangeDepartureDate}
-        showChangeDepartureCta={mergedPrices.length > 0}
-        modetourStickyLocalPayLine={product.modetourStickyLocalPayLine ?? null}
       />
 
       {onDemandNotice ? (
         <p className="mx-4 mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">
           {onDemandNotice}
         </p>
+      ) : null}
+
+      {mergedPrices.length > 0 ? (
+        <div className="mx-4 mt-4">
+          <button
+            type="button"
+            onClick={handleChangeDepartureDate}
+            className="w-full rounded-xl bg-[#1F1B2D] py-2.5 font-medium text-white transition hover:bg-[#2c2740]"
+          >
+            출발일 변경
+          </button>
+          {product.modetourStickyLocalPayLine?.trim() ? (
+            <p className="mt-1.5 text-center text-[11px] font-semibold leading-snug text-bt-body">
+              {product.modetourStickyLocalPayLine.trim()}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="border-b border-bt-border-soft p-4">

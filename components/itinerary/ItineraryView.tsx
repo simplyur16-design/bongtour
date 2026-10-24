@@ -483,6 +483,8 @@ export function ItineraryView({
     ctaHref,
     selectedDate,
     computedReturnDate,
+    onChangeDepartureDate: () => setPickerOpen(true),
+    showChangeDepartureCta: (prices?.length ?? 0) > 0,
   }
 
   const switchPage = (next: number | 'all') => {
@@ -511,8 +513,6 @@ export function ItineraryView({
         supplierLabel={supplierLabel || null}
         airtelRegionLine={airtelRegionLine}
         onScrollToExampleItinerary={scrollToExampleItinerary}
-        onChangeDepartureDate={() => setPickerOpen(true)}
-        showChangeDepartureCta={(prices?.length ?? 0) > 0}
         infoPanel={{
           dataSourceLabel: formatOriginSourceForDisplay(product.originSource),
           title: product.title,

@@ -23189,15 +23189,6 @@
           ]
         },
         {
-          "file": "app/components/detail/FitItineraryHeroInfoPanel.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
-            "kind=fit",
-            "forceKind: 'fit'",
-            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL"
-          ]
-        },
-        {
           "file": "app/components/detail/FitItineraryQuoteCard.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
@@ -23215,18 +23206,26 @@
           ]
         },
         {
-          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
-            "kind=package",
-            "forceKind: 'package'"
-          ]
-        },
-        {
           "file": "app/components/detail/ProductLiveQuoteCard.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
             "forceKind: 'package'"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustNotInclude": [
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
+            "forceKind: 'package'",
+            "출발일 변경"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroInfoPanel.tsx",
+          "mustNotInclude": [
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
+            "forceKind: 'fit'",
+            "출발일 변경"
           ]
         }
       ],
@@ -26617,7 +26616,9 @@
             "resolvePublicDetailHeroTitles",
             "listingTitle",
             "오염 listingTitle 차단",
-            "isPollutedPublicProductTitle"
+            "isPollutedPublicProductTitle",
+            "sticky 원명 ≠ short 폴백",
+            "isSeverePollutedStickyListingTitle"
           ]
         },
         {
@@ -26698,14 +26699,15 @@
         "prebuild",
         "ci"
       ],
-      "summary": "히어로 스티키 정보카드 — overflow 스크롤 금지·제목 고정크기 line-clamp(폰트 자동축소 금지)",
+      "summary": "히어로 스티키 — 원명 line-clamp·정보만(스크롤·폰트축소·short치환 금지; CTA는 견적카드)",
       "checks": [
         {
           "file": "app/components/detail/HeroStickyInfoAside.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
             "overflow-hidden",
-            "title line-clamp"
+            "title line-clamp",
+            "info-only"
           ],
           "mustNotInclude": [
             "overflow-y-auto",
@@ -26719,11 +26721,15 @@
           "mustInclude": [
             "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
             "fitTitleInSticky",
-            "line-clamp-3",
+            "line-clamp-2",
+            "sticky info-only overflow-hidden",
             "data-hero-sticky-title"
           ],
           "mustNotInclude": [
-            "TITLE_MAX_STICKY_PX"
+            "TITLE_MAX_STICKY_PX",
+            "line-clamp-3",
+            "출발일 변경",
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL"
           ]
         },
         {
@@ -26731,11 +26737,15 @@
           "mustInclude": [
             "REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]",
             "fitTitleInSticky",
-            "line-clamp-3",
+            "line-clamp-2",
+            "sticky info-only overflow-hidden",
             "data-hero-sticky-title"
           ],
           "mustNotInclude": [
-            "TITLE_MAX_STICKY_PX"
+            "TITLE_MAX_STICKY_PX",
+            "line-clamp-3",
+            "출발일 변경",
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL"
           ]
         },
         {
@@ -27763,16 +27773,30 @@
           ]
         },
         {
-          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "file": "app/components/detail/FitItineraryQuoteCard.tsx",
           "mustInclude": [
-            "REGRESSION-FREEZE[similar-itinerary-compare-entry]",
+            "REGRESSION-FREEZE[similar-itinerary-compare-kind-split]",
             "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
-            "buildSimilarItineraryCompareHrefFromProduct",
-            "href 있을 때만",
-            "목업 프리셋 폴백 금지"
+            "buildSimilarItineraryCompareHrefFromProduct"
           ],
           "mustNotInclude": [
             "similarCompareHref ?? SIMILAR_ITINERARY_COMPARE_PATH"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustNotInclude": [
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
+            "buildSimilarItineraryCompareHrefFromProduct",
+            "출발일 변경"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroInfoPanel.tsx",
+          "mustNotInclude": [
+            "SIMILAR_ITINERARY_COMPARE_CTA_LABEL",
+            "buildSimilarItineraryCompareHrefFromProduct",
+            "출발일 변경"
           ]
         },
         {
@@ -27808,6 +27832,52 @@
       "vitestSuites": [
         "lib/similar-itinerary-compare-href.test.ts",
         "lib/similar-itinerary-compare-cluster.test.ts"
+      ]
+    },
+    {
+      "id": "detail-quote-departure-change-cta",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "출발일 변경 CTA — 상세 견적카드 날짜 밑만(히어로 정보카드 금지)",
+      "checks": [
+        {
+          "file": "app/components/detail/ProductLiveQuoteCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[detail-quote-departure-change-cta]",
+            "출발일 변경은 견적카드 날짜 밑만",
+            "출발일 변경",
+            "showChangeDepartureCta",
+            "onOpenDeparturePicker"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryQuoteCard.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[detail-quote-departure-change-cta]",
+            "출발일 변경은 견적카드 날짜 밑만",
+            "출발일 변경",
+            "showChangeDepartureCta",
+            "onChangeDepartureDate"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustNotInclude": [
+            "출발일 변경",
+            "showChangeDepartureCta",
+            "onChangeDepartureDate"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroInfoPanel.tsx",
+          "mustNotInclude": [
+            "출발일 변경",
+            "showChangeDepartureCta",
+            "onChangeDepartureDate"
+          ]
+        }
       ]
     },
     {

@@ -21,13 +21,7 @@ type CarouselProps = {
 }
 
 type Props = CarouselProps & {
-  infoPanel: Omit<
-    FitItineraryHeroInfoPanelProps,
-    'onChangeDepartureDate' | 'showChangeDepartureCta' | 'modetourStickyLocalPayLine'
-  >
-  onChangeDepartureDate: () => void
-  showChangeDepartureCta?: boolean
-  modetourStickyLocalPayLine?: string | null
+  infoPanel: FitItineraryHeroInfoPanelProps
   supplierLabel?: string | null
   airtelRegionLine?: string | null
   onScrollToExampleItinerary?: () => void
@@ -45,9 +39,6 @@ export default function FitItineraryHeroSection({
   primaryDestination,
   destination,
   infoPanel,
-  onChangeDepartureDate,
-  showChangeDepartureCta,
-  modetourStickyLocalPayLine,
   supplierLabel,
   airtelRegionLine,
   onScrollToExampleItinerary,
@@ -59,12 +50,9 @@ export default function FitItineraryHeroSection({
     primaryDestination: primaryDestination ?? null,
     destination: destination ?? null,
   })
-  const infoPanelWithCta: FitItineraryHeroInfoPanelProps = {
+  const panelProps: FitItineraryHeroInfoPanelProps = {
     ...infoPanel,
     title: heroTitles.listingTitle,
-    onChangeDepartureDate,
-    showChangeDepartureCta,
-    modetourStickyLocalPayLine,
   }
   return (
     <section className="relative w-full overflow-hidden" aria-label="상품 소개">
@@ -163,13 +151,13 @@ export default function FitItineraryHeroSection({
 
         {/* REGRESSION-FREEZE[public-detail-hero-info-card-inset]: max-h=히어로 기준 — 100vh 중앙배치로 위·아래 잘림 금지 — manifest */}
         {/* REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: 스크롤 금지·제목 line-clamp — manifest */}
-        <HeroStickyInfoAside fitKey={infoPanelWithCta.title}>
-          <FitItineraryHeroInfoPanel {...infoPanelWithCta} showTitle fitTitleInSticky />
+        <HeroStickyInfoAside fitKey={panelProps.title}>
+          <FitItineraryHeroInfoPanel {...panelProps} showTitle fitTitleInSticky />
         </HeroStickyInfoAside>
       </div>
 
       <div className="relative z-[30] mx-4 -mt-14 rounded-2xl bg-white p-5 shadow-lg sm:-mt-12 sm:p-6 lg:hidden">
-        <FitItineraryHeroInfoPanel {...infoPanelWithCta} showTitle />
+        <FitItineraryHeroInfoPanel {...panelProps} showTitle />
       </div>
     </section>
   )

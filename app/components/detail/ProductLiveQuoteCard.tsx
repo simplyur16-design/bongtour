@@ -46,6 +46,8 @@ type Props = {
   heroTripReturnDisplay?: string | null
   explicitPriceRow?: ProductPriceRow | null
   modetourStickyLocalPayLine?: string | null
+  /** 출발일 변경 CTA — 날짜 블록 바로 아래(히어로 금지) */
+  showChangeDepartureCta?: boolean
   isCollectingPrices?: boolean
   priceCollectUiPhase?: DeparturePriceCollectUiPhase
   masterTotalDays?: number | null
@@ -60,13 +62,14 @@ export default function ProductLiveQuoteCard({
   updatePax,
   highRiskAlerts: _highRiskAlerts,
   onBookingOpen,
-  onOpenDeparturePicker: _onOpenDeparturePicker,
+  onOpenDeparturePicker,
   variant = 'desktop',
   fromScreen: _fromScreen,
   departureConditionLine: _departureConditionLine,
   heroTripDepartureDisplay,
   heroTripReturnDisplay,
-  modetourStickyLocalPayLine: _modetourStickyLocalPayLine,
+  modetourStickyLocalPayLine,
+  showChangeDepartureCta = false,
   updateChildCombined,
   explicitPriceRow,
   isCollectingPrices = false,
@@ -176,6 +179,23 @@ export default function ProductLiveQuoteCard({
             </div>
           )}
         </div>
+      ) : null}
+      {/* REGRESSION-FREEZE[detail-quote-departure-change-cta]: 출발일 변경은 견적카드 날짜 밑만 — manifest */}
+      {showChangeDepartureCta ? (
+        <>
+          <button
+            type="button"
+            onClick={onOpenDeparturePicker}
+            className="mb-4 w-full rounded-xl bg-[#1F1B2D] py-2.5 font-medium text-white transition hover:bg-[#2c2740]"
+          >
+            출발일 변경
+          </button>
+          {modetourStickyLocalPayLine?.trim() ? (
+            <p className="-mt-2.5 mb-4 text-center text-[11px] font-semibold leading-snug text-bt-body">
+              {modetourStickyLocalPayLine.trim()}
+            </p>
+          ) : null}
+        </>
       ) : null}
       {showCollectingBanner ? (
         <div
