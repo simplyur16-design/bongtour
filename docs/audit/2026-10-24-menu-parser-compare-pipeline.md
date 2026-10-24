@@ -183,6 +183,59 @@ See `2026-10-24/skipped-dangerous-and-live.md`.
 
 ---
 
-## 8) Commit note
+## 8) Commit note (Phase A)
 
 Phase A local commit contains **only** `docs/audit/**` and `scripts/audit/**`.
+
+---
+
+## 9) Phase B results (2026-10-24)
+
+### [0] Gemini live-gate 분리 (서비스 코드 미변경)
+
+| Gate (freeze:ci) | Gemini 호출? | 변경 |
+|---|---|---|
+| `modetour-105133652-live-gate` | 예 (`enrichRegisterParsedWithAirtelFit` → `generateFitItineraryGeminiResponse`) | 기본 fixture; `LIVE_GATES=1` 만 실호출 |
+| `naeiltour-register-2azz3346-airtel-live-gate` | 예 (동일 airtel FIT 경로) | 동일 |
+
+기타 `*-live-gate` 는 공급사 HTTP 파싱 위주이며, preview 모드에서 schedule-image Gemini 는 스킵된다.  
+운영 FIT/파서 Gemini (`lib/fit-itinerary-generate-for-product.ts`, `lib/register-airtel-fit-enrich.ts` 등) **미수정**.
+
+**402 원인 (키 미출력):** `status=402 Payment Required` — *"Your prepayment credits are depleted"* (AI Studio prepay credits). 모델 힌트: `gemini-3-flash-preview`.
+
+**커밋:** `f113261e` — `scripts/live-gate-mode.ts`, fixtures, 두 verify 스크립트, manifest `LIVE_GATES` 토큰.
+
+### 승인 ID 수정
+
+| ID | 커밋 | 변경 요약 | 테스트/가드 |
+|---|---|---|---|
+| **MM-02** | `06a8c399` | compare `leafKey` = master cityKey (`phuquoc`); alias에 browse+master; URL `city=phu-quoc` 유지 | vitest cluster + browse-coverage; freeze `mega-menu-browse-slug-master-city-key` |
+| **PL-03** | `f0299ba3` (+ `cdadcf80` duration string) | `lib/derive-trip-nights-days.ts` + 7 register-flow productData 스프레드; 백필 없음 | vitest derive; freeze `register-derive-trip-nights-days`; dry-run `scripts/audit/read-only-trip-nights-backfill-dry-run.ts` (Phase B 시점 DB 일시 불가 → SKIP) |
+| **A6-01** | `715fd5dc` | SEQP01 vitest: console.log 제거 + `20_000`ms timeout; 제품 코드 없음 | vitest SEQP01 PASS (freeze:ci 로그에서 해당 suite fail 0) |
+
+### PS-01 조사만 (미수정)
+
+- 실패: `formatScheduleDayHotelLine({ hotelNames: ['A','B'] })` → `null`, 기대 `'A 외 1'` (콘솔 깨짐 `A ??1`).
+- 원인: `scrubPublicHotelNameList` (`public-hotel-display-scrub`) 가 브랜드 없는 짧은 토큰 `A`/`B` 를 제거 → 빈 목록 → `null`.
+- 의도: **scrub 쪽이 최신 SSOT** — `e81b5d2b` (*strip KR departure hubs… and scrub hotel chrome*), freeze `public-hotel-display-scrub`. verify 스크립트 픽스처(`A`/`B`)가 scrub 이후 스펙과 불일치.
+- **수정 보류** (승인 대기).
+
+### 보류 (손대지 않음)
+
+CP-01, PL-04, MM-03, MM-04, DB 교정(MM-01/MM-03/PL-01/PL-02).
+
+### 검증
+
+| 명령 | 결과 |
+|---|---|
+| `npm run verify:regression-freeze:prebuild` | **PASS** (`phase-b-freeze-prebuild.log`) |
+| `DATABASE_URL=postgresql://audit:audit@localhost:5432/audit` + `verify:regression-freeze:ci` | **FAIL** — 기존 실패급 flaky: `lib/register-pending-hard-kw-soft-alt-heal.test.ts` 5s timeout (본 Phase B 범위 밖; soft-alt-heal에서 abort → `2azz3346` 게이트는 full :ci에서 미도달). Gemini `105133652` 는 fixture PASS (`no Gemini/supplier call`) |
+| `npm run build` | **PASS** (`phase-b-build.log`; PL-03 duration string 보정 커밋 `cdadcf80` 후) |
+| `LIVE_GATES` unset 시 두 FIT live-gate (단독 smoke) | **PASS** fixture 둘 다 — `phase-b-gemini-fixture-smoke.log` / `phase-b-gemini-fixture-smoke-2azz.log` |
+
+### 재검증 메모
+
+- `:ci`/smoke 기본에서 FIT Gemini 게이트는 공급사·Gemini HTTP 0회 확인.
+- `LIVE_GATES=1` + prepay 크레딧 충전 후에만 실호출 재개.
+- PL-03 백필 dry-run: Phase B 실행 시 pooler `P1001` (일시 접속 불가) → SKIP; 스크립트는 `scripts/audit/read-only-trip-nights-backfill-dry-run.ts` 유지.
+- push / PR / main 머지 / Railway / PR #85 / 운영 DB 쓰기: 없음.
