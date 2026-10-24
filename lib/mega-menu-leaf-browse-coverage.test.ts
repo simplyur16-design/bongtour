@@ -74,6 +74,19 @@ describe('mega-menu leaf browse href / country expansions', () => {
     expect(resolveBrowseCityKeysForFilter('inner-mongolia')).toEqual(
       expect.arrayContaining(['hulunbuir', 'ordos']),
     )
+    // REGRESSION-FREEZE[mega-menu-browse-slug-master-city-key]: phu-quoc↔phuquoc — manifest
+    expect(resolveBrowseCityKeysForFilter('phu-quoc')).toEqual(
+      expect.arrayContaining(['phuquoc']),
+    )
+    expect(resolveBrowseCityKeysForFilter('phuquoc')).toEqual(
+      expect.arrayContaining(['phu-quoc', 'phuquoc']),
+    )
+    expect(resolveBrowseCityKeysForFilter('nha-trang')).toEqual(
+      expect.arrayContaining(['nhatrang']),
+    )
+    expect(resolveBrowseCityKeysForFilter('hong-kong')).toEqual(
+      expect.arrayContaining(['hongkong']),
+    )
   })
 
   it('내몽골 leaf uses country=china for china-tagged products', () => {

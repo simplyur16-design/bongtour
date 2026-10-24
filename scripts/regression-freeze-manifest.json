@@ -27924,6 +27924,32 @@
         }
       ],
       "vitestSuites": []
+    },
+    {
+      "id": "mega-menu-browse-slug-master-city-key",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "메가메뉴 browse slug(phu-quoc) → 마스터 cityKey(phuquoc); 비교 leafKey·browse filter 별칭",
+      "checks": [
+        {
+          "file": "lib/similar-itinerary-compare-cluster.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-browse-slug-master-city-key]",
+            "compare leafKey = master cityKey",
+            "resolveBrowseCityKeysFromLocationTree"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-leaf-browse-coverage.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-browse-slug-master-city-key]",
+            "phu-quoc",
+            "phuquoc"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -28405,6 +28431,17 @@
       "files": [
         "lib/use-product-departure-url-param.test.ts",
         "lib/product-detail-flicker-guard.test.ts"
+      ]
+    },
+    {
+      "id": "mega-menu-browse-slug-master-city-key",
+      "tier": [
+        "ci"
+      ],
+      "summary": "phu-quoc↔phuquoc browse + compare leafKey",
+      "files": [
+        "lib/mega-menu-leaf-browse-coverage.test.ts",
+        "lib/similar-itinerary-compare-cluster.test.ts"
       ]
     }
   ]
