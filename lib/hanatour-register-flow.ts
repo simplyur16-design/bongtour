@@ -1,3 +1,4 @@
+import { tripNightsDaysFieldsForProductWrite } from '@/lib/derive-trip-nights-days'
 import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import { NextResponse } from 'next/server'
 import {
@@ -1207,7 +1208,11 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       rawTitle: parsed.supplierListingTitleRaw ?? null,
       destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,
       primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
-      duration: parsed.duration,
+      ...tripNightsDaysFieldsForProductWrite({
+        duration: parsed.duration,
+        title: parsed.title,
+        scheduleDayCount: Array.isArray(parsed.schedule) ? parsed.schedule.length : null,
+      }),
       airline: parsed.airline ?? null,
       productType: resolveRegisterProductType(
         travelScopeAndListingKindFromAdminRegister(travelScope),
@@ -1601,7 +1606,11 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       supplierGroupId: parsed.supplierGroupId?.trim() || null,
       priceFrom: representativePrice,
       priceCurrency: parsed.priceCurrency?.trim() || null,
-      duration: parsed.duration,
+      ...tripNightsDaysFieldsForProductWrite({
+        duration: parsed.duration,
+        title: parsed.title,
+        scheduleDayCount: Array.isArray(parsed.schedule) ? parsed.schedule.length : null,
+      }),
       airline: parsed.airline ?? null,
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,

@@ -1,3 +1,4 @@
+import { tripNightsDaysFieldsForProductWrite } from '@/lib/derive-trip-nights-days'
 import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 /**
  * 롯데관광 등록 preview/confirm HTTP 흐름 — API SSOT (Gemini overlay 없음).
@@ -1213,7 +1214,11 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       rawTitle: parsed.supplierListingTitleRaw ?? null,
       destinationRaw: parsed.destinationRaw?.trim() || parsed.destination?.trim() || null,
       primaryDestination: parsed.primaryDestination?.trim() || parsed.destination?.trim() || null,
-      duration: parsed.duration,
+      ...tripNightsDaysFieldsForProductWrite({
+        duration: parsed.duration,
+        title: parsed.title,
+        scheduleDayCount: Array.isArray(parsed.schedule) ? parsed.schedule.length : null,
+      }),
       airline: parsed.airline ?? null,
       productType: resolveRegisterProductType(
         travelScopeAndListingKindFromAdminRegister(travelScope),
@@ -1586,7 +1591,11 @@ export async function runLottetourRegisterFlow(request: Request, flowOptions: Pa
       supplierGroupId: parsed.supplierGroupId?.trim() || null,
       priceFrom: representativePrice,
       priceCurrency: parsed.priceCurrency?.trim() || null,
-      duration: parsed.duration,
+      ...tripNightsDaysFieldsForProductWrite({
+        duration: parsed.duration,
+        title: parsed.title,
+        scheduleDayCount: Array.isArray(parsed.schedule) ? parsed.schedule.length : null,
+      }),
       airline: parsed.airline ?? null,
       airtelHotelInfoJson: parsed.airtelHotelInfoJson ?? null,
       hotelSummaryRaw,

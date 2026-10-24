@@ -27950,6 +27950,36 @@
           ]
         }
       ]
+    },
+    {
+      "id": "register-derive-trip-nights-days",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 confirm — duration/title/schedule → Product.tripNights/tripDays 도출",
+      "checks": [
+        {
+          "file": "lib/derive-trip-nights-days.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-derive-trip-nights-days]",
+            "deriveTripNightsDays",
+            "tripNightsDaysFieldsForProductWrite"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-flow.ts",
+          "mustInclude": [
+            "tripNightsDaysFieldsForProductWrite"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "tripNightsDaysFieldsForProductWrite"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -28442,6 +28472,16 @@
       "files": [
         "lib/mega-menu-leaf-browse-coverage.test.ts",
         "lib/similar-itinerary-compare-cluster.test.ts"
+      ]
+    },
+    {
+      "id": "register-derive-trip-nights-days",
+      "tier": [
+        "ci"
+      ],
+      "summary": "tripNights/tripDays derive unit tests",
+      "files": [
+        "lib/derive-trip-nights-days.test.ts"
       ]
     }
   ]
