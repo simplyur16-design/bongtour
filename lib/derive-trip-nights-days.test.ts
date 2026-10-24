@@ -38,4 +38,8 @@ describe('deriveTripNightsDays', () => {
       }),
     ).toEqual({ tripNights: 4, tripDays: 6, duration: '4박 6일' })
   })
+
+  it('duration is always string for preview draft types', () => {
+    expect(typeof tripNightsDaysFieldsForProductWrite({}).duration).toBe('string')
+  })
 })

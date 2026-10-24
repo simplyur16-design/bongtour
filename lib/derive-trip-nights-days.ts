@@ -74,14 +74,15 @@ export function deriveTripNightsDays(input: DeriveTripNightsDaysInput): DeriveTr
   return { tripNights, tripDays, durationNormalized }
 }
 
-/** 등록 productData 에 스프레드할 필드 */
+/** 등록 productData / preview draft 에 스프레드할 필드 (`duration` 은 string — preview 타입 정합) */
 export function tripNightsDaysFieldsForProductWrite(
   input: DeriveTripNightsDaysInput,
-): { tripNights: number | null; tripDays: number | null; duration: string | null } {
+): { tripNights: number | null; tripDays: number | null; duration: string } {
   const d = deriveTripNightsDays(input)
+  // REGRESSION-FREEZE[register-derive-trip-nights-days]: duration string for preview draft — manifest
   return {
     tripNights: d.tripNights,
     tripDays: d.tripDays,
-    duration: String(input.duration || '').trim() || d.durationNormalized,
+    duration: String(input.duration || '').trim() || d.durationNormalized || '',
   }
 }
