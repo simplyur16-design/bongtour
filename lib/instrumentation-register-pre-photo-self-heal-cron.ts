@@ -32,6 +32,8 @@ import {
 
 /** KST — 수집 없이도 대기열 힐 (06/14/22시) */
 export const REGISTER_PRE_PHOTO_HEAL_ONLY_CRON = '15 6,14,22 * * *'
+/** KST — 야간 창(22–10) 종료 직후 수집·힐 다이제스트 1통 */
+export const REGISTER_PRE_PHOTO_INGEST_DIGEST_CRON = '5 10 * * *'
 
 let healOnlyTickRunning = false
 let ingestNightTickRunning = false
@@ -74,8 +76,20 @@ export function startInstrumentationRegisterPrePhotoSelfHealCron(): void {
       }
       cron.schedule(REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_EVENING, ingestTick, { timezone: 'Asia/Seoul' })
       cron.schedule(REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_MORNING, ingestTick, { timezone: 'Asia/Seoul' })
+      cron.schedule(
+        REGISTER_PRE_PHOTO_INGEST_DIGEST_CRON,
+        () => {
+          void import('@/lib/register-pre-photo-ingest-digest').then(({ maybeSendRegisterPrePhotoIngestDigest }) =>
+            maybeSendRegisterPrePhotoIngestDigest(),
+          )
+        },
+        { timezone: 'Asia/Seoul' },
+      )
       console.log(
         '[register-pre-photo-self-heal-cron] night ingest registered: * 22-23 * * * + * 0-9 * * * (Asia/Seoul, until-quota)',
+      )
+      console.log(
+        `[register-pre-photo-self-heal-cron] ingest digest registered: ${REGISTER_PRE_PHOTO_INGEST_DIGEST_CRON} (Asia/Seoul)`,
       )
     })
     .catch((e) => {
@@ -107,6 +121,11 @@ async function tickRegisterPrePhotoHealOnlyCron(): Promise<void> {
       healLimit: budget.healLimit,
     })
     console.log('[register-pre-photo-heal-only-cron]', result)
+    const { recordRegisterPrePhotoIngestDigestFromJobResult, maybeSendRegisterPrePhotoIngestDigest } =
+      await import('@/lib/register-pre-photo-ingest-digest')
+    recordRegisterPrePhotoIngestDigestFromJobResult(result)
+    // 창 종료 후 첫 heal-only(14:15 등)에서도 미발송이면 1회 시도
+    void maybeSendRegisterPrePhotoIngestDigest()
   } catch (e) {
     console.error('[register-pre-photo-heal-only-cron] error', e)
   } finally {
@@ -176,6 +195,10 @@ async function tickRegisterPrePhotoIngestNightCron(): Promise<void> {
       perSupplier: remaining,
     })
     console.log('[register-pre-photo-self-heal-cron]', nextSupplier, remaining, result)
+    const { recordRegisterPrePhotoIngestDigestFromJobResult } = await import(
+      '@/lib/register-pre-photo-ingest-digest'
+    )
+    recordRegisterPrePhotoIngestDigestFromJobResult(result)
   } catch (e) {
     console.error('[register-pre-photo-self-heal-cron] error', e)
   } finally {
