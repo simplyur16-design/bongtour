@@ -66,12 +66,6 @@ export default function AdminDashboardHomeClient({ query }: Props) {
           >
             국외연수 프로그램 등록
           </Link>
-          <Link
-            href={`/admin/brands${query}`}
-            className={`${ADMIN_BTN_SECONDARY_CLASS} hidden min-h-12 w-full sm:inline-flex sm:w-auto`}
-          >
-            브랜드 관리
-          </Link>
         </div>
       </section>
     </>
