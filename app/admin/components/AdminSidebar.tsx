@@ -37,7 +37,6 @@ import {
   Sparkles,
   Quote,
   Link2,
-  LineChart,
   Menu,
   X,
 } from 'lucide-react'
@@ -71,7 +70,6 @@ const navEntries: NavEntry[] = [
       { href: '/admin/marketing/curation-events', label: '이벤트 검토 (임시)', icon: CalendarDays },
       { href: '/admin/marketing/hooks', label: '후킹 라이브러리', icon: Quote },
       { href: '/admin/marketing/integrations', label: '외부 연동 (Meta)', icon: Link2 },
-      { href: '/admin/marketing/insights', label: '인사이트', icon: LineChart },
     ],
   },
   { type: 'link', href: '/admin/image-assets-upload', label: '이미지 업로드 · 출처(iStock)', icon: Images },

@@ -185,10 +185,6 @@ export async function register() {
         '@/lib/instrumentation-meta-token-refresh-cron'
       )
       startInstrumentationMetaTokenRefreshCron()
-      const { startInstrumentationInsightSyncCron } = await import(
-        '@/lib/instrumentation-insight-sync-cron'
-      )
-      startInstrumentationInsightSyncCron()
       const { startInstrumentationCurationEventCron } = await import(
         '@/lib/instrumentation-curation-event-cron'
       )
