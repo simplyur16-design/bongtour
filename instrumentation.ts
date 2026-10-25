@@ -181,10 +181,6 @@ export async function register() {
         '@/lib/instrumentation-product-detail-payload-cron'
       )
       startInstrumentationProductDetailPayloadCron()
-      const { startInstrumentationMetaTokenRefreshCron } = await import(
-        '@/lib/instrumentation-meta-token-refresh-cron'
-      )
-      startInstrumentationMetaTokenRefreshCron()
       const { startInstrumentationCurationEventCron } = await import(
         '@/lib/instrumentation-curation-event-cron'
       )
