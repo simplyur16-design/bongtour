@@ -1,5 +1,25 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { shouldModetourSweepRetireOnSd1 } from '@/lib/modetour-sd1-policy'
+import {
+  MODETOUR_E2E_DEFER_DIGEST_THRESHOLD,
+  __modetourE2eDeferStreakForTest,
+  __resetModetourE2eDeferStreakForTest,
+  recordModetourE2eModalDeferStreak,
+} from '@/lib/modetour-sweep'
+
+describe('modetour e2e defer streak', () => {
+  afterEach(() => {
+    __resetModetourE2eDeferStreakForTest()
+  })
+
+  it('counts consecutive defers per product', () => {
+    expect(recordModetourE2eModalDeferStreak('p1')).toBe(1)
+    expect(recordModetourE2eModalDeferStreak('p1')).toBe(2)
+    expect(recordModetourE2eModalDeferStreak('p1')).toBe(MODETOUR_E2E_DEFER_DIGEST_THRESHOLD)
+    expect(__modetourE2eDeferStreakForTest('p1')).toBe(3)
+    expect(recordModetourE2eModalDeferStreak('p2')).toBe(1)
+  })
+})
 
 describe('shouldModetourSweepRetireOnSd1', () => {
   it('retires travel packages on SD1', () => {

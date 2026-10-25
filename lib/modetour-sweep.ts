@@ -61,6 +61,32 @@ function safeRevalidateProductListingCaches(): void {
 }
 
 const SWEEP_DEFAULT_LIMIT = 200
+/** 연속 e2e defer 이 횟수 이상이면 ingest-digest 집계에 포함 */
+const MODETOUR_E2E_DEFER_DIGEST_THRESHOLD = 3
+
+/** productId → 연속 e2e-modal-failed-defer 횟수 (프로세스 메모리) */
+const modetourE2eDeferStreakByProduct = new Map<string, number>()
+
+function recordModetourE2eModalDeferStreak(productId: string): number {
+  const next = (modetourE2eDeferStreakByProduct.get(productId) ?? 0) + 1
+  modetourE2eDeferStreakByProduct.set(productId, next)
+  return next
+}
+
+function clearModetourE2eModalDeferStreak(productId: string): void {
+  modetourE2eDeferStreakByProduct.delete(productId)
+}
+
+/** 테스트용 */
+export function __modetourE2eDeferStreakForTest(productId: string): number {
+  return modetourE2eDeferStreakByProduct.get(productId) ?? 0
+}
+
+export function __resetModetourE2eDeferStreakForTest(): void {
+  modetourE2eDeferStreakByProduct.clear()
+}
+
+export { MODETOUR_E2E_DEFER_DIGEST_THRESHOLD, recordModetourE2eModalDeferStreak }
 
 export type ModetourSweepResult = {
   processed: number
@@ -324,12 +350,21 @@ export async function sweepDueModetourProducts(
       if (collected.inputs.length === 0) {
         if (collected.e2eModalOpenFailed) {
           result.e2eModalOpenFailed += 1
+          // lastPriceObservedAt 미갱신 + recheck meta clear → due 가 매일 다시 잡힐 수 있음.
+          // 가격/공개 상태는 바꾸지 않고 연속 defer 만 로그·다이제스트에 드러낸다.
+          const streak = recordModetourE2eModalDeferStreak(product.id)
           console.warn('[modetour-sweep] e2e-modal-failed-defer', {
             productId: product.id,
+            consecutiveDefer: streak,
             apiFailedSd1: collected.apiFailedSd1,
             listingKind: product.listingKind,
             productType: product.productType,
           })
+          if (streak === MODETOUR_E2E_DEFER_DIGEST_THRESHOLD) {
+            void import('@/lib/register-pre-photo-ingest-digest').then((m) => {
+              m.recordModetourE2eDeferHotForDigest(1)
+            })
+          }
           await prisma.product.update({
             where: { id: product.id },
             data: {
@@ -399,6 +434,7 @@ export async function sweepDueModetourProducts(
       })
 
       await upsertProductDepartures(prisma, product.id, inWindow)
+      clearModetourE2eModalDeferStreak(product.id)
 
       const prunedCount = await pruneDeparturesOutsideSourceDates(
         prisma,

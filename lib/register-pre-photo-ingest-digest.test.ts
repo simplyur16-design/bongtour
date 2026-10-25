@@ -96,6 +96,7 @@ describe('register-pre-photo-ingest-digest', () => {
     expect(text).not.toMatch(/www\./i)
     expect(text).not.toMatch(/01[016789]\d{7,8}/)
     expect(text).not.toMatch(/\+82/)
+    expect(text).toMatch(/modetourE2eDeferHot/)
   })
 
   it('ingest off → 0 sends', async () => {

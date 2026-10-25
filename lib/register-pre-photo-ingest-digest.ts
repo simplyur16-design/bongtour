@@ -26,6 +26,8 @@ type Acc = {
   discoverFails: number
   healProcessed: number
   partialMissing: boolean
+  /** 모두투어 e2e modal defer 가 N회 넘은 상품 수(프로세스 메모리) */
+  modetourE2eDeferHot: number
 }
 
 const acc: Acc = {
@@ -34,6 +36,7 @@ const acc: Acc = {
   discoverFails: 0,
   healProcessed: 0,
   partialMissing: false,
+  modetourE2eDeferHot: 0,
 }
 
 let digestSentDayKey: string | null = null
@@ -68,6 +71,11 @@ export function recordRegisterPrePhotoIngestDigestFromJobResult(result: {
 
 export function markRegisterPrePhotoIngestDigestPartialMissing(): void {
   acc.partialMissing = true
+}
+
+/** 모두투어 연속 e2e defer 가 임계를 넘은 상품을 다이제스트에 반영 */
+export function recordModetourE2eDeferHotForDigest(count = 1): void {
+  acc.modetourE2eDeferHot += Math.max(0, Math.floor(count))
 }
 
 function isDigestSmsEnabled(): boolean {
@@ -113,6 +121,7 @@ export function buildRegisterPrePhotoIngestDigestText(opts: {
     `healProcessed ${acc.healProcessed}`,
     `photoKeywordBlocked ${opts.photoKeywordBlocked == null ? 'n/a' : opts.photoKeywordBlocked}`,
     `opsSmsDailyCapDeferred ${opts.opsDeferred}`,
+    `modetourE2eDeferHot ${acc.modetourE2eDeferHot}`,
   ]
   if (opts.dailyCapPrefix) lines.push(opts.dailyCapPrefix)
   if (acc.partialMissing) lines.push('note: partial aggregation missing (process restart)')
@@ -194,6 +203,7 @@ export function __resetRegisterPrePhotoIngestDigestForTest(): void {
   acc.discoverFails = 0
   acc.healProcessed = 0
   acc.partialMissing = false
+  acc.modetourE2eDeferHot = 0
   digestSentDayKey = null
 }
 
