@@ -6521,7 +6521,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "web-only Railway — 6공급사 sweep cron fallback",
+      "summary": "web-only Railway — 7공급사 sweep cron fallback",
       "checks": [
         {
           "file": "lib/instrumentation-supplier-sweep-crontab.ts",
@@ -6529,7 +6529,9 @@
             "REGRESSION-FREEZE[supplier-sweep-web-fallback]",
             "registerSupplierSweepCrons",
             "startInstrumentationModetourSweepCron",
-            "startInstrumentationKyowontourSweepCron"
+            "startInstrumentationKyowontourSweepCron",
+            "startInstrumentationNaeiltourSweepCron",
+            "7공급사"
           ]
         },
         {
@@ -6537,7 +6539,8 @@
           "mustInclude": [
             "registerSupplierSweepCrons",
             "supplier-sweep-cron] web-fallback",
-            "DISABLE_WEB_SUPPLIER_SWEEP_CRON=1"
+            "DISABLE_WEB_SUPPLIER_SWEEP_CRON=1",
+            "7공급사"
           ]
         },
         {
@@ -6547,6 +6550,9 @@
             "DISABLE_WEB_SUPPLIER_SWEEP_CRON"
           ]
         }
+      ],
+      "vitestSuites": [
+        "lib/naeiltour-sweep.test.ts"
       ]
     },
     {

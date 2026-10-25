@@ -1,5 +1,5 @@
 /**
- * 일일 due-select로 hanatour·ybtour·verygoodtour 가격 sweep 1회.
+ * 일일 due-select로 hanatour·ybtour·verygoodtour·naeiltour 가격 sweep 1회.
  * 실행: npx tsx scripts/run-due-supplier-sweeps-once.ts
  */
 import './load-env-for-scripts'
@@ -7,6 +7,7 @@ import './load-env-for-scripts'
 import { PrismaClient } from '@prisma/client'
 
 import { sweepDueHanatourProducts } from '@/lib/hanatour-sweep'
+import { sweepDueNaeiltourProducts } from '@/lib/naeiltour-sweep'
 import { sweepDueVerygoodtourProducts } from '@/lib/verygoodtour-sweep'
 import { sweepDueYbtourProducts } from '@/lib/ybtour-sweep'
 
@@ -25,7 +26,11 @@ async function main() {
     const verygoodtour = await sweepDueVerygoodtourProducts(prisma, { limit: 200 })
     console.error('[due-sweep] verygoodtour', JSON.stringify(verygoodtour))
 
-    console.log(JSON.stringify({ ok: true, hanatour, ybtour, verygoodtour }, null, 2))
+    console.error('[due-sweep] naeiltour start')
+    const naeiltour = await sweepDueNaeiltourProducts(prisma, { limit: 200 })
+    console.error('[due-sweep] naeiltour', JSON.stringify(naeiltour))
+
+    console.log(JSON.stringify({ ok: true, hanatour, ybtour, verygoodtour, naeiltour }, null, 2))
   } finally {
     await prisma.$disconnect()
   }

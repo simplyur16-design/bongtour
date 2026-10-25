@@ -105,7 +105,7 @@ export async function register() {
         if (!isWebSupplierSweepCronDisabled()) {
           await registerSupplierSweepCrons()
           console.log(
-            '[supplier-sweep-cron] web-fallback: worker 없음 — 6공급사 일 1회 API sweep을 web에 등록 (worker 추가 시 web에 DISABLE_WEB_SUPPLIER_SWEEP_CRON=1)',
+            '[supplier-sweep-cron] web-fallback: worker 없음 — 7공급사 일 1회 API sweep을 web에 등록 (worker 추가 시 web에 DISABLE_WEB_SUPPLIER_SWEEP_CRON=1)',
           )
         }
         const { isRegisterPrePhotoHealOnlyCronEnabled } = await import(

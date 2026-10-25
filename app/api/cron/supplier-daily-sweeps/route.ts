@@ -3,6 +3,7 @@ import { sweepDueHanatourProducts } from '@/lib/hanatour-sweep'
 import { sweepDueKyowontourProducts } from '@/lib/kyowontour-sweep'
 import { sweepDueLottetourProducts } from '@/lib/lottetour-sweep'
 import { sweepDueModetourProducts } from '@/lib/modetour-sweep'
+import { sweepDueNaeiltourProducts } from '@/lib/naeiltour-sweep'
 import { sweepDueVerygoodtourProducts } from '@/lib/verygoodtour-sweep'
 import { sweepDueYbtourProducts } from '@/lib/ybtour-sweep'
 import { prisma } from '@/lib/prisma'
@@ -18,6 +19,7 @@ const SUPPLIERS = [
   'lottetour',
   'verygoodtour',
   'kyowontour',
+  'naeiltour',
 ] as const
 
 type SupplierKey = (typeof SUPPLIERS)[number]
@@ -27,9 +29,9 @@ function isSupplierKey(v: string): v is SupplierKey {
 }
 
 /**
- * 6공급사 due 가격 sweep — worker cron과 동일 함수. 운영 즉시 재수집용.
+ * 7공급사 due 가격 sweep — worker cron과 동일 함수. 운영 즉시 재수집용.
  * Header: x-bongtour-cron-secret
- * Query: supplier=modetour|… (생략 시 6사 순차), limit=
+ * Query: supplier=modetour|… (생략 시 7사 순차), limit=
  */
 export async function POST(req: Request) {
   if (!getBongtourCronSecret()) {
@@ -66,7 +68,9 @@ export async function POST(req: Request) {
                 ? await sweepDueLottetourProducts(prisma, { limit })
                 : s === 'verygoodtour'
                   ? await sweepDueVerygoodtourProducts(prisma, { limit })
-                  : await sweepDueKyowontourProducts(prisma, { limit })
+                  : s === 'kyowontour'
+                    ? await sweepDueKyowontourProducts(prisma, { limit })
+                    : await sweepDueNaeiltourProducts(prisma, { limit })
       console.log(`[cron/supplier-daily-sweeps] ${s}`, result)
       out[s] = result
     }
