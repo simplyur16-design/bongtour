@@ -25577,373 +25577,6 @@
       ]
     },
     {
-      "id": "admin-ota-receipt-invoice",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "OTA 바우처 공유 lib는 client-safe(node:fs 금지) — 로고 data URL은 서버 전용 모듈",
-      "checks": [
-        {
-          "file": "lib/bongtour-company-invoice.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
-            "resolveBongtourLogoUrl",
-            "CASH (Prepaid)",
-            "resolveLockedOtaAmountFromParsed",
-            "normalizeOtaCompanyInvoiceFees",
-            "parseOtaPaymentDateYmd",
-            "otaStayKrw",
-            "hotelReservationFeeKrw"
-          ],
-          "mustNotInclude": [
-            "node:fs",
-            "node:path",
-            "loadBongtourLogoDataUrl",
-            "readFileSync",
-            "class=\"brand\"",
-            "BongTour Check-in Voucher",
-            "봉투어 체크인 바우처",
-            "세금(부가가치세 등)이 포함",
-            "including VAT)."
-          ]
-        },
-        {
-          "file": "lib/bongtour-company-invoice-logo-server.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
-            "loadBongtourLogoDataUrl",
-            "node:fs"
-          ]
-        },
-        {
-          "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
-            "bongtour-company-invoice-logo-server",
-            "resolveLockedOtaAmountFromParsed",
-            "ota_amount_required",
-            "paymentDate"
-          ],
-          "mustNotInclude": [
-            "persistAdminOtaIssuedDocument"
-          ]
-        },
-        {
-          "file": "app/admin/invoices/OtaInvoiceAdminClient.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-receipt-invoice]",
-            "@/lib/bongtour-company-invoice",
-            "hotelReservationFeeKrw",
-            "visaApplied",
-            "결제당일"
-          ],
-          "mustNotInclude": [
-            "bongtour-company-invoice-logo-server",
-            "node:fs",
-            "loadBongtourLogoDataUrl"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/bongtour-company-invoice.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-issued-archive",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "OTA 발행 인보이스/바우처 + 원본 PDF를 DB/Ncloud에 자동 보관",
-      "checks": [
-        {
-          "file": "lib/admin-ota-issued-document-archive.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-issued-archive]",
-            "persistAdminOtaIssuedDocument",
-            "uploadStorageObjectRaw",
-            "admin-ota-docs/"
-          ]
-        },
-        {
-          "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
-          "mustNotInclude": [
-            "persistAdminOtaIssuedDocument",
-            "REGRESSION-FREEZE[admin-ota-issued-archive]"
-          ]
-        },
-        {
-          "file": "app/api/admin/invoices/issued/route.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-issued-archive]",
-            "persistAdminOtaIssuedDocument",
-            "listAdminOtaIssuedDocuments",
-            "requireAdmin",
-            "export async function POST"
-          ]
-        },
-        {
-          "file": "prisma/schema.prisma",
-          "mustInclude": [
-            "model AdminOtaIssuedDocument",
-            "model AdminOtaIssuedDocumentFile",
-            "REGRESSION-FREEZE[admin-ota-issued-archive]"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/admin-ota-issued-document-archive.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-voucher-note-en",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "바우처 비고 한→영 번역 + Booking ID에 OTA(Trip.com/Agoda)명 표기",
-      "checks": [
-        {
-          "file": "lib/bongtour-company-invoice.ts",
-          "mustInclude": [
-            "otaProviderDisplayName",
-            "resolveOtaVoucherNotePair",
-            "noteEn",
-            "OTA (예약처)"
-          ]
-        },
-        {
-          "file": "lib/bongtour-ota-voucher-note-translate.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-voucher-note-en]",
-            "translateOtaVoucherNoteToEn"
-          ]
-        },
-        {
-          "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
-          "mustInclude": [
-            "translateOtaVoucherNoteToEn",
-            "otaVoucherNoteNeedsEnglishTranslation",
-            "noteEnOverride"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/bongtour-company-invoice.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-foreign-tax-note",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "해외 호텔 바우처 — 현지세·봉사료 포함, 국내 부가세 환급·세금계산서 불가 고지",
-      "checks": [
-        {
-          "file": "lib/bongtour-company-invoice.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-foreign-tax-note]",
-            "현지 세금",
-            "국내 부가가치세 환급·세금계산서",
-            "local taxes as charged by the property/OTA",
-            "Korean VAT refund and tax invoice"
-          ],
-          "mustNotInclude": [
-            "세금(부가가치세 등)이 포함",
-            "applicable taxes (including VAT)"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/bongtour-company-invoice.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-air-voucher",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "관리자 항공권 바우처 — e-ticket 파싱·승객명 원문·OTA명 금지",
-      "checks": [
-        {
-          "file": "lib/bongtour-company-invoice.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-air-voucher]",
-            "air_voucher",
-            "buildOtaCompanyAirVoucherDraft",
-            "formatAirVoucherPassengerNames",
-            "extractAirVoucherPassengerNamesFromText",
-            "extractAirVoucherNoticesFromText",
-            "normalizeAirVoucherNotices",
-            "noticesKo",
-            "noticesEn",
-            "depTerminal",
-            "arrTerminal",
-            "ticketNumbers",
-            "출발 터미널",
-            "주의사항 · 참고사항",
-            "교차 폴백 금지",
-            "isLikelyAirPassengerNameToken",
-            "rewriteAirNoticeOtaBrandToBongtour",
-            "extractAirAirlineIataCode",
-            "resolveAirAirlineLogoSrc",
-            "airline-logo",
-            "voucher-page",
-            "break-inside:avoid",
-            "parseAdminAirlineEticketText",
-            "renderOtaCompanyAirVoucherHtml",
-            "항공권 바우처"
-          ]
-        },
-        {
-          "file": "lib/bongtour-company-invoice-logo-server.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-air-voucher]",
-            "loadAirAirlineLogoDataUrlMap",
-            "loadAirAirlineLogoDataUrlsForFlights",
-            "public",
-            "images",
-            "airlines"
-          ]
-        },
-        {
-          "file": "lib/bongtour-ota-voucher-pdf-ocr.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-air-voucher]",
-            "extractAirlineEticketPdfTextViaGemini",
-            "isUsableExtractedPdfText",
-            "Passenger Name",
-            "Dep Terminal",
-            "Arr Terminal",
-            "Notices (KO)",
-            "Notices (EN)",
-            "Replace any Trip.com",
-            "SAME order as Passenger Name"
-          ]
-        },
-        {
-          "file": "app/api/admin/invoices/from-ota-receipt/route.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-air-voucher]",
-            "air_voucher",
-            "buildOtaCompanyAirVoucherDraft",
-            "parseAdminAirlineEticketText",
-            "extractAirlineEticketPdfTextViaGemini",
-            "isUsableExtractedPdfText",
-            "loadAirAirlineLogoDataUrlsForFlights"
-          ]
-        },
-        {
-          "file": "app/admin/invoices/OtaInvoiceAdminClient.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-air-voucher]",
-            "air_voucher",
-            "항공권 바우처",
-            "isOtaCompanyAirVoucherDraft",
-            "새 파일 선택 시 이전 승객·미리보기 잔여 제거",
-            "setGuestName(json.draft.guestName || '')"
-          ]
-        },
-        {
-          "file": "lib/bongtour-company-invoice.test.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-air-voucher]",
-            "formatAirVoucherPassengerNames",
-            "extractAirVoucherPassengerNamesFromText",
-            "extractAirVoucherNoticesFromText",
-            "normalizeAirVoucherNotices",
-            "name is on the next OCR line",
-            "real OCR sample shape",
-            "renders e-ticket notices and remarks",
-            "rewrites Trip.com/트립닷컴 to 봉투어",
-            "keeps notice text out of passenger row",
-            "no OTA / Trip.com / Agoda",
-            "airline-logo",
-            "/images/airlines/OZ.png",
-            "extractAirAirlineIataCode"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/bongtour-company-invoice.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-issued-pdf",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "OTA 발행본은 HTML window.print 대신 Playwright PDF 저장·보관",
-      "checks": [
-        {
-          "file": "lib/bongtour-ota-issued-html-to-pdf.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-issued-pdf]",
-            "renderOtaIssuedHtmlToPdf",
-            "buildOtaIssuedPdfFileName",
-            "page.pdf",
-            "preferCSSPageSize",
-            "await import('playwright')"
-          ]
-        },
-        {
-          "file": "next.config.js",
-          "mustInclude": [
-            "playwright",
-            "playwright-core"
-          ]
-        },
-        {
-          "file": "package.json",
-          "mustInclude": [
-            "\"playwright\": \"^"
-          ]
-        },
-        {
-          "file": "app/api/admin/invoices/issued/route.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-issued-pdf]",
-            "renderOtaIssuedHtmlToPdf",
-            "pdfBase64",
-            "issuedPdf"
-          ]
-        },
-        {
-          "file": "lib/admin-ota-issued-document-archive.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[admin-ota-issued-pdf]",
-            "issued_pdf",
-            "issuedPdf"
-          ]
-        },
-        {
-          "file": "app/admin/invoices/OtaInvoiceAdminClient.tsx",
-          "mustInclude": [
-            "archiveAndDownloadPdf",
-            "PDF 저장·보관",
-            "pdfBase64"
-          ],
-          "mustNotInclude": [
-            "window.print",
-            "w.print()"
-          ]
-        },
-        {
-          "file": "nixpacks.toml",
-          "mustInclude": [
-            "npx playwright install chromium"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/bongtour-ota-issued-html-to-pdf.test.ts"
-      ]
-    },
-    {
       "id": "admin-pending-queue-flags",
       "tier": [
         "prebuild",
@@ -26503,7 +26136,10 @@
     },
     {
       "id": "decode-public-html-entities",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "공개 텍스트 HTML 엔티티 — &harr;·&rarr; 디코드 + 중복 어절 붕괴",
       "checks": [
         {
@@ -26516,11 +26152,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/decode-public-html-entities.test.ts"]
+      "vitestSuites": [
+        "lib/decode-public-html-entities.test.ts"
+      ]
     },
     {
       "id": "home-season-grid-no-itinerary-join",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "홈 시즌·페르소나 커버 — itineraries 조인 금지, schedule JSON만",
       "checks": [
         {
@@ -26573,7 +26214,10 @@
     },
     {
       "id": "bongsim-solapi-esim-priority-queue",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Solapi 발송 큐 — eSIM LMS/알림톡이 문의·관리자 SMS보다 우선",
       "checks": [
         {
@@ -26599,7 +26243,9 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/bongsim/notifications/solapi-send-queue.test.ts"]
+      "vitestSuites": [
+        "lib/bongsim/notifications/solapi-send-queue.test.ts"
+      ]
     },
     {
       "id": "public-detail-hero-short-listing",
@@ -28246,66 +27892,6 @@
       "files": [
         "lib/register-facts/product-kind.test.ts",
         "lib/product-listing-kind.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-receipt-invoice",
-      "tier": [
-        "ci"
-      ],
-      "summary": "Trip.com/Agoda 영수증·체크인바우처 → 봉투어 문서(OTA금액하드잠금·결제당일환율·인보이스수수료)",
-      "files": [
-        "lib/bongtour-company-invoice.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-issued-archive",
-      "tier": [
-        "ci"
-      ],
-      "summary": "OTA 발행 문서+원본 보관 키/sanitize",
-      "files": [
-        "lib/admin-ota-issued-document-archive.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-voucher-note-en",
-      "tier": [
-        "ci"
-      ],
-      "summary": "비고 한→영·OTA 예약처 표기 단위 테스트",
-      "files": [
-        "lib/bongtour-company-invoice.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-air-voucher",
-      "tier": [
-        "ci"
-      ],
-      "summary": "항공권 바우처 — 승객명 1/8·OTA명 금지",
-      "files": [
-        "lib/bongtour-company-invoice.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-foreign-tax-note",
-      "tier": [
-        "ci"
-      ],
-      "summary": "해외숙박 현지세 포함·국내부가세 불가 고지",
-      "files": [
-        "lib/bongtour-company-invoice.test.ts"
-      ]
-    },
-    {
-      "id": "admin-ota-issued-pdf",
-      "tier": [
-        "ci"
-      ],
-      "summary": "발행 PDF 파일명 scope 단위 테스트",
-      "files": [
-        "lib/bongtour-ota-issued-html-to-pdf.test.ts"
       ]
     },
     {
