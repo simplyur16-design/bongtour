@@ -1,0 +1,14 @@
+﻿Baseline vitest (npx vitest run) @ 44220d08 — VITEST_EXIT=1
+Summary: Test Files 9 failed | 486 passed; Tests 15 failed | 2463 passed
+
+Failed files / cases (names only):
+1. lib/verygoodtour-register-destination-from-paste.test.ts (file load fail)
+2. lib/ybtour-register-api-schedule.test.ts (file load fail)
+3. lib/ybtour-schedule-image-keyword.test.ts (file load fail)
+4. lib/hanatour-schedule-image-keyword-camino.test.ts > applyHanatourScheduleImageKeywordsToRows (Camino case)
+5. lib/instrumentation-meta-token-refresh-cron.test.ts > runMetaTokenRefreshTick > returns refreshedCount=1 when ...
+6. lib/instrumentation-meta-token-refresh-cron.test.ts > runMetaTokenRefreshTick > returns error when refresh window ...
+7. lib/mega-menu-city-browse-href.batch-parity.test.ts (multiple integration cases)
+8. lib/modetour-schedule-africa-seqp01-image-keyword.test.ts > SEQP01 case
+9. lib/overseas-hub-catalog-sections.test.ts > uses sports theme subgroups
+10. lib/product-hero-dates.test.ts > matches calendar dates in hero summary

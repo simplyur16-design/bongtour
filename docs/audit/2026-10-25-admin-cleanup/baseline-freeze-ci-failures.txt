@@ -1,0 +1,4 @@
+﻿Baseline freeze:ci @ 44220d08 — FREEZE_EXIT=1
+Known failure (name only):
+- lib/modetour-schedule-africa-seqp01-image-keyword.test.ts (register-schedule-trip-image-keyword-dedupe / SEQP01)
+Note: suite aborted at this failure; subsequent guards not fully exercised in baseline run.

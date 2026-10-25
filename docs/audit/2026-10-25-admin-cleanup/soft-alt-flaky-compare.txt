@@ -1,0 +1,9 @@
+﻿=== CURRENT TREE (d25a9a95) monitor deleted staged ===
+CURRENT run1 EXIT=1 duration_ms=15835
+CURRENT run2 EXIT=0 duration_ms=12287
+CURRENT run3 EXIT=1 duration_ms=12595
+
+=== WORKTREE d25a9a95 at D:\bongtour-flaky-check ===
+D25A run1 EXIT=1 duration_ms=16067
+D25A run2 EXIT=1 duration_ms=11757
+D25A run3 EXIT=1 duration_ms=3386
