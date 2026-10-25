@@ -16,6 +16,9 @@
 import {
   isRegisterListingIngestCronEnabled,
   isRegisterPrePhotoHealOnlyCronEnabled,
+  registerIngestNightMaxTotal,
+  registerIngestShouldYieldToEsimSms,
+  shouldRegisterRegisterListingIngestNightCron,
 } from '@/lib/register-listing-ingest-cron-gate'
 import {
   REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_EVENING,
@@ -56,6 +59,12 @@ export function startInstrumentationRegisterPrePhotoSelfHealCron(): void {
       if (!isRegisterListingIngestCronEnabled()) {
         console.log(
           '[register-pre-photo-self-heal-cron] night ingest skipped — ENABLE_REGISTER_PRE_PHOTO_LISTING_INGEST=1 to resume',
+        )
+        return
+      }
+      if (!shouldRegisterRegisterListingIngestNightCron()) {
+        console.log(
+          '[register-pre-photo-self-heal-cron] night ingest skipped on web — run ingest on worker only',
         )
         return
       }
@@ -110,6 +119,13 @@ async function tickRegisterPrePhotoIngestNightCron(): Promise<void> {
     console.warn('[register-pre-photo-self-heal-cron] skip: DATABASE_URL')
     return
   }
+  const yieldCheck = await registerIngestShouldYieldToEsimSms()
+  if (yieldCheck.skip) {
+    console.log(
+      `[register-pre-photo-self-heal-cron] skip ingest: esim notify pending ${yieldCheck.pending}`,
+    )
+    return
+  }
   const now = new Date()
   const windowId = registerPrePhotoIngestNightWindowId(now)
   if (!windowId) return
@@ -119,6 +135,15 @@ async function tickRegisterPrePhotoIngestNightCron(): Promise<void> {
     '@/lib/register-pre-photo-ingest-night-progress'
   )
   const createdTonight = await countRegisterPrePhotoIngestCreatedTonight(windowId)
+  const createdTotal = Object.values(createdTonight).reduce((a, n) => a + n, 0)
+  const maxTotal = registerIngestNightMaxTotal()
+  if (createdTotal >= maxTotal) {
+    console.log(
+      '[register-pre-photo-self-heal-cron] skip ingest: night max total reached',
+      JSON.stringify({ createdTotal, maxTotal }),
+    )
+    return
+  }
   const quotaFilled = createdTonightFillsRegisterPrePhotoIngestQuota(createdTonight)
   if (!shouldRunRegisterPrePhotoIngestNightTick(now, quotaFilled)) return
   const nextSupplier = pickNextRegisterPrePhotoIngestNightSupplierAfterCooldown(
@@ -140,7 +165,10 @@ async function tickRegisterPrePhotoIngestNightCron(): Promise<void> {
     const { registerPrePhotoIngestNightHealOpts } = await import(
       '@/lib/register-pre-photo-ingest-db-budget'
     )
-    const remaining = remainingRegisterPrePhotoIngestTonight(createdTonight, nextSupplier)
+    const remainingSupplier = remainingRegisterPrePhotoIngestTonight(createdTonight, nextSupplier)
+    const remainingTotal = Math.max(0, maxTotal - createdTotal)
+    const remaining = Math.min(remainingSupplier, remainingTotal)
+    if (remaining <= 0) return
     const budget = registerPrePhotoIngestNightHealOpts()
     const result = await runRegisterPrePhotoDailyJob({
       ...budget,
@@ -153,4 +181,9 @@ async function tickRegisterPrePhotoIngestNightCron(): Promise<void> {
   } finally {
     ingestNightTickRunning = false
   }
+}
+
+/** 테스트·다이제스트용 — 야간 ingest tick 진입점 */
+export async function __tickRegisterPrePhotoIngestNightCronForTest(): Promise<void> {
+  await tickRegisterPrePhotoIngestNightCron()
 }

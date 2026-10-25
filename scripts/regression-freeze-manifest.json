@@ -1901,7 +1901,9 @@
             "REGRESSION-FREEZE[register-listing-ingest-opt-in]",
             "ENABLE_REGISTER_PRE_PHOTO_LISTING_INGEST",
             "isRegisterListingIngestCronEnabled",
-            "isRegisterPrePhotoHealOnlyCronEnabled"
+            "isRegisterPrePhotoHealOnlyCronEnabled",
+            "isRegisterListingIngestAllowedInThisProcess",
+            "REGISTER_INGEST_ALLOW_ON_WEB"
           ]
         },
         {
@@ -1911,7 +1913,9 @@
             "isRegisterListingIngestCronEnabled",
             "REGRESSION-FREEZE[register-pre-photo-heal-cron-always]",
             "REGISTER_PRE_PHOTO_HEAL_ONLY_CRON",
-            "skipIngest: true"
+            "skipIngest: true",
+            "night ingest skipped on web — run ingest on worker only",
+            "skip ingest: esim notify pending"
           ]
         },
         {

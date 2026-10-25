@@ -64,6 +64,7 @@ import {
   waitNaeiltourListingHumanPause,
 } from '@/lib/register-listing-discover-naeiltour'
 import { kstTodayYmd } from '@/lib/calendar-ymd'
+import { registerIngestShouldYieldToEsimSms } from '@/lib/register-listing-ingest-cron-gate'
 import {
   REGISTER_PRE_PHOTO_INGEST_PER_GEO,
   REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER,
@@ -369,6 +370,16 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
           if ((result.bySupplier[supplier] ?? 0) >= perSupplier) break
           if (!listingUrlMatchesIngestLane(factSource, originUrl, slot.lane)) continue
           if (!(await discoveredListingFitsIngestLane(factSource, originUrl, slot.lane))) continue
+
+          const yieldBetween = await registerIngestShouldYieldToEsimSms()
+          if (yieldBetween.skip) {
+            console.error(
+              '[register-pre-photo-listing-ingest] yield-esim',
+              supplier,
+              yieldBetween.pending,
+            )
+            return result
+          }
 
           try {
             const themeKey = sportsThemeKeyFromIngestSlot(slot)
