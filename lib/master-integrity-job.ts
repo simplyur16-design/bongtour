@@ -2,8 +2,8 @@
  * I-7: 정합 검증 실행 + (옵션) Solapi 운영자 알림.
  */
 import { formatMasterIntegritySms, runMasterIntegrityCheck } from '@/lib/master-integrity'
-import { sendAdminOperationalLms } from '@/lib/notification-service'
 import { prisma } from '@/lib/prisma'
+import { enqueueOpsSms } from '@/lib/solapi-ops-sms-limiter'
 
 export async function runMasterIntegrityScheduledJob(opts?: {
   /** true면 이상 건수가 있어도 SMS/LMS 미발송 */
@@ -16,7 +16,10 @@ export async function runMasterIntegrityScheduledJob(opts?: {
   )
 
   if (!opts?.skipNotify && report.counts.brokenTotal > 0) {
-    await sendAdminOperationalLms(formatMasterIntegritySms(report))
+    await enqueueOpsSms({
+      kind: 'master-integrity',
+      text: formatMasterIntegritySms(report),
+    })
   }
 
   return report
