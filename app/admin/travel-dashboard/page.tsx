@@ -192,9 +192,6 @@ export default function TravelDashboardPage() {
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm">
         <h1 className="text-lg font-bold text-gray-900">여행 데이터 파싱 대시보드</h1>
         <div className="flex items-center gap-3">
-          <Link href="/admin/sync" className="text-sm text-gray-500 hover:text-gray-900">
-            실시간 동기화
-          </Link>
           <Link href="/admin/register" className="text-sm font-medium text-orange-600 hover:text-orange-800">
             상품 등록
           </Link>
