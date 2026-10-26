@@ -811,6 +811,47 @@
       ]
     },
     {
+      "id": "heal-never-write-product-title",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "힐·수리·백필 경로 Product.title 미기록 (클린 제목은 in-memory 추론만)",
+      "checks": [
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[heal-never-write-product-title]",
+            "titleForInfer",
+            "normalizeSupplierRegisterListingTitle"
+          ],
+          "mustNotInclude": [
+            "titleChanged",
+            "title: cleanedTitle"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-listing-ingest.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[heal-never-write-product-title]"
+          ],
+          "mustNotInclude": [
+            "titlePatch"
+          ]
+        },
+        {
+          "file": "lib/heal-never-write-product-title.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[heal-never-write-product-title]",
+            "PRODUCT_TITLE_WRITE_RE"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/heal-never-write-product-title.test.ts"
+      ]
+    },
+    {
       "id": "eastern-europe-menu-group-country-keys",
       "tier": [
         "prebuild",
