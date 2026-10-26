@@ -881,6 +881,33 @@
       ]
     },
     {
+      "id": "review-policy-shopping-unknown",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Admin review-policy — 빈 shopping rows 는 미확인, 명시 노쇼핑 신호만 쇼핑 없음",
+      "checks": [
+        {
+          "file": "lib/review-policy-shopping-info.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[review-policy-shopping-unknown]",
+            "reviewPolicyShoppingEmptyInfoLine",
+            "쇼핑 정보 없음(미확인)"
+          ]
+        },
+        {
+          "file": "lib/review-policy-hanatour.ts",
+          "mustInclude": [
+            "reviewPolicyShoppingEmptyInfoLine"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/review-policy-shopping-info.test.ts"
+      ]
+    },
+    {
       "id": "departure-onsale-import-filter",
       "tier": [
         "prebuild",
