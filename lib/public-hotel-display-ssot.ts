@@ -22,11 +22,17 @@ const HOTEL_NOTICE_RE =
 
 const DAY_HOTEL_HEADER_RE = /\d+\s*일\s*차\s*(?:예정)?\s*호텔/u
 
+/** 일정 섹션 제목·잡문 헤더 (숙소명 아님) — `날씨 및 호텔` 등 */
+const HOTEL_SECTION_HEADING_RE =
+  /^(?:날씨\s*및\s*호텔|날씨\/호텔|호텔\s*및\s*날씨|호텔\s*정보|숙소\s*안내|숙박\s*안내|호텔\s*안내)$/u
+
 /** 갤러리·카탈로그 조각 (숙소명 아님) */
 function isChromeHotelFragment(s: string): boolean {
   const t = s.replace(/\s+/g, ' ').trim()
   if (!t) return true
   if (CHROME_FRAGMENT_RE.test(t)) return true
+  if (HOTEL_SECTION_HEADING_RE.test(t)) return true
+  if (/날씨\s*및\s*호텔/u.test(t) && t.length <= 24) return true
   if (/_(?:객실|부대시설|외관)\b/i.test(t)) return true
   if (/^객실\b/u.test(t) && t.length <= 24) return true
   if (/아름다운|즐기는|특별 체험|레이스 체험/u.test(t) && !/(호텔|Hotel|Resort|리조트)/i.test(t)) {

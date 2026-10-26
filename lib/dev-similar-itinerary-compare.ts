@@ -32,10 +32,11 @@ import {
   isCanonicalOverseasSupplierKey,
   type CanonicalOverseasSupplierKey,
 } from '@/lib/overseas-supplier-canonical-keys'
+import { deriveTripNightsDays } from '@/lib/derive-trip-nights-days'
 import {
-  compareDurationsMatch,
   comparePlaceClustersMatch,
   comparePlaceDbSearchTerms,
+  compareProductTripLengths,
   normalizeCompareDurationLabel,
   resolveComparePlaceCluster,
 } from '@/lib/similar-itinerary-compare-cluster'
@@ -204,6 +205,8 @@ export async function loadSimilarItineraryCompare(opts: {
       slug: true,
       title: true,
       duration: true,
+      tripNights: true,
+      tripDays: true,
       primaryDestination: true,
       destination: true,
       listingKind: true,
@@ -255,6 +258,11 @@ export async function loadSimilarItineraryCompare(opts: {
     },
   })
 
+  const durationWantInput = {
+    duration: durationRaw || (allowPreset ? DEV_COMPARE_PRESETS[0].duration : ''),
+    title: null as string | null,
+  }
+
   const matched = placeWant
     ? products.filter((p) => {
         const place = resolveComparePlaceCluster({
@@ -262,9 +270,16 @@ export async function loadSimilarItineraryCompare(opts: {
           destination: p.destination,
           title: p.title,
         })
-        const durOk = compareDurationsMatch(
-          normalizeCompareDurationLabel(p.duration, p.title),
-          durationWant,
+        const scheduleDayCount = Array.isArray(p.itineraryDays) ? p.itineraryDays.length : null
+        const durOk = compareProductTripLengths(
+          {
+            duration: p.duration,
+            title: p.title,
+            tripNights: p.tripNights,
+            tripDays: p.tripDays,
+            scheduleDayCount,
+          },
+          durationWantInput,
         )
         if (!comparePlaceClustersMatch(placeWant, place) || !durOk) return false
         // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 패키지 표에 FIT 금지·반대도 금지 — manifest
@@ -276,10 +291,27 @@ export async function loadSimilarItineraryCompare(opts: {
     // REGRESSION-FREEZE[supplier-product-fact-ssot]: 비교표 사실 도출 — manifest
     const shop = deriveShoppingFact(p)
     const opt = deriveOptionalFact(p)
-    const hm = deriveHotelMealFact(p)
-    const airline = deriveAirlineFact(p)
+    const hm = deriveHotelMealFact({
+      ...p,
+      listingKind: p.listingKind,
+      productType: p.productType,
+      slug: p.slug,
+    })
+    const airline = deriveAirlineFact({
+      rawMeta: p.rawMeta,
+      departures: p.departures,
+      departureKeyFactsAirline: p.departures?.[0]?.carrierName ?? null,
+    })
     const originKey = normalizeSupplierOrigin(p.originSource)
     const supplierKey = isCanonicalOverseasSupplierKey(originKey) ? originKey : null
+    const scheduleDayCount = Array.isArray(p.itineraryDays) ? p.itineraryDays.length : null
+    const tripLen = deriveTripNightsDays({
+      duration: p.duration,
+      title: p.title,
+      tripNights: p.tripNights,
+      tripDays: p.tripDays,
+      scheduleDayCount,
+    })
     return {
       id: p.id,
       slug: p.slug,
@@ -299,7 +331,7 @@ export async function loadSimilarItineraryCompare(opts: {
         ).cardTitle ||
         String(p.title || '').trim() ||
         '(제목 없음)',
-      duration: normalizeCompareDurationLabel(p.duration, p.title) || '정보 없음',
+      duration: tripLen.label || normalizeCompareDurationLabel(p.duration, p.title) || '정보 없음',
       priceLabel: priceLabel(computeEffectivePricePerPersonKrwFromRow(p)),
       airlineLabel: airline.airlineLabel,
       shopping: toTriState(shop.state, shop.visitCount),

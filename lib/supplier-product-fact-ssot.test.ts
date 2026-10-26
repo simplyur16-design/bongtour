@@ -150,6 +150,18 @@ describe('compare meal slots + hotel star', () => {
 })
 
 describe('deriveAirlineFact', () => {
+  it('departureKeyFacts.airline 최우선 (상세·비교 동일)', () => {
+    const f = deriveAirlineFact({
+      departureKeyFactsAirline: 'KE',
+      departures: [{ carrierName: 'TW' }],
+      rawMeta: JSON.stringify({
+        structuredSignals: { airlineName: '대한항공' },
+      }),
+    })
+    expect(f.airlineLabel).toBe('대한항공')
+    expect(f.source).toBe('departure_key_facts')
+  })
+
   it('출발행 carrierName 우선 + IATA 한글', () => {
     const f = deriveAirlineFact({
       departures: [{ carrierName: 'TW' }],
@@ -172,8 +184,37 @@ describe('deriveAirlineFact', () => {
     expect(f.source).toBe('structured_airline')
   })
 
-  it('없으면 정보 없음', () => {
+  it('상담 시·없으면 정보 없음 (발명 금지)', () => {
     expect(deriveAirlineFact({}).airlineLabel).toBe('정보 없음')
+    expect(
+      deriveAirlineFact({ departureKeyFactsAirline: '상담 시 안내' }).airlineLabel,
+    ).toBe('정보 없음')
+  })
+})
+
+describe('hotel heading scrub + FIT meal', () => {
+  it('날씨 및 호텔 섹션 제목은 호텔칸 거부', () => {
+    const hm = deriveHotelMealFact({
+      hotelSummaryText: '날씨 및 호텔',
+      itineraryDays: [{ hotelText: '날씨 및 호텔' }],
+    })
+    expect(hm.hotelLabel).toBe('정보 없음')
+  })
+
+  it('FIT 비교 식사칸은 예시일정 조중석을 쓰지 않음', () => {
+    const hm = deriveHotelMealFact({
+      listingKind: 'air_hotel_free',
+      slug: 'fit-nl-0007',
+      itineraryDays: [
+        {
+          breakfastText: '호텔식',
+          lunchText: '현지식',
+          dinnerText: '특식',
+        },
+      ],
+    })
+    expect(hm.mealLabel).not.toMatch(/중식|석식/)
+    expect(['정보 없음', '호텔 조식']).toContain(hm.mealLabel)
   })
 })
 
