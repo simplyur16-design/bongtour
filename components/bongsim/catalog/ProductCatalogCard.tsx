@@ -20,6 +20,8 @@ type Props = {
 
 export function ProductCatalogCard({ row, kycDistribution }: Props) {
   const price = computeRecommendedPrice(row.price_block as ProductOption["price_block"]);
+  // 가격 없는 상품은 목록에 올리지 않음 ('가격 문의' 폴백 금지)
+  if (price == null) return null;
   const href = bongsimPath(`/product/${encodeURIComponent(row.option_api_id)}`);
   const optionLabel = formatPlanOptionLabel({
     plan_type: row.plan_type,
@@ -47,15 +49,11 @@ export function ProductCatalogCard({ row, kycDistribution }: Props) {
           </p>
         </div>
         <div className="ml-auto shrink-0 text-right">
-          {price != null ? (
-            <AffiliationMemberPrice
-              consumerKrw={price}
-              affiliationVerified={affiliationVerified}
-              size="sm"
-            />
-          ) : (
-            <p className="text-[12px] text-slate-400">가격 문의</p>
-          )}
+          <AffiliationMemberPrice
+            consumerKrw={price}
+            affiliationVerified={affiliationVerified}
+            size="sm"
+          />
           <p className="mt-1 font-mono text-[10px] text-slate-400">{row.option_api_id}</p>
         </div>
       </div>

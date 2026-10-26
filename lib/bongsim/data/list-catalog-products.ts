@@ -11,6 +11,7 @@ import {
   resetBongsimPgPoolAfterConnectTimeout,
   withBongsimPoolQuery,
 } from "@/lib/bongsim/db/pool";
+import { computeRecommendedPrice, type ProductOption } from "@/lib/bongsim/recommend/product-option";
 
 export type CatalogProductListRow = {
   option_api_id: string;
@@ -67,6 +68,13 @@ function baseFilterSql(): string {
          )`;
 }
 
+/** 표시 단가 없는 행 제외 — '가격 문의' 폴백 금지 */
+export function filterCatalogRowsWithPrice(rows: CatalogProductListRow[]): CatalogProductListRow[] {
+  return rows.filter(
+    (row) => computeRecommendedPrice(row.price_block as ProductOption["price_block"]) != null,
+  );
+}
+
 const LIST_SELECT = `SELECT
          option_api_id,
          plan_name,
@@ -108,7 +116,7 @@ export async function listCatalogProducts(params: ListCatalogProductsParams): Pr
         [nf, pt, qpat],
       ),
     );
-    return { ok: true, rows: r.rows };
+    return { ok: true, rows: filterCatalogRowsWithPrice(r.rows) };
   } catch (e) {
     return { ok: false, reason: failReason(e) };
   }
@@ -151,7 +159,8 @@ export async function listCatalogProductsPaginated(
        LIMIT $4 OFFSET $5`,
         [nf, pt, qpat, limit, offset],
       );
-      return { ok: true as const, rows: r.rows, total };
+      const priced = filterCatalogRowsWithPrice(r.rows);
+      return { ok: true as const, rows: priced, total };
     });
   } catch (e) {
     return { ok: false, reason: failReason(e) };
