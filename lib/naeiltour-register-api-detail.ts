@@ -156,17 +156,18 @@ export function extractNaeiltourFeesFromBullets(
 }
 
 export function extractNaeiltourOptionalShoppingFromTab0(html: string | null): {
-  hasOptionalTour: boolean
+  hasOptionalTour: boolean | null
   optionalTourSummaryText: string | null
-  hasShopping: boolean
+  hasShopping: boolean | null
   shoppingSummaryText: string | null
   shoppingVisitCount: number | null
 } {
   if (!html) {
+    // 탭 HTML 미수신 → unknown (없음으로 발명 금지)
     return {
-      hasOptionalTour: false,
+      hasOptionalTour: null,
       optionalTourSummaryText: null,
-      hasShopping: false,
+      hasShopping: null,
       shoppingSummaryText: null,
       shoppingVisitCount: null,
     }
@@ -174,20 +175,21 @@ export function extractNaeiltourOptionalShoppingFromTab0(html: string | null): {
   const optRaw = stripNaeiltourHtmlText(extractIncluExcluBlock(html, '선택관광') ?? '')
   const shopRaw = stripNaeiltourHtmlText(extractIncluExcluBlock(html, '쇼핑정보') ?? '')
   const noOption = /노옵션|선택관광이\s*없/i.test(optRaw)
-  const hasOptionalTour = Boolean(optRaw) && !noOption
+  const hasOptionalTour: boolean | null = !optRaw ? null : !noOption
   const noShopping = /쇼핑\s*없|노쇼핑|쇼핑없음/i.test(shopRaw)
-  const hasShopping = Boolean(shopRaw) && !noShopping
+  // 쇼핑정보 블록 없음 → unknown; 블록+없음 시그널 → false; 블록+내용 → true
+  const hasShopping: boolean | null = !shopRaw ? null : noShopping ? false : true
   const countM = shopRaw.match(/쇼핑\s*(\d+)\s*회|총\s*(\d+)\s*회/)
   const countFromText =
     countM != null ? Number(countM[1] || countM[2]) : null
   let shoppingVisitCount: number | null = null
-  if (hasShopping) {
+  if (hasShopping === true) {
     shoppingVisitCount =
       countFromText != null && Number.isFinite(countFromText) && countFromText >= 0
         ? countFromText
         : 1
-  } else if (shopRaw) {
-    // 쇼핑정보 블록이 있고 없음 시그널 → 0 (unknown 금지)
+  } else if (hasShopping === false) {
+    // 쇼핑정보 블록이 있고 없음 시그널 → 0 (명시 없음)
     shoppingVisitCount = 0
   }
   return {

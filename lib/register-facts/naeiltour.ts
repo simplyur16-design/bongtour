@@ -58,11 +58,12 @@ export async function collectNaeiltourRegisterFacts(originUrl: string): Promise<
     bundle.tab1Html,
   )
 
-  const shoppingPlaces = optShop.hasShopping
-    ? [optShop.shoppingSummaryText ?? '쇼핑'].filter(Boolean)
-    : optShop.shoppingVisitCount === 0
-      ? ['노쇼핑']
-      : []
+  const shoppingPlaces =
+    optShop.hasShopping === true
+      ? [optShop.shoppingSummaryText ?? '쇼핑'].filter(Boolean)
+      : optShop.hasShopping === false
+        ? ['노쇼핑']
+        : []
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)

@@ -1,10 +1,11 @@
 /**
- * fix 3b — per-supplier shopping extract → 있음(N회) / 없음 (unknown 금지 경로)
+ * fix 3b/3c — per-supplier shopping extract → 있음(N회) / 없음 / unknown(칩 숨김)
  */
 import { describe, expect, it } from 'vitest'
 import { extractHanatourShoppingFromProdInfo } from '@/lib/hanatour-register-api-detail'
 import { finalizeHanatourRegisterParsedShopping } from '@/lib/register-hanatour-shopping'
 import { extractModetourShoppingFromDetailBundle } from '@/lib/modetour-register-api-detail'
+import { finalizeModetourRegisterParsedShopping } from '@/lib/register-modetour-shopping'
 import { extractYbtourShoppingFromNoticeAndSchedule } from '@/lib/ybtour-register-api-detail'
 import {
   extractLottetourShoppingFromSpotListAjax,
@@ -15,10 +16,15 @@ import {
   CSP302_OPT_SHOP_TAB7_DETAIL_FIXTURE,
   parseKyowontourOptShopTabDetail,
 } from '@/lib/kyowontour-tour-event-tab-data'
-import { optShopParsedToRegisterFields } from '@/lib/kyowontour-register-opt-shop-collect'
+import {
+  kyowontourOptShopToFactShoppingPlaces,
+  optShopParsedToRegisterFields,
+} from '@/lib/kyowontour-register-opt-shop-collect'
 import { extractNaeiltourOptionalShoppingFromTab0 } from '@/lib/naeiltour-register-api-detail'
 import { shoppingScalarsFromRegisterParsed } from '@/lib/supplier-product-fact-ssot'
+import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import type { RegisterParsed } from '@/lib/register-llm-schema-hanatour'
+import type { RegisterParsed as ModetourRegisterParsed } from '@/lib/register-llm-schema-modetour'
 import { MODETOUR_AVP603_HEADER_SNIPPET } from '../scripts/fixtures/modetour-avp603twa1.fixture'
 import { HANATOUR_ATP207_HEADER_SNIPPET } from '../scripts/fixtures/hanatour-atp207260601twj.fixture'
 
@@ -146,18 +152,49 @@ describe('verygoodtour shopping extract (헤더 쇼핑 N회)', () => {
 describe('kyowontour shopping extract (goodsEvtTab_7 shopping_list)', () => {
   it('CSP302 fixture → 있음(2회)', () => {
     const parsed = parseKyowontourOptShopTabDetail(CSP302_OPT_SHOP_TAB7_DETAIL_FIXTURE)
+    expect(parsed.tabDetailPresent).toBe(true)
     expect(parsed.shoppingItems.length).toBe(2)
     expect(parsed.shoppingVisitCount).toBe(2)
     const fields = optShopParsedToRegisterFields(parsed)
     expect(fields.hasShopping).toBe(true)
     expect(fields.shoppingVisitCount).toBe(2)
+    expect(kyowontourOptShopToFactShoppingPlaces(parsed).length).toBe(2)
   })
 
-  it('empty shopping_list → 없음(0)', () => {
+  it('tab present + empty shopping_list → 명시 없음(0)', () => {
     const parsed = parseKyowontourOptShopTabDetail({ evtType: [], etcTour: [] })
+    expect(parsed.tabDetailPresent).toBe(true)
     const fields = optShopParsedToRegisterFields(parsed)
     expect(fields.hasShopping).toBe(false)
     expect(fields.shoppingVisitCount).toBe(0)
+    expect(kyowontourOptShopToFactShoppingPlaces(parsed)).toEqual(['노쇼핑'])
+    expect(shoppingScalarsFromRegisterParsed(fields)).toEqual({
+      shoppingCount: 0,
+      shoppingVisitCountTotal: 0,
+    })
+  })
+
+  it('tab7 null/missing → unknown & chip hidden (not 노쇼핑/0)', () => {
+    for (const detail of [null, undefined, ''] as const) {
+      const parsed = parseKyowontourOptShopTabDetail(detail)
+      expect(parsed.tabDetailPresent).toBe(false)
+      expect(parsed.shoppingVisitCount).toBeNull()
+      const fields = optShopParsedToRegisterFields(parsed)
+      expect(fields.hasShopping).toBeNull()
+      expect(fields.shoppingVisitCount).toBeNull()
+      expect(kyowontourOptShopToFactShoppingPlaces(parsed)).toEqual([])
+      const scalars = shoppingScalarsFromRegisterParsed({
+        hasShopping: fields.hasShopping ?? undefined,
+        shoppingVisitCount: fields.shoppingVisitCount,
+      })
+      expect(scalars).toEqual({ shoppingCount: null, shoppingVisitCountTotal: null })
+      const chips = buildProductMetaChips({
+        title: '교원 테스트',
+        shoppingCount: scalars.shoppingCount,
+        shoppingVisitCountTotal: scalars.shoppingVisitCountTotal,
+      })
+      expect(chips.find((c) => c.kind === 'shopping')).toBeUndefined()
+    }
   })
 })
 
@@ -174,5 +211,48 @@ describe('naeiltour shopping extract (탭0 쇼핑정보) — inline markup match
     const r = extractNaeiltourOptionalShoppingFromTab0(html)
     expect(r.hasShopping).toBe(false)
     expect(r.shoppingVisitCount).toBe(0)
+  })
+
+  it('html null / 쇼핑정보 블록 없음 → unknown (not 없음)', () => {
+    expect(extractNaeiltourOptionalShoppingFromTab0(null)).toMatchObject({
+      hasShopping: null,
+      shoppingVisitCount: null,
+    })
+    expect(extractNaeiltourOptionalShoppingFromTab0('<div>본문만</div>')).toMatchObject({
+      hasShopping: null,
+      shoppingVisitCount: null,
+    })
+  })
+})
+
+describe('modetour finalize — missing rows does not invent 없음', () => {
+  it('no paste / no rows / no API signal → unknown', () => {
+    const out = finalizeModetourRegisterParsedShopping({
+      shoppingStops: undefined,
+      shoppingVisitCount: null,
+      hasShopping: undefined,
+      detailBodyStructured: { raw: { shoppingPasteRaw: null }, shoppingStructured: { rows: [] } },
+    } as unknown as ModetourRegisterParsed)
+    expect(out.hasShopping).toBeUndefined()
+    expect(out.shoppingVisitCount).toBeNull()
+  })
+
+  it('API visit 0 → 명시 없음 유지', () => {
+    const out = finalizeModetourRegisterParsedShopping({
+      shoppingStops: undefined,
+      shoppingVisitCount: 0,
+      hasShopping: false,
+      detailBodyStructured: { raw: { shoppingPasteRaw: null }, shoppingStructured: { rows: [] } },
+    } as unknown as ModetourRegisterParsed)
+    expect(out.hasShopping).toBe(false)
+    expect(out.shoppingVisitCount).toBe(0)
+  })
+})
+
+describe('verygoodtour empty html → unknown (not 없음)', () => {
+  it('빈 HTML hasShopping null', () => {
+    const r = extractVerygoodOptionalShoppingFromDetailHtml('')
+    expect(r.hasShopping).toBeNull()
+    expect(r.shoppingVisitCount).toBeNull()
   })
 })

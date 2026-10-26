@@ -455,11 +455,16 @@ export function finalizeHanatourRegisterParsedShopping(parsed: RegisterParsed): 
         }
       : null
   const issues = (parsed.extractionFieldIssues ?? []).filter((x) => x.field !== 'shoppingStops')
+  // paste 있으나 행 0건 — 명시 없음 시그널 없으면 unknown (hasShopping false 발명 금지)
+  const pasteDeclaresNo =
+    /쇼핑\s*없|노쇼핑|쇼핑없음|쇼핑\s*0\s*회/i.test(pasted) || parsed.hasShopping === false
   return {
     ...parsed,
-    hasShopping: false,
-    shoppingVisitCount: null,
-    shoppingSummaryText: undefined,
+    hasShopping: pasteDeclaresNo ? false : undefined,
+    shoppingVisitCount: pasteDeclaresNo ? 0 : null,
+    shoppingSummaryText: pasteDeclaresNo
+      ? parsed.shoppingSummaryText?.trim() || '쇼핑 없음'
+      : undefined,
     shoppingNoticeRaw: undefined,
     shoppingStops: undefined,
     detailBodyStructured: nextDetail ?? parsed.detailBodyStructured,

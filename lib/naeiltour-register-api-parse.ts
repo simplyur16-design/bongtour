@@ -234,10 +234,10 @@ export async function parseNaeiltourRegisterFromApi(
     minimumDepartureCount,
     minimumDepartureText:
       minimumDepartureCount != null ? `최소출발 ${minimumDepartureCount}명` : null,
-    hasOptionalTour: optShop.hasOptionalTour,
+    hasOptionalTour: optShop.hasOptionalTour ?? undefined,
     optionalTourSummaryText: optShop.optionalTourSummaryText ?? undefined,
     shoppingVisitCount: optShop.shoppingVisitCount,
-    hasShopping: optShop.hasShopping,
+    hasShopping: optShop.hasShopping ?? undefined,
     shoppingSummaryText: optShop.shoppingSummaryText ?? undefined,
     airline: flightStructured?.airlineName ?? null,
     airlineName: flightStructured?.airlineName ?? null,
@@ -307,14 +307,14 @@ export async function augmentNaeiltourRegisterParsedFromApiCollect(
   if (needsRegisterOptionalCollect(next) && !ctx?.pastedBlocks?.optionalTour?.trim()) {
     next = {
       ...next,
-      hasOptionalTour: optShop.hasOptionalTour,
+      ...(optShop.hasOptionalTour != null ? { hasOptionalTour: optShop.hasOptionalTour } : {}),
       optionalTourSummaryText: optShop.optionalTourSummaryText ?? undefined,
     }
   }
   if (needsRegisterShoppingCollect(next) && !ctx?.pastedBlocks?.shopping?.trim()) {
     next = {
       ...next,
-      hasShopping: optShop.hasShopping,
+      ...(optShop.hasShopping != null ? { hasShopping: optShop.hasShopping } : {}),
       shoppingSummaryText: optShop.shoppingSummaryText ?? undefined,
       shoppingVisitCount: optShop.shoppingVisitCount,
     }

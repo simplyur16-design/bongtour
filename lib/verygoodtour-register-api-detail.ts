@@ -595,11 +595,16 @@ export function extractVerygoodOptionalShoppingFromDetailHtml(html: string): Ver
     (Number.isFinite(headerShoppingCount) && headerShoppingCount >= 0 ? headerShoppingCount : null)
   if (shoppingVisitCount == null && headerNoShopping) shoppingVisitCount = 0
   const hasRowStops = shopping.shoppingStops.some((r) => r.placeName.trim().length > 1)
-  const hasShopping =
+  // visit/헤더/행 시그널 없으면 null(unknown) — 빈 HTML을 hasShopping false로 발명 금지
+  const hasShopping: boolean | null =
     shoppingVisitCount != null
       ? shoppingVisitCount > 0
-      : hasRowStops && !headerNoShopping
-  if (shoppingVisitCount == null && hasShopping) {
+      : hasRowStops
+        ? true
+        : headerNoShopping
+          ? false
+          : null
+  if (shoppingVisitCount == null && hasShopping === true) {
     shoppingVisitCount = shopping.shoppingStops.filter((r) => r.placeName.trim().length > 1).length || 1
   }
   // 헤더에 없음 시그널이 있을 때만 0 — 빈 HTML을 없음으로 발명하지 않음
