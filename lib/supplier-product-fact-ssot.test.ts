@@ -246,6 +246,42 @@ describe('hotel heading scrub + FIT meal', () => {
     expect(hm.mealLabel).toBe('상담 시 안내')
     expect(hm.mealLabel).not.toBe('정보 없음')
   })
+
+  it('FIT meal: 불포함/미포함 조식 문구 → 상담 시 안내 (호텔 조식 금지)', () => {
+    const negatives = [
+      '불포함: 조식',
+      '불포함 조식',
+      '불포함사항: 조식',
+      '조식 불포함',
+      '조식불포함',
+      '조식 미포함',
+      'breakfast not included',
+      'room only',
+    ]
+    for (const hotelSummaryText of negatives) {
+      const hm = deriveHotelMealFact({
+        listingKind: 'air_hotel_free',
+        slug: 'fit-neg-break',
+        hotelSummaryText,
+        itineraryDays: [],
+      })
+      expect(hm.mealLabel, hotelSummaryText).toBe('상담 시 안내')
+      expect(hm.mealLabel, hotelSummaryText).not.toBe('호텔 조식')
+    }
+  })
+
+  it('FIT meal: 긍정 조식 포함 문구 → 호텔 조식', () => {
+    const positives = ['조식 포함', '조식포함', 'breakfast included', '포함: 조식']
+    for (const hotelSummaryText of positives) {
+      const hm = deriveHotelMealFact({
+        listingKind: 'air_hotel_free',
+        slug: 'fit-pos-break',
+        hotelSummaryText,
+        itineraryDays: [],
+      })
+      expect(hm.mealLabel, hotelSummaryText).toBe('호텔 조식')
+    }
+  })
 })
 
 describe('deriveOptionalFact', () => {

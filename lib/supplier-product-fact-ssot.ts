@@ -713,12 +713,18 @@ function isFitProductForMealFact(p: {
 function fitSourceExplicitlyIncludesBreakfast(hay: string): boolean {
   const t = hay.replace(/\s+/g, ' ').trim()
   if (!t) return false
+  // 불포함·미포함 명시 — '불포함: 조식' 등이 '포함: 조식'에 매칭되지 않게 먼저 배제
   if (/(?:조식|아침)\s*(?:불포함|미포함)/u.test(t)) return false
+  if (/(?:불포함|미포함)\s*(?:사항\s*)?[:：]?\s*(?:조식|아침)/u.test(t)) return false
+  if (/breakfast\s*not\s*included/i.test(t)) return false
   if (/(?:룸\s*온리|room\s*only)/i.test(t)) return false
+  // 불포함(사항) 섹션 본문에 조식이 나열된 경우
+  if (/불포함(?:사항)?\s*[:：][^\n]{0,120}조식/u.test(t)) return false
   return (
     /조식\s*포함|조식포함/u.test(t) ||
     /breakfast\s*included/i.test(t) ||
-    /(?:포함)\s*[:：]?\s*조식/u.test(t)
+    // negative lookbehind: '불포함: 조식' / '미포함: 조식' 내부의 '포함: 조식' 부분매칭 금지
+    /(?<![불미])포함\s*[:：]?\s*조식/u.test(t)
   )
 }
 
