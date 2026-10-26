@@ -33,6 +33,7 @@ import { applyFlightManualCorrectionToDepartureKeyFacts as applyFmcModetour } fr
 import { formatHeroDateKorean } from '@/lib/hero-date-utils'
 import { formatFlightLegTwoLines } from '@/lib/flight-user-display'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { alignDepartureKeyFactsToSelectedCalendarDate } from '@/lib/departure-facts-calendar-align'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
 import { computeKRWQuotation } from '@/lib/price-utils'
 import { buildPriceDisplaySsot } from '@/lib/price-display-ssot'
@@ -381,11 +382,6 @@ export function ItineraryView({
     return () => observer.disconnect()
   }, [master?.days.length, activePage, pageSize, master])
 
-  const flightDisplay = useMemo(
-    () => resolveFlightDisplay(product.flightStructured),
-    [product.flightStructured]
-  )
-
   const selectedDepartureFacts = useMemo(() => {
     if (!travelCoreInfo) return null
     const dateKey = selectedDate ?? priceInfo?.departureDateFrom ?? null
@@ -406,12 +402,22 @@ export function ItineraryView({
     return row
   }, [travelCoreInfo, selectedDate, selectedPriceRow?.id, priceInfo?.departureDateFrom, product.originSource])
 
+  const calendarAlignedDepartureFacts = useMemo(
+    () =>
+      alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
+        packageTotalDays: totalDays,
+      }),
+    [selectedDepartureFacts, selectedDate, totalDays],
+  )
+
   const heroFlightDisplay = useMemo(() => {
-    const ob = departureLegCardToDisplay(selectedDepartureFacts?.outbound ?? null)
-    const ib = departureLegCardToDisplay(selectedDepartureFacts?.inbound ?? null)
+    const ob = departureLegCardToDisplay(calendarAlignedDepartureFacts?.outbound ?? null)
+    const ib = departureLegCardToDisplay(calendarAlignedDepartureFacts?.inbound ?? null)
     if (ob || ib) return { outbound: ob, inbound: ib }
-    return flightDisplay
-  }, [selectedDepartureFacts, flightDisplay])
+    // 달력 선택일이 있으면 옛 flightStructured 고정 날짜로 폴백하지 않음
+    if (selectedDate?.trim()) return null
+    return resolveFlightDisplay(product.flightStructured)
+  }, [calendarAlignedDepartureFacts, selectedDate, product.flightStructured])
 
   const heroDepartureDisplay = useMemo(() => {
     const depIso = selectedDate ?? priceInfo?.departureDateFrom ?? null
@@ -526,8 +532,8 @@ export function ItineraryView({
           masterTotalDays: totalDays > 0 ? totalDays : null,
           selectedDepartureIso: selectedDate,
           departureDateFrom: priceInfo?.departureDateFrom ?? null,
-          outboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.outbound ?? null),
-          inboundFlight: formatFlightLegTwoLines(selectedDepartureFacts?.inbound ?? null),
+          outboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.outbound ?? null),
+          inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
           heroPriceSsot,
           heroDiscountSavingsLine: null,
           heroBenefitWhenNoDiscount: null,
