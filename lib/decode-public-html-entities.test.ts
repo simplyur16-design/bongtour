@@ -28,5 +28,15 @@ describe('decodePublicHtmlEntities', () => {
     expect(collapseAdjacentDuplicateTitlePhrases('홍콩실속 홍콩실속 금까2박3일')).toBe(
       '홍콩실속 금까2박3일',
     )
+    expect(collapseAdjacentDuplicateTitlePhrases('이스타항공 이스타항공')).toBe('이스타항공')
+  })
+
+  it('does not collapse legitimate syllable repeats inside a word', () => {
+    expect(collapseAdjacentDuplicateTitlePhrases('샤브샤브')).toBe('샤브샤브')
+    expect(collapseAdjacentDuplicateTitlePhrases('라오라오베이')).toBe('라오라오베이')
+    expect(collapseAdjacentDuplicateTitlePhrases('크리스마스마켓')).toBe('크리스마스마켓')
+    expect(collapseAdjacentDuplicateTitlePhrases('대게+샤브샤브+음료 무제한')).toBe(
+      '대게+샤브샤브+음료 무제한',
+    )
   })
 })
