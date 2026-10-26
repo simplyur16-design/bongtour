@@ -31,11 +31,14 @@ describe('isAdultPriceAbsentMarker', () => {
 })
 
 describe('isDepartureOnSaleForImport', () => {
-  it('excludes 마감 only', () => {
-    expect(isDepartureOnSaleForImport('예약가능')).toBe(true)
+  it('keeps 대기예약 as 대기예약 (not dropped, not converted to 예약가능); excludes 마감 only', () => {
+    expect(normalizeDepartureBookingStatus('대기예약')).toBe('대기예약')
+    expect(normalizeDepartureBookingStatus('대기예약')).not.toBe('예약가능')
     expect(isDepartureOnSaleForImport('대기예약')).toBe(true)
+    expect(isDepartureOnSaleForImport('예약가능')).toBe(true)
     expect(isDepartureOnSaleForImport('출발확정')).toBe(true)
     expect(isDepartureOnSaleForImport(null)).toBe(true)
+    expect(normalizeDepartureBookingStatus('마감')).toBe('마감')
     expect(isDepartureOnSaleForImport('예약마감')).toBe(false)
     expect(isDepartureOnSaleForImport('마감')).toBe(false)
   })

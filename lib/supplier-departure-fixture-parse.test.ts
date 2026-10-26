@@ -86,7 +86,7 @@ describe('supplier departure fixtures — status / prices / flight', () => {
     expect(rows[0]!.returnDate! > rows[0]!.departDate).toBe(true)
   })
 
-  it('lottetour skips adult price dash and 마감', () => {
+  it('lottetour skips adult price dash and 마감; keeps 대기예약', () => {
     const html = `<!DOCTYPE html><html><body><table><tbody>
 <tr>
   <td>05/13 (화) 18:50 / 05/18 (일) 22:10</td>
@@ -106,9 +106,18 @@ describe('supplier departure fixtures — status / prices / flight', () => {
   <td><a href="/evtDetail/1/2/3/4?evtCd=B28A260515KE001">C</a></td>
   <td>3박5일</td><td><strong>200,000원</strong></td><td>예약가능</td>
 </tr>
+<tr>
+  <td>05/16 (금) 18:50 / 05/21 (수) 22:10</td>
+  <td>KE</td><td>일반</td>
+  <td><a href="/evtDetail/1/2/3/4?evtCd=B28A260516KE001">D</a></td>
+  <td>3박5일</td><td><strong>150,000원</strong></td><td>대기예약</td>
+</tr>
 </tbody></table></body></html>`
     const { rows } = parseLottetourEvtListAjaxHtml(html, { depYm: '202605', godId: 'g1' })
-    expect(rows.map((r) => r.departDate)).toEqual(['2026-05-15'])
+    expect(rows.map((r) => r.departDate)).toEqual(['2026-05-15', '2026-05-16'])
+    const wait = rows.find((r) => r.departDate === '2026-05-16')
+    expect(wait?.statusRaw).toBe('대기예약')
+    expect(wait?.statusRaw).not.toBe('예약가능')
   })
 
   it('modetour-shaped DepartureInput fixture (status + 4 prices + flight)', () => {
