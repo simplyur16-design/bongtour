@@ -172,7 +172,8 @@ describe('resolvePublicBrowseCardTitle', () => {
     )
     expect(r.usedHeroShort).toBe(true)
     // 메가 LC leaf 정규화: 뉴질랜드 → 호주/뉴질랜드
-    expect(r.cardTitle).toMatch(/^(?:뉴질랜드|호주\/뉴질랜드) \d+박 9일$/)
+    // days-only 제목은 nights 미발명 (9일 ≠ 8박 9일 가정)
+    expect(r.cardTitle).toMatch(/^(?:뉴질랜드|호주\/뉴질랜드) (?:\d+박 )?9일$/)
     expect(r.cardTitle).not.toMatch(/#/)
   })
 
