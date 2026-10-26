@@ -6,6 +6,7 @@ import {
   AIRTEL_AIRPORT_TRANSFER_EXCLUDED_LABEL,
   isAirportHotelTransferLine,
 } from '@/lib/airport-transfer-infer'
+import { stripIncludedExcludedHtmlDebris } from '@/lib/included-excluded-postprocess'
 
 export { isAirportHotelTransferLine }
 
@@ -85,10 +86,13 @@ function pushUniqueLine(lines: string[], line: string) {
 
 function splitLines(text: string | null | undefined): string[] {
   if (!text?.trim()) return []
-  return text
+  // 표시 시점 HTML 찌꺼기 제거 — 줄 경계는 <br>/<p> 를 개행으로 승격 후 유지
+  return String(text)
+    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+    .replace(/<\/?\s*(?:p|div|li)[^>]*>/gi, '\n')
     .replace(/\r\n/g, '\n')
     .split('\n')
-    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .map((l) => stripIncludedExcludedHtmlDebris(l).replace(/\s+/g, ' ').trim())
     .filter(Boolean)
 }
 
