@@ -6,15 +6,16 @@
  *  - 8 노출 경로 (browse / featured / sitemap / sitemap-images / gallery / product detail × 2 / home-hub) — 2-E
  *
  * 정책 SSOT:
- *  - 룰 A — 향후 180일(6개월) 라이브 fetch 결과로 마커 갱신.
- *           라이브 0건이어도 **DB에 오늘 이후 성인가 출발이 있으면** `noFutureDepartureConfirmedAt` 부착 안 함.
- *           `registrationStatus` 자동 변경 X (어드민 SSOT 유지).
- *  - 룰 B — 마커 부착 AND `lastFutureDepartureDate < NOW() + 7d` 면 사용자 노출 제외.
+ *  - 룰 A — 향후 90일(3개월) 라이브 fetch 결과로 마커·lastFuture 갱신.
+ *           라이브 0건이어도 **DB에 오늘 이후 성인가 출발이 있으면** 마커 부착 안 함.
+ *  - 룰 B — `lastFutureDepartureDate < NOW() + 3d` 이면 사용자 노출 제외
+ *           (마지막 출발 3일 전까지 노출, 2일 남으면 공개 목록/상세에서 제외).
+ *           마커만 있고 lastFuture 없으면(미래 출발 0) 즉시 제외.
  *
  * 봇 차단 회피 — 트랙 ⑤ B' 가드(`waitForSupplierThrottle`/`acquireSupplierLock`/
  *   `humanDelayBeforeScrape`/`recordSupplierStart`/`recordSupplierFinished`)를 import 재사용.
  *   `executeRangeOnDemandDepartures`(`windowDays` cap 31) 는 우회 — 1.7 결정에 따라 5공급사 분기 함수를
- *   본 모듈에서 직접 호출(라이브 fetch 180일(6개월) 1회).
+ *   본 모듈에서 직접 호출(라이브 fetch 룰 A 윈도우 1회).
  *
  * 본 모듈은 ProductDeparture upsert 를 하지 않는다.
  *  - 라이브 fetch 결과는 `lastFutureDepartureDate` 캐시 + 룰 A 마커 갱신에만 사용.
@@ -58,10 +59,14 @@ import {
 // 정책 상수
 // ---------------------------------------------------------------------------
 
-/** 룰 A — 미래 출발일 탐색 범위 (today ~ today + N일). */
-export const RULE_A_WINDOW_DAYS = 180
-/** 룰 B — 마지막 미래 출발일 cutoff (today + N일 미만이면 노출 제외). */
-const RULE_B_CUTOFF_DAYS = 7
+/** 룰 A — 미래 출발일 탐색/수집 범위 (today ~ today + N일). 3개월. */
+export const RULE_A_WINDOW_DAYS = 90
+/**
+ * 룰 B — 마지막 미래 출발일 cutoff (공개 노출).
+ * `lastFutureDepartureDate < now + N일` 이면 공개 노출 제외.
+ * 예: 마지막 출발 10/26 → N=3 이면 10/23까지 노출, 10/24부터 숨김.
+ */
+export const RULE_B_CUTOFF_DAYS = 3
 /** G3 동시 락 wait cap — 5공급사 동시 검증 충돌 시 기다릴 한계 (ms). */
 const SUPPLIER_LOCK_WAIT_CAP_MS = 15_000
 
@@ -109,7 +114,7 @@ export type RuleAMarkerResult = {
 
 /**
  * Rule A 마커 — `runOneSalesPolicyCheck`·modetour sweep 공용 SSOT.
- * `inputs`는 이미 180일 윈도우 fetch 결과라고 가정; **미래(오늘 포함) + 성인가 > 0** 만 집계.
+ * `inputs`는 이미 룰 A 윈도우 fetch 결과라고 가정; **미래(오늘 포함) + 성인가 > 0** 만 집계.
  */
 export function computeRuleAMarkersFromDepartureInputs(
   inputs: RuleADepartureInputLike[],
@@ -209,7 +214,7 @@ export async function pickNextProductToCheck(
 export type SalesPolicyCheckResult = {
   /** `true` 면 라이브 fetch 시도가 끝났음 (skip 포함). `false` 는 발생하지 않음 — 항상 checkedAt 은 갱신. */
   checked: boolean
-  /** 룰 A 마커가 부착된 상태인지. `true` = 향후 180일(6개월) 미래 출발일 0건. */
+  /** 룰 A 마커가 부착된 상태인지. `true` = 향후 룰 A 윈도우 내 미래 출발일 0건. */
   marked: boolean
   /** 라이브 fetch 결과 중 미래 출발일의 MAX. 0건이면 `null`. */
   lastFutureDate: Date | null
@@ -220,7 +225,7 @@ export type SalesPolicyCheckResult = {
 }
 
 /**
- * 1 상품에 대해 라이브 fetch (180일(6개월) 1회) 수행 + Product 마커 3종 갱신.
+ * 1 상품에 대해 라이브 fetch (룰 A 윈도우 1회) 수행 + Product 마커 3종 갱신.
  *
  * skip 케이스 (라이브 fetch 안 함, `lastSalesPolicyCheckedAt` 만 갱신):
  *  - 5공급사 외 (kyowontour, 알 수 없음 등)
@@ -424,11 +429,12 @@ export async function runOneSalesPolicyCheck(
 // ---------------------------------------------------------------------------
 
 /**
- * 룰 B 노출 cutoff — 마커 부착 AND `lastFutureDepartureDate < NOW() + 7d` 면 사용자 노출 제외.
+ * 룰 B 노출 cutoff — 공개 목록/상세에서 제외할지.
  *
- * - `noFutureDepartureConfirmedAt IS NULL` → 정책 미적용 (기존 동작 그대로).
- * - `lastFutureDepartureDate IS NULL` → 룰 A 위반 (미래 출발일 0건) → 노출 제외.
- * - `lastFutureDepartureDate < NOW() + 7d` → 룰 B 위반 → 노출 제외.
+ * - `lastFutureDepartureDate` 있음 → `last < now + RULE_B_CUTOFF_DAYS` 이면 숨김
+ *   (10/26 마지막 출발·cutoff 3일: 10/23까지 표시, 10/24부터 숨김).
+ * - `lastFutureDepartureDate` 없음 + 룰 A 마커 있음 → 미래 출발 0건 확정 → 숨김.
+ * - 둘 다 없음(미평가) → 숨기지 않음.
  */
 export function isProductHiddenByPolicy(
   product: {
@@ -437,17 +443,31 @@ export function isProductHiddenByPolicy(
   },
   now: Date = new Date()
 ): boolean {
-  if (product.noFutureDepartureConfirmedAt == null) return false
-  if (product.lastFutureDepartureDate == null) return true
-  const cutoff = now.getTime() + RULE_B_CUTOFF_DAYS * 24 * 60 * 60 * 1000
-  return product.lastFutureDepartureDate.getTime() < cutoff
+  if (product.lastFutureDepartureDate != null) {
+    const cutoff = now.getTime() + RULE_B_CUTOFF_DAYS * 24 * 60 * 60 * 1000
+    return product.lastFutureDepartureDate.getTime() < cutoff
+  }
+  return product.noFutureDepartureConfirmedAt != null
 }
 
 /**
- * 마커 정책 폐기 (2026-05-30 봉사장 SSOT). 노출 차단은 registrationStatus 단일 SSOT.
- * 함수 시그니처는 호환성 위해 유지 (호출처 8군데 spread 미변경).
- * @deprecated registrationStatus만으로 노출 결정. 본 함수는 빈 조건만 반환.
+ * 8 노출 경로의 prisma `where` 에 AND 로 합쳐 쓰는 부분 (룰 B cutoff).
+ *
+ * 의미:
+ *  - 마지막 미래 출발일 ≥ NOW() + 3d → 노출
+ *  - 아직 미평가(last·마커 둘 다 null) → 노출
+ *  - 그 외(마지막 출발이 cutoff 미만, 또는 마커+last null) → 제외
+ *
+ * 어드민 list 는 이 조건을 합치지 않음. DB 삭제가 아니라 쿼리 제외만.
  */
-export function publicProductWhereClause(_now: Date = new Date()): Prisma.ProductWhereInput {
-  return {}
+export function publicProductWhereClause(now: Date = new Date()): Prisma.ProductWhereInput {
+  const cutoff = new Date(now.getTime() + RULE_B_CUTOFF_DAYS * 24 * 60 * 60 * 1000)
+  return {
+    OR: [
+      { lastFutureDepartureDate: { gte: cutoff } },
+      {
+        AND: [{ lastFutureDepartureDate: null }, { noFutureDepartureConfirmedAt: null }],
+      },
+    ],
+  }
 }

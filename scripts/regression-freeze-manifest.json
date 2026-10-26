@@ -15711,7 +15711,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "롯데관광 register-facts 가격 — RULE_A 180일 monthCount (2개월 하드코딩 금지·D01A 9~10월)",
+      "summary": "롯데관광 register-facts 가격 — RULE_A 90일(3개월) monthCount (2개월 하드코딩 금지·D01A 9~10월)",
       "checks": [
         {
           "file": "lib/register-facts/lottetour.ts",
