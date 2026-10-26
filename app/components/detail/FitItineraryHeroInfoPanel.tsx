@@ -117,7 +117,7 @@ export default function FitItineraryHeroInfoPanel({
           <span className="font-semibold tabular-nums text-bt-title">{heroDepartureDisplay ?? '—'}</span>
           <span className="text-bt-meta">~</span>
           <span className="text-bt-meta">귀국</span>
-          <span className="font-semibold tabular-nums text-bt-title">{heroReturnDisplay ?? '상담 시 안내'}</span>
+          <span className="font-semibold tabular-nums text-bt-title">{heroReturnDisplay ?? '—'}</span>
         </div>
       ) : null}
 

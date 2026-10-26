@@ -55,8 +55,8 @@ describe('buildCalendarSsotHeroTripDisplays', () => {
     meetingSummary: null,
   }
 
-  it('matches 가는편/오는편 dates in hero summary', () => {
-    const aligned = alignDepartureKeyFactsToSelectedCalendarDate(facts, '2026-07-01', {
+  it('calendar selected date + duration SSOT for hero summary (not stale facts dates)', () => {
+    const aligned = alignDepartureKeyFactsToSelectedCalendarDate(facts, '2026-08-05', {
       packageTotalDays: 5,
     })
     const { departureDisplay, returnDisplay } = buildCalendarSsotHeroTripDisplays({
@@ -68,11 +68,12 @@ describe('buildCalendarSsotHeroTripDisplays', () => {
         departureSource: 'calendar',
         returnSource: 'departure_list_inbound',
       },
-      computedReturnDate: '2026-07-05',
+      computedReturnDate: '2026-08-09',
       departureFacts: aligned,
     })
-    expect(departureIsoFromAlignedFacts(aligned)).toBe('2026-07-01')
-    expect(departureDisplay).toBe('2026.07.01(수)')
-    expect(returnDisplay).toBe('2026.07.05(일)')
+    expect(departureIsoFromAlignedFacts(aligned)).toBe('2026-08-05')
+    expect(departureDisplay).toBe('2026.08.05(수)')
+    // 5일 → 귀국 = 출발 + 4
+    expect(returnDisplay).toBe('2026.08.09(일)')
   })
 })

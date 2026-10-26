@@ -612,7 +612,7 @@ export default function MobileProductDetail({
       <>
         <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroDepartureDisplay ?? '—'}</span>
         <span className="text-bt-disabled"> ~ </span>
-        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '상담 시 안내'}</span>
+        <span className={HERO_DATE_INLINE_VALUE_CLASS}>{heroReturnDisplay ?? '—'}</span>
         {product.duration?.trim() ? (
           <>
             {' '}

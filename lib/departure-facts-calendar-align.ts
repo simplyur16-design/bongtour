@@ -98,27 +98,29 @@ export function alignDepartureKeyFactsToSelectedCalendarDate(
   const deltaToDep = diffCalendarDaysIso(obAnchor, target)
   if (deltaToDep == null) return facts
 
-  if (deltaToDep !== 0) {
-    return {
-      ...facts,
-      outbound: shiftLegCalendarDays(facts.outbound, deltaToDep),
-      inbound: shiftLegCalendarDays(facts.inbound, deltaToDep),
-    }
-  }
+  // 선택 출발일로 먼저 평행 이동한 뒤, 귀국은 packageTotalDays(returnKey)에 맞춤
+  const shifted: DepartureKeyFacts =
+    deltaToDep !== 0
+      ? {
+          ...facts,
+          outbound: shiftLegCalendarDays(facts.outbound, deltaToDep),
+          inbound: shiftLegCalendarDays(facts.inbound, deltaToDep),
+        }
+      : facts
 
   if (!returnKey || returnKey === target) {
     return {
-      ...facts,
-      outbound: alignLegToCalendarDate(facts.outbound, target, target) ?? facts.outbound,
-      inbound: facts.inbound,
+      ...shifted,
+      outbound: alignLegToCalendarDate(shifted.outbound, target, target) ?? shifted.outbound,
+      inbound: shifted.inbound,
     }
   }
 
-  const ib = facts.inbound
+  const ib = shifted.inbound
   if (!ib) {
     return {
-      ...facts,
-      outbound: alignLegToCalendarDate(facts.outbound, target, target) ?? facts.outbound,
+      ...shifted,
+      outbound: alignLegToCalendarDate(shifted.outbound, target, target) ?? shifted.outbound,
     }
   }
 
@@ -130,8 +132,8 @@ export function alignDepartureKeyFactsToSelectedCalendarDate(
   const ibArrKey = arrOffset > 0 ? (addDaysIso(returnKey, arrOffset) ?? returnKey) : returnKey
 
   return {
-    ...facts,
-    outbound: alignLegToCalendarDate(facts.outbound, target, target) ?? facts.outbound,
+    ...shifted,
+    outbound: alignLegToCalendarDate(shifted.outbound, target, target) ?? shifted.outbound,
     inbound: alignLegToCalendarDate(ib, returnKey, ibArrKey) ?? ib,
   }
 }

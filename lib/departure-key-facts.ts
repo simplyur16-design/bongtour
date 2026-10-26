@@ -488,7 +488,12 @@ export function buildDepartureKeyFactsByDepartureId(
   return out
 }
 
-/** 공개 상세 — 선택 출발행(ProductPriceRow.id) 우선, 없으면 캘린더일 키 */
+/**
+ * 공개 상세 — 선택 출발행(ProductPriceRow.id) 우선, 없으면 캘린더일 키.
+ * 해당 일자 facts가 없으면 **가장 가까운 일자** facts를 템플릿으로 반환
+ * (호출측 `alignDepartureKeyFactsToSelectedCalendarDate`가 선택일로 시각을 맞춘다).
+ * 옛 `flightStructured` 고정 날짜에 묶이지 않도록 하기 위함.
+ */
 export function pickDepartureKeyFactsForSelection(args: {
   selectedDate?: string | null
   selectedDepartureRowId?: string | null
@@ -501,10 +506,35 @@ export function pickDepartureKeyFactsForSelection(args: {
     return args.departureKeyFactsByDepartureId[rowId]!
   }
   const dateKey = args.selectedDate?.trim()
-  if (dateKey && args.departureKeyFactsByDate?.[dateKey]) {
-    return args.departureKeyFactsByDate[dateKey]!
+  const byDate = args.departureKeyFactsByDate
+  if (dateKey && byDate?.[dateKey]) {
+    return byDate[dateKey]!
+  }
+  if (dateKey && byDate && /^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+    const keys = Object.keys(byDate)
+      .filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k))
+      .sort()
+    if (keys.length === 0) return null
+    let best = keys[0]!
+    let bestAbs = Math.abs(diffDaysYmd(best, dateKey))
+    for (const k of keys) {
+      const d = Math.abs(diffDaysYmd(k, dateKey))
+      if (d < bestAbs) {
+        best = k
+        bestAbs = d
+      }
+    }
+    return byDate[best] ?? null
   }
   return null
+}
+
+function diffDaysYmd(a: string, b: string): number {
+  const [ay, am, ad] = a.split('-').map(Number)
+  const [by, bm, bd] = b.split('-').map(Number)
+  const ta = Date.UTC(ay!, am! - 1, ad!)
+  const tb = Date.UTC(by!, bm! - 1, bd!)
+  return Math.round((ta - tb) / 86_400_000)
 }
 
 /**

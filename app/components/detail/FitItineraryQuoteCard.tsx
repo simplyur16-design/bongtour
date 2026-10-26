@@ -119,7 +119,7 @@ export default function FitItineraryQuoteCard({
               <div className="flex min-w-0 flex-col items-center gap-0.5">
                 <span className="text-xs text-bt-meta">귀국</span>
                 <span className="text-sm font-semibold tabular-nums text-bt-title">
-                  {heroTripReturnDisplay ?? '상담 시 안내'}
+                  {heroTripReturnDisplay ?? '—'}
                 </span>
               </div>
             </div>
@@ -134,7 +134,7 @@ export default function FitItineraryQuoteCard({
               <p className="flex flex-col items-center gap-0.5">
                 <span className="text-bt-meta">귀국</span>
                 <span className="font-semibold tabular-nums text-bt-title">
-                  {heroTripReturnDisplay ?? '상담 시 안내'}
+                  {heroTripReturnDisplay ?? '—'}
                 </span>
               </p>
             </div>

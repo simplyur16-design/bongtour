@@ -159,17 +159,18 @@ export function buildCalendarSsotHeroTripDisplays(opts: {
   const factsReturn = returnFromListFacts(opts.departureFacts ?? null)
   // 달력 SSOT: 선택일이 있으면 facts의 등록 당시(과거) 날짜로 덮지 않는다.
   const depForReturn = calendarDep ?? factsDepIso
+  // 귀국 = 출발 + 일정 일수(박/일) — facts inbound·본문보다 duration 우선 (롯데 귀국<출발 등 방지)
   const retFromDuration =
     depForReturn && opts.packageTotalDays > 0 ? computeReturnDate(depForReturn, opts.packageTotalDays) : null
   const factsReturnOk =
-    factsReturn.iso && calendarDep
-      ? factsReturn.iso >= calendarDep
+    factsReturn.iso && depForReturn
+      ? factsReturn.iso >= depForReturn
       : Boolean(factsReturn.iso)
   const retIso =
-    (factsReturnOk ? factsReturn.iso : null) ??
-    opts.heroResolved.returnIso ??
     retFromDuration ??
     opts.computedReturnDate ??
+    (factsReturnOk ? factsReturn.iso : null) ??
+    opts.heroResolved.returnIso ??
     null
 
   if (calendarDep) {
