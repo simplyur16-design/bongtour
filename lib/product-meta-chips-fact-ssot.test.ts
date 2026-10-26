@@ -38,4 +38,17 @@ describe('meta chips = deriveShoppingFact / deriveOptionalFact', () => {
     expect(chips.find((c) => c.kind === 'shopping')?.value).toBe('2회')
     expect(chips.find((c) => c.kind === 'optional')?.value).toBe('있음')
   })
+
+  it('unknown shopping hides chip (no 확인 label)', () => {
+    const product = {
+      title: '상해 4일',
+      shoppingCount: null as number | null,
+      shoppingVisitCountTotal: null as number | null,
+      hasOptionalTours: true,
+    }
+    const shop = deriveShoppingFact(product)
+    expect(shop.state).toBe('unknown')
+    const chips = buildProductMetaChips(product)
+    expect(chips.find((c) => c.kind === 'shopping')).toBeUndefined()
+  })
 })

@@ -588,12 +588,24 @@ export function extractVerygoodOptionalShoppingFromDetailHtml(html: string): Ver
     }
   }
   const headerShoppingCount = parseInt(plain.match(/쇼핑\s*(\d+)\s*회/i)?.[1] ?? '', 10)
-  const shoppingVisitCount =
+  const headerNoShopping = /쇼핑\s*없|노쇼핑|쇼핑없음/i.test(plain)
+  let shoppingVisitCount =
     shopping.shoppingVisitCount ??
     signals.shoppingVisitCount ??
-    (Number.isFinite(headerShoppingCount) && headerShoppingCount > 0 ? headerShoppingCount : null)
+    (Number.isFinite(headerShoppingCount) && headerShoppingCount >= 0 ? headerShoppingCount : null)
+  if (shoppingVisitCount == null && headerNoShopping) shoppingVisitCount = 0
+  const hasRowStops = shopping.shoppingStops.some((r) => r.placeName.trim().length > 1)
   const hasShopping =
-    (shoppingVisitCount ?? 0) > 0 || shopping.shoppingStops.some((r) => r.placeName.trim().length > 1)
+    shoppingVisitCount != null
+      ? shoppingVisitCount > 0
+      : hasRowStops && !headerNoShopping
+  if (shoppingVisitCount == null && hasShopping) {
+    shoppingVisitCount = shopping.shoppingStops.filter((r) => r.placeName.trim().length > 1).length || 1
+  }
+  // 헤더에 없음 시그널이 있을 때만 0 — 빈 HTML을 없음으로 발명하지 않음
+  if (shoppingVisitCount == null && headerNoShopping) {
+    shoppingVisitCount = 0
+  }
   const shoppingStopsFiltered = shopping.shoppingStops.filter(
     (r) => r.placeName.trim().length > 1 && !/^\d+˚$/.test(r.itemType.trim()),
   )
@@ -616,7 +628,9 @@ export function extractVerygoodOptionalShoppingFromDetailHtml(html: string): Ver
     hasShopping,
     shoppingSummaryText:
       shoppingVisitCount != null
-        ? `쇼핑 ${shoppingVisitCount}회`
+        ? shoppingVisitCount > 0
+          ? `쇼핑 ${shoppingVisitCount}회`
+          : '쇼핑 없음'
         : signals.shoppingSummaryText || null,
   }
 }

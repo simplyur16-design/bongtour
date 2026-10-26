@@ -64,8 +64,8 @@ function optionalValue(product: ProductMetaChipInput): string {
   return '확인'
 }
 
-/** 칩 = 비교표 SSOT (`deriveShoppingFact`) — 별도 추론 금지 */
-function shoppingValue(product: ProductMetaChipInput): string {
+/** 칩 = 비교표 SSOT (`deriveShoppingFact`) — 별도 추론 금지. unknown → null(칩 숨김) */
+function shoppingValue(product: ProductMetaChipInput): string | null {
   const fact = deriveShoppingFact({
     originSource: product.originSource,
     title: product.title,
@@ -82,7 +82,8 @@ function shoppingValue(product: ProductMetaChipInput): string {
     return '있음'
   }
   if (fact.state === 'no') return '없음'
-  return '확인'
+  // unknown = 파서 실패 — 공개 칩·신규 라벨 없이 숨김
+  return null
 }
 
 function freeTimeValue(product: ProductMetaChipInput, headerBadges: string[]): string {
@@ -129,9 +130,12 @@ export function buildProductMetaChips(
   }
 ): ProductMetaChip[] {
   const headerBadges = buildPublicProductBadges(product)
+  const shoppingChipValue = shoppingValue(product)
   const chips: ProductMetaChip[] = [
     { kind: 'optional', value: optionalValue(product) },
-    { kind: 'shopping', value: shoppingValue(product) },
+    ...(shoppingChipValue != null
+      ? [{ kind: 'shopping' as const, value: shoppingChipValue }]
+      : []),
     { kind: 'freeTime', value: freeTimeValue(product, headerBadges) },
   ]
   // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 메타칩 항공 IATA→한글 — manifest

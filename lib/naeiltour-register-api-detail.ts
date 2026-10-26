@@ -175,14 +175,27 @@ export function extractNaeiltourOptionalShoppingFromTab0(html: string | null): {
   const shopRaw = stripNaeiltourHtmlText(extractIncluExcluBlock(html, '쇼핑정보') ?? '')
   const noOption = /노옵션|선택관광이\s*없/i.test(optRaw)
   const hasOptionalTour = Boolean(optRaw) && !noOption
-  const hasShopping = Boolean(shopRaw) && !/쇼핑\s*없|노쇼핑/i.test(shopRaw)
-  const shopHours = shopRaw.match(/약\s*(\d+)\s*시간/)
+  const noShopping = /쇼핑\s*없|노쇼핑|쇼핑없음/i.test(shopRaw)
+  const hasShopping = Boolean(shopRaw) && !noShopping
+  const countM = shopRaw.match(/쇼핑\s*(\d+)\s*회|총\s*(\d+)\s*회/)
+  const countFromText =
+    countM != null ? Number(countM[1] || countM[2]) : null
+  let shoppingVisitCount: number | null = null
+  if (hasShopping) {
+    shoppingVisitCount =
+      countFromText != null && Number.isFinite(countFromText) && countFromText >= 0
+        ? countFromText
+        : 1
+  } else if (shopRaw) {
+    // 쇼핑정보 블록이 있고 없음 시그널 → 0 (unknown 금지)
+    shoppingVisitCount = 0
+  }
   return {
     hasOptionalTour,
     optionalTourSummaryText: optRaw || null,
     hasShopping,
     shoppingSummaryText: shopRaw || null,
-    shoppingVisitCount: hasShopping ? (shopHours ? 1 : 1) : noOption ? 0 : null,
+    shoppingVisitCount,
   }
 }
 

@@ -75,13 +75,14 @@ export function optShopParsedToRegisterFields(parsed: KyowontourOptShopTabParsed
     duration: s.duration,
     refundable: s.refundable,
   }))
+  const shopN = shoppingRows.length
   return {
     optionalToursStructured: optionalRows.length > 0 ? JSON.stringify(optionalRows) : null,
-    shoppingStops: shoppingRows.length > 0 ? JSON.stringify(shoppingRows) : null,
-    shoppingVisitCount: parsed.shoppingVisitCount > 0 ? parsed.shoppingVisitCount : null,
+    shoppingStops: shopN > 0 ? JSON.stringify(shoppingRows) : null,
+    shoppingVisitCount: shopN > 0 ? (parsed.shoppingVisitCount > 0 ? parsed.shoppingVisitCount : shopN) : 0,
     optionalTourCount: optionalRows.length > 0 ? optionalRows.length : null,
     hasOptionalTour: optionalRows.length > 0,
-    hasShopping: shoppingRows.length > 0,
+    hasShopping: shopN > 0,
   }
 }
 
@@ -133,6 +134,18 @@ export async function augmentKyowontourParsedWithOptShopCollect(
 
   const collected = await collectKyowontourOptShopFromDetailUrl(originUrl)
   if (!collected.ok) {
+    // 탭이 0건이면 쇼핑 없음으로 확정 (unknown 유지 금지)
+    const zeroBoth = /선택관광·쇼핑 0건/.test(collected.reason)
+    if (zeroBoth && needShop) {
+      return {
+        ...parsed,
+        hasShopping: false,
+        shoppingVisitCount: 0,
+        shoppingSummaryText: parsed.shoppingSummaryText ?? '쇼핑 없음',
+        kyowontourOptShopCollectRan: true,
+        kyowontourOptShopCollectSummary: collected.reason,
+      }
+    }
     return {
       ...parsed,
       kyowontourOptShopCollectRan: false,
@@ -149,13 +162,24 @@ export async function augmentKyowontourParsedWithOptShopCollect(
       optionalTourCount: fields.optionalTourCount ?? next.optionalTourCount,
       hasOptionalTour: true,
     }
+  } else if (needOpt && !fields.hasOptionalTour) {
+    next = { ...next, hasOptionalTour: false, optionalTourCount: 0 }
   }
-  if (needShop && fields.shoppingStops) {
-    next = {
-      ...next,
-      shoppingStops: fields.shoppingStops,
-      shoppingVisitCount: fields.shoppingVisitCount ?? next.shoppingVisitCount,
-      hasShopping: true,
+  if (needShop) {
+    if (fields.shoppingStops) {
+      next = {
+        ...next,
+        shoppingStops: fields.shoppingStops,
+        shoppingVisitCount: fields.shoppingVisitCount ?? next.shoppingVisitCount,
+        hasShopping: true,
+      }
+    } else {
+      next = {
+        ...next,
+        hasShopping: false,
+        shoppingVisitCount: 0,
+        shoppingSummaryText: next.shoppingSummaryText ?? '쇼핑 없음',
+      }
     }
     next = finalizeKyowontourRegisterParsedShopping(next)
   }
