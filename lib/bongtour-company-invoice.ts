@@ -3,10 +3,10 @@
  * PDF/본문에서 예약·숙소(한/영)·조식·세금포함·편의시설을 추출하고,
  * OTA 실결제 금액은 파싱값만 사용(수동 덮어쓰기 금지). 인보이스만 회사 수수료 라인 가산.
  * 현지 세금·봉사료 포함 고지(국내 부가세 환급·세금계산서 불가).
- * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
- * REGRESSION-FREEZE[admin-ota-voucher-note-en]: 비고 한→영·OTA명 — manifest
- * REGRESSION-FREEZE[admin-ota-foreign-tax-note]: 해외숙박 현지세·국내부가세 불가 고지 — manifest
- * REGRESSION-FREEZE[admin-ota-air-voucher]: 항공권 바우처 — e-ticket 파싱·OTA명 금지 — manifest
+ * FREEZE-RETIRED[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
+ * FREEZE-RETIRED[admin-ota-voucher-note-en]: 비고 한→영·OTA명 — manifest
+ * FREEZE-RETIRED[admin-ota-foreign-tax-note]: 해외숙박 현지세·국내부가세 불가 고지 — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: 항공권 바우처 — e-ticket 파싱·OTA명 금지 — manifest
  */
 
 import { COMPANY_FOOTER } from '@/lib/company-footer'
@@ -435,7 +435,7 @@ export function coerceOtaDateToYmd(raw: string | null | undefined): string | nul
 
 /**
  * OTA 본문에서 결제당일(YYYY-MM-DD) 추출 — USD→KRW 환율일 SSOT.
- * REGRESSION-FREEZE[admin-ota-receipt-invoice]: 결제당일 환율 — manifest
+ * FREEZE-RETIRED[admin-ota-receipt-invoice]: 결제당일 환율 — manifest
  */
 export function parseOtaPaymentDateYmd(text: string): string | null {
   const labeled = [
@@ -1378,7 +1378,7 @@ export function computeVoucherTotalUsdFromNightRate(
 
 /**
  * OTA 파싱 금액만 잠금 — 우선순위: totalUsd → night×nights → sourceAmountKrw.
- * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 금액 하드잠금 — manifest
+ * FREEZE-RETIRED[admin-ota-receipt-invoice]: OTA 금액 하드잠금 — manifest
  */
 export function resolveLockedOtaAmountFromParsed(
   parsed: OtaReceiptParsedAmount,
@@ -1813,7 +1813,7 @@ export function renderOtaCompanyCheckInVoucherBilingualHtml(
 
 /**
  * e-ticket 승객명 — trim만, 구분·순서는 원문 유지 (1명→1명, 8명→8명).
- * REGRESSION-FREEZE[admin-ota-air-voucher]: formatAirVoucherPassengerNames — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: formatAirVoucherPassengerNames — manifest
  */
 export function formatAirVoucherPassengerNames(travelers: readonly string[]): string {
   return travelers
@@ -1856,7 +1856,7 @@ export function isLikelyAirPassengerNameToken(raw: string): boolean {
 
 /**
  * guestName → 표시용 이름만 (주의사항 문장 제거, 한 줄에 한 명).
- * REGRESSION-FREEZE[admin-ota-air-voucher]: splitAirVoucherPassengerDisplayNames clean — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: splitAirVoucherPassengerDisplayNames clean — manifest
  */
 export function splitAirVoucherPassengerDisplayNames(guestName: string | null | undefined): string[] {
   let raw = String(guestName ?? '').trim()
@@ -1883,7 +1883,7 @@ export function splitAirVoucherPassengerDisplayNames(guestName: string | null | 
 
 /**
  * 바우처 HTML용 — 승객란은 한 줄에 이름 + e-ticket 번호만.
- * REGRESSION-FREEZE[admin-ota-air-voucher]: formatAirVoucherPassengerNamesHtml name+ticket only — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: formatAirVoucherPassengerNamesHtml name+ticket only — manifest
  */
 export function formatAirVoucherPassengerNamesHtml(
   guestName: string | null | undefined,
@@ -2004,7 +2004,7 @@ export const AIR_AIRLINE_LOGO_PUBLIC_DIR = '/images/airlines'
 
 /**
  * 편명·항공사 문자열에서 IATA 항공사 코드 추출 (KE2005 → KE, 7C5203 → 7C).
- * REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirAirlineIataCode — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: extractAirAirlineIataCode — manifest
  */
 export function extractAirAirlineIataCode(
   flightNo: string | null | undefined,
@@ -2049,7 +2049,7 @@ export function resolveAirAirlineLogoPublicPath(code: string | null | undefined)
 }
 
 /**
- * REGRESSION-FREEZE[admin-ota-air-voucher]: resolveAirAirlineLogoSrc — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: resolveAirAirlineLogoSrc — manifest
  */
 export function resolveAirAirlineLogoSrc(
   code: string | null | undefined,
@@ -2064,7 +2064,7 @@ export function resolveAirAirlineLogoSrc(
 
 /**
  * 항공사 표시명 — 한글 바우처는 한글명, 영문은 영문명.
- * REGRESSION-FREEZE[admin-ota-air-voucher]: formatAirAirlineDisplayName — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: formatAirAirlineDisplayName — manifest
  */
 export function formatAirAirlineDisplayName(
   airline: string | null | undefined,
@@ -2169,7 +2169,7 @@ function splitAirPassengerBlob(blob: string): string[] {
 
 /**
  * e-ticket OCR/본문에서 승객명 후보 추출 (라벨 다음 줄·호칭·한글 라벨·LAST/FIRST).
- * REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirVoucherPassengerNamesFromText — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: extractAirVoucherPassengerNamesFromText — manifest
  */
 export function extractAirVoucherPassengerNamesFromText(text: string): string[] {
   const raw = String(text ?? '')
@@ -2252,11 +2252,11 @@ function flightPayloadToSegment(p: TripFlightSegmentPayload): OtaAirVoucherFligh
 
 /**
  * 항공사 e-ticket / 여정표 본문 → 승객·PNR·편명.
- * REGRESSION-FREEZE[admin-ota-air-voucher]: parseAdminAirlineEticketText — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: parseAdminAirlineEticketText — manifest
  */
 /**
  * 노티스 속 OTA 브랜드 → 봉투어로 치환 (삭제하지 않음).
- * REGRESSION-FREEZE[admin-ota-air-voucher]: rewriteAirNoticeOtaBrandToBongtour — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: rewriteAirNoticeOtaBrandToBongtour — manifest
  */
 export function rewriteAirNoticeOtaBrandToBongtour(text: string, locale: 'ko' | 'en' = 'ko'): string {
   const brand = locale === 'ko' ? BONGTOUR_INVOICE_COMPANY.legalName : BONGTOUR_INVOICE_COMPANY.brandName
@@ -2324,7 +2324,7 @@ function splitAirNoticeUnits(raw: string): string[] {
 
 /**
  * 주의사항 KO/EN 분리·OTA문구·승객명 나열 제거.
- * REGRESSION-FREEZE[admin-ota-air-voucher]: normalizeAirVoucherNotices — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: normalizeAirVoucherNotices — manifest
  */
 export function normalizeAirVoucherNotices(args: {
   noticesKo?: string | null
@@ -2379,7 +2379,7 @@ export function normalizeAirVoucherNotices(args: {
 
 /**
  * OCR/본문에서 주의사항·참고사항 블록 추출 (다국어 라벨).
- * REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirVoucherNoticesFromText — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: extractAirVoucherNoticesFromText — manifest
  */
 export function extractAirVoucherNoticesFromText(text: string): {
   noticesKo: string | null
@@ -2477,7 +2477,7 @@ function parseAirOcrFlightBlocks(raw: string): OtaAirVoucherFlightSegment[] {
 export function parseAdminAirlineEticketText(text: string): OtaAirlineEticketParsed {
   const raw = String(text ?? '')
   // 승객명은 OCR/라벨 추출을 우선 — trip-inbox travelers의 "Name : …" 오염 방지
-  // REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirVoucherPassengerNamesFromText prefer — manifest
+  // FREEZE-RETIRED[admin-ota-air-voucher]: extractAirVoucherPassengerNamesFromText prefer — manifest
   // OTA Booking ID / Trip.com·Agoda 로고·명칭은 항공권 바우처 조건이 아님
   const passengers: string[] = [...extractAirVoucherPassengerNamesFromText(raw)]
   const passengerSeen = new Set(passengers.map((p) => p.toUpperCase()))
@@ -2625,7 +2625,7 @@ export function airlineEticketParsedToOtaReceiptStub(
 }
 
 /**
- * REGRESSION-FREEZE[admin-ota-air-voucher]: buildOtaCompanyAirVoucherDraft — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: buildOtaCompanyAirVoucherDraft — manifest
  * guestNameOverride(체크인 바우처에서 가져온 이름) 우선, 없으면 e-ticket 승객.
  */
 export function buildOtaCompanyAirVoucherDraft(args: {
@@ -2692,7 +2692,7 @@ function formatAirFlightWhen(iso: string | null, locale: OtaVoucherLocale): stri
 
 /**
  * 항공권 바우처 본문 — OTA(예약처) / Trip.com / Agoda 표기 금지.
- * REGRESSION-FREEZE[admin-ota-air-voucher]: renderAirVoucherBody no OTA — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: renderAirVoucherBody no OTA — manifest
  */
 function renderAirVoucherBody(
   draft: OtaCompanyAirVoucherDraft,

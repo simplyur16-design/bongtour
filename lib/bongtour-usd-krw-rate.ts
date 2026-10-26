@@ -1,6 +1,6 @@
 /**
  * 관리자 OTA 인보이스/바우처용 USD→KRW (결제당일 환율 우선).
- * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
+ * FREEZE-RETIRED[admin-ota-receipt-invoice]: OTA 영수증→회사 인보이스 — manifest
  */
 
 import { getSimplyurFxRates } from '@/lib/simplyur/currency'

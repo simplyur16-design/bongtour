@@ -1,7 +1,7 @@
 /**
  * 이미지/스캔 OTA 바우처 PDF → 본문 텍스트 (Gemini vision).
  * extractPdfText가 비면 관리자 인보이스/바우처 파이프라인에서 사용.
- * REGRESSION-FREEZE[admin-ota-receipt-invoice]: OTA 바우처 PDF OCR — manifest
+ * FREEZE-RETIRED[admin-ota-receipt-invoice]: OTA 바우처 PDF OCR — manifest
  */
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { geminiTimeoutOpts, getGenAI, getModelName } from '@/lib/gemini-client'
@@ -156,7 +156,7 @@ Copy every passenger name exactly as printed under Passenger Name only (includin
 
 /**
  * 항공사 e-ticket 스캔 PDF → 승객·PNR·편명 텍스트.
- * REGRESSION-FREEZE[admin-ota-air-voucher]: extractAirlineEticketPdfTextViaGemini — manifest
+ * FREEZE-RETIRED[admin-ota-air-voucher]: extractAirlineEticketPdfTextViaGemini — manifest
  */
 export async function extractAirlineEticketPdfTextViaGemini(
   pdfBytes: Uint8Array,
