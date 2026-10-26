@@ -4,11 +4,13 @@ import { buildPublicProductBadges, inferFreeTimeFromSchedule, type ProductBadgeI
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { inferFlightRoutingMeta, productHasFlightMetaContext } from '@/lib/flight-routing-meta'
 import {
-  buildPublicShoppingDisplayInputFromProductFields,
   type FlightStructuredBody,
-  type ShoppingStopRow,
-  shouldShowPublicShoppingSection,
 } from '@/lib/public-product-extras'
+import {
+  deriveAirlineFact,
+  deriveOptionalFact,
+  deriveShoppingFact,
+} from '@/lib/supplier-product-fact-ssot'
 
 /** 상품 상세 히어로·여행요약 메타칩 (아이콘+라벨+값) */
 export type ProductMetaChipKind = 'optional' | 'shopping' | 'freeTime' | 'airline' | 'flightRouting' | 'supplier'
@@ -26,6 +28,8 @@ export type ProductMetaChipInput = ProductBadgeInput & {
   title?: string | null
   flightStructured?: FlightStructuredBody | null
   departureKeyFactsByDate?: Record<string, DepartureKeyFacts> | null
+  /** 쇼핑 표 JSON — deriveShoppingFact 와 비교표 동일 입력 */
+  shoppingShopOptions?: string | null
   /** `air_hotel_free` 일 때 패키지형 자유시간 메타칩 제외 */
   listingKind?: string | null
 }
@@ -46,44 +50,39 @@ export function shortenFreeTimeForMeta(s: string): string {
   return v || t
 }
 
-function optionalValue(product: ProductMetaChipInput, headerBadges: string[]): string {
-  if (headerBadges.some((b) => b.includes('현지옵션'))) {
-    const raw = headerBadges.find((b) => b.includes('현지옵션')) ?? '현지옵션 있음'
-    if (/없음/.test(raw)) return '없음'
-    if (/있음/.test(raw)) return '있음'
-    return raw.replace(/^현지옵션\s*/, '').trim() || raw
-  }
-  if (product.hasOptionalTours === true) return '있음'
-  if (product.hasOptionalTours === false) return '없음'
+/** 칩 = 비교표 SSOT (`deriveOptionalFact`) — 별도 추론 금지 */
+function optionalValue(product: ProductMetaChipInput): string {
+  const fact = deriveOptionalFact({
+    title: product.title,
+    hasOptionalTours: product.hasOptionalTours,
+    optionalToursStructured: product.optionalToursStructured,
+    includedText: product.includedText,
+    excludedText: product.excludedText,
+  })
+  if (fact.state === 'yes') return '있음'
+  if (fact.state === 'no') return '없음'
   return '확인'
 }
 
-function shoppingValue(product: ProductMetaChipInput, headerBadges: string[]): string {
-  const shoppingDisplayInput = buildPublicShoppingDisplayInputFromProductFields({
-    shoppingStopsStructured: product.shoppingStopsStructured as ShoppingStopRow[] | null | undefined,
-    shoppingVisitCountTotal: product.shoppingVisitCountTotal,
+/** 칩 = 비교표 SSOT (`deriveShoppingFact`) — 별도 추론 금지 */
+function shoppingValue(product: ProductMetaChipInput): string {
+  const fact = deriveShoppingFact({
+    originSource: product.originSource,
+    title: product.title,
     shoppingCount: product.shoppingCount,
+    shoppingVisitCountTotal: product.shoppingVisitCountTotal,
     shoppingItems: product.shoppingItems,
-    shoppingNoticeRaw: product.shoppingNoticeRaw,
-    shoppingPasteRaw: product.shoppingPasteRaw,
+    shoppingShopOptions: product.shoppingShopOptions,
+    shoppingCustomsNoticeRaw: product.shoppingNoticeRaw,
+    includedText: product.includedText,
+    excludedText: product.excludedText,
   })
-  const hasShoppingTab = shouldShowPublicShoppingSection(shoppingDisplayInput)
-
-  if (product.shoppingVisitCountTotal != null && product.shoppingVisitCountTotal >= 0) {
-    const v = product.shoppingVisitCountTotal
-    if (v > 0) return `${v}회`
-    if (v === 0 && !hasShoppingTab) return '없음'
-    if (v === 0 && hasShoppingTab) return '있음'
+  if (fact.state === 'yes') {
+    if (fact.visitCount != null && fact.visitCount > 0) return `${fact.visitCount}회`
+    return '있음'
   }
-  if (headerBadges.some((b) => b.includes('쇼핑'))) {
-    const raw = headerBadges.find((b) => b.includes('쇼핑')) ?? '쇼핑 없음'
-    if (/없음/.test(raw) && !/\d/.test(raw)) return '없음'
-    if (/있음/.test(raw) && !/\d/.test(raw)) return '있음'
-    const m = raw.match(/(\d+)\s*회/)
-    if (m) return `${m[1]}회`
-    return raw.replace(/^쇼핑\s*(총\s*)?/i, '').trim() || raw
-  }
-  return '없음'
+  if (fact.state === 'no') return '없음'
+  return '확인'
 }
 
 function freeTimeValue(product: ProductMetaChipInput, headerBadges: string[]): string {
@@ -131,20 +130,30 @@ export function buildProductMetaChips(
 ): ProductMetaChip[] {
   const headerBadges = buildPublicProductBadges(product)
   const chips: ProductMetaChip[] = [
-    { kind: 'optional', value: optionalValue(product, headerBadges) },
-    { kind: 'shopping', value: shoppingValue(product, headerBadges) },
+    { kind: 'optional', value: optionalValue(product) },
+    { kind: 'shopping', value: shoppingValue(product) },
     { kind: 'freeTime', value: freeTimeValue(product, headerBadges) },
   ]
-  const airlineRaw = product.airline?.trim()
   // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 메타칩 항공 IATA→한글 — manifest
-  const airline = formatPublicAirlineDisplay(airlineRaw) ?? airlineRaw
+  // 항공사 = deriveAirlineFact (비교표·상세 동일 축)
+  const airlineFact = deriveAirlineFact({
+    departureKeyFactsAirline: options?.departureFactsOverride?.airline ?? product.airline,
+    selectedDepartureCarrierName: options?.departureFactsOverride?.airline ?? null,
+    rawMeta: null,
+  })
+  const airlineRaw = product.airline?.trim()
+  const airline =
+    (airlineFact.source !== 'none' ? airlineFact.airlineLabel : null) ||
+    formatPublicAirlineDisplay(airlineRaw) ||
+    airlineRaw ||
+    null
   const { routing, hasFlightCtx } = flightRoutingChipArgs(
     product,
     options?.departureFactsOverride,
     options?.prioritizeDepartureFactsForRouting
   )
 
-  if (airline) {
+  if (airline && airline !== '정보 없음') {
     chips.push({ kind: 'airline', value: airline })
     chips.push({ kind: 'flightRouting', value: routing.flightRoutingLabel })
   } else if (
