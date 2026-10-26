@@ -9,8 +9,8 @@ import {
 } from '@/lib/supplier-product-title-display'
 
 describe('SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION', () => {
-  it('is plan-b-v5', () => {
-    expect(SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION).toMatch(/^plan-b-v5/)
+  it('is plan-b-v6', () => {
+    expect(SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION).toMatch(/^plan-b-v6/)
   })
 })
 
@@ -67,10 +67,10 @@ describe('buildSupplierProductDisplayTitle', () => {
     expect(normalizeSupplierRegisterListingTitle('[매진임박][best] 나트랑 5박6일')).toBe('나트랑 5박6일')
   })
 
-  it('strips hanatour/modetour promo brackets but keeps region and schedule tags', () => {
+  it('strips hanatour/modetour promo brackets but keeps region, 베스트셀러, schedule tags', () => {
     expect(
       normalizeSupplierRegisterListingTitle('[출발확정] 홍콩/마카오 3일 #베스트셀러'),
-    ).toBe('홍콩/마카오 3일')
+    ).toBe('홍콩/마카오 3일 #베스트셀러')
     expect(normalizeSupplierRegisterListingTitle('[스테디셀러] 홍콩+마카오 핵심투어 2박4일')).toBe(
       '홍콩+마카오 핵심투어 2박4일',
     )
@@ -239,7 +239,7 @@ describe('stripSupplierTitlePromoBadges', () => {
     ).toBe('[풀패키지] 홍콩+마카오 2박4일 대한항공/저녁출발/익청빌딩')
   })
 
-  it('plan-b-v5: symbol wrappers, channels, dates, HIT, 특가, 특급호텔 keep', () => {
+  it('plan-b-v6: symbol wrappers, channels, dates, HIT, 특가, 특급호텔 keep', () => {
     expect(
       normalizeSupplierRegisterListingTitle(
         '★출발확정/대형기탑승★몽골 울란바토르 4박5일 #노쇼핑노옵션',
@@ -282,6 +282,83 @@ describe('stripSupplierTitlePromoBadges', () => {
     expect(normalizeSupplierRegisterListingTitle('[출발임박][2030전용] 동유럽 7일')).toBe(
       '[2030전용] 동유럽 7일',
     )
+  })
+
+  it('plan-b-v6 regressions: keep wording, strip status/promo/discount, tidy symbols', () => {
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '[출발임박][한정특가][2030전용] 동유럽 3국 7일 #크리스마스마켓 #프라하시내호텔1박',
+      ),
+    ).toBe('[2030전용] 동유럽 3국 7일 #크리스마스마켓 #프라하시내호텔1박')
+    expect(normalizeSupplierRegisterListingTitle('… # 대게+샤브샤브+음료 무제한')).toContain(
+      '샤브샤브',
+    )
+    expect(
+      normalizeSupplierRegisterListingTitle('[사이판 라오라오베이/골프] #오션베이룸'),
+    ).toBe('[사이판 라오라오베이/골프] #오션베이룸')
+    expect(
+      normalizeSupplierRegisterListingTitle('*[출발임박] 동유럽 3국 9일 #비엔나음악회'),
+    ).toBe('동유럽 3국 9일 #비엔나음악회')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '[출발확정] [무조건출발] 규슈/사가 3일 #요즘대세 소도시여행',
+      ),
+    ).toBe('규슈/사가 3일 #요즘대세 소도시여행')
+    expect(
+      normalizeSupplierRegisterListingTitle('★썬푸꾸옥 취항특가★하노이/하롱베이 4일 #NO옵션'),
+    ).toBe('하노이/하롱베이 4일 #NO옵션')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '하와이 6일 #엠버시스위트 바이 힐튼 #1베드룸 스위트 #소아반값할인',
+      ),
+    ).toBe('하와이 6일 #엠버시스위트 바이 힐튼 #1베드룸 스위트')
+    expect(
+      normalizeSupplierRegisterListingTitle('【출발확정-보라빛물결】삿포로ㆍ후라노'),
+    ).toBe('【보라빛물결】 삿포로ㆍ후라노')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '[4명이상 출발확정][온천힐링] 오사카/교토/우지 3일',
+      ),
+    ).toBe('[온천힐링] 오사카/교토/우지 3일')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '쿠알라룸푸르/말라카/겐팅 5일 #4명이상 출발확정 #5성급호텔',
+      ),
+    ).toBe('쿠알라룸푸르/말라카/겐팅 5일 #5성급호텔')
+    expect(
+      normalizeSupplierRegisterListingTitle('5성호텔 #SNS맛집 #신라모노그램 망고빙수'),
+    ).toBe('5성호텔 #SNS맛집 #신라모노그램 망고빙수')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '방콕 자유여행 5일 #패러독스 방콕 수쿰윗 #위치BEST',
+      ),
+    ).toBe('방콕 자유여행 5일 #패러독스 방콕 수쿰윗 #위치BEST')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '남미 12일 #4개국 #베스트셀러 #우유니 별빛투어',
+      ),
+    ).toBe('남미 12일 #4개국 #베스트셀러 #우유니 별빛투어')
+    expect(
+      normalizeSupplierRegisterListingTitle('[품격]이집트+요르단 11일 #노쇼핑&노옵션'),
+    ).toBe('[품격] 이집트+요르단 11일 #노쇼핑&노옵션')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '[가볍게 떠나는 여행, LITE TRIP] 후쿠오카 1박 2일',
+      ),
+    ).toBe('[가볍게 떠나는 여행, LITE TRIP] 후쿠오카 1박 2일')
+    expect(
+      normalizeSupplierRegisterListingTitle("[KE][롯데관광'단독][NO쇼핑]"),
+    ).toBe('[KE] [NO쇼핑]')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '[여행핫딜] 스페인 포르투갈 9일  [9/5 출발확정_베스트 오브 베스트] #티웨이직항',
+      ),
+    ).toBe('스페인 포르투갈 9일 [베스트 오브 베스트] #티웨이직항')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '출발확정부산[TW][시내호텔2박] 오사카/교토/고베/나라 3일',
+      ),
+    ).toBe('부산 [TW] [시내호텔2박] 오사카/교토/고베/나라 3일')
   })
 })
 
