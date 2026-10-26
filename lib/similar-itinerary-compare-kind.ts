@@ -18,7 +18,11 @@ const AIR_HOTEL_PRODUCT_TYPE_WHERE = [
   'air_hotel',
 ] as const
 
-/** DB·메모리 공통 — FIT 판정 (listingKind/productType + fit- 슬러그) */
+/**
+ * DB·메모리 공통 — FIT 판정 (listingKind/productType + fit- 슬러그).
+ * 목록 칩·상세·비교가 동일 함수를 쓴다. `fim-*` 는 fit- 가 아니므로 패키지.
+ * fit-nl-0007 / fit-ky-0002 정책 재분류는 하지 않음(슬러그만 SSOT).
+ */
 export function isSimilarItineraryCompareFitProduct(p: {
   listingKind?: string | null
   productType?: string | null
@@ -32,6 +36,9 @@ export function isSimilarItineraryCompareFitProduct(p: {
   }
   return isAirHotelProduct(p)
 }
+
+/** 목록·상세·비교 공용 alias */
+export const resolvePublicListingIsFit = isSimilarItineraryCompareFitProduct
 
 export function productMatchesSimilarItineraryCompareKind(
   p: {

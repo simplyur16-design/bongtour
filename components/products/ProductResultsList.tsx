@@ -28,8 +28,8 @@ import { isSrcOptimizableByNextImage } from '@/lib/is-src-optimizable-by-next-im
 import { PRODUCT_CARD_IMAGE_BLUR_DATA_URL } from '@/lib/product-card-image-blur'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
-import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
 import { interleaveProductsBySupplier } from '@/lib/interleave-products-by-supplier'
+import { resolvePublicListingIsFit } from '@/lib/similar-itinerary-compare-kind'
 import {
   AIR_HOTEL_REGION_SECTION_ORDER,
   airHotelRegionLabel,
@@ -706,10 +706,15 @@ export function ProductResultCard({
 }) {
   const cardSrc = (item.coverImageUrl ?? item.bgImageUrl ?? '').trim()
   const cardBlur = Boolean(cardSrc) && isSrcOptimizableByNextImage(cardSrc)
-  const laneLabel = isAirHotelProduct({ listingKind: item.listingKind, productType: item.productType })
+  const laneLabel = resolvePublicListingIsFit({
+    listingKind: item.listingKind,
+    productType: item.productType,
+    slug: item.slug,
+  })
     ? '자유여행'
     : '패키지'
   // REGRESSION-FREEZE[overseas-hub-package-fit-split]: 카드 패키지/자유여행 뱃지 — manifest
+  // kind SSOT = resolvePublicListingIsFit (= isSimilarItineraryCompareFitProduct)
 
   const preview = productDetailCardPreviewFromResultItem(item, formatWon)
 
