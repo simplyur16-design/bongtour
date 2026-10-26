@@ -20,6 +20,11 @@ import * as updDeparturesYbtour from '@/lib/upsert-product-departures-ybtour'
 import { upsertItineraryModuleForProduct } from '@/lib/register-itinerary-days-upsert-module'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import {
+  isAdultPriceAbsentMarker,
+  isDepartureOnSaleForImport,
+  normalizeDepartureBookingStatus,
+} from '@/lib/departure-booking-status'
 
 /** calendar-prices / departures POST와 동일 기준: brandKey 우선 → normalizeSupplierOrigin 폴백 */
 function upsertDeparturesModuleForProduct(p: {
@@ -133,7 +138,7 @@ export async function POST(request: Request) {
   if (!admin) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
   try {
     const body = (await request.json()) as ExtractedProduct & {
-      dailyPrices?: { date: string; price: string }[]
+      dailyPrices?: { date: string; price: string; status?: string }[]
       organizerName?: string
       primaryDestination?: string
       brandKey?: string
@@ -163,19 +168,29 @@ export async function POST(request: Request) {
       dailyPrices.length > 0 && body.productCode
         ? {
             product_code: body.productCode.trim(),
-            daily_schedule: dailyPrices.map(
-              (row): ExtractedDailyScheduleItem => ({
-                date: String(row.date ?? '').slice(0, 10),
-                status: '예약가능',
-                pricing: {
-                  adult: {
-                    base: 0,
-                    fuel: 0,
-                    total: parseInt(String(row.price).replace(/,/g, ''), 10) || 0,
-                  },
-                },
+            daily_schedule: dailyPrices
+              .filter((row) => {
+                if (isAdultPriceAbsentMarker(row.price)) return false
+                const statusLabel = normalizeDepartureBookingStatus(row.status)
+                if (statusLabel && !isDepartureOnSaleForImport(statusLabel)) return false
+                const total = parseInt(String(row.price ?? '').replace(/,/g, ''), 10)
+                return Number.isFinite(total) && total > 0
               })
-            ),
+              .map((row): ExtractedDailyScheduleItem => {
+                const statusLabel =
+                  normalizeDepartureBookingStatus(row.status) ?? ('예약가능' as const)
+                return {
+                  date: String(row.date ?? '').slice(0, 10),
+                  status: statusLabel,
+                  pricing: {
+                    adult: {
+                      base: 0,
+                      fuel: 0,
+                      total: parseInt(String(row.price).replace(/,/g, ''), 10) || 0,
+                    },
+                  },
+                }
+              }),
           }
         : null
 

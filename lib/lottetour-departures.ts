@@ -27,6 +27,7 @@ import {
 import type { DepartureInput } from '@/lib/upsert-product-departures-lottetour'
 import { upsertProductDepartures } from '@/lib/upsert-product-departures-lottetour'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
+import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 
 const execFileAsync = promisify(execFile)
 const LOTTETOUR_CALENDAR_PY_MODULE = 'scripts.calendar_e2e_scraper_lottetour.calendar_price_scraper'
@@ -538,14 +539,14 @@ function parseTimeCell(html: string, yearHint: number): {
 } {
   const plain = stripTags(html)
   const re = /(\d{2})\/(\d{2})\s*\([^)]*\)\s*(\d{2}):(\d{2})/g
-  const hits: { label: string; ymd: string }[] = []
+  const hits: { label: string; mm: string; dd: string; ymd: string }[] = []
   let m: RegExpExecArray | null
   while ((m = re.exec(plain)) != null) {
     const mm = m[1]!
     const dd = m[2]!
     const hm = `${m[3]}:${m[4]}`
     const ymd = `${yearHint}-${mm}-${dd}`
-    hits.push({ label: `${mm}/${dd} ${hm}`, ymd })
+    hits.push({ label: `${mm}/${dd} ${hm}`, mm, dd, ymd })
   }
   if (hits.length === 0) {
     return { departTimeText: null, returnTimeText: null, htmlDepartYmd: null, htmlReturnYmd: null }
@@ -558,11 +559,16 @@ function parseTimeCell(html: string, yearHint: number): {
       htmlReturnYmd: null,
     }
   }
+  // 연말→연초 귀국: 같은 yearHint면 귀국 < 출발이 됨 → 귀국 연도 +1
+  let htmlReturnYmd = hits[1]!.ymd
+  if (htmlReturnYmd < hits[0]!.ymd) {
+    htmlReturnYmd = `${yearHint + 1}-${hits[1]!.mm}-${hits[1]!.dd}`
+  }
   return {
     departTimeText: hits[0]!.label,
     returnTimeText: hits[1]!.label,
     htmlDepartYmd: hits[0]!.ymd,
-    htmlReturnYmd: hits[1]!.ymd,
+    htmlReturnYmd,
   }
 }
 
@@ -636,7 +642,13 @@ export function parseLottetourEvtListAjaxHtml(
     const priceCell = cells[off + 5] ?? trInner
     const statusCell = cells[off + 6] ?? ''
 
+    const pricePlain = stripTags(priceCell)
+    // 성인가 '-' / 빈칸 = 그날 출발 없음 → skip (에러 아님)
+    if (!pricePlain || /^[-—–−]\s*$/.test(pricePlain) || /출발\s*없음/.test(pricePlain)) {
+      continue
+    }
     const price = parseKrwStrong(priceCell)
+    if (!(price > 0)) continue
     const { departTimeText, returnTimeText, htmlDepartYmd, htmlReturnYmd } = parseTimeCell(timeCell, yearHint)
     const evtYmd = departDateFromLottetourEvtCd(evtCd)
     if (evtYmd && htmlDepartYmd && evtYmd !== htmlDepartYmd) {
@@ -649,6 +661,7 @@ export function parseLottetourEvtListAjaxHtml(
     }
 
     const { statusRaw, seatsStatusRaw } = parseStatusParts(statusCell)
+    if (!isDepartureOnSaleForImport(statusRaw)) continue
     const seatCount = parseSeatCount(stripTags(statusCell))
 
     rows.push({

@@ -19,6 +19,11 @@ import { buildParseSupplierInputDebug, normalizeParseRequestOriginSource } from 
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import { requireAdmin } from '@/lib/require-admin'
 import { persistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
+import {
+  isAdultPriceAbsentMarker,
+  isDepartureOnSaleForImport,
+  normalizeDepartureBookingStatus,
+} from '@/lib/departure-booking-status'
 // [일정 정책] Product.schedule = 렌더용; ItineraryDay = 원문 정본. 이 경로는 레거시 Itinerary 미사용(허용).
 
 /** 분석 속도 개선: 26k자로 제한 (약 7k 토큰). 긴 붙여넣기는 앞부분만 사용 */
@@ -304,7 +309,20 @@ ${textInput}
       .map((p, i) => {
         const dateStr = normalizedDates[i] ?? String(p?.date ?? '').slice(0, 10)
         if (!dateStr || dateStr.length < 10) return null
+        // 성인가 '-' = 그날 출발 없음 → skip (에러 아님)
+        if (
+          isAdultPriceAbsentMarker(p?.adult) ||
+          isAdultPriceAbsentMarker(p?.adultBase) ||
+          isAdultPriceAbsentMarker(p?.price)
+        ) {
+          return null
+        }
+        const statusLabel = normalizeDepartureBookingStatus(
+          p?.status ?? p?.statusRaw ?? p?.seatsStatusRaw,
+        )
+        if (statusLabel && !isDepartureOnSaleForImport(statusLabel)) return null
         const adult = Number(p?.adult) ?? (Number(p?.adultBase) ?? 0) + (Number(p?.adultFuel) ?? 0)
+        if (!Number.isFinite(adult) || adult <= 0) return null
         const childBed = Number(p?.childBed) ?? 0
         const childNoBed = Number(p?.childNoBed) ?? 0
         const infant = Number(p?.infant) ?? 0
@@ -314,6 +332,7 @@ ${textInput}
           childBed,
           childNoBed,
           infant,
+          status: statusLabel,
           localPrice: p?.localPrice ? String(p.localPrice).trim() : null,
           carrierName: p?.carrierName,
           outboundFlightNo: p?.outboundFlightNo,
@@ -361,6 +380,7 @@ ${textInput}
         childBedPrice: row.childBed || undefined,
         childNoBedPrice: row.childNoBed || undefined,
         infantPrice: row.infant || undefined,
+        statusRaw: row.status ?? undefined,
         localPriceText: row.localPrice ?? undefined,
         carrierName: row.carrierName ?? undefined,
         outboundFlightNo: row.outboundFlightNo ?? undefined,
@@ -405,7 +425,7 @@ ${textInput}
       excludedText: null as string | null,
       counselingNotes: null,
       criticalExclusions: null as string | null,
-      prices: priceRows.map((row) => ({
+      prices: sortedPrices.map((row) => ({
         date: row.date instanceof Date ? row.date.toISOString().slice(0, 10) : String(row.date).slice(0, 10),
         adultBase: row.adult,
         adultFuel: 0,
@@ -414,7 +434,7 @@ ${textInput}
         childFuel: 0,
         infantBase: row.infant || undefined,
         infantFuel: 0,
-        status: '예약가능' as const,
+        status: (row.status ?? '예약가능') as '출발확정' | '예약가능' | '대기예약' | '마감',
         availableSeats: 0,
       })),
       surcharges: [],
