@@ -6,10 +6,12 @@
  *  - 8 노출 경로 (browse / featured / sitemap / sitemap-images / gallery / product detail × 2 / home-hub) — 2-E
  *
  * 정책 SSOT:
- *  - 룰 A — 향후 90일(3개월) 라이브 fetch 결과로 마커·lastFuture 갱신.
+ *  - 룰 A — 향후 180일(6개월) 라이브 fetch/수집 결과로 마커·lastFuture 갱신.
  *           라이브 0건이어도 **DB에 오늘 이후 성인가 출발이 있으면** 마커 부착 안 함.
- *  - 룰 B — `lastFutureDepartureDate < NOW() + 3d` 이면 사용자 노출 제외
- *           (마지막 출발 3일 전까지 노출, 2일 남으면 공개 목록/상세에서 제외).
+ *  - 공개 표시 지평 — `PUBLIC_DISPLAY_WINDOW_DAYS`(90일) 의도 상수.
+ *           `lastFutureDepartureDate`는 룰 A(180일) MAX라 “90일 내 출발 유무”를 증명할 수 없어
+ *           공개 필터에는 적용하지 않음(Rule B KST + 마커만).
+ *  - 룰 B — KST 달력일 기준: 마지막 출발일 − 3일까지 노출, − 2일 0시 KST부터 숨김.
  *           마커만 있고 lastFuture 없으면(미래 출발 0) 즉시 제외.
  *
  * 봇 차단 회피 — 트랙 ⑤ B' 가드(`waitForSupplierThrottle`/`acquireSupplierLock`/
@@ -59,16 +61,38 @@ import {
 // 정책 상수
 // ---------------------------------------------------------------------------
 
-/** 룰 A — 미래 출발일 탐색/수집 범위 (today ~ today + N일). 3개월. */
-export const RULE_A_WINDOW_DAYS = 90
+/** 룰 A — 미래 출발일 탐색/수집 범위 (today ~ today + N일). 6개월. register-facts·sweep·라이브 fetch 공용. */
+export const RULE_A_WINDOW_DAYS = 180
 /**
- * 룰 B — 마지막 미래 출발일 cutoff (공개 노출).
- * `lastFutureDepartureDate < now + N일` 이면 공개 노출 제외.
- * 예: 마지막 출발 10/26 → N=3 이면 10/23까지 노출, 10/24부터 숨김.
+ * 공개 목록 표시 지평 의도(3개월). 수집(`RULE_A_WINDOW_DAYS`)과 분리.
+ * 공개 필터에는 미적용 — `lastFutureDepartureDate`가 180일 MAX라 90일 내 출발 유무를
+ * 기존 필드만으로 올바르게 판별할 수 없음. 실제 공개 제외는 Rule B(KST) + 마커.
+ */
+export const PUBLIC_DISPLAY_WINDOW_DAYS = 90
+/**
+ * 룰 B — 마지막 미래 출발일 cutoff (공개 노출, KST 달력일).
+ * 예: 마지막 출발 10/26 → D-3(10/23) KST 종일 노출, D-2(10/24) 00:00 KST부터 숨김.
+ * `lastFutureDepartureDate` 저장 = `YYYY-MM-DDT00:00:00.000Z` (달력 YMD의 UTC midnight).
  */
 export const RULE_B_CUTOFF_DAYS = 3
 /** G3 동시 락 wait cap — 5공급사 동시 검증 충돌 시 기다릴 한계 (ms). */
 const SUPPLIER_LOCK_WAIT_CAP_MS = 15_000
+
+/** `now` 의 Asia/Seoul(UTC+9, DST 없음) 달력일 `YYYY-MM-DD`. */
+export function dateToKstYmd(now: Date): string {
+  const kstMs = now.getTime() + 9 * 60 * 60 * 1000
+  return new Date(kstMs).toISOString().slice(0, 10)
+}
+
+/**
+ * 공개 목록 Rule B cutoff — `lastFutureDepartureDate` 와 동일 저장 규약(UTC midnight of YMD).
+ * `cutoffYmd = kstToday(now) + RULE_B_CUTOFF_DAYS` → `Date(`${cutoffYmd}T00:00:00.000Z`)`.
+ * 노출: `lastFutureDepartureDate >= cutoff` (즉 KST today ≤ lastYmd − 3).
+ */
+export function publicListingCutoffUtcDate(now: Date = new Date()): Date {
+  const cutoffYmd = addDaysUtcYmd(dateToKstYmd(now), RULE_B_CUTOFF_DAYS)
+  return new Date(`${cutoffYmd}T00:00:00.000Z`)
+}
 
 // ---------------------------------------------------------------------------
 // 내부 helper (admin-execute-departures-rescrape.ts 비공개 helper 미니 카피 — 트랙 ⑤ 본문 보존)
@@ -429,12 +453,13 @@ export async function runOneSalesPolicyCheck(
 // ---------------------------------------------------------------------------
 
 /**
- * 룰 B 노출 cutoff — 공개 목록/상세에서 제외할지.
+ * 룰 B 노출 cutoff — 공개 목록/상세에서 제외할지 (`publicProductWhereClause` 와 동일 판정).
  *
- * - `lastFutureDepartureDate` 있음 → `last < now + RULE_B_CUTOFF_DAYS` 이면 숨김
- *   (10/26 마지막 출발·cutoff 3일: 10/23까지 표시, 10/24부터 숨김).
+ * - `lastFutureDepartureDate` 있음 → `last < publicListingCutoffUtcDate(now)` 이면 숨김
+ *   (KST: lastYmd−3일 종일 표시, lastYmd−2일 00:00부터 숨김).
  * - `lastFutureDepartureDate` 없음 + 룰 A 마커 있음 → 미래 출발 0건 확정 → 숨김.
  * - 둘 다 없음(미평가) → 숨기지 않음.
+ * - `PUBLIC_DISPLAY_WINDOW_DAYS` 는 의도 상수만(필터 미적용).
  */
 export function isProductHiddenByPolicy(
   product: {
@@ -444,24 +469,25 @@ export function isProductHiddenByPolicy(
   now: Date = new Date()
 ): boolean {
   if (product.lastFutureDepartureDate != null) {
-    const cutoff = now.getTime() + RULE_B_CUTOFF_DAYS * 24 * 60 * 60 * 1000
-    return product.lastFutureDepartureDate.getTime() < cutoff
+    const cutoff = publicListingCutoffUtcDate(now)
+    return product.lastFutureDepartureDate.getTime() < cutoff.getTime()
   }
   return product.noFutureDepartureConfirmedAt != null
 }
 
 /**
- * 8 노출 경로의 prisma `where` 에 AND 로 합쳐 쓰는 부분 (룰 B cutoff).
+ * 8 노출 경로의 prisma `where` 에 AND 로 합쳐 쓰는 부분 (룰 B KST cutoff).
+ * `PUBLIC_DISPLAY_WINDOW_DAYS` 는 공개 표시 지평 의도 상수(필터 미적용 — 모듈 헤더).
  *
  * 의미:
- *  - 마지막 미래 출발일 ≥ NOW() + 3d → 노출
+ *  - 마지막 미래 출발일 ≥ `publicListingCutoffUtcDate(now)` → 노출
  *  - 아직 미평가(last·마커 둘 다 null) → 노출
  *  - 그 외(마지막 출발이 cutoff 미만, 또는 마커+last null) → 제외
  *
  * 어드민 list 는 이 조건을 합치지 않음. DB 삭제가 아니라 쿼리 제외만.
  */
 export function publicProductWhereClause(now: Date = new Date()): Prisma.ProductWhereInput {
-  const cutoff = new Date(now.getTime() + RULE_B_CUTOFF_DAYS * 24 * 60 * 60 * 1000)
+  const cutoff = publicListingCutoffUtcDate(now)
   return {
     OR: [
       { lastFutureDepartureDate: { gte: cutoff } },

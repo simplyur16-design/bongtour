@@ -3,7 +3,7 @@
  *
  * 흐름 (`tickProductSalesPolicyCron`):
  *   1. `pickNextProductToCheck(prisma)` — `lastSalesPolicyCheckedAt` 가장 오래된 상품 1건 (NULL 우선).
- *   2. `runOneSalesPolicyCheck(prisma, product)` — 90일 1회 라이브 fetch + Product 마커 3종 갱신.
+ *   2. `runOneSalesPolicyCheck(prisma, product)` — 룰 A(180일) 1회 라이브 fetch + Product 마커 3종 갱신.
  *      트랙 ⑤ B' 가드(throttle / lock / human delay) 재사용.
  *   3. 결과 1줄 콘솔 로그.
  *

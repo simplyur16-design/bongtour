@@ -7,13 +7,13 @@ import { join } from 'node:path'
 // REGRESSION-FREEZE[lottetour-register-facts-calendar-horizon]: D01A 9~10월 — monthCount≥6 — manifest
 
 describe('lottetour register-facts calendar horizon', () => {
-  it('RULE_A 90일(3개월) from mid-July covers Sep–Oct (not just 2 months)', () => {
+  it('RULE_A 180일 from mid-July covers Sep–Oct (not just 2 months)', () => {
     const fromYmd = '2026-07-15'
     const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
     const months = lottetourMonthCountInclusive(fromYmd, toYmd)
-    // 90일 → Jul~Oct (4개월). monthCount=2(Jul+Aug)면 D01A Sep/Oct 누락.
-    expect(months).toBeGreaterThanOrEqual(4)
-    expect(months).toBeLessThanOrEqual(5)
+    expect(months).toBeGreaterThanOrEqual(6)
+    expect(months).toBeLessThanOrEqual(8)
+    // monthCount=2 → Jul+Aug only → D01A Sep/Oct godId 0건 (live: 8행)
     expect(2).toBeLessThan(months)
   })
 
