@@ -18,7 +18,15 @@
  * REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]: FIT는 Fit master→schedule 동기화 후 heal — manifest
  * REGRESSION-FREEZE[register-ingest-theme-category-slots]: 제목 골프·러닝 → sportsThemeTag 힐 — manifest
  * REGRESSION-FREEZE[heal-never-write-product-title]: Product.title 힐 미기록 — manifest
+ * REGRESSION-FREEZE[heal-write-guard-registered]: registered inferred 필드 skip·audit — manifest
  */
+import {
+  decideHealFieldWrite,
+  logHealFieldAudit,
+  mergeRegisteredHealNeedsReviewIntoRawMeta,
+  truncateHealAuditValue,
+  type HealWriteField,
+} from '@/lib/register-pending-heal-write-guard'
 import { prisma } from '@/lib/prisma'
 import { syncScheduleImageKeywordsFromFitMasterDb } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import { withPrismaRetry } from '@/lib/prisma-retry'
@@ -155,6 +163,10 @@ export async function healPendingRegisterPrePhoto(
       departureAirportLabel: true,
       airline: true,
       includedText: true,
+      rejectReason: true,
+      rejectedAt: true,
+      registerPrePhotoQueueReady: true,
+      registerPhotosReady: true,
       brand: { select: { brandKey: true } },
     },
       }),
@@ -255,12 +267,12 @@ export async function healPendingRegisterPrePhoto(
           ? destScrubbed
           : ''
       // REGRESSION-FREEZE[register-pre-photo-heal-pending-fail2]: dest ●○·프로모 제거 후 저장 — manifest
+      // REGRESSION-FREEZE[heal-write-guard-registered]: unknown stays unknown — no empty default fill — manifest
       const nextDestination = stripSupplierTitleUiNoise(inferredDest || destFromScrub)
       const productDestination = nextDestination || (destNeedsInfer ? '' : product.destination)
-      const destinationToPersist = destNeedsInfer
-        ? String(nextDestination || productDestination || '')
-        : nextDestination
-          ? String(nextDestination)
+      const destinationToPersist =
+        nextDestination && String(nextDestination).trim()
+          ? String(nextDestination).trim()
           : null
       const destinationChanged =
         destinationToPersist != null &&
@@ -472,6 +484,28 @@ export async function healPendingRegisterPrePhoto(
 
       const maybeRematerializeCountryGeo = async () => {
         // REGRESSION-FREEZE[register-pre-photo-country-schedule-self-heal]: mismatch→geo rematerialize — manifest
+        // REGRESSION-FREEZE[heal-write-guard-registered]: registered는 geo inferred write 금지 — manifest
+        if (currentStatus === 'registered') {
+          if (
+            pendingNeedsCountryScheduleGeoHeal({
+              countryKey: countryKeyForVerify,
+              productTitle: titleForInfer,
+              productDestination,
+              rows: verifyRows,
+            })
+          ) {
+            logHealFieldAudit({
+              productId: product.id,
+              field: 'countryKey',
+              before: truncateHealAuditValue(countryKeyForVerify),
+              after: truncateHealAuditValue('(inferred)'),
+              reason: 'geo_rematerialize',
+              action: 'skip',
+              logReason: 'skipped-registered-needs-review',
+            })
+          }
+          return
+        }
         if (
           !pendingNeedsCountryScheduleGeoHeal({
             countryKey: countryKeyForVerify,
@@ -608,30 +642,166 @@ export async function healPendingRegisterPrePhoto(
         // REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]: 수집과 겹쳐도 저장 재시도 — manifest
         // REGRESSION-FREEZE[admin-pending-queue-flags]: heal persist queue+photos flags — manifest
         // REGRESSION-FREEZE[heal-never-write-product-title]: update data에 title 키 금지 — manifest
+        // REGRESSION-FREEZE[heal-write-guard-registered]: per-field audit + registered inferred skip — manifest
         const scheduleForFlags = scheduleChanged ? nextJson : String(product.schedule ?? '')
-        await withPrismaRetry(`heal-pending:${product.id}`, () =>
-          prisma.product.update({
-            where: { id: product.id },
-            data: {
-              ...(scheduleChanged ? { schedule: nextJson } : {}),
-              ...(statusChanged ? { registrationStatus: nextStatus } : {}),
-              ...(destinationChanged ? { destination: destinationToPersist } : {}),
-              ...(departureChanged
-                ? {
-                    localDepartureTag: nextDepTags,
-                    departureAirportLabel: depResolved.departureAirportLabel,
-                  }
-                : {}),
-              ...(themeChanged ? { sportsThemeTag: nextThemeTags } : {}),
-              ...(statusChanged && nextStatus === 'pending'
-                ? { rejectReason: null, rejectedAt: null }
-                : {}),
-              rawMeta: nextRawMeta,
-              registerPrePhotoQueueReady: verify.ok && nextStatus === 'pending',
-              registerPhotosReady: isRegisterPendingPhotosReady(product.bgImageUrl, scheduleForFlags),
+        const data: Record<string, unknown> = {}
+        const skippedRegisteredFields: string[] = []
+
+        const consider = (
+          field: HealWriteField,
+          before: unknown,
+          after: unknown,
+          reason: string,
+          provenance: 'supplier_direct' | 'inferred' | 'derived_ops',
+          apply: () => void,
+        ) => {
+          const decision = decideHealFieldWrite({
+            registrationStatus: currentStatus,
+            field,
+            before,
+            after,
+            reason,
+            provenance,
+          })
+          logHealFieldAudit({
+            productId: product.id,
+            field,
+            before: truncateHealAuditValue(before),
+            after: truncateHealAuditValue(after),
+            reason,
+            action: decision.action,
+            logReason: decision.logReason,
+          })
+          if (decision.action === 'write') apply()
+          else if (decision.logReason === 'skipped-registered-needs-review') {
+            skippedRegisteredFields.push(field)
+          }
+        }
+
+        if (scheduleChanged) {
+          consider(
+            'schedule',
+            product.schedule,
+            nextJson,
+            'schedule_heal',
+            'derived_ops',
+            () => {
+              data.schedule = nextJson
             },
-          }),
+          )
+        }
+        if (statusChanged) {
+          consider(
+            'registrationStatus',
+            currentStatus,
+            nextStatus,
+            'verify_gate',
+            'derived_ops',
+            () => {
+              data.registrationStatus = nextStatus
+            },
+          )
+        }
+        if (destinationChanged) {
+          consider(
+            'destination',
+            product.destination,
+            destinationToPersist,
+            destNeedsInfer ? 'title_inferred_dest' : 'dest_scrub',
+            destNeedsInfer ? 'inferred' : 'derived_ops',
+            () => {
+              data.destination = destinationToPersist
+            },
+          )
+        }
+        if (departureChanged) {
+          consider(
+            'localDepartureTag',
+            prevDepTags,
+            nextDepTags,
+            'departure_airport_infer',
+            'inferred',
+            () => {
+              data.localDepartureTag = nextDepTags
+            },
+          )
+          consider(
+            'departureAirportLabel',
+            product.departureAirportLabel,
+            depResolved.departureAirportLabel,
+            'departure_airport_infer',
+            'inferred',
+            () => {
+              data.departureAirportLabel = depResolved.departureAirportLabel
+            },
+          )
+        }
+        if (themeChanged) {
+          consider(
+            'sportsThemeTag',
+            prevThemeTags,
+            nextThemeTags,
+            'theme_from_title',
+            'inferred',
+            () => {
+              data.sportsThemeTag = nextThemeTags
+            },
+          )
+        }
+        if (statusChanged && nextStatus === 'pending' && data.registrationStatus === 'pending') {
+          consider('rejectReason', product.rejectReason, null, 'promote_pending', 'derived_ops', () => {
+            data.rejectReason = null
+          })
+          consider('rejectedAt', product.rejectedAt, null, 'promote_pending', 'derived_ops', () => {
+            data.rejectedAt = null
+          })
+        }
+
+        let rawMetaOut = nextRawMeta
+        if (skippedRegisteredFields.length) {
+          rawMetaOut = mergeRegisteredHealNeedsReviewIntoRawMeta(nextRawMeta, skippedRegisteredFields)
+        }
+        consider(
+          'rawMeta',
+          product.rawMeta,
+          rawMetaOut,
+          'prephoto_stamp',
+          'derived_ops',
+          () => {
+            data.rawMeta = rawMetaOut
+          },
         )
+        const nextQueueReady = verify.ok && (data.registrationStatus ?? nextStatus) === 'pending'
+        consider(
+          'registerPrePhotoQueueReady',
+          product.registerPrePhotoQueueReady,
+          nextQueueReady,
+          'queue_flag',
+          'derived_ops',
+          () => {
+            data.registerPrePhotoQueueReady = nextQueueReady
+          },
+        )
+        const nextPhotosReady = isRegisterPendingPhotosReady(product.bgImageUrl, scheduleForFlags)
+        consider(
+          'registerPhotosReady',
+          product.registerPhotosReady,
+          nextPhotosReady,
+          'photos_flag',
+          'derived_ops',
+          () => {
+            data.registerPhotosReady = nextPhotosReady
+          },
+        )
+
+        if (Object.keys(data).length > 0) {
+          await withPrismaRetry(`heal-pending:${product.id}`, () =>
+            prisma.product.update({
+              where: { id: product.id },
+              data,
+            }),
+          )
+        }
         if (scheduleChanged && lane !== 'air_hotel_free') {
           try {
             // REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]: itinerary sync 일 수 상한 — manifest

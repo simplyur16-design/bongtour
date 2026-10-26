@@ -852,6 +852,35 @@
       ]
     },
     {
+      "id": "heal-write-guard-registered",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "힐 write-guard — registered inferred Product 필드 skip·audit·rawMeta needs-review",
+      "checks": [
+        {
+          "file": "lib/register-pending-heal-write-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[heal-write-guard-registered]",
+            "decideHealFieldWrite",
+            "skipped-registered-needs-review"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[heal-write-guard-registered]",
+            "decideHealFieldWrite",
+            "logHealFieldAudit"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pending-heal-write-guard.test.ts"
+      ]
+    },
+    {
       "id": "departure-onsale-import-filter",
       "tier": [
         "prebuild",
