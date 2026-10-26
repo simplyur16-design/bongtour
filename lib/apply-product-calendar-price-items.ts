@@ -2,6 +2,7 @@
  * calendar-prices POST 와 동일 SSOT — 스크립트·스케줄러가 API 없이 DB 반영할 때 사용.
  */
 import type { PrismaClient } from '@prisma/client'
+import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
 import {
@@ -132,11 +133,14 @@ export async function applyProductCalendarPriceItems(
         rejectedInvalidPrice += 1
         return null
       }
+      const statusRaw = i.statusRaw?.trim() || i.status?.trim() || null
+      // REGRESSION-FREEZE[departure-onsale-import-filter]: drop 마감 only — keep 대기예약 — manifest
+      if (!isDepartureOnSaleForImport(statusRaw)) return null
       const p = adultKrw!
       return {
         date,
         adult: p,
-        statusRaw: i.statusRaw?.trim() || i.status?.trim() || null,
+        statusRaw,
         seatsStatusRaw: i.seatsStatusRaw?.trim() || null,
         adultPrice: p,
         childBedPrice: i.childBedPrice != null ? Number(i.childBedPrice) : null,

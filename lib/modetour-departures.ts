@@ -5,6 +5,7 @@
  * pId별 GetProductDetailInfo 는 **고유 pId를 모아 청크 병렬 프리패치** 후 캐시에서 읽는다(구버전: 행마다 순차 요청).
  */
 import type { DepartureInput } from '@/lib/upsert-product-departures-modetour'
+import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 import {
   buildCommonMatchingTrace,
   buildDepartureTitleLayers,
@@ -1292,6 +1293,8 @@ export async function collectModetourDepartureInputs(
     })
 
     const sr = extra.statusRaw ?? null
+    // REGRESSION-FREEZE[departure-onsale-import-filter]: drop 마감 only — keep 대기예약 — manifest
+    if (!isDepartureOnSaleForImport(sr)) continue
     const input: DepartureInput = {
       departureDate,
       adultPrice: price,

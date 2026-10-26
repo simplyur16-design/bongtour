@@ -3,6 +3,7 @@
  * 총액 = (성인*priceAdult) + (아동베드*priceChildWithBed) + (아동노베드*priceChildNoBed) + (유아*priceInfant)
  * 새 필드가 없으면 기존 base+fuel로 폴백.
  */
+import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 
 export type PriceRowLike = {
   adultBase?: number
@@ -16,6 +17,9 @@ export type PriceRowLike = {
   priceChildWithBed?: number | null
   priceChildNoBed?: number | null
   priceInfant?: number | null
+  status?: string | null
+  statusRaw?: string | null
+  isBookable?: boolean | null
 }
 
 /** 성인 총액 = 기본가 + 유류세 */
@@ -63,9 +67,11 @@ export function getPriceAdult(row: PriceRowLike & { adult?: number }): number {
   return adultTotal(row)
 }
 
-/** 달력·상세 일정표: 성인가가 0이면 예약 불가 슬롯 */
+/** 달력·상세 일정표: 성인가>0 이고 마감/isBookable=false 아님 (대기예약 유지) */
 export function isScheduleAdultBookable(row: PriceRowLike & { adult?: number }): boolean {
-  return getPriceAdult(row) > 0
+  if (getPriceAdult(row) <= 0) return false
+  if (row.isBookable === false) return false
+  return isDepartureOnSaleForImport(row.statusRaw ?? row.status)
 }
 function getPriceChildWithBed(row: PriceRowLike): number {
   if (row.priceChildWithBed != null) return row.priceChildWithBed

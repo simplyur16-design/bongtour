@@ -7,6 +7,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { computeDepartureSlotKeyFromDate } from '@/lib/departure-slot-key'
+import { filterDeparturesOnSaleForImport } from '@/lib/departure-booking-status'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { computeBaselineAdultPriceOnUpsert } from '@/lib/supplier-urgent-deal'
 import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
@@ -217,6 +218,10 @@ export async function upsertProductDepartures(
   departures: DepartureInput[]
 ): Promise<number> {
   if (!departures?.length) return 0
+
+  // REGRESSION-FREEZE[departure-onsale-import-filter]: upsert drops 마감 only — keep 대기예약 — manifest
+  departures = filterDeparturesOnSaleForImport(departures)
+  if (!departures.length) return 0
 
   const now = new Date()
 

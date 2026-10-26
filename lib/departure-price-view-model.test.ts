@@ -30,13 +30,17 @@ describe('buildDepartureViewModels', () => {
     expect(vms[0]?.statusLabel).toBe('판매완료')
   })
 
-  it('가격 있는 날 — 마감 문구만 있으면 판매완료 아님', () => {
-    const vms = buildDepartureViewModels(
+  it('가격 있는 날 — 마감 status는 공개 예약 불가 (대기예약은 유지)', () => {
+    const closed = buildDepartureViewModels(
       [row({ id: '1', date: '2026-06-12', adult: 850_000, status: '마감' })],
       'hanatour',
     )
-    expect(vms[0]?.soldOut).toBe(false)
-    expect(vms[0]?.isAvailable).toBe(true)
+    expect(closed[0]?.isAvailable).toBe(false)
+    const waitlist = buildDepartureViewModels(
+      [row({ id: '2', date: '2026-06-13', adult: 850_000, status: '대기예약' })],
+      'hanatour',
+    )
+    expect(waitlist[0]?.isAvailable).toBe(true)
   })
 
   it('baseline 대비 인하 — 30일 창 안 출발일 isUrgentDeal', () => {

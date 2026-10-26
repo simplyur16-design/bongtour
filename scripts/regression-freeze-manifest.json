@@ -852,6 +852,44 @@
       ]
     },
     {
+      "id": "departure-onsale-import-filter",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "출발일 수집·upsert·공개 달력 — 마감만 제외, 대기예약·예약가능·출발확정 유지",
+      "checks": [
+        {
+          "file": "lib/departure-booking-status.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-onsale-import-filter]",
+            "isDepartureOnSaleForImport",
+            "filterDeparturesOnSaleForImport"
+          ]
+        },
+        {
+          "file": "lib/departure-seat-availability.ts",
+          "mustInclude": [
+            "isDepartureOnSaleForImport",
+            "isBookable === false"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-modetour.ts",
+          "mustInclude": [
+            "filterDeparturesOnSaleForImport",
+            "REGRESSION-FREEZE[departure-onsale-import-filter]"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/departure-booking-status.test.ts",
+        "lib/departure-onsale-import-filter-static.test.ts",
+        "lib/departure-seat-availability.test.ts",
+        "lib/departure-price-view-model.test.ts"
+      ]
+    },
+    {
       "id": "eastern-europe-menu-group-country-keys",
       "tier": [
         "prebuild",

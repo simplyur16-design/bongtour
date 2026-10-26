@@ -1,6 +1,7 @@
 /**
  * 출발일 잔여좌석·판매완료 SSOT — 달력·목록 카드·등록 upsert 공용.
  */
+import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 import { getPriceAdult } from '@/lib/price-utils'
 
 export type DepartureSeatRowLike = {
@@ -93,9 +94,13 @@ export function departureRowAdultKrw(row: DepartureSeatRowLike): number {
   return getPriceAdult(row as never)
 }
 
-/** 공개 달력·카드 — 성인가 있고 판매완료가 아님 */
+/** 공개 달력·카드 — 성인가 있고 판매완료·마감·isBookable=false 아님 (대기예약 유지) */
 export function isDepartureRowPublicBookable(row: DepartureSeatRowLike): boolean {
-  return departureRowAdultKrw(row) > 0 && !isDepartureSoldOut(row)
+  if (departureRowAdultKrw(row) <= 0) return false
+  if (row.isBookable === false) return false
+  if (!isDepartureOnSaleForImport(row.statusRaw ?? row.status)) return false
+  if (isDepartureSoldOut(row)) return false
+  return true
 }
 
 /** 등록 파싱 — `availableSeats`·`seatsStatusRaw` → DB `seatCount`·원문 */

@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[hanatour-api-departure-collect]: gw.hanatour.com pkg API — manifest
  */
+import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import { resolveRegisterFactProductKindFromAdminTravelScope } from '@/lib/register-facts/product-kind'
 import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
@@ -308,6 +309,8 @@ export function hanatourProdListRowToDepartureInput(row: HanatourPkgProdListRow 
   const remaSeatCnt =
     row.remaSeatCnt != null && Number.isFinite(Number(row.remaSeatCnt)) ? Math.trunc(Number(row.remaSeatCnt)) : null
   const statusRaw = hanatourStatusRawFromProdListRow(row)
+  // REGRESSION-FREEZE[departure-onsale-import-filter]: drop 마감 only — keep 대기예약 — manifest
+  if (!isDepartureOnSaleForImport(statusRaw)) return null
   return {
     departureDate,
     adultPrice,

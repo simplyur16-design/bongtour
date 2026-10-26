@@ -2,6 +2,7 @@
  * 내일투어 출발일·성인가 — program_process.asp 월별 목록 (HTTP only).
  * REGRESSION-FREEZE[naeiltour-program-process-departures]: program_process span.disc — manifest
  */
+import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 import {
   fetchNaeiltourText,
   NAEILTOUR_BASE,
@@ -70,6 +71,8 @@ export function parseNaeiltourProgramProcessListHtml(
     const closed =
       /alt=["']마감["']/i.test(body) || /예약마감|출발마감|마감/.test(body.replace(/<[^>]+>/g, ' '))
     const statusRaw = closed ? '마감' : '예약가능'
+    // REGRESSION-FREEZE[departure-onsale-import-filter]: drop 마감 only — keep 대기예약 — manifest
+    if (!isDepartureOnSaleForImport(statusRaw)) continue
     const seatsStatusRaw =
       seatCount != null && Number.isFinite(seatCount) ? `잔여${seatCount}석` : null
     out.push({

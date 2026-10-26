@@ -6,6 +6,8 @@
  *
  * REGRESSION-FREEZE[verygoodtour-hxr-calendar-parse]: 모달 dep_left/dep_right 파싱 — manifest
  */
+import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
+
 const VERYGOOD_CARRIER_RE =
   /(에미레이트항공|에미레이트|튀르키예항공|터키항공|카타르항공|카타르|에티하드항공|에티하드|영국항공|싱가포르항공|태국항공|베트남항공|트리니티항공|티웨이항공|대한항공|아시아나항공|제주항공|진에어|에어부산|에어서울|이스타항공|에어프레미아|플라이강원|루프트한자|에어캐나다|델타항공|유나이티드항공|핀에어|ANA|전일본공수)/
 
@@ -127,6 +129,8 @@ export function parseVerygoodCalendarRightRows(
     if (/출발\s*확정|예약\s*가능|대기\s*예약|마감/i.test(t)) {
       statusRaw = t.match(/출발\s*확정|예약\s*가능|대기\s*예약|예약\s*마감|마감/)?.[0] ?? null
     }
+    // REGRESSION-FREEZE[departure-onsale-import-filter]: drop 마감 only — keep 대기예약 — manifest
+    if (!isDepartureOnSaleForImport(statusRaw)) continue
     rows.push({
       date,
       adultPrice: price,

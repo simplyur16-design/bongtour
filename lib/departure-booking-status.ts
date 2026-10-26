@@ -1,6 +1,7 @@
 /**
  * 출발일 예약상태 정규화 — ProductDeparture.statusRaw / 파서·어드민 synthetic 공용.
  * 하드코딩 '예약가능' 대신 원문에서 허용 라벨만 채택.
+ * REGRESSION-FREEZE[departure-onsale-import-filter]: 마감만 수집·upsert·공개 제외, 대기예약 유지 — manifest
  */
 
 export type DepartureBookingStatusLabel = '출발확정' | '예약가능' | '대기예약' | '마감'
@@ -41,4 +42,11 @@ export function isDepartureOnSaleForImport(statusRaw: string | null | undefined)
   const label = normalizeDepartureBookingStatus(statusRaw)
   if (label === '마감') return false
   return true
+}
+
+/** upsert/수집 입력 — statusRaw 우선, 없으면 status. 마감만 제외. */
+export function filterDeparturesOnSaleForImport<
+  T extends { statusRaw?: string | null; status?: string | null },
+>(rows: readonly T[]): T[] {
+  return rows.filter((r) => isDepartureOnSaleForImport(r.statusRaw ?? r.status))
 }

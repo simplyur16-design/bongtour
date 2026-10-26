@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[ybtour-by-goods-departure-list]: by-goods 월별 다출발 — manifest
  * REGRESSION-FREEZE[ybtour-register-ssot-freeze]: goodsCd-only URL → resolveYbtourEvCdForRegisterUrl — manifest
  */
+import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import type { DepartureInput } from '@/lib/upsert-product-departures-ybtour'
 
@@ -320,12 +321,15 @@ export function ybtourByGoodsRowToDepartureInput(row: YbtourByGoodsEventRow | nu
   const { seatCount, seatsStatusRaw } = ybtourSeatFieldsFromByGoodsRow(row)
   const carrier =
     String(row.trCompanyNm ?? '').trim() || String(row.trCompanySnm ?? '').trim() || null
+  const statusRaw = ybtourStatusRawFromByGoodsRow(row)
+  // REGRESSION-FREEZE[departure-onsale-import-filter]: drop 마감 only — keep 대기예약 — manifest
+  if (!isDepartureOnSaleForImport(statusRaw)) return null
   return {
     departureDate,
     adultPrice,
     childBedPrice: null,
     infantPrice: null,
-    statusRaw: ybtourStatusRawFromByGoodsRow(row),
+    statusRaw,
     seatsStatusRaw,
     seatCount,
     carrierName: carrier,

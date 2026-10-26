@@ -45,13 +45,18 @@ describe('departure-seat-availability', () => {
     expect(isDepartureSoldOut(rows[0]!)).toBe(false)
   })
 
-  it('public bookable — 가격 있고 잔여석 확인 시에만 마감', () => {
+  it('public bookable — 가격 있고 잔여석 확인 시에만 마감; status 마감/isBookable=false 제외·대기예약 유지', () => {
     expect(isDepartureRowPublicBookable({ adult: 900_000, availableSeats: 2 })).toBe(true)
     expect(
       isDepartureRowPublicBookable({ adult: 900_000, availableSeats: 0, seatsStatusRaw: '잔여0' }),
     ).toBe(false)
     expect(isDepartureRowPublicBookable({ adult: 900_000 })).toBe(true)
     expect(isDepartureRowPublicBookable({ adult: 0, availableSeats: 5 })).toBe(false)
+    expect(isDepartureRowPublicBookable({ adult: 900_000, status: '마감' })).toBe(false)
+    expect(isDepartureRowPublicBookable({ adult: 900_000, statusRaw: '예약마감' })).toBe(false)
+    expect(isDepartureRowPublicBookable({ adult: 900_000, isBookable: false })).toBe(false)
+    expect(isDepartureRowPublicBookable({ adult: 900_000, status: '대기예약' })).toBe(true)
+    expect(isDepartureRowPublicBookable({ adult: 900_000, status: '출발확정' })).toBe(true)
   })
 
   it('seatFieldsFromParsedCalendarPrice fills seatCount from availableSeats', () => {

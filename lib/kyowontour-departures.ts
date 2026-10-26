@@ -10,6 +10,7 @@ import path from 'path'
 import { promisify } from 'util'
 import type { PrismaClient } from '@prisma/client'
 import { canonicalizePublicAirlineKo } from '@/lib/airline-iata-public-display-ssot'
+import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 import { buildCommonMatchingTrace, buildDepartureTitleLayers, type DepartureTitleLayers } from '@/lib/departure-option-kyowontour'
 import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
@@ -589,6 +590,8 @@ export function mapKyowontourCalendarToDepartureInputs(
   for (const r of rows) {
     const fact = kyowontourCalendarRowToFactPriceRow(r)
     if (!fact?.departureDate) continue
+    // REGRESSION-FREEZE[departure-onsale-import-filter]: drop 마감 only — keep 대기예약 — manifest
+    if (!isDepartureOnSaleForImport(fact.statusRaw)) continue
     const layers = titleLayersFromTourCode(r.tourCode)
     const trace = buildCommonMatchingTrace({
       source: 'kyowontour_differentDepartDate',

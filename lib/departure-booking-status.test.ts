@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  filterDeparturesOnSaleForImport,
   isAdultPriceAbsentMarker,
   isDepartureOnSaleForImport,
   normalizeDepartureBookingStatus,
@@ -41,5 +42,34 @@ describe('isDepartureOnSaleForImport', () => {
     expect(normalizeDepartureBookingStatus('마감')).toBe('마감')
     expect(isDepartureOnSaleForImport('예약마감')).toBe(false)
     expect(isDepartureOnSaleForImport('마감')).toBe(false)
+  })
+})
+
+describe('filterDeparturesOnSaleForImport (supplier upsert/collect SSOT)', () => {
+  const suppliers = [
+    'hanatour',
+    'modetour',
+    'ybtour',
+    'kyowontour',
+    'lottetour',
+    'naeiltour',
+    'verygoodtour',
+  ] as const
+
+  it.each(suppliers)('%s path: drops 마감, keeps 대기예약/예약가능/출발확정', (supplier) => {
+    const rows = [
+      { supplier, departureDate: '2026-07-01', statusRaw: '마감', adultPrice: 100_000 },
+      { supplier, departureDate: '2026-07-02', statusRaw: '예약마감', adultPrice: 100_000 },
+      { supplier, departureDate: '2026-07-03', statusRaw: '대기예약', adultPrice: 100_000 },
+      { supplier, departureDate: '2026-07-04', statusRaw: '예약가능', adultPrice: 100_000 },
+      { supplier, departureDate: '2026-07-05', statusRaw: '출발확정', adultPrice: 100_000 },
+      { supplier, departureDate: '2026-07-06', status: '마감', adultPrice: 100_000 },
+    ]
+    const kept = filterDeparturesOnSaleForImport(rows)
+    expect(kept.map((r) => r.departureDate)).toEqual([
+      '2026-07-03',
+      '2026-07-04',
+      '2026-07-05',
+    ])
   })
 })

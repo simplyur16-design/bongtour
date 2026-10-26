@@ -10,6 +10,7 @@ import {
   dedupeDepartureInputsBySlotKey,
 } from '@/lib/departure-slot-key'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
+import { filterDeparturesOnSaleForImport } from '@/lib/departure-booking-status'
 import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
 import { computeBaselineAdultPriceOnUpsert } from '@/lib/supplier-urgent-deal'
 import { normalizeCalendarDate } from './date-normalize'
@@ -298,6 +299,10 @@ export async function upsertProductDepartures(
   _preferSupplierPriceKey?: string | null,
 ): Promise<number> {
   if (!departures?.length) return 0
+
+  // REGRESSION-FREEZE[departure-onsale-import-filter]: upsert drops 마감 only — keep 대기예약 — manifest
+  departures = filterDeparturesOnSaleForImport(departures)
+  if (!departures.length) return 0
 
   const now = new Date()
   const deduped = dedupeDepartureInputsBySlotKey(departures)

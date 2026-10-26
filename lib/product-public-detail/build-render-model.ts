@@ -1,5 +1,5 @@
 import type { Prisma, ProductDeparture } from '@prisma/client'
-import { isDepartureSoldOut } from '@/lib/departure-seat-availability'
+import { isDepartureRowPublicBookable, isDepartureSoldOut } from '@/lib/departure-seat-availability'
 import { buildPublicRouteMapView } from '@/lib/bongtour-route-map-public'
 import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
@@ -990,7 +990,8 @@ export async function buildProductPublicDetailRenderModel(
   })
 
   if (isAirHotelItineraryView) {
-    const bookableRows = priceRowsForPublic.filter((r) => r.priceAdult > 0)
+    // REGRESSION-FREEZE[departure-onsale-import-filter]: air-hotel band excludes 마감 — keep 대기예약 — manifest
+    const bookableRows = priceRowsForPublic.filter((r) => isDepartureRowPublicBookable(r))
     const lowestAdultPrice = bookableRows.length > 0 ? Math.min(...bookableRows.map((r) => r.priceAdult)) : 0
     const highestAdultPrice = bookableRows.length > 0 ? Math.max(...bookableRows.map((r) => r.priceAdult)) : 0
     const sortedByDate = [...priceRowsForPublic].sort((a, b) => a.date.localeCompare(b.date))
