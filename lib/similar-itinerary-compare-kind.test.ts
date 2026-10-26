@@ -29,6 +29,14 @@ describe('similar-itinerary-compare-kind', () => {
         slug: 'pkg-shanghai-3n4d',
       }),
     ).toBe(false)
+    // fim-* 는 패키지 (재분류 없음)
+    expect(
+      isSimilarItineraryCompareFitProduct({
+        listingKind: 'travel',
+        productType: 'travel',
+        slug: 'fim-something-001',
+      }),
+    ).toBe(false)
   })
 
   it('memory filter keeps package and FIT disjoint', () => {

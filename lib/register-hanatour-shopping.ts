@@ -352,9 +352,52 @@ export function hanatourShoppingPasteIsEmpty(parsed: { detailBodyStructured?: { 
   return !parsed.detailBodyStructured?.raw?.shoppingPasteRaw?.trim()
 }
 
+function countHanatourShoppingStopsJson(raw: string | null | undefined): number {
+  if (!raw?.trim()) return 0
+  try {
+    const arr = JSON.parse(raw) as unknown
+    return Array.isArray(arr) ? arr.length : 0
+  } catch {
+    return 0
+  }
+}
+
 export function finalizeHanatourRegisterParsedShopping(parsed: RegisterParsed): RegisterParsed {
   const pasted = parsed.detailBodyStructured?.raw?.shoppingPasteRaw?.trim()
   if (!pasted) {
+    // API collect(prodInfo shpnCntrVistCnt / shpnInfoList)는 paste 없이도 유지 — 강제 없음 금지
+    const vcRaw = parsed.shoppingVisitCount
+    const vc =
+      vcRaw != null && Number.isFinite(Number(vcRaw)) && Number(vcRaw) >= 0 ? Number(vcRaw) : null
+    const stopN = countHanatourShoppingStopsJson(parsed.shoppingStops)
+    if (vc != null) {
+      return {
+        ...parsed,
+        hasShopping: vc > 0,
+        shoppingVisitCount: vc,
+        shoppingSummaryText:
+          parsed.shoppingSummaryText?.trim() ||
+          (vc > 0 ? `쇼핑 ${vc}회` : '쇼핑 없음'),
+        shoppingStopsLlmSupplementJson: parsed.shoppingStopsLlmSupplementJson ?? null,
+      }
+    }
+    if (stopN > 0 || parsed.hasShopping === true) {
+      return {
+        ...parsed,
+        hasShopping: true,
+        shoppingStopsLlmSupplementJson: parsed.shoppingStopsLlmSupplementJson ?? null,
+      }
+    }
+    if (parsed.hasShopping === false) {
+      return {
+        ...parsed,
+        hasShopping: false,
+        shoppingVisitCount: 0,
+        shoppingSummaryText: parsed.shoppingSummaryText?.trim() || '쇼핑 없음',
+        shoppingStopsLlmSupplementJson: parsed.shoppingStopsLlmSupplementJson ?? null,
+      }
+    }
+    // unknown — LLM 잔여 structured만 비움 (스칼라 발명 금지)
     const db = parsed.detailBodyStructured
     const nextDetail =
       db != null
@@ -364,17 +407,10 @@ export function finalizeHanatourRegisterParsedShopping(parsed: RegisterParsed): 
             raw: { ...db.raw },
           }
         : null
-    const issues = (parsed.extractionFieldIssues ?? []).filter((x) => x.field !== 'shoppingStops')
     return {
       ...parsed,
-      hasShopping: false,
-      shoppingVisitCount: null,
-      shoppingSummaryText: undefined,
-      shoppingNoticeRaw: undefined,
-      shoppingStops: undefined,
       shoppingStopsLlmSupplementJson: parsed.shoppingStopsLlmSupplementJson ?? null,
       detailBodyStructured: nextDetail ?? parsed.detailBodyStructured,
-      extractionFieldIssues: issues.length !== (parsed.extractionFieldIssues ?? []).length ? issues : parsed.extractionFieldIssues,
     }
   }
   const st = parsed.detailBodyStructured?.shoppingStructured
@@ -419,11 +455,16 @@ export function finalizeHanatourRegisterParsedShopping(parsed: RegisterParsed): 
         }
       : null
   const issues = (parsed.extractionFieldIssues ?? []).filter((x) => x.field !== 'shoppingStops')
+  // paste 있으나 행 0건 — 명시 없음 시그널 없으면 unknown (hasShopping false 발명 금지)
+  const pasteDeclaresNo =
+    /쇼핑\s*없|노쇼핑|쇼핑없음|쇼핑\s*0\s*회/i.test(pasted) || parsed.hasShopping === false
   return {
     ...parsed,
-    hasShopping: false,
-    shoppingVisitCount: null,
-    shoppingSummaryText: undefined,
+    hasShopping: pasteDeclaresNo ? false : undefined,
+    shoppingVisitCount: pasteDeclaresNo ? 0 : null,
+    shoppingSummaryText: pasteDeclaresNo
+      ? parsed.shoppingSummaryText?.trim() || '쇼핑 없음'
+      : undefined,
     shoppingNoticeRaw: undefined,
     shoppingStops: undefined,
     detailBodyStructured: nextDetail ?? parsed.detailBodyStructured,

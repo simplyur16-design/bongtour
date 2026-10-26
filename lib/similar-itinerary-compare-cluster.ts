@@ -9,6 +9,10 @@ import {
   durationHintFromTitle,
   scrubKrDepartureFromPlaceLabel,
 } from '@/lib/bongtour-product-display-title-ssot'
+import {
+  compareTripLengthMatch,
+  deriveTripNightsDays,
+} from '@/lib/derive-trip-nights-days'
 import { megaMenuClickLabelForCityKey } from '@/lib/mega-menu-click-label'
 import { buildMegaMenuSharedCityHaystackStopTerms } from '@/lib/mega-menu-city-haystack-terms'
 import { MEGA_MENU_TAB_DEFINITIONS, type MegaMenuLeafDef } from '@/lib/mega-menu-regions.data'
@@ -227,23 +231,49 @@ export function comparePlaceDbSearchTerms(cluster: ComparePlaceCluster | null): 
   return [...uniq].sort((a, b) => b.length - a.length || a.localeCompare(b, 'ko')).slice(0, 40)
 }
 
-/** 박일 정규화 — `3박5일`·`3박  5일` → `3박 5일` */
+/** 박일 정규화 — `3박5일`·`3박  5일` → `3박 5일` (days-only는 nights 미발명) */
 // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: 박일 정규화 — manifest
 export function normalizeCompareDurationLabel(
   duration?: string | null,
   title?: string | null,
   totalDays?: number | null,
+  scheduleDayCount?: number | null,
 ): string {
+  const derived = deriveTripNightsDays({
+    duration,
+    title,
+    scheduleDayCount: scheduleDayCount ?? totalDays ?? null,
+  })
+  if (derived.label) return normalizeHay(derived.label)
   const composed = composeHeroDayToken(duration, totalDays)
   if (composed) return normalizeHay(composed)
   const hint = durationHintFromTitle(title || '')
   return hint ? normalizeHay(hint) : ''
 }
 
+/** @deprecated 문자열 라벨 비교 — 신규는 compareProductTripLengths */
 export function compareDurationsMatch(a: string, b: string): boolean {
-  const na = normalizeCompareDurationLabel(a)
-  const nb = normalizeCompareDurationLabel(b)
-  return Boolean(na && nb && na === nb)
+  return compareTripLengthMatch({ duration: a }, { duration: b })
+}
+
+/** 비교 매칭 SSOT — tripNights/tripDays 숫자 (라벨 문자열 동등 비교 대체) */
+export function compareProductTripLengths(
+  a: {
+    duration?: string | null
+    title?: string | null
+    scheduleDayCount?: number | null
+    tripNights?: number | null
+    tripDays?: number | null
+  },
+  b: {
+    duration?: string | null
+    title?: string | null
+    scheduleDayCount?: number | null
+    tripNights?: number | null
+    tripDays?: number | null
+  },
+): boolean {
+  return compareTripLengthMatch(a, b)
 }
 
 function resolveTaiwanBare(hay: string): ComparePlaceCluster | null {

@@ -33,13 +33,18 @@ import {
   isCanonicalOverseasSupplierKey,
   type CanonicalOverseasSupplierKey,
 } from '@/lib/overseas-supplier-canonical-keys'
+import { deriveTripNightsDays } from '@/lib/derive-trip-nights-days'
 import {
-  compareDurationsMatch,
   comparePlaceClustersMatch,
   comparePlaceDbSearchTerms,
+  compareProductTripLengths,
   normalizeCompareDurationLabel,
   resolveComparePlaceCluster,
 } from '@/lib/similar-itinerary-compare-cluster'
+import {
+  pickGloballyCheapestDepartureRowByAdultPrice,
+  publicDateKeyFromRowDate,
+} from '@/lib/public-default-departure-selection'
 
 export type TriStateFact =
   | { kind: 'yes'; detail?: string }
@@ -124,6 +129,48 @@ function priceLabel(krw: number | null | undefined): string {
   return `${Math.round(krw).toLocaleString('ko-KR')}원~`
 }
 
+/**
+ * 비교표 항공사 — 상세 meta chip과 동일 축.
+ * 기본(최저가) 출발일 carrier ≈ departureKeyFacts.airline; 없으면 Product.airline.
+ * 첫 출발행 carrier를 key-facts로 위장하지 않음.
+ */
+export function resolveCompareAirlineLabel(input: {
+  airline?: string | null
+  prices?: Array<{ id: string; date: string; adult?: number | null }> | null
+  departures?: Array<{
+    departureDate: Date | string
+    carrierName?: string | null
+  }> | null
+  baseDate?: Date
+}): string {
+  const priceRows = (input.prices ?? []).map((pr) => ({
+    id: String(pr.id),
+    date: String(pr.date),
+    adult: pr.adult,
+  }))
+  const defaultPriceRow = pickGloballyCheapestDepartureRowByAdultPrice(
+    priceRows,
+    input.baseDate,
+  )
+  const selectedDateKey = defaultPriceRow
+    ? publicDateKeyFromRowDate(defaultPriceRow.date)
+    : null
+  const selectedDepCarrier = selectedDateKey
+    ? (input.departures ?? []).find((d) => {
+        const depKey =
+          d.departureDate instanceof Date
+            ? d.departureDate.toISOString().slice(0, 10)
+            : String(d.departureDate).slice(0, 10)
+        return depKey === selectedDateKey
+      })?.carrierName ?? null
+    : null
+  return deriveAirlineFact({
+    departureKeyFactsAirline: selectedDepCarrier ?? input.airline ?? null,
+    selectedDepartureCarrierName: selectedDepCarrier ?? null,
+    rawMeta: null,
+  }).airlineLabel
+}
+
 export function formatTriStateFact(f: TriStateFact): string {
   if (f.kind === 'yes') return f.detail ? `있음 (${f.detail})` : '있음'
   if (f.kind === 'no') return '없음'
@@ -205,11 +252,14 @@ export async function loadSimilarItineraryCompare(opts: {
       slug: true,
       title: true,
       duration: true,
+      tripNights: true,
+      tripDays: true,
       primaryDestination: true,
       destination: true,
       listingKind: true,
       productType: true,
       originSource: true,
+      airline: true,
       priceFrom: true,
       minBookableAdultPrice: true,
       shoppingCount: true,
@@ -227,12 +277,13 @@ export async function loadSimilarItineraryCompare(opts: {
       // REGRESSION-FREEZE[browse-price-product-price-fallback]: 비교표 인당가 = ProductPriceSelect — manifest
       // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: departures는 가격+항공사 동시 select — manifest
       prices: {
-        select: { adult: true },
+        select: { id: true, date: true, adult: true },
         take: 20,
         orderBy: { date: 'asc' as const },
       },
       departures: {
         select: {
+          id: true,
           adultPrice: true,
           departureDate: true,
           carrierName: true,
@@ -256,6 +307,11 @@ export async function loadSimilarItineraryCompare(opts: {
     },
   })
 
+  const durationWantInput = {
+    duration: durationRaw || (allowPreset ? DEV_COMPARE_PRESETS[0].duration : ''),
+    title: null as string | null,
+  }
+
   const matched = placeWant
     ? products.filter((p) => {
         const place = resolveComparePlaceCluster({
@@ -263,9 +319,16 @@ export async function loadSimilarItineraryCompare(opts: {
           destination: p.destination,
           title: p.title,
         })
-        const durOk = compareDurationsMatch(
-          normalizeCompareDurationLabel(p.duration, p.title),
-          durationWant,
+        const scheduleDayCount = Array.isArray(p.itineraryDays) ? p.itineraryDays.length : null
+        const durOk = compareProductTripLengths(
+          {
+            duration: p.duration,
+            title: p.title,
+            tripNights: p.tripNights,
+            tripDays: p.tripDays,
+            scheduleDayCount,
+          },
+          durationWantInput,
         )
         if (!comparePlaceClustersMatch(placeWant, place) || !durOk) return false
         // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 패키지 표에 FIT 금지·반대도 금지 — manifest
@@ -277,10 +340,31 @@ export async function loadSimilarItineraryCompare(opts: {
     // REGRESSION-FREEZE[supplier-product-fact-ssot]: 비교표 사실 도출 — manifest
     const shop = deriveShoppingFact(p)
     const opt = deriveOptionalFact(p)
-    const hm = deriveHotelMealFact(p)
-    const airline = deriveAirlineFact(p)
+    const hm = deriveHotelMealFact({
+      ...p,
+      listingKind: p.listingKind,
+      productType: p.productType,
+      slug: p.slug,
+    })
+    const airlineLabel = resolveCompareAirlineLabel({
+      airline: p.airline,
+      prices: (p.prices ?? []).map((pr) => ({
+        id: String(pr.id),
+        date: String(pr.date),
+        adult: pr.adult,
+      })),
+      departures: p.departures,
+    })
     const originKey = normalizeSupplierOrigin(p.originSource)
     const supplierKey = isCanonicalOverseasSupplierKey(originKey) ? originKey : null
+    const scheduleDayCount = Array.isArray(p.itineraryDays) ? p.itineraryDays.length : null
+    const tripLen = deriveTripNightsDays({
+      duration: p.duration,
+      title: p.title,
+      tripNights: p.tripNights,
+      tripDays: p.tripDays,
+      scheduleDayCount,
+    })
     return {
       id: p.id,
       slug: p.slug,
@@ -306,9 +390,9 @@ export async function loadSimilarItineraryCompare(opts: {
           ).cardTitle || planB
         )
       })(),
-      duration: normalizeCompareDurationLabel(p.duration, p.title) || '정보 없음',
+      duration: tripLen.label || normalizeCompareDurationLabel(p.duration, p.title) || '정보 없음',
       priceLabel: priceLabel(computeEffectivePricePerPersonKrwFromRow(p)),
-      airlineLabel: airline.airlineLabel,
+      airlineLabel,
       shopping: toTriState(shop.state, shop.visitCount),
       optional: toTriState(opt.state),
       hotelLabel: hm.hotelLabel,

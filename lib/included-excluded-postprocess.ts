@@ -29,10 +29,28 @@ function keepLine(s: string): boolean {
   return true
 }
 
+/** VG/YB 등 포함·불포함 HTML 찌꺼기 제거 (파서·표시 공용) */
+export function stripIncludedExcludedHtmlDebris(raw: string): string {
+  let s = String(raw ?? '')
+  if (!s) return ''
+  s = s.replace(/<\s*br\s*\/?\s*>/gi, '\n')
+  s = s.replace(/<\/?\s*(?:p|div|li|ul|ol|span|strong|b|em|i|font|table|tr|td|th|tbody|thead)[^>]*>/gi, ' ')
+  s = s.replace(/<[^>]+>/g, ' ')
+  s = s
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+  s = s.replace(/\s+/g, ' ').trim()
+  return s
+}
+
 export function sanitizeIncludedExcludedItemsLines(items: string[]): string[] {
   const out: string[] = []
   for (const raw of items) {
-    const t = raw.replace(/\s+/g, ' ').trim()
+    const t = stripIncludedExcludedHtmlDebris(raw).replace(/\s+/g, ' ').trim()
     if (!t) continue
     if (!keepLine(t)) continue
     const shortened = t.length > 420 ? `${t.slice(0, 417)}…` : t

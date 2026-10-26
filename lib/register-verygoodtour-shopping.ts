@@ -167,11 +167,15 @@ export function finalizeVerygoodRegisterParsedShopping(parsed: RegisterParsed): 
         hasShopping: true,
       }
     }
-    return {
-      ...parsed,
-      shoppingVisitCount: 0,
-      hasShopping: false,
+    // 헤더 0회 또는 API가 이미 명시 없음 → 없음. 그 외는 unknown 유지(0/false 발명 금지)
+    if (headerN === 0 || parsed.hasShopping === false || parsed.shoppingVisitCount === 0) {
+      return {
+        ...parsed,
+        shoppingVisitCount: 0,
+        hasShopping: false,
+      }
     }
+    return parsed
   }
 
   if (vc == null || !Number.isFinite(Number(vc)) || Number(vc) <= 0) {

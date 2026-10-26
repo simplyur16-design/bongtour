@@ -17,8 +17,14 @@ describe('composeHeroDayToken', () => {
     expect(composeHeroDayToken('3박 4일')).toBe('3박 4일')
     expect(composeHeroDayToken('7박8일')).toBe('7박 8일')
   })
-  it('totalDays 폴백 → (n-1)박 n일', () => {
-    expect(composeHeroDayToken(null, 5)).toBe('4박 5일')
+  it('totalDays 폴백 → n일 only (nights 미발명)', () => {
+    expect(composeHeroDayToken(null, 5)).toBe('5일')
+    expect(composeHeroDayToken(null, 5)).not.toBe('4박 5일')
+  })
+
+  it('nights-only duration → n박 (days 미발명)', () => {
+    expect(composeHeroDayToken('3박')).toBe('3박')
+    expect(composeHeroDayToken('3박')).not.toBe('3박 4일')
   })
 })
 
@@ -172,7 +178,8 @@ describe('resolvePublicBrowseCardTitle', () => {
     )
     expect(r.usedHeroShort).toBe(true)
     // 메가 LC leaf 정규화: 뉴질랜드 → 호주/뉴질랜드
-    expect(r.cardTitle).toMatch(/^(?:뉴질랜드|호주\/뉴질랜드) \d+박 9일$/)
+    // days-only 제목은 nights 미발명 (9일 ≠ 8박 9일 가정)
+    expect(r.cardTitle).toMatch(/^(?:뉴질랜드|호주\/뉴질랜드) (?:\d+박 )?9일$/)
     expect(r.cardTitle).not.toMatch(/#/)
   })
 

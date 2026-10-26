@@ -13,6 +13,15 @@ export function isScheduleUserPlaceholder(s: string | null | undefined): boolean
   return false
 }
 
+/** 일정 요약 슬롯 — 비어 있으면 null (렌더 슬롯 숨김용) */
+export function resolvePublicScheduleDayDescription(
+  description: string | null | undefined,
+): string | null {
+  const t = String(description ?? '').trim()
+  if (!t || isScheduleUserPlaceholder(t)) return null
+  return t
+}
+
 /** DAY 블록 제목: title이 placeholder면 description 첫 실질 줄 */
 export function resolvePublicScheduleDayTitle(title: string | null | undefined, description: string | null | undefined): string | null {
   const t = title?.replace(/\s+/g, ' ').trim()

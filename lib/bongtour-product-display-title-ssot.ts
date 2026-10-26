@@ -5,7 +5,7 @@
  * REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: heroShortTitle 계약 — manifest
  */
 
-import { getProductTotalDays } from '@/lib/package-rules'
+import { deriveTripNightsDays } from '@/lib/derive-trip-nights-days'
 import { BONGTOUR_PRODUCT_TITLE_FORBIDDEN_TOKENS } from '@/lib/bongtour-product-title-tone-ssot'
 import {
   collapseAdjacentDuplicateTitlePhrases,
@@ -247,17 +247,12 @@ export function composeHeroDayToken(
   totalDays?: number | null
 ): string | null {
   const d = String(duration || '').trim()
-  const m = d.match(/(\d+)\s*박\s*(\d+)\s*일/)
-  if (m) return `${m[1]}박 ${m[2]}일`
-  const onlyDay = d.match(/(?<!\d)(\d+)\s*일(?!\d)/)
-  if (onlyDay) {
-    const days = Number(onlyDay[1])
-    if (days > 1) return `${days - 1}박 ${days}일`
-    return `${days}일`
-  }
-  const n = getProductTotalDays({ duration: duration ?? null }, totalDays ?? null)
-  if (n > 1) return `${n - 1}박 ${n}일`
-  if (n > 0) return `${n}일`
+  // deriveTripNightsDays SSOT — days-only/nights-only 상대값 미발명; duration 빈칸이면 totalDays→n일만
+  const derived = deriveTripNightsDays({
+    duration: d || null,
+    scheduleDayCount: d ? null : totalDays ?? null,
+  })
+  if (derived.label) return derived.label
   return null
 }
 
@@ -324,7 +319,9 @@ export function composeBongtourHeroDisplayTitle(
   const cities = uniqPreserve(input.cities ?? [])
   const country = cleanToken(String(input.countryLabel || ''))
   const hay = cleanToken(String(input.haystack || ''))
-  const dayToken = composeHeroDayToken(input.duration, input.totalDays)
+  const dayToken =
+    deriveTripNightsDays({ duration: input.duration, title: input.haystack }).label ||
+    composeHeroDayToken(input.duration, input.totalDays)
   const multi = Boolean(input.multiCountry) || Boolean(input.regionLabel && !country)
   const theme = detectTheme(hay)
   const region = detectRegion(hay, input.regionLabel)
@@ -607,9 +604,12 @@ export function resolvePublicBrowseCardTitle(
     indiaSubregionCardPlaceFromTitle(input.title) ||
     (isIndiaMultiCityCircuitTitle(input.title) ? '인도' : null)
   if (indiaPlaceForced) {
-    const duration =
-      String(input.duration || '').trim() || durationHintFromTitle(input.title) || null
-    const dayToken = composeHeroDayToken(duration, null)
+    const dayToken =
+      deriveTripNightsDays({ duration: input.duration, title: input.title }).label ||
+      composeHeroDayToken(
+        String(input.duration || '').trim() || durationHintFromTitle(input.title) || null,
+        null,
+      )
     if (dayToken) {
       const cardTitle = cleanToken(`${indiaPlaceForced} ${dayToken}`)
       if (cardTitle && !isBannedPublicCardPlaceLabel(indiaPlaceForced)) {
@@ -720,7 +720,10 @@ export function resolvePublicBrowseCardTitle(
   const countryLabel = cleanToken(String(input.countryRowLabel || ''))
   const regionLabel = cleanToken(String(input.primaryRegion || ''))
   const duration =
-    String(input.duration || '').trim() || durationHintFromTitle(input.title) || null
+    deriveTripNightsDays({ duration: input.duration, title: input.title }).label ||
+    String(input.duration || '').trim() ||
+    durationHintFromTitle(input.title) ||
+    null
   let regionClean = sanitizePlaceLabel(regionLabel)
   // 「동남아, 베트남」→ 국가 leaf 조각만 (동남아 카드 금지)
   if (regionClean && /[,/]/.test(regionClean)) {
@@ -803,7 +806,14 @@ export function resolvePublicBrowseCardTitle(
     isPollutedPublicProductTitle(fb) ||
     fbStartsWithRegionGroup
   ) {
-    const dur = durationHintFromTitle(fbRaw) || durationHintFromTitle(input.title) || ''
+    const durLabel =
+      deriveTripNightsDays({
+        duration: input.duration,
+        title: `${fbRaw} ${input.title || ''}`,
+      }).label ||
+      durationHintFromTitle(fbRaw) ||
+      durationHintFromTitle(input.title) ||
+      ''
     const region = detectRegion(cleanToken(fbRaw), fbStartsWithRegionGroup ? null : input.primaryRegion)
     const brand = pickBrandCity(
       filterKrDeparturePlaceTokens(splitPlaceTokens(fbRaw, input.primaryDestination)),
@@ -822,7 +832,7 @@ export function resolvePublicBrowseCardTitle(
       region ||
       countryClean ||
       '여행'
-    fb = dur ? cleanToken(`${place} ${composeHeroDayToken(dur) || dur}`) : place
+    fb = durLabel ? cleanToken(`${place} ${durLabel}`) : place
   }
   return { cardTitle: fb || '여행', heroSubtitle: null, usedHeroShort: false }
 }

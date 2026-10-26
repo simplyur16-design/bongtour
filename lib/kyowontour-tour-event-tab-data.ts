@@ -46,7 +46,18 @@ export type KyowontourTourEventHiddenFields = {
 export type KyowontourOptShopTabParsed = {
   optionalTours: KyowontourOptionalTourFromBody[]
   shoppingItems: KyowontourShoppingItemFromBody[]
-  shoppingVisitCount: number
+  /**
+   * tab detail 객체가 있을 때만 횟수(0 포함). detail null/비객체(미수신·파싱불가) → null(unknown).
+   * 명시 없음: tabDetailPresent && shoppingItems.length===0 (shopping_list 구조적 0건).
+   */
+  shoppingVisitCount: number | null
+  /** goodsEvtTab_7.detail 이 객체로 수신·파싱 가능했는지 (빈 evtType/etcTour 포함) */
+  tabDetailPresent: boolean
+}
+
+/** tab7 detail 존재 여부 — null/비객체 = 미수신·실패(unknown), 객체(빈 배열 포함) = 파싱 가능 */
+export function isKyowontourOptShopTabDetailPresent(detail: unknown): boolean {
+  return detail != null && typeof detail === 'object' && !Array.isArray(detail)
 }
 
 export type KyowontourScheduleRowParsed = {
@@ -533,7 +544,8 @@ export function parseKyowontourReservationTabDetail(detail: unknown): Kyowontour
 }
 
 export function parseKyowontourOptShopTabDetail(detail: unknown): KyowontourOptShopTabParsed {
-  const d = asRecord(detail)
+  const tabDetailPresent = isKyowontourOptShopTabDetailPresent(detail)
+  const d = tabDetailPresent ? asRecord(detail) : null
   const optionalTours: KyowontourOptionalTourFromBody[] = []
   const etcTour = d?.etcTour
   if (Array.isArray(etcTour)) {
@@ -546,7 +558,9 @@ export function parseKyowontourOptShopTabDetail(detail: unknown): KyowontourOptS
   return {
     optionalTours,
     shoppingItems,
-    shoppingVisitCount: shoppingItems.length,
+    // 구조적 0건(명시 없음) vs detail 미수신 — 후자는 null(unknown), 전자는 0
+    shoppingVisitCount: tabDetailPresent ? shoppingItems.length : null,
+    tabDetailPresent,
   }
 }
 

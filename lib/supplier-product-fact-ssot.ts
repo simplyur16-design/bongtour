@@ -502,21 +502,42 @@ function formatHotelLabelWithStar(name: string, star: string | null): string {
 
 /**
  * 비교·목록용 항공사 한 줄.
- * 우선순위: 출발행 `carrierName` → rawMeta `structuredSignals.airlineName` (공개 상세와 동일 축).
+ * 우선순위: 선택/대표 `departureKeyFacts.airline` → 출발행 `carrierName`
+ * → rawMeta `structuredSignals.airlineName` (상세 항공 블록과 동일 축).
+ * 상담 시·미추출은 발명하지 않음 → `정보 없음`.
  */
 export function deriveAirlineFact(p: {
   rawMeta?: string | null
   departures?: Array<{ carrierName?: string | null }> | null
+  /** 상세·캘린더 선택일과 동일 축 — 있으면 최우선 */
+  departureKeyFactsAirline?: string | null
+  selectedDepartureCarrierName?: string | null
 }): AirlineFact {
+  const rejectConsult = (raw: string) => {
+    const t = raw.trim()
+    if (!t) return null
+    if (/상담\s*시|문의|미정|확인\s*후|별도\s*안내/u.test(t)) return null
+    return t
+  }
+  const fromFacts = rejectConsult(String(p.departureKeyFactsAirline ?? ''))
+  if (fromFacts) {
+    const label = formatPublicAirlineDisplay(fromFacts)
+    if (label) return { airlineLabel: label, source: 'departure_key_facts' }
+  }
+  const fromSelected = rejectConsult(String(p.selectedDepartureCarrierName ?? ''))
+  if (fromSelected) {
+    const label = formatPublicAirlineDisplay(fromSelected)
+    if (label) return { airlineLabel: label, source: 'selected_departure_carrier' }
+  }
   const fromDep = (p.departures ?? [])
-    .map((d) => String(d.carrierName ?? '').trim())
+    .map((d) => rejectConsult(String(d.carrierName ?? '')))
     .find(Boolean)
   if (fromDep) {
     const label = formatPublicAirlineDisplay(fromDep)
     if (label) return { airlineLabel: label, source: 'departure_carrier' }
   }
   const structured = parseProductRawMetaPublic(p.rawMeta ?? null)?.structuredSignals
-  const fromStruct = String(structured?.airlineName ?? '').trim()
+  const fromStruct = rejectConsult(String(structured?.airlineName ?? ''))
   if (fromStruct) {
     const label = formatPublicAirlineDisplay(fromStruct)
     if (label) return { airlineLabel: label, source: 'structured_airline' }
@@ -524,11 +545,26 @@ export function deriveAirlineFact(p: {
   return { airlineLabel: '정보 없음', source: 'none' }
 }
 
+/** 섹션 제목·안내 헤더 — 숙소명으로 채택 금지 */
+function isHotelSectionHeading(raw: string): boolean {
+  const t = raw.replace(/\s+/g, ' ').trim()
+  if (!t) return true
+  if (/^(?:날씨\s*및\s*호텔|날씨\/호텔|호텔\s*및\s*날씨)$/u.test(t)) return true
+  if (/^(?:호텔\s*정보|숙소\s*안내|숙박\s*안내|호텔\s*안내)$/u.test(t)) return true
+  if (/날씨\s*및\s*호텔|호텔\s*정보\s*안내/u.test(t) && t.length <= 24) return true
+  return false
+}
+
 export function deriveHotelMealFact(p: {
   title?: string | null
   hotelSummaryText?: string | null
   hotelSummaryRaw?: string | null
   rawMeta?: string | null
+  /** FIT/에어텔이면 식사칸을 예시일정 조중석으로 채우지 않음 */
+  listingKind?: string | null
+  productType?: string | null
+  slug?: string | null
+  isFit?: boolean | null
   schedule?: unknown
   itineraryDays?: Array<{
     hotelText?: string | null
@@ -567,8 +603,10 @@ export function deriveHotelMealFact(p: {
     ...days.map((d) => (d as { hotelText?: string | null }).hotelText),
   ]
   for (const c of candidates) {
+    if (isHotelSectionHeading(String(c ?? ''))) continue
     const h = scrubPublicHotelDisplayLine(c)
     if (!h) continue
+    if (isHotelSectionHeading(h)) continue
     if (/^(?:조식|중식|석식|아침|점심|저녁|불포함|기내식)(?:\s|$|\/)/u.test(h) && !/(호텔|Hotel|Resort)/i.test(h)) {
       continue
     }
@@ -622,7 +660,7 @@ export function deriveHotelMealFact(p: {
     // 이미 VG 축약형 — 성급 꼬리 재부착하지 않음
     return {
       hotelLabel: hotel,
-      mealLabel: formatCompareMealSlotsLabel(days),
+      mealLabel: resolveCompareMealLabel(p, days),
       hotelStarGrade: extractHotelStarGrade(hotel, p.title, p.hotelSummaryRaw),
     }
   }
@@ -639,15 +677,91 @@ export function deriveHotelMealFact(p: {
   if (/혹은\s*동급|출발일\s*1~2일전\s*공지/u.test(hotel)) {
     return {
       hotelLabel: hotel,
-      mealLabel: formatCompareMealSlotsLabel(days),
+      mealLabel: resolveCompareMealLabel(p, days),
       hotelStarGrade: star,
     }
   }
   return {
     hotelLabel: formatHotelLabelWithStar(hotel, star),
-    mealLabel: formatCompareMealSlotsLabel(days),
+    mealLabel: resolveCompareMealLabel(p, days),
     hotelStarGrade: star,
   }
+}
+
+function isFitProductForMealFact(p: {
+  listingKind?: string | null
+  productType?: string | null
+  slug?: string | null
+  isFit?: boolean | null
+}): boolean {
+  if (p.isFit === true) return true
+  if (String(p.slug || '')
+    .trim()
+    .toLowerCase()
+    .startsWith('fit-')) {
+    return true
+  }
+  const lk = String(p.listingKind || '').trim()
+  if (lk === 'air_hotel_free') return true
+  const pt = String(p.productType || '')
+    .trim()
+    .toLowerCase()
+  return pt === 'air-hotel' || pt === 'airtel' || pt === 'air_hotel' || pt === 'air-tel'
+}
+
+/** 공급사가 조식 포함을 명시한 경우만 true (호텔식·예시일정 추정 금지) */
+function fitSourceExplicitlyIncludesBreakfast(hay: string): boolean {
+  const t = hay.replace(/\s+/g, ' ').trim()
+  if (!t) return false
+  // 불포함·미포함 명시 — '불포함: 조식' 등이 '포함: 조식'에 매칭되지 않게 먼저 배제
+  if (/(?:조식|아침)\s*(?:불포함|미포함)/u.test(t)) return false
+  if (/(?:불포함|미포함)\s*(?:사항\s*)?[:：]?\s*(?:조식|아침)/u.test(t)) return false
+  if (/breakfast\s*not\s*included/i.test(t)) return false
+  if (/(?:룸\s*온리|room\s*only)/i.test(t)) return false
+  // 불포함(사항) 섹션 본문에 조식이 나열된 경우
+  if (/불포함(?:사항)?\s*[:：][^\n]{0,120}조식/u.test(t)) return false
+  return (
+    /조식\s*포함|조식포함/u.test(t) ||
+    /breakfast\s*included/i.test(t) ||
+    // negative lookbehind: '불포함: 조식' / '미포함: 조식' 내부의 '포함: 조식' 부분매칭 금지
+    /(?<![불미])포함\s*[:：]?\s*조식/u.test(t)
+  )
+}
+
+/** FIT/에어텔: 명시 조식포함만 「호텔 조식」; 룸온리·미상 → 상담 시 안내 */
+function resolveCompareMealLabel(
+  p: {
+    listingKind?: string | null
+    productType?: string | null
+    slug?: string | null
+    isFit?: boolean | null
+    hotelSummaryText?: string | null
+    hotelSummaryRaw?: string | null
+    includedText?: string | null
+  },
+  days: Array<{
+    mealSummaryText?: string | null
+    meals?: string | null
+    breakfastText?: string | null
+    lunchText?: string | null
+    dinnerText?: string | null
+  }>,
+): string {
+  if (!isFitProductForMealFact(p)) {
+    return formatCompareMealSlotsLabel(days)
+  }
+  const hay = [
+    p.hotelSummaryText,
+    p.hotelSummaryRaw,
+    p.includedText,
+    ...days.map((d) => d.breakfastText),
+    ...days.map((d) => d.mealSummaryText),
+    ...days.map((d) => d.meals),
+  ]
+    .map((x) => String(x ?? ''))
+    .join('\n')
+  if (fitSourceExplicitlyIncludesBreakfast(hay)) return '호텔 조식'
+  return '상담 시 안내'
 }
 
 export function formatFactTriState(state: FactTriState, visitCount?: number | null): string {

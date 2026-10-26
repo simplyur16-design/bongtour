@@ -29,6 +29,7 @@ describe('kyowontour tourEventTabData opt/shop', () => {
 
   it('CSP302 fixture — 쇼핑 2행·선택관광 6건', () => {
     const parsed = parseKyowontourOptShopTabDetail(CSP302_OPT_SHOP_TAB7_DETAIL_FIXTURE)
+    expect(parsed.tabDetailPresent).toBe(true)
     expect(parsed.shoppingVisitCount).toBe(2)
     expect(parsed.shoppingItems).toHaveLength(2)
     expect(parsed.shoppingItems[0]?.itemName).toBe('보이차')
@@ -38,6 +39,19 @@ describe('kyowontour tourEventTabData opt/shop', () => {
     expect(parsed.optionalTours[0]?.currency).toBe('USD')
     expect(parsed.optionalTours[0]?.priceAdult).toBe(50)
     expect(parsed.optionalTours[1]?.alternativeProgram).toBe('지정장소 자유 시간(가이드 비동행)')
+  })
+
+  it('detail null → tabDetailPresent false, shoppingVisitCount null (unknown)', () => {
+    const parsed = parseKyowontourOptShopTabDetail(null)
+    expect(parsed.tabDetailPresent).toBe(false)
+    expect(parsed.shoppingVisitCount).toBeNull()
+    expect(parsed.shoppingItems).toHaveLength(0)
+  })
+
+  it('detail empty object → tabDetailPresent true, shoppingVisitCount 0 (명시 없음)', () => {
+    const parsed = parseKyowontourOptShopTabDetail({ evtType: [], etcTour: [] })
+    expect(parsed.tabDetailPresent).toBe(true)
+    expect(parsed.shoppingVisitCount).toBe(0)
   })
 
   it('행 파서 — shopping_list·etcTour 키 매핑', () => {

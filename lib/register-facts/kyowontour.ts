@@ -8,13 +8,16 @@ import { collectKyowontourCalendarRange } from '@/lib/kyowontour-departures'
 import { scheduleTabParsedToRegisterDays } from '@/lib/kyowontour-register-schedule-collect'
 import {
   KYOWONTOUR_TAB_CORE_ID,
+  KYOWONTOUR_TAB_OPT_SHOP_ID,
   KYOWONTOUR_TAB_SCHEDULE_ID,
   extractKyowontourHiddenFieldsFromDetailHtml,
   extractTabDetailFromTabData,
   fetchKyowontourTourEventTabData,
   parseKyowontourCoreTabDetail,
+  parseKyowontourOptShopTabDetail,
   parseKyowontourScheduleTabDetail,
 } from '@/lib/kyowontour-tour-event-tab-data'
+import { kyowontourOptShopToFactShoppingPlaces } from '@/lib/kyowontour-register-opt-shop-collect'
 import { applyKyowontourUrlDetailThreeSlotToCalendarRows, synthesizeKyowontourUrlAnchorCalendarRow } from '@/lib/kyowontour-tourcode-detail-meta'
 import { filterKyowontourCalendarRowsByUrlTourCodeLine } from '@/lib/kyowontour-tourcode-line'
 import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
@@ -102,14 +105,18 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
   const title = extractTitleFromDetailHtml(html)
   const tabRes = await fetchKyowontourTourEventTabData(
     hidden,
-    [KYOWONTOUR_TAB_CORE_ID, KYOWONTOUR_TAB_SCHEDULE_ID],
+    [KYOWONTOUR_TAB_CORE_ID, KYOWONTOUR_TAB_SCHEDULE_ID, KYOWONTOUR_TAB_OPT_SHOP_ID],
     { refererUrl: url },
   )
   const coreDetail = extractTabDetailFromTabData(tabRes.data, KYOWONTOUR_TAB_CORE_ID)
   const scheduleDetail = extractTabDetailFromTabData(tabRes.data, KYOWONTOUR_TAB_SCHEDULE_ID)
+  const optShopDetail = extractTabDetailFromTabData(tabRes.data, KYOWONTOUR_TAB_OPT_SHOP_ID)
   const core = parseKyowontourCoreTabDetail(coreDetail)
   const scheduleTab = parseKyowontourScheduleTabDetail(scheduleDetail)
+  const optShop = parseKyowontourOptShopTabDetail(optShopDetail)
   const scheduleDays = registerScheduleToFactDays(scheduleTabParsedToRegisterDays(scheduleTab))
+  // tab7 미수신/실패 → [] (unknown, 칩 숨김). 수신·파싱 후 shopping_list 0건 → ['노쇼핑'](명시 없음).
+  const shoppingPlaces = kyowontourOptShopToFactShoppingPlaces(optShop)
 
   // monthEvtList 날짜별 dayAirList — 월초 seed만 쓰면 08-01·이스타 변형이 URL(7C) 라인을 덮음
   // REGRESSION-FREEZE[register-facts-fetch-resilience]: skipPerDateDayAirFetch false — monthEvt dayAir — manifest
@@ -167,7 +174,7 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
     meetingInfo: scheduleTab.meetingText,
     includedBullets: core.includedItems.slice(0, 24),
     excludedBullets: core.excludedItems.slice(0, 24),
-    shoppingPlaces: [],
+    shoppingPlaces,
     scheduleDays,
     flights,
     priceRows,
@@ -177,6 +184,7 @@ export async function collectKyowontourRegisterFacts(originUrl: string): Promise
       `masterCode=${hidden.masterCode}`,
       `calendar_rows=${enrichedRows.length}`,
       'tourcode_detail_enrich=url_html_three_slot_only',
+      `goodsEvtTab_7_shopping=${optShop.shoppingVisitCount}`,
       registerFactProductKindNote(inferRegisterFactProductKindFromOriginUrl('kyowontour', url)),
     ],
   }

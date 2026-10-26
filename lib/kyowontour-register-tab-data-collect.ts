@@ -388,8 +388,16 @@ export async function augmentKyowontourParsedWithTabDataCollect(
     const optShopParsed = parseKyowontourOptShopTabDetail(optShopDetail)
     const needOpt = !hasOptionalPaste(ctx?.pastedBlocks) && !hasStructuredOptionalRows(next)
     const needShop = !hasShoppingPaste(ctx?.pastedBlocks) && !hasStructuredShoppingRows(next)
-    // REGRESSION-FREEZE[supplier-product-fact-ssot]: 교원 탭 0건 = 없음(null 유지 금지) — manifest
-    if (optShopParsed.optionalTours.length === 0 && optShopParsed.shoppingItems.length === 0) {
+    if (!optShopParsed.tabDetailPresent) {
+      // detail 미수신·파싱불가 → unknown 유지 (없음 발명 금지)
+      next = {
+        ...next,
+        kyowontourOptShopCollectRan: false,
+        kyowontourOptShopCollectSummary: '자동수집 스킵: goodsEvtTab_7 detail 없음/파싱불가',
+      }
+    } else if (optShopParsed.optionalTours.length === 0 && optShopParsed.shoppingItems.length === 0) {
+      // REGRESSION-FREEZE[supplier-product-fact-ssot]: 교원 탭 0건 = 없음(null 유지 금지) — manifest
+      // 명시 없음: tab 수신·파싱 후 evtType/etcTour 구조적 0건
       next = {
         ...next,
         kyowontourOptShopCollectRan: true,
@@ -417,11 +425,11 @@ export async function augmentKyowontourParsedWithTabDataCollect(
           hasShopping: true,
         }
         next = finalizeKyowontourRegisterParsedShopping(next)
-      } else if (needShop && optShopParsed.shoppingItems.length === 0) {
+      } else if (needShop && fields.hasShopping === false) {
         next = { ...next, hasShopping: false, shoppingVisitCount: 0 }
         next = finalizeKyowontourRegisterParsedShopping(next)
       }
-      const summary = `goodsEvtTab_7: 선택관광 ${optShopParsed.optionalTours.length}건, 쇼핑 ${optShopParsed.shoppingVisitCount}회`
+      const summary = `goodsEvtTab_7: 선택관광 ${optShopParsed.optionalTours.length}건, 쇼핑 ${optShopParsed.shoppingVisitCount ?? 0}회`
       const notes = [...(next.registerPreviewPolicyNotes ?? [])]
       const note = `교원이지 선택관광/쇼핑: ${summary} (tourEventTabData goodsEvtTab_7)`
       if (!notes.includes(note)) notes.push(note)

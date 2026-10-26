@@ -238,11 +238,24 @@ export function finalizeModetourRegisterParsedShopping(parsed: RegisterParsed): 
       }
       return reconcileModetourShoppingVisitCountWithStops(next)
     }
+    // API/시그널이 이미 명시 없음(0/false)이면 유지. 그 외 missing → unknown (false 발명 금지)
+    if (parsed.hasShopping === false || parsed.shoppingVisitCount === 0) {
+      return {
+        ...parsed,
+        shoppingStops: undefined,
+        shoppingVisitCount: 0,
+        hasShopping: false,
+        shoppingSummaryText: parsed.shoppingSummaryText?.trim() || '쇼핑 없음',
+      }
+    }
+    if (parsed.shoppingVisitCount != null && parsed.shoppingVisitCount > 0) {
+      return { ...parsed, hasShopping: true, shoppingStops: undefined }
+    }
     return {
       ...parsed,
       shoppingStops: undefined,
       shoppingVisitCount: null,
-      hasShopping: false,
+      hasShopping: undefined,
       shoppingSummaryText: undefined,
     }
   }

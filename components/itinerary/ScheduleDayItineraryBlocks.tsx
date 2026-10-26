@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import SafeImage from '@/app/components/SafeImage'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import { formatMealDisplay, formatScheduleDayHotelLine } from '@/lib/hotel-meal-display'
+import { resolvePublicScheduleDayDescription } from '@/lib/public-schedule-display'
 import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
 import { Bed, UtensilsCrossed, X } from 'lucide-react'
 
@@ -189,19 +190,23 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
   return (
     <>
       <div className="space-y-3">
-        {day.description ? (
-          <article className="flex gap-3 rounded-2xl bg-white border border-[#DAD4EE] p-4">
-            <div className="rounded-xl bg-[#1F1B2D] text-white w-12 h-12 flex items-center justify-center text-xl shrink-0">
-              📋
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="inline-block rounded-full bg-[#EFEDF8] px-2.5 py-0.5 text-xs font-semibold fit-tx-primary mb-2">
-                일정 요약
-              </span>
-              <p className="text-sm fit-tx-primary whitespace-pre-line leading-relaxed">{day.description}</p>
-            </div>
-          </article>
-        ) : null}
+        {(() => {
+          // arrival 스킵 등으로 description이 비면 슬롯 자체 숨김 (빈 박스·대체 문구 금지)
+          const desc = resolvePublicScheduleDayDescription(day.description)
+          return desc ? (
+            <article className="flex gap-3 rounded-2xl bg-white border border-[#DAD4EE] p-4">
+              <div className="rounded-xl bg-[#1F1B2D] text-white w-12 h-12 flex items-center justify-center text-xl shrink-0">
+                📋
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="inline-block rounded-full bg-[#EFEDF8] px-2.5 py-0.5 text-xs font-semibold fit-tx-primary mb-2">
+                  일정 요약
+                </span>
+                <p className="text-sm fit-tx-primary whitespace-pre-line leading-relaxed">{desc}</p>
+              </div>
+            </article>
+          ) : null
+        })()}
 
         {(hotelLine || mealLine || thumbs.length > 0) && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
