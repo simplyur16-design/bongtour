@@ -748,7 +748,8 @@ function extractBaselineFromDetailHtml(html: string | null, productNo: string | 
         !isModetourWeakBaselineTitleText(cleanedDoc) &&
         modetourBaselineTitleHasProductSignals(cleanedDoc)
       ) {
-        candidates.push({ source: 'document.title', raw: cleanedDoc })
+        // persist raw document title; cleaning is acceptance/display only
+        candidates.push({ source: 'document.title', raw: dt })
       } else {
         console.info(
           `[MODETOUR_BASELINE_REJECTED] source=document.title reason=likely_breadcrumb_or_contaminated raw=${JSON.stringify(dt.slice(0, 200))} cleaned=${JSON.stringify(cleanedDoc.slice(0, 200))}`,

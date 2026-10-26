@@ -45,60 +45,122 @@ function pickAcceptableTitle(
   return null
 }
 
-/** preview·parse 단계 — 붙여넣기 + LLM JSON title */
+/** preview·parse 단계 — 붙여넣기 + LLM JSON title (저장은 원문, 클린은 수용성 검사만) */
 export function resolveModetourRegisterProductTitle(args: {
   pasteBlob: string
   llmTitleRaw: string
 }): ModetourRegisterTitleResolution {
   const supplierListingTitleRaw = extractModetourVerbatimListingTitleRawFromPaste(args.pasteBlob)
+  const pasteRaw = supplierListingTitleRaw?.trim() || ''
+  const llmRaw = String(args.llmTitleRaw ?? '').trim()
   const pasteNorm =
-    supplierListingTitleRaw && supplierListingTitleRaw.length >= 10
-      ? normalizeModetourRegisterTitleMinimal(supplierListingTitleRaw)
-      : ''
-  const llmNorm = normalizeModetourRegisterTitleMinimal(String(args.llmTitleRaw ?? '').trim())
+    pasteRaw.length >= 10 ? normalizeModetourRegisterTitleMinimal(pasteRaw) : ''
+  const llmNorm = normalizeModetourRegisterTitleMinimal(llmRaw)
+
+  // paste 원문 우선 (display 클린은 노출 전용)
+  if (pasteRaw.length >= 10 && !isModetourUnacceptableRegisterListingTitle(pasteNorm || pasteRaw)) {
+    return {
+      title: pasteRaw,
+      supplierListingTitleRaw: pasteRaw,
+      source: 'paste',
+      unacceptable: false,
+    }
+  }
+  // no-paste / URL-only: API·LLM 원문 저장 (plan-b 다른 공급사와 동일)
+  if (llmRaw && !isModetourUnacceptableRegisterListingTitle(llmNorm || llmRaw)) {
+    return {
+      title: llmRaw,
+      supplierListingTitleRaw: pasteRaw || null,
+      source: 'llm',
+      unacceptable: false,
+    }
+  }
 
   const picked = pickAcceptableTitle([
     { source: 'paste', value: pasteNorm },
     { source: 'llm', value: llmNorm },
   ])
   if (picked) {
-    return { ...picked, supplierListingTitleRaw: supplierListingTitleRaw ?? null }
+    const raw =
+      picked.source === 'paste' ? pasteRaw || picked.title : llmRaw || picked.title
+    return { ...picked, title: raw, supplierListingTitleRaw: pasteRaw || null }
   }
 
-  const fallback = pasteNorm || llmNorm || '상품명 없음'
+  const fallbackRaw = pasteRaw || llmRaw || '상품명 없음'
   return {
-    title: fallback,
-    supplierListingTitleRaw: supplierListingTitleRaw ?? null,
+    title: fallbackRaw,
+    supplierListingTitleRaw: pasteRaw || null,
     source: 'fallback',
-    unacceptable: isModetourUnacceptableRegisterListingTitle(fallback),
+    unacceptable: isModetourUnacceptableRegisterListingTitle(
+      normalizeModetourRegisterTitleMinimal(fallbackRaw) || fallbackRaw,
+    ),
   }
 }
 
-/** confirm 단계 — parsed + 상세 HTML baseline h1 */
+/** confirm 단계 — parsed + 상세 HTML baseline (저장은 raw, cleaned는 수용성만) */
 export function resolveModetourRegisterProductTitleForConfirm(args: {
   parsedTitle: string
   supplierListingTitleRaw?: string | null
   baselineTrace?: ModetourBaselineTrace | null
 }): ModetourRegisterTitleResolution {
-  const parsedNorm = normalizeModetourRegisterTitleMinimal(String(args.parsedTitle ?? '').trim())
+  const parsedRaw = String(args.parsedTitle ?? '').trim()
+  const pasteRaw = String(args.supplierListingTitleRaw ?? '').trim()
+  const parsedNorm = normalizeModetourRegisterTitleMinimal(parsedRaw)
+  const baselineRaw = args.baselineTrace?.raw?.trim() ?? ''
   const baselineCleaned = args.baselineTrace?.cleaned?.trim() ?? ''
   const baselineOk =
-    Boolean(baselineCleaned) && modetourBaselineAcceptableForConfirm(args.baselineTrace)
+    Boolean(baselineCleaned || baselineRaw) && modetourBaselineAcceptableForConfirm(args.baselineTrace)
+
+  if (baselineOk) {
+    const persist = baselineRaw || baselineCleaned
+    if (persist && !isModetourUnacceptableRegisterListingTitle(baselineCleaned || persist)) {
+      return {
+        title: persist,
+        supplierListingTitleRaw: pasteRaw || null,
+        source: 'baseline',
+        unacceptable: false,
+      }
+    }
+  }
+
+  // paste raw 우선
+  if (pasteRaw.length >= 10 && !isModetourUnacceptableRegisterListingTitle(normalizeModetourRegisterTitleMinimal(pasteRaw) || pasteRaw)) {
+    return {
+      title: pasteRaw,
+      supplierListingTitleRaw: pasteRaw,
+      source: 'paste',
+      unacceptable: false,
+    }
+  }
+
+  if (parsedRaw && !isModetourUnacceptableRegisterListingTitle(parsedNorm || parsedRaw)) {
+    return {
+      title: parsedRaw,
+      supplierListingTitleRaw: pasteRaw || null,
+      source: 'paste',
+      unacceptable: false,
+    }
+  }
 
   const picked = pickAcceptableTitle([
-    ...(baselineOk ? [{ source: 'baseline' as const, value: baselineCleaned }] : []),
+    ...(baselineOk ? [{ source: 'baseline' as const, value: baselineCleaned || baselineRaw }] : []),
     { source: 'paste', value: parsedNorm },
   ])
   if (picked) {
+    const persist =
+      picked.source === 'baseline'
+        ? baselineRaw || baselineCleaned || picked.title
+        : parsedRaw || picked.title
     return {
       ...picked,
-      supplierListingTitleRaw: args.supplierListingTitleRaw ?? null,
+      title: persist,
+      supplierListingTitleRaw: pasteRaw || null,
     }
   }
 
   return {
-    title: baselineOk ? baselineCleaned : parsedNorm || '상품명 없음',
-    supplierListingTitleRaw: args.supplierListingTitleRaw ?? null,
+    title: baselineOk ? baselineRaw || baselineCleaned : parsedRaw || '상품명 없음',
+    supplierListingTitleRaw: pasteRaw || null,
     source: baselineOk ? 'baseline' : 'fallback',
     unacceptable: true,
   }

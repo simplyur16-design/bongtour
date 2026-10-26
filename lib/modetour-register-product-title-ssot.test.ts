@@ -12,13 +12,33 @@ const BAD = '2026.12.12~2026.12.14 2박 3일'
 const BAD_HOTEL = '일급호텔 3박 5일'
 
 describe('modetour-register-product-title-ssot', () => {
-  it('strips promo brackets like 출발확정 from api title', () => {
+  it('strips promo brackets like 출발확정 from api title (display helper only)', () => {
     expect(normalizeModetourRegisterTitleMinimal('[출발확정] 홍콩+마카오 2박4일')).toBe('홍콩+마카오 2박4일')
+  })
+
+  it('URL-only / no-paste path persists raw supplier title (not display-cleaned)', () => {
+    const raw = '[스테디셀러] 홍콩+마카오 핵심투어 2박4일'
     const r = resolveModetourRegisterProductTitle({
       pasteBlob: '',
-      llmTitleRaw: '[스테디셀러] 홍콩+마카오 핵심투어 2박4일',
+      llmTitleRaw: raw,
     })
-    expect(r.title).toBe('홍콩+마카오 핵심투어 2박4일')
+    expect(r.title).toBe(raw)
+    expect(r.supplierListingTitleRaw).toBeNull()
+    expect(r.source).toBe('llm')
+    expect(r.unacceptable).toBe(false)
+  })
+
+  it('confirm no-paste baseline persists baseline.raw', () => {
+    const raw = '[출발확정] 괌 두짓비치 3박5일'
+    const cleaned = normalizeModetourRegisterTitleMinimal(raw)
+    const r = resolveModetourRegisterProductTitleForConfirm({
+      parsedTitle: '2026.12.12~2026.12.14 2박 3일',
+      supplierListingTitleRaw: null,
+      baselineTrace: { pickedSource: 'h1.product_tit', raw, cleaned },
+    })
+    expect(r.title).toBe(raw)
+    expect(r.title).not.toBe(cleaned)
+    expect(r.source).toBe('baseline')
   })
 
   it('resolver rejects departure window when no hash title in paste', () => {
