@@ -1,11 +1,15 @@
 /**
  * REGRESSION-FREEZE[lottetour-register-api-parse]
  */
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseLottetourRegisterFromApi } from './lottetour-register-api-parse'
 import { resolveLottetourRegisterOriginIdsFromUrl } from './lottetour-register-api-detail'
 
 describe('lottetour register api parse', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('requires originUrl with godId or evtCd', async () => {
     await expect(parseLottetourRegisterFromApi('', 'lottetour', { originUrl: '' })).rejects.toThrow(
       /godId 또는 evtCd/,
@@ -26,6 +30,8 @@ describe('lottetour register api parse', () => {
   })
 
   it('resolveLottetourRegisterOriginIdsFromUrl — evtList URL extracts godId from query', async () => {
+    // CI: godId-only URL triggers a live lottetour fetch (evtCd lookup) — stub network so the unit test stays offline/fast
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response('{}', { status: 200 }))
     const ids = await resolveLottetourRegisterOriginIdsFromUrl(
       'https://www.lottetour.com/evtList/826/856/1034/1926?godId=66176',
     )
