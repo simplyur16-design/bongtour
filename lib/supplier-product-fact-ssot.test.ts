@@ -214,7 +214,37 @@ describe('hotel heading scrub + FIT meal', () => {
       ],
     })
     expect(hm.mealLabel).not.toMatch(/중식|석식/)
-    expect(['정보 없음', '호텔 조식']).toContain(hm.mealLabel)
+    expect(hm.mealLabel).toBe('상담 시 안내')
+  })
+
+  it('FIT meal: 조식 포함 명시 → 호텔 조식', () => {
+    const hm = deriveHotelMealFact({
+      listingKind: 'air_hotel_free',
+      slug: 'fit-xx-0001',
+      hotelSummaryText: '노보텔 다낭 · 조식 포함',
+      itineraryDays: [],
+    })
+    expect(hm.mealLabel).toBe('호텔 조식')
+  })
+
+  it('FIT meal: room only → 상담 시 안내', () => {
+    const hm = deriveHotelMealFact({
+      listingKind: 'air_hotel_free',
+      slug: 'fit-xx-0002',
+      hotelSummaryText: 'Room only / 룸온리',
+      itineraryDays: [{ breakfastText: '불포함' }],
+    })
+    expect(hm.mealLabel).toBe('상담 시 안내')
+  })
+
+  it('FIT meal: unknown → 상담 시 안내 (정보 없음 아님)', () => {
+    const hm = deriveHotelMealFact({
+      listingKind: 'air_hotel_free',
+      slug: 'fit-xx-0003',
+      itineraryDays: [],
+    })
+    expect(hm.mealLabel).toBe('상담 시 안내')
+    expect(hm.mealLabel).not.toBe('정보 없음')
   })
 })
 

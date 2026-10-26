@@ -709,13 +709,29 @@ function isFitProductForMealFact(p: {
   return pt === 'air-hotel' || pt === 'airtel' || pt === 'air_hotel' || pt === 'air-tel'
 }
 
-/** FIT/에어텔: 예시일정 조·중·석 금지 — 호텔조식만 또는 정보 없음 */
+/** 공급사가 조식 포함을 명시한 경우만 true (호텔식·예시일정 추정 금지) */
+function fitSourceExplicitlyIncludesBreakfast(hay: string): boolean {
+  const t = hay.replace(/\s+/g, ' ').trim()
+  if (!t) return false
+  if (/(?:조식|아침)\s*(?:불포함|미포함)/u.test(t)) return false
+  if (/(?:룸\s*온리|room\s*only)/i.test(t)) return false
+  return (
+    /조식\s*포함|조식포함/u.test(t) ||
+    /breakfast\s*included/i.test(t) ||
+    /(?:포함)\s*[:：]?\s*조식/u.test(t)
+  )
+}
+
+/** FIT/에어텔: 명시 조식포함만 「호텔 조식」; 룸온리·미상 → 상담 시 안내 */
 function resolveCompareMealLabel(
   p: {
     listingKind?: string | null
     productType?: string | null
     slug?: string | null
     isFit?: boolean | null
+    hotelSummaryText?: string | null
+    hotelSummaryRaw?: string | null
+    includedText?: string | null
   },
   days: Array<{
     mealSummaryText?: string | null
@@ -728,17 +744,18 @@ function resolveCompareMealLabel(
   if (!isFitProductForMealFact(p)) {
     return formatCompareMealSlotsLabel(days)
   }
-  let breakfast: MealSlotState = 'unknown'
-  for (const d of days) {
-    breakfast = mergeMealSlot(breakfast, mealSlotTokenState(d.breakfastText))
-    const summary = String(d.mealSummaryText || d.meals || '').trim()
-    if (summary) {
-      const parsed = parseMealSummarySlots(summary)
-      breakfast = mergeMealSlot(breakfast, parsed.breakfast)
-    }
-  }
-  if (breakfast === 'yes') return '호텔 조식'
-  return '정보 없음'
+  const hay = [
+    p.hotelSummaryText,
+    p.hotelSummaryRaw,
+    p.includedText,
+    ...days.map((d) => d.breakfastText),
+    ...days.map((d) => d.mealSummaryText),
+    ...days.map((d) => d.meals),
+  ]
+    .map((x) => String(x ?? ''))
+    .join('\n')
+  if (fitSourceExplicitlyIncludesBreakfast(hay)) return '호텔 조식'
+  return '상담 시 안내'
 }
 
 export function formatFactTriState(state: FactTriState, visitCount?: number | null): string {
