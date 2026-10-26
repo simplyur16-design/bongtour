@@ -9,6 +9,7 @@ import type {
   OptionalToursStructured,
   ShoppingStructured,
 } from '@/lib/detail-body-parser-types'
+import { reviewPolicyShoppingEmptyInfoLine } from '@/lib/review-policy-shopping-info'
 import { brandKeyExpectsFlightNumber, canonicalBrandKeyForRegister } from '@/lib/brand-key-register'
 import { isFlightAxisEngaged } from '@/lib/review-axis-guards'
 
@@ -159,7 +160,10 @@ export function buildDetailReviewPolicyModetour(args: {
   if (includedExcludedStructured.reviewNeeded) required.push(...includedExcludedStructured.reviewReasons)
   if (hotelStructured.rows.some((r) => r.hotelCandidates.length > 1)) warning.push('호텔명 후보 다수')
   if (optionalToursStructured.rows.length === 0) info.push('선택관광 없음')
-  if (shoppingStructured.rows.length === 0) info.push('쇼핑 없음')
+  if (shoppingStructured.rows.length === 0) {
+    const shopInfo = reviewPolicyShoppingEmptyInfoLine(shoppingStructured)
+    if (shopInfo) info.push(shopInfo)
+  }
 
   const flightSectionRequired: string[] = []
   if (flightEngaged && flightStructured.reviewNeeded) {
