@@ -12,6 +12,7 @@ import {
   KYOWONTOUR_TAB_SCHEDULE_ID,
   KYOWONTOUR_TAB_PROBE_IDS,
   parseKyowontourCoreTabDetail,
+  isKyowontourOptShopTabDetailPresent,
   parseKyowontourOptShopTabDetail,
   parseKyowontourReservationTabDetail,
   parseKyowontourScheduleTabDetail,
@@ -48,10 +49,18 @@ describe('kyowontour tourEventTabData opt/shop', () => {
     expect(parsed.shoppingItems).toHaveLength(0)
   })
 
-  it('detail empty object → tabDetailPresent true, shoppingVisitCount 0 (명시 없음)', () => {
+  it('detail { evtType: [] } → tabDetailPresent true, shoppingVisitCount 0 (명시 없음)', () => {
     const parsed = parseKyowontourOptShopTabDetail({ evtType: [], etcTour: [] })
     expect(parsed.tabDetailPresent).toBe(true)
     expect(parsed.shoppingVisitCount).toBe(0)
+  })
+
+  it('detail {} without evtType → unknown (not 노쇼핑)', () => {
+    const parsed = parseKyowontourOptShopTabDetail({})
+    expect(isKyowontourOptShopTabDetailPresent({})).toBe(false)
+    expect(parsed.tabDetailPresent).toBe(false)
+    expect(parsed.shoppingVisitCount).toBeNull()
+    expect(parsed.shoppingItems).toHaveLength(0)
   })
 
   it('행 파서 — shopping_list·etcTour 키 매핑', () => {

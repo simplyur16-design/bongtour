@@ -115,8 +115,9 @@ export function kyowontourOptShopToFactShoppingPlaces(parsed: KyowontourOptShopT
         `쇼핑 ${parsed.shoppingVisitCount ?? parsed.shoppingItems.length}회`,
     )
   }
-  // 명시 없음: tab 수신·파싱 후 shopping_list 구조적 0건
-  if (parsed.tabDetailPresent) return ['노쇼핑']
+  // 명시 없음: evtType 키 존재 + shopping_list 구조적 0건 → 노쇼핑
+  // `{}`(evtType 없음) / detail 미수신 → unknown([])
+  if (parsed.tabDetailPresent && parsed.shoppingVisitCount === 0) return ['노쇼핑']
   return []
 }
 

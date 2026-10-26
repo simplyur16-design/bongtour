@@ -175,7 +175,7 @@ describe('kyowontour shopping extract (goodsEvtTab_7 shopping_list)', () => {
   })
 
   it('tab7 null/missing → unknown & chip hidden (not 노쇼핑/0)', () => {
-    for (const detail of [null, undefined, ''] as const) {
+    for (const detail of [null, undefined, '', {}] as const) {
       const parsed = parseKyowontourOptShopTabDetail(detail)
       expect(parsed.tabDetailPresent).toBe(false)
       expect(parsed.shoppingVisitCount).toBeNull()

@@ -36,4 +36,12 @@ describe('kyowontour register opt/shop collect mapping', () => {
     expect(fields.shoppingVisitCount).toBe(0)
     expect(kyowontourOptShopToFactShoppingPlaces(parsed)).toEqual(['노쇼핑'])
   })
+
+  it('empty {} detail (no evtType) → shopping UNKNOWN not 노쇼핑', () => {
+    const parsed = parseKyowontourOptShopTabDetail({})
+    const fields = optShopParsedToRegisterFields(parsed)
+    expect(fields.hasShopping).toBeNull()
+    expect(fields.shoppingVisitCount).toBeNull()
+    expect(kyowontourOptShopToFactShoppingPlaces(parsed)).toEqual([])
+  })
 })
