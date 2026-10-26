@@ -6,7 +6,6 @@
  */
 
 import { deriveTripNightsDays } from '@/lib/derive-trip-nights-days'
-import { getProductTotalDays } from '@/lib/package-rules'
 import { BONGTOUR_PRODUCT_TITLE_FORBIDDEN_TOKENS } from '@/lib/bongtour-product-title-tone-ssot'
 import {
   collapseAdjacentDuplicateTitlePhrases,
@@ -248,15 +247,12 @@ export function composeHeroDayToken(
   totalDays?: number | null
 ): string | null {
   const d = String(duration || '').trim()
-  // days-only(`5일`)는 nights를 발명하지 않음 — deriveTripNightsDays SSOT
-  if (d) {
-    const derived = deriveTripNightsDays({ duration: d })
-    if (derived.label) return derived.label
-  }
-  // duration 없을 때만 totalDays 폴백 (기존: n>1 → (n-1)박 n일)
-  const n = getProductTotalDays({ duration: duration ?? null }, totalDays ?? null)
-  if (n > 1) return `${n - 1}박 ${n}일`
-  if (n > 0) return `${n}일`
+  // deriveTripNightsDays SSOT — days-only/nights-only 상대값 미발명; duration 빈칸이면 totalDays→n일만
+  const derived = deriveTripNightsDays({
+    duration: d || null,
+    scheduleDayCount: d ? null : totalDays ?? null,
+  })
+  if (derived.label) return derived.label
   return null
 }
 

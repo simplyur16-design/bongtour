@@ -78,6 +78,16 @@ describe('deriveTripNightsDays', () => {
   it('formatTripNightsDaysLabel', () => {
     expect(formatTripNightsDaysLabel(3, 5)).toBe('3박 5일')
     expect(formatTripNightsDaysLabel(null, 5)).toBe('5일')
+    expect(formatTripNightsDaysLabel(3, null)).toBe('3박')
     expect(formatTripNightsDaysLabel(null, null)).toBeNull()
+  })
+
+  it('nights-only does not invent days (3박 ≠ 3박 4일)', () => {
+    expect(deriveTripNightsDays({ duration: '3박' })).toEqual({
+      tripNights: 3,
+      tripDays: null,
+      label: '3박',
+    })
+    expect(composeHeroDayToken(null, 5)).toBe('5일')
   })
 })

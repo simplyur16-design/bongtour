@@ -44,7 +44,8 @@ function parseNightsDaysFromLabel(label: string | null | undefined): {
   const nightsOnly = t.match(/(\d+)\s*박/)
   if (nightsOnly && !/(\d+)\s*일/.test(t)) {
     const n = Number(nightsOnly[1])
-    return { nights: n, days: n + 1 }
+    // nights-only: days 미확정 (nights+1 가정 금지)
+    return { nights: n, days: null }
   }
   const daysOnly = t.match(/(?<!\d)(\d+)\s*일(?!\d)/)
   if (daysOnly) {
@@ -88,9 +89,7 @@ export function deriveTripNightsDays(input: DeriveTripNightsDaysInput): DeriveTr
     tripDays = sched
   }
 
-  // nights만 알 때 days = nights+1 은 표준 패키지 관례
-  if (tripNights != null && tripDays == null) tripDays = tripNights + 1
-  // days만 알 때 nights 발명 금지
+  // nights-only·days-only 모두 상대쪽을 발명하지 않음 (공급사 표기만)
 
   return {
     tripNights,
