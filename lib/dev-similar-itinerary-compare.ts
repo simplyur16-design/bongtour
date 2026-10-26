@@ -14,6 +14,7 @@ import {
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { publicProductPath } from '@/lib/product-public-path'
 import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
 import {
   parseSimilarItineraryCompareKind,
@@ -287,18 +288,24 @@ export async function loadSimilarItineraryCompare(opts: {
       supplierKey,
       supplierLabel: formatOriginSourceForDisplay(p.originSource),
       // REGRESSION-FREEZE[public-card-hero-short-title]: 비교표도 권역헤더·EN 키워드 오염 제거 — manifest
-      title:
-        resolvePublicBrowseCardTitle(
-          {
-            title: p.title,
-            duration: p.duration,
-            primaryDestination: p.primaryDestination,
-            destination: p.destination,
-          },
-          String(p.title || '').trim() || '(제목 없음)',
-        ).cardTitle ||
-        String(p.title || '').trim() ||
-        '(제목 없음)',
+      // plan-b-v6: 비교 노출도 디스플레이 클린 (DB 원문 유지)
+      title: (() => {
+        const planB =
+          normalizeSupplierRegisterListingTitle(String(p.title || '')) ||
+          String(p.title || '').trim() ||
+          '(제목 없음)'
+        return (
+          resolvePublicBrowseCardTitle(
+            {
+              title: p.title,
+              duration: p.duration,
+              primaryDestination: p.primaryDestination,
+              destination: p.destination,
+            },
+            planB,
+          ).cardTitle || planB
+        )
+      })(),
       duration: normalizeCompareDurationLabel(p.duration, p.title) || '정보 없음',
       priceLabel: priceLabel(computeEffectivePricePerPersonKrwFromRow(p)),
       airlineLabel: airline.airlineLabel,

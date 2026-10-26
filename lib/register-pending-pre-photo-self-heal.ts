@@ -219,12 +219,11 @@ export async function healPendingRegisterPrePhoto(
 
       const destLine = String(product.destination ?? '').split(/\n/)[0]?.trim() ?? ''
       const rawTitle = String(product.title ?? '')
+      // plan-b-v6: 제목 클린은 dest·일정 추론용 in-memory 만 — Product.title 은 원문 유지 (DB 미기록)
       const cleanedTitle = normalizeSupplierRegisterListingTitle(rawTitle)
-      const titleChanged =
-        Boolean(cleanedTitle) &&
-        cleanedTitle !== rawTitle.trim() &&
-        !isSupplierListingTitleUnacceptable(cleanedTitle)
-      const titleForInfer = titleChanged ? cleanedTitle : rawTitle
+      const titleChanged = false
+      const titleForInfer =
+        cleanedTitle && !isSupplierListingTitleUnacceptable(cleanedTitle) ? cleanedTitle : rawTitle
       // dest 항공권·석식·하이라이트 나열도 제목 지명으로만 채운다 (그랜드월드 ≠ 푸꾸옥)
       // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 힐 전에 dest 추론 — manifest
       // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·잔여좌석 dest 추론 — manifest

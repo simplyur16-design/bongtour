@@ -1,4 +1,4 @@
-/** REGRESSION-FREEZE[supplier-product-title-plan-b] — confirm 기본 저장은 buildSupplierProductDisplayTitle */
+/** REGRESSION-FREEZE[supplier-product-title-plan-b] — confirm 기본 저장은 공급사 원문(디스플레이 클린은 노출 시) */
 import { generateBongtourProductTitle } from '@/lib/bongtour-product-title-generator'
 import {
   BONGTOUR_PRODUCT_TITLE_TONE_VERSION,
@@ -144,7 +144,8 @@ export function isBongtourMarketingTitleSaveRequested(body: Record<string, unkno
 }
 
 /**
- * confirm 저장 직전 — Plan B 기본: 원문 기반 display title.
+ * confirm 저장 직전 — Plan B 기본: 공급사 원문을 Product.title·originalTitle 모두에 저장.
+ * 디스플레이 클린(buildSupplierProductDisplayTitle)은 저장하지 않음 — list/detail/compare/admin 노출 시 적용.
  * R-5 마케팅명은 `productTitleSaveMode=bongtour_marketing` + `bongtourProductTitle` 명시 시만.
  */
 export function productTitlePairForRegisterConfirm(
@@ -183,12 +184,8 @@ export function productTitlePairForRegisterConfirm(
     }
   }
 
-  const prismaTitle = buildSupplierProductDisplayTitle({
-    verbatimOriginal: prismaOriginalTitle,
-    parsedSupplierTitle: opts.parsedSupplierTitle,
-    brandKey: opts.brandKey,
-  })
-  return { prismaTitle, prismaOriginalTitle }
+  // plan-b-v6: 등록 저장은 원문 그대로 (클린 결과는 displayProductTitle·공개 노출 경로만)
+  return { prismaTitle: prismaOriginalTitle, prismaOriginalTitle }
 }
 
 /** 대표 이미지 SEO 키워드 — 원문 #태그 우선 harvest */

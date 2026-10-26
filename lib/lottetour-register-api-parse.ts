@@ -98,16 +98,25 @@ export async function parseLottetourRegisterFromApi(
 
   const paste = rawText.trim()
   // REGRESSION-FREEZE[lottetour-register-listing-title]: facts title → paste bracket fallback — manifest
-  let listingTitle = normalizeSupplierRegisterListingTitle(bundle.title?.trim() || '')
-  if (!listingTitle || isSupplierListingTitleUnacceptable(listingTitle, 'lottetour')) {
+  // plan-b-v6: Product.title 저장은 공급사 원문; 클린은 dest 추론용 in-memory
+  const rawTitle = bundle.title?.trim() || ''
+  let listingTitleClean = normalizeSupplierRegisterListingTitle(rawTitle)
+  let persistTitle = rawTitle
+  if (!persistTitle || isSupplierListingTitleUnacceptable(persistTitle, 'lottetour')) {
     const fromPaste = paste ? extractLottetourVerbatimListingTitle(paste) : null
     if (fromPaste && !isSupplierListingTitleUnacceptable(fromPaste, 'lottetour')) {
-      listingTitle = fromPaste
+      persistTitle = fromPaste
+    }
+  }
+  if (!listingTitleClean || isSupplierListingTitleUnacceptable(listingTitleClean, 'lottetour')) {
+    const fromPaste = paste ? extractLottetourVerbatimListingTitle(paste) : null
+    if (fromPaste && !isSupplierListingTitleUnacceptable(fromPaste, 'lottetour')) {
+      listingTitleClean = normalizeSupplierRegisterListingTitle(fromPaste) || fromPaste
     }
   }
   const dest = resolveLottetourRegisterDestination({
     pastedBody: paste,
-    title: listingTitle,
+    title: listingTitleClean || persistTitle,
   })
   const schedule = lottetourFactDaysToRegisterSchedule(bundle.scheduleDays)
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
@@ -131,8 +140,8 @@ export async function parseLottetourRegisterFromApi(
     originCode: resolvedEvtCd ?? resolvedGodId ?? '',
     godId: resolvedGodId,
     evtCd: resolvedEvtCd,
-    title: listingTitle || '미지정',
-    supplierListingTitleRaw: listingTitle || bundle.title?.trim() || null,
+    title: persistTitle || listingTitleClean || '미지정',
+    supplierListingTitleRaw: rawTitle || persistTitle || null,
     destination: dest.destination,
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,

@@ -29,7 +29,12 @@ import {
 import { htmlToVerygoodItineraryPlainText } from '@/lib/verygoodtour-itinerary-collector'
 import { extractVerygoodScheduleRowsFromPasteBody } from '@/lib/verygoodtour-schedule-blocks-from-paste'
 import { resolveVerygoodtourRegisterDestination } from '@/lib/verygoodtour-register-destination-from-paste'
-import { extractVerygoodDestinationFromBracketTitle } from '@/lib/verygoodtour-listing-title-from-paste'
+import {
+  extractVerygoodDestinationFromBracketTitle,
+  extractVerygoodtourVerbatimListingTitleFromPaste,
+  isVerygoodtourAirlineOrPriceChromeTitle,
+} from '@/lib/verygoodtour-listing-title-from-paste'
+import { isVerygoodtourAirlineScheduleNoticeTitle } from '@/lib/supplier-product-title-display'
 
 export const VERYGOOD_PRICE_SLOT_SSOT_NOTE =
   '참좋은 가격표(3슬롯): adultPrice=성인, childExtraBedPrice=아동 단가(엑베·노베 미분리), childNoBedPrice=미사용(null), infantPrice=유아. 가이드경비·잔여석·쿠폰 줄은 본가 슬롯에 넣지 않습니다.'
@@ -104,7 +109,22 @@ export async function parseVerygoodtourRegisterFromApi(
 
   const detailHtml = await fetchVerygoodDetailHtml(originUrl)
   const paste = rawText.trim()
-  const listingTitle = bundle.title?.trim() || ''
+  // plan-b-v6: 항공 안내문이 title 자리에 들어오면 paste 원문 상품명으로만 폴백 (이름 창작 금지)
+  let listingTitle = bundle.title?.trim() || ''
+  if (
+    listingTitle &&
+    (isVerygoodtourAirlineScheduleNoticeTitle(listingTitle) ||
+      isVerygoodtourAirlineOrPriceChromeTitle(listingTitle))
+  ) {
+    const fromPaste = paste ? extractVerygoodtourVerbatimListingTitleFromPaste(paste) : null
+    if (
+      fromPaste &&
+      !isVerygoodtourAirlineScheduleNoticeTitle(fromPaste) &&
+      !isVerygoodtourAirlineOrPriceChromeTitle(fromPaste)
+    ) {
+      listingTitle = fromPaste
+    }
+  }
   let schedule = verygoodFactDaysToRegisterSchedule(bundle.scheduleDays)
   const prices = factPriceRowsToParsedPrices(bundle.priceRows)
   const seats = resolveVerygoodRemainingSeatsFromPriceRows(proCode, bundle.priceRows)

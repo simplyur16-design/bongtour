@@ -122,30 +122,36 @@ export async function parseHanatourRegisterFromApi(
         : null
 
   const rawTitle = bundle.title?.trim() || ''
-  let listingTitle = normalizeSupplierRegisterListingTitle(rawTitle)
+  // plan-b-v6: 디스플레이 클린은 저장하지 않음 — dest 추론·2030 polish 만 in-memory
+  let listingTitleClean = normalizeSupplierRegisterListingTitle(rawTitle)
   const polished2030 = polishHanatour2030RegisterBundle({
     productTitle: rawTitle,
     factDays: bundle.scheduleDays,
     schedule: hanatourFactDaysToRegisterSchedule(bundle.scheduleDays),
-    listingTitle,
+    listingTitle: listingTitleClean,
   })
-  listingTitle = polished2030.listingTitle
+  listingTitleClean = polished2030.listingTitle
   const paste = rawText.trim()
-  if (!listingTitle || isSupplierListingTitleUnacceptable(listingTitle, 'hanatour')) {
+  let persistTitle = rawTitle
+  if (!persistTitle || isSupplierListingTitleUnacceptable(persistTitle, 'hanatour')) {
     const fromPaste = paste ? extractSupplierListingTitleFromPaste('hanatour', paste) : null
-    if (fromPaste) listingTitle = fromPaste
+    if (fromPaste) persistTitle = fromPaste
+  }
+  if (!listingTitleClean || isSupplierListingTitleUnacceptable(listingTitleClean, 'hanatour')) {
+    const fromPaste = paste ? extractSupplierListingTitleFromPaste('hanatour', paste) : null
+    if (fromPaste) listingTitleClean = normalizeSupplierRegisterListingTitle(fromPaste) || fromPaste
   }
   const dest = resolveHanatourRegisterDestination({
     pastedBody: paste,
-    title: listingTitle,
+    title: listingTitleClean || persistTitle,
     travelCitiesRaw: factSchedulePlacesToTravelCitiesRaw(polished2030.factDays),
   })
 
   let parsed: RegisterParsed = {
     originSource: originSource?.trim() || 'hanatour',
     originCode: bundle.originCode ?? pkgCd,
-    title: listingTitle,
-    supplierListingTitleRaw: rawTitle || listingTitle || null,
+    title: persistTitle || listingTitleClean || '미지정',
+    supplierListingTitleRaw: rawTitle || persistTitle || null,
     destination: dest.destination || '미지정',
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,

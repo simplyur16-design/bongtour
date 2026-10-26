@@ -15,7 +15,7 @@ import {
 } from '../lib/supplier-product-title-display'
 import { isSupplierListingTitleUnacceptable } from '../lib/supplier-listing-title-unacceptable'
 
-assert.match(SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION, /^plan-b-v5/)
+assert.match(SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION, /^plan-b-v6/)
 
 const original =
   '코카서스 3국 10일 KE #두바이관광 #인솔자동행 #10대특전'
@@ -35,9 +35,18 @@ const pairDefault = productTitlePairForRegisterConfirm(
     brandKey: 'hanatour',
   },
 )
+// plan-b-v6: 등록 저장은 원문; 클린은 디스플레이 전용
 assert.equal(pairDefault.prismaOriginalTitle, original)
-assert.equal(pairDefault.prismaTitle, display)
+assert.equal(pairDefault.prismaTitle, original)
+assert.notEqual(pairDefault.prismaTitle, '일본 도쿄 3일 [직항]')
 assert.ok(!pairDefault.prismaTitle.includes('일본 도쿄 3일'), 'bongtour suggestion must not auto-save')
+assert.equal(
+  buildSupplierProductDisplayTitle({
+    verbatimOriginal: pairDefault.prismaTitle,
+    brandKey: 'hanatour',
+  }),
+  display,
+)
 
 assert.equal(isBongtourMarketingTitleSaveRequested({}), false)
 assert.equal(isBongtourMarketingTitleSaveRequested({ productTitleSaveMode: 'bongtour_marketing' }), true)
@@ -52,7 +61,7 @@ const pairMarketing = productTitlePairForRegisterConfirm(
 assert.ok(pairMarketing.prismaTitle.includes('도쿄'))
 
 const seo = buildProductPublicSeoDocumentTitle({
-  displayTitle: pairDefault.prismaTitle,
+  displayTitle: display,
   originalTitle: pairDefault.prismaOriginalTitle,
   primaryDestination: '두바이',
   duration: '9박 10일',

@@ -2,6 +2,7 @@ import type { Prisma, ProductDeparture } from '@prisma/client'
 import { isDepartureSoldOut } from '@/lib/departure-seat-availability'
 import { buildPublicRouteMapView } from '@/lib/bongtour-route-map-public'
 import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
+import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { scrubKrDepartureFromPlaceLabel } from '@/lib/bongtour-product-display-title-ssot'
 import { scrubPublicHotelDisplayLine, scrubPublicHotelNameList } from '@/lib/public-hotel-display-ssot'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
@@ -787,7 +788,12 @@ export async function buildProductPublicDetailRenderModel(
     })(),
     // REGRESSION-FREEZE[public-card-no-kr-departure-place]: payload dest scrub — manifest
     destination: scrubKrDepartureFromPlaceLabel(travelProduct.destination) || '',
-    title: decodePublicHtmlEntities(travelProduct.title ?? ''),
+    // plan-b-v6: 상세 노출도 디스플레이 클린 (DB 원문 유지, 저장 없음)
+    title: (() => {
+      const raw = decodePublicHtmlEntities(travelProduct.title ?? '')
+      const cleaned = normalizeSupplierRegisterListingTitle(raw)
+      return cleaned || raw
+    })(),
     duration:
       verygoodtourPublicRowFactsOnly && verygoodPublicDurationFromRepRow
         ? verygoodPublicDurationFromRepRow

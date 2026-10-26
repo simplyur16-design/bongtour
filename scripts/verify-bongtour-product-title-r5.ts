@@ -60,7 +60,7 @@ const pairPlanB = productTitlePairForRegisterConfirm(
   { bongtourProductTitle: '일본 도쿄 3일 [직항]' },
   '공급사 원문 #노옵션 5일'
 )
-// plan-b-v5: keep #노옵션 (노쇼핑/노옵션 are product content, not sale promo)
+// plan-b-v6: 등록 저장은 원문 그대로 (#노옵션 포함). 클린은 디스플레이 전용.
 assert.equal(pairPlanB.prismaTitle, '공급사 원문 #노옵션 5일')
 assert.equal(pairPlanB.prismaOriginalTitle, '공급사 원문 #노옵션 5일')
 
