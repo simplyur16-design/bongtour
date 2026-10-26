@@ -184,4 +184,25 @@ describe('register schedule day summary SSOT', () => {
       }),
     ).toMatch(/디즈니/)
   })
+
+  it('arrival template skips when no real POI (no title/hashtag/현지)', () => {
+    const junk = composeRegisterScheduleDaySummary({
+      day: 1,
+      maxDay: 4,
+      routePlaces: ['#노쇼핑', '특가', '[특전]'],
+      joinedBlob: '인천 - #노쇼핑 - 특가',
+    })
+    expect(junk).toBe('')
+    expect(junk).not.toMatch(/현지/)
+    expect(junk).not.toMatch(/노쇼핑|특가/)
+
+    const ok = composeRegisterScheduleDaySummary({
+      day: 1,
+      maxDay: 4,
+      routePlaces: ['다낭'],
+      joinedBlob: '인천 - 다낭',
+    })
+    expect(ok).toMatch(/다낭/)
+    expect(ok).toMatch(/도착/)
+  })
 })

@@ -277,12 +277,26 @@ function takeSentences(desc: string, n: number): string {
   return splitRegisterScheduleDescriptionSentences(desc).slice(0, n).join(' ').trim()
 }
 
+/** 제목·해시태그·잡문이 place로 들어오면 arrival 문장에 넣지 않음 */
+function isJunkRoutePlace(label: string): boolean {
+  const t = stripPlaceParens(label)
+  if (!t || t.length < 2) return true
+  if (/^#/.test(t) || /#/.test(t)) return true
+  if (/^(?:현지|도착|출발|이동|호텔|숙소|자유|관광|일정|특가|노쇼핑|노옵션)$/u.test(t)) return true
+  if (/NO\s*쇼핑|NO\s*옵션|노쇼핑|노옵션|최초|특가|할인|확정/i.test(t)) return true
+  if (/^\[[^\]]*\]$/.test(t)) return true
+  if (/^\d+\s*(?:박|일|인)/u.test(t)) return true
+  if (/https?:\/\//i.test(t) || /www\./i.test(t)) return true
+  if (t.length > 40) return true
+  return false
+}
+
 function pickRoutePois(routePlaces: readonly string[], max = 4): string[] {
   const out: string[] = []
   const seen = new Set<string>()
   for (const raw of routePlaces) {
     const p = stripPlaceParens(raw)
-    if (!p || isHubPlace(p)) continue
+    if (!p || isHubPlace(p) || isJunkRoutePlace(p)) continue
     const k = p.replace(/\s/g, '')
     if (seen.has(k)) continue
     seen.add(k)
@@ -343,7 +357,11 @@ function synthesizeFromRoute(opts: {
   }
 
   if (isFirst && (facets.includes('arrival') || /인천|김포|출발|입국/i.test(blob))) {
-    const dest = pois[0] || '현지'
+    // 실 POI 없으면 arrival 문장 스킵 (제목/해시태그/「현지」 삽입 금지)
+    if (pois.length === 0) {
+      return ''
+    }
+    const dest = pois[0]!
     sentences.push(`인천에서 출발해 ${eseo(dest)} 도착합니다.`)
     const rest = pois.slice(1)
     if (rest.length >= 2) {
