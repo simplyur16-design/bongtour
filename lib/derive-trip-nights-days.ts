@@ -56,6 +56,20 @@ function parseNightsDaysFromLabel(label: string | null | undefined): {
   return { nights: null, days: null }
 }
 
+/**
+ * REGRESSION-FREEZE[trip-nights-null-not-zero]
+ * null / undefined / '' / NaN / 비정수 → null (미확정). Number(null)===0 함정 금지 — 「0박 N일」 발명 방지.
+ * 숫자 문자열("4")만 허용, 추측·보정 없음.
+ */
+export function toKnownTripCount(v: unknown, min: number): number | null {
+  let n: number
+  if (typeof v === 'number') n = v
+  else if (typeof v === 'string' && /^\s*\d+\s*$/.test(v)) n = Number(v)
+  else return null
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < min) return null
+  return n
+}
+
 export function formatTripNightsDaysLabel(
   tripNights: number | null,
   tripDays: number | null,
@@ -79,15 +93,18 @@ export function deriveTripNightsDays(input: DeriveTripNightsDaysInput): DeriveTr
   let tripDays = fromDuration.days ?? fromTitle.days
   let tripNights = fromDuration.nights ?? fromTitle.nights
 
-  const dbN = Number(input.tripNights)
-  const dbD = Number(input.tripDays)
-  if (tripNights == null && Number.isFinite(dbN) && dbN >= 0) tripNights = dbN
-  if (tripDays == null && Number.isFinite(dbD) && dbD >= 1) tripDays = dbD
+  // REGRESSION-FREEZE[trip-nights-null-not-zero] — DB null은 미확정 유지 (Number(null)=0 금지)
+  const dbN = toKnownTripCount(input.tripNights, 0)
+  const dbD = toKnownTripCount(input.tripDays, 1)
+  if (tripDays == null && dbD != null) tripDays = dbD
 
-  const sched = Number(input.scheduleDayCount)
-  if (Number.isFinite(sched) && sched >= 1 && tripDays == null) {
+  const sched = toKnownTripCount(input.scheduleDayCount, 1)
+  if (sched != null && tripDays == null) {
     tripDays = sched
   }
+
+  // DB 0박은 당일(1일)일 때만 신뢰 — 「0박 3일」 같은 모순값은 미확정 처리 (보정·추측 없음)
+  if (tripNights == null && dbN != null && (dbN > 0 || tripDays === 1)) tripNights = dbN
 
   // nights-only·days-only 모두 상대쪽을 발명하지 않음 (공급사 표기만)
 

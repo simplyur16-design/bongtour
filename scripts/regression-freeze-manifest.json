@@ -27701,6 +27701,32 @@
         }
       ],
       "vitestSuites": []
+    },
+    {
+      "id": "trip-nights-null-not-zero",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "표시 여행기간 — DB tripNights/tripDays null은 미확정 (Number(null)=0 → 「0박 N일」 금지, 추측 없음)",
+      "checks": [
+        {
+          "file": "lib/derive-trip-nights-days.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[trip-nights-null-not-zero]",
+            "toKnownTripCount"
+          ],
+          "mustNotInclude": [
+            "Number(input.tripNights)",
+            "Number(input.tripDays)",
+            "Number(input.scheduleDayCount)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/derive-trip-nights-null-not-zero.test.ts",
+        "lib/derive-trip-nights-days.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
