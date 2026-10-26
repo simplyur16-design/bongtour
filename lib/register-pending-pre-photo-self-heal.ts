@@ -17,6 +17,7 @@
  * REGRESSION-FREEZE[register-pre-photo-heal-keep-hotel-meal]: 힐이 hotelText·식사 필드를 버리지 않음 — manifest
  * REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]: FIT는 Fit master→schedule 동기화 후 heal — manifest
  * REGRESSION-FREEZE[register-ingest-theme-category-slots]: 제목 골프·러닝 → sportsThemeTag 힐 — manifest
+ * REGRESSION-FREEZE[heal-never-write-product-title]: Product.title 힐 미기록 — manifest
  */
 import { prisma } from '@/lib/prisma'
 import { syncScheduleImageKeywordsFromFitMasterDb } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
@@ -219,12 +220,13 @@ export async function healPendingRegisterPrePhoto(
 
       const destLine = String(product.destination ?? '').split(/\n/)[0]?.trim() ?? ''
       const rawTitle = String(product.title ?? '')
+      // REGRESSION-FREEZE[heal-never-write-product-title]: 클린 제목은 dest·일정 추론용 in-memory 만 — Product.title 미기록 — manifest
       const cleanedTitle = normalizeSupplierRegisterListingTitle(rawTitle)
-      const titleChanged =
+      const useCleanedTitleForInfer =
         Boolean(cleanedTitle) &&
         cleanedTitle !== rawTitle.trim() &&
         !isSupplierListingTitleUnacceptable(cleanedTitle)
-      const titleForInfer = titleChanged ? cleanedTitle : rawTitle
+      const titleForInfer = useCleanedTitleForInfer ? cleanedTitle : rawTitle
       // dest 항공권·석식·하이라이트 나열도 제목 지명으로만 채운다 (그랜드월드 ≠ 푸꾸옥)
       // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 힐 전에 dest 추론 — manifest
       // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: 판매마감·잔여좌석 dest 추론 — manifest
@@ -596,7 +598,6 @@ export async function healPendingRegisterPrePhoto(
         !scheduleChanged &&
         !stampChanged &&
         !statusChanged &&
-        !titleChanged &&
         !destinationChanged &&
         !departureChanged &&
         !themeChanged &&
@@ -609,6 +610,7 @@ export async function healPendingRegisterPrePhoto(
       if (!dryRun) {
         // REGRESSION-FREEZE[register-pre-photo-heal-prisma-retry]: 수집과 겹쳐도 저장 재시도 — manifest
         // REGRESSION-FREEZE[admin-pending-queue-flags]: heal persist queue+photos flags — manifest
+        // REGRESSION-FREEZE[heal-never-write-product-title]: update data에 title 키 금지 — manifest
         const scheduleForFlags = scheduleChanged ? nextJson : String(product.schedule ?? '')
         await withPrismaRetry(`heal-pending:${product.id}`, () =>
           prisma.product.update({
@@ -616,7 +618,6 @@ export async function healPendingRegisterPrePhoto(
             data: {
               ...(scheduleChanged ? { schedule: nextJson } : {}),
               ...(statusChanged ? { registrationStatus: nextStatus } : {}),
-              ...(titleChanged ? { title: cleanedTitle } : {}),
               ...(destinationChanged ? { destination: destinationToPersist } : {}),
               ...(departureChanged
                 ? {
@@ -659,7 +660,6 @@ export async function healPendingRegisterPrePhoto(
       if (
         scheduleChanged ||
         healNotes.length > 0 ||
-        titleChanged ||
         destinationChanged ||
         departureChanged ||
         geoRematerialized

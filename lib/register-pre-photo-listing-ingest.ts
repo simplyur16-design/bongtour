@@ -461,23 +461,17 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
                 if (tag) {
                   const cur = await prisma.product.findUnique({
                     where: { id: confirm.productId },
-                    select: { localDepartureTag: true, title: true, rawTitle: true },
+                    select: { localDepartureTag: true },
                   })
                   const tags = Array.isArray(cur?.localDepartureTag)
                     ? cur!.localDepartureTag.map(String)
                     : []
                   if (!tags.includes(tag)) {
                     const nextTags = [...tags, tag]
-                    const titlePatch: { title?: string; rawTitle?: string } = {}
-                    const marker =
-                      tag === 'busan' ? '부산출발' : tag === 'daegu' ? '대구출발' : '청주출발'
-                    for (const field of ['title', 'rawTitle'] as const) {
-                      const v = String(cur?.[field] ?? '')
-                      if (v && !v.includes(marker)) titlePatch[field] = `[${marker}] ${v}`
-                    }
+                    // REGRESSION-FREEZE[heal-never-write-product-title]: 지방출발 태그만 — Product.title/rawTitle 미기록 — manifest
                     await prisma.product.update({
                       where: { id: confirm.productId },
-                      data: { localDepartureTag: nextTags, ...titlePatch },
+                      data: { localDepartureTag: nextTags },
                     })
                   }
                 }
