@@ -40,6 +40,10 @@ import {
   normalizeCompareDurationLabel,
   resolveComparePlaceCluster,
 } from '@/lib/similar-itinerary-compare-cluster'
+import {
+  pickGloballyCheapestDepartureRowByAdultPrice,
+  publicDateKeyFromRowDate,
+} from '@/lib/public-default-departure-selection'
 
 export type TriStateFact =
   | { kind: 'yes'; detail?: string }
@@ -122,6 +126,48 @@ function toTriState(state: 'yes' | 'no' | 'unknown', visitCount?: number | null)
 function priceLabel(krw: number | null | undefined): string {
   if (krw == null || !Number.isFinite(krw) || krw <= 0) return '정보 없음'
   return `${Math.round(krw).toLocaleString('ko-KR')}원~`
+}
+
+/**
+ * 비교표 항공사 — 상세 meta chip과 동일 축.
+ * 기본(최저가) 출발일 carrier ≈ departureKeyFacts.airline; 없으면 Product.airline.
+ * 첫 출발행 carrier를 key-facts로 위장하지 않음.
+ */
+export function resolveCompareAirlineLabel(input: {
+  airline?: string | null
+  prices?: Array<{ id: string; date: string; adult?: number | null }> | null
+  departures?: Array<{
+    departureDate: Date | string
+    carrierName?: string | null
+  }> | null
+  baseDate?: Date
+}): string {
+  const priceRows = (input.prices ?? []).map((pr) => ({
+    id: String(pr.id),
+    date: String(pr.date),
+    adult: pr.adult,
+  }))
+  const defaultPriceRow = pickGloballyCheapestDepartureRowByAdultPrice(
+    priceRows,
+    input.baseDate,
+  )
+  const selectedDateKey = defaultPriceRow
+    ? publicDateKeyFromRowDate(defaultPriceRow.date)
+    : null
+  const selectedDepCarrier = selectedDateKey
+    ? (input.departures ?? []).find((d) => {
+        const depKey =
+          d.departureDate instanceof Date
+            ? d.departureDate.toISOString().slice(0, 10)
+            : String(d.departureDate).slice(0, 10)
+        return depKey === selectedDateKey
+      })?.carrierName ?? null
+    : null
+  return deriveAirlineFact({
+    departureKeyFactsAirline: selectedDepCarrier ?? input.airline ?? null,
+    selectedDepartureCarrierName: selectedDepCarrier ?? null,
+    rawMeta: null,
+  }).airlineLabel
 }
 
 export function formatTriStateFact(f: TriStateFact): string {
@@ -212,6 +258,7 @@ export async function loadSimilarItineraryCompare(opts: {
       listingKind: true,
       productType: true,
       originSource: true,
+      airline: true,
       priceFrom: true,
       minBookableAdultPrice: true,
       shoppingCount: true,
@@ -229,12 +276,13 @@ export async function loadSimilarItineraryCompare(opts: {
       // REGRESSION-FREEZE[browse-price-product-price-fallback]: 비교표 인당가 = ProductPriceSelect — manifest
       // REGRESSION-FREEZE[similar-itinerary-compare-cluster]: departures는 가격+항공사 동시 select — manifest
       prices: {
-        select: { adult: true },
+        select: { id: true, date: true, adult: true },
         take: 20,
         orderBy: { date: 'asc' as const },
       },
       departures: {
         select: {
+          id: true,
           adultPrice: true,
           departureDate: true,
           carrierName: true,
@@ -297,10 +345,14 @@ export async function loadSimilarItineraryCompare(opts: {
       productType: p.productType,
       slug: p.slug,
     })
-    const airline = deriveAirlineFact({
-      rawMeta: p.rawMeta,
+    const airlineLabel = resolveCompareAirlineLabel({
+      airline: p.airline,
+      prices: (p.prices ?? []).map((pr) => ({
+        id: String(pr.id),
+        date: String(pr.date),
+        adult: pr.adult,
+      })),
       departures: p.departures,
-      departureKeyFactsAirline: p.departures?.[0]?.carrierName ?? null,
     })
     const originKey = normalizeSupplierOrigin(p.originSource)
     const supplierKey = isCanonicalOverseasSupplierKey(originKey) ? originKey : null
@@ -333,7 +385,7 @@ export async function loadSimilarItineraryCompare(opts: {
         '(제목 없음)',
       duration: tripLen.label || normalizeCompareDurationLabel(p.duration, p.title) || '정보 없음',
       priceLabel: priceLabel(computeEffectivePricePerPersonKrwFromRow(p)),
-      airlineLabel: airline.airlineLabel,
+      airlineLabel,
       shopping: toTriState(shop.state, shop.visitCount),
       optional: toTriState(opt.state),
       hotelLabel: hm.hotelLabel,
