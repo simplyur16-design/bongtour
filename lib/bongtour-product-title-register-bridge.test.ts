@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { productTitlePairForRegisterConfirm } from '@/lib/bongtour-product-title-register-bridge'
 import { buildSupplierProductDisplayTitle } from '@/lib/supplier-product-title-display'
 
-describe('productTitlePairForRegisterConfirm plan-b-v6 display-time-only', () => {
+describe('productTitlePairForRegisterConfirm plan-b-v7 display-time-only', () => {
   const original =
     '[출발임박][한정특가][2030전용] 동유럽 3국 7일 #크리스마스마켓 #프라하시내호텔1박'
 

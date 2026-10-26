@@ -5,7 +5,7 @@ import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-ti
 
 const FIXTURE = path.join(__dirname, '__fixtures__', 'title-audit-1026-original-titles.tsv')
 
-/** plan-b-v6 strip targets that must not remain in cleaned titles */
+/** plan-b-v7 strip targets that must not remain in cleaned titles */
 const FORBIDDEN_RESIDUE = [
   /출발\s*확정/,
   /출발\s*임박/,
@@ -57,7 +57,7 @@ function loadFixtureRows(): Array<{ supplier: string; originalTitle: string }> {
   return rows
 }
 
-describe('plan-b-v6 audit fixture regression (title-audit-1026)', () => {
+describe('plan-b-v7 audit fixture regression (title-audit-1026)', () => {
   const rows = loadFixtureRows()
 
   it('loads 374 original titles (no product codes)', () => {

@@ -25209,7 +25209,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "plan-b-v6: 홈·등록대기 상품명에서 판매마감·잔여좌석·단풍시즌·비즈니스/클래스·홈쇼핑·특가 등 판매 문구를 제거 (노쇼핑/노옵션 유지). 등록 저장은 원문, 클린은 디스플레이 전용",
+      "summary": "plan-b-v7: 홈·등록대기 상품명에서 판매마감·잔여좌석·단풍시즌·비즈니스/클래스·홈쇼핑·특가 등 판매 문구를 제거 (노쇼핑/노옵션 유지). 등록 저장은 원문, 클린은 디스플레이 전용",
       "npmScripts": [
         "verify:supplier-product-title-plan-b"
       ],
@@ -25218,7 +25218,7 @@
           "file": "lib/supplier-product-title-display.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[supplier-title-no-sale-status-season]",
-            "plan-b-v6",
+            "plan-b-v7",
             "판매마감",
             "잔여좌석",
             "단풍시즌",

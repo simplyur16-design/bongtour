@@ -9,8 +9,8 @@ import {
 } from '@/lib/supplier-product-title-display'
 
 describe('SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION', () => {
-  it('is plan-b-v6', () => {
-    expect(SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION).toMatch(/^plan-b-v6/)
+  it('is plan-b-v7', () => {
+    expect(SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION).toMatch(/^plan-b-v7/)
   })
 })
 
@@ -186,7 +186,7 @@ describe('stripSupplierTitlePromoBadges', () => {
   it('strips sale-status, cabin-class, and season promo from homepage titles', () => {
     expect(
       normalizeSupplierRegisterListingTitle('판매마감 [비즈니스/클래스] 캐나다 단풍시즌 10일'),
-    ).toBe('[비즈니스] 캐나다 10일')
+    ).toBe('[비즈니스/클래스] 캐나다 10일')
     expect(normalizeSupplierRegisterListingTitle('[잔여좌석 3석] 홍콩/마카오 3일')).toBe(
       '홍콩/마카오 3일',
     )
@@ -195,7 +195,7 @@ describe('stripSupplierTitlePromoBadges', () => {
     expect(normalizeSupplierRegisterListingTitle('[비즈니스／] 홍콩 3일')).toBe('[비즈니스] 홍콩 3일')
     expect(normalizeSupplierRegisterListingTitle('[비즈니스] 캐나다 10일')).toBe('[비즈니스] 캐나다 10일')
     expect(normalizeSupplierRegisterListingTitle('판매마감 [비즈니스/클래스] 캐나다 10일')).toBe(
-      '[비즈니스] 캐나다 10일',
+      '[비즈니스/클래스] 캐나다 10일',
     )
     expect(buildSupplierProductDisplayTitle({
       verbatimOriginal: '판매마감 일본 도쿄 3일 잔여좌석 2석',
@@ -359,6 +359,47 @@ describe('stripSupplierTitlePromoBadges', () => {
         '출발확정부산[TW][시내호텔2박] 오사카/교토/고베/나라 3일',
       ),
     ).toBe('부산 [TW] [시내호텔2박] 오사카/교토/고베/나라 3일')
+  })
+})
+
+describe('plan-b-v7 title cleaner cases', () => {
+  it('strips 쇼핑엔티 channel badge whole', () => {
+    expect(normalizeSupplierRegisterListingTitle('[★출발확정★/쇼핑엔티] 프리미엄 대련 3일')).toBe(
+      '프리미엄 대련 3일',
+    )
+  })
+
+  it('strips [홈쇼핑 에디션] whole (no [에디션] orphan)', () => {
+    expect(normalizeSupplierRegisterListingTitle('[홈쇼핑 에디션] 다낭 5일')).toBe('다낭 5일')
+    expect(normalizeSupplierRegisterListingTitle('[홈쇼핑 에디션] 다낭 5일')).not.toContain('에디션')
+  })
+
+  it('strips 유류비/유류인상 promo whole incl. brackets and hashtags', () => {
+    expect(normalizeSupplierRegisterListingTitle('[유류비NO인상] 홍콩 3일')).toBe('홍콩 3일')
+    expect(normalizeSupplierRegisterListingTitle('#예약시 유류인상 없음 대만 4일')).toBe('대만 4일')
+    expect(normalizeSupplierRegisterListingTitle('[NO유류*NO옵션/NO쇼핑] 푸꾸옥 4일')).toBe(
+      '[NO옵션/NO쇼핑] 푸꾸옥 4일',
+    )
+  })
+
+  it('keeps [비즈니스/클래스] wording', () => {
+    expect(normalizeSupplierRegisterListingTitle('[비즈니스/클래스] 유럽 10일')).toBe(
+      '[비즈니스/클래스] 유럽 10일',
+    )
+  })
+
+  it('drops unbalanced leading [', () => {
+    expect(
+      normalizeSupplierRegisterListingTitle('[ 청정국가 브루나이 5일 _5대 특전 포함'),
+    ).toBe('청정국가 브루나이 5일 _5대 특전 포함')
+  })
+
+  it('keeps airline / 노쇼핑 / hotel / departure / real hashtags / 샤브샤브', () => {
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '[대구출발] 대련 3일 KE #노쇼핑 #NO옵션 5성 #SNS맛집 #위치BEST #베스트셀러 #ALL포함 샤브샤브 라오라오베이 레아레아',
+      ),
+    ).toMatch(/대구출발|KE|#노쇼핑|#NO옵션|5성|#SNS맛집|#위치BEST|#베스트셀러|#ALL포함|샤브샤브|라오라오베이|레아레아/)
   })
 })
 

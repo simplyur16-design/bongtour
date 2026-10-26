@@ -15,7 +15,7 @@ import {
 } from '../lib/supplier-product-title-display'
 import { isSupplierListingTitleUnacceptable } from '../lib/supplier-listing-title-unacceptable'
 
-assert.match(SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION, /^plan-b-v6/)
+assert.match(SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION, /^plan-b-v7/)
 
 const original =
   '코카서스 3국 10일 KE #두바이관광 #인솔자동행 #10대특전'
