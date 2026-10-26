@@ -5,7 +5,14 @@ import {
   resolveSupplierVerbatimOriginalTitle,
   stripSupplierTitlePromoBadges,
   stripSupplierTitleUiNoise,
+  SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION,
 } from '@/lib/supplier-product-title-display'
+
+describe('SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION', () => {
+  it('is plan-b-v5', () => {
+    expect(SUPPLIER_PRODUCT_TITLE_DISPLAY_POLICY_VERSION).toMatch(/^plan-b-v5/)
+  })
+})
 
 describe('resolveSupplierVerbatimOriginalTitle', () => {
   it('keeps hangul place-name titles of two or more syllables', () => {
@@ -35,16 +42,16 @@ describe('resolveSupplierVerbatimOriginalTitle', () => {
 })
 
 describe('buildSupplierProductDisplayTitle', () => {
-  it('keeps destination brackets and strips promo badges only', () => {
+  it('keeps destination brackets and 노쇼핑/노옵션; strips star noise only', () => {
     const title = buildSupplierProductDisplayTitle({
       verbatimOriginal: '★[동유럽] 체코·헝가리 9일 [무쇼핑] #노팁노옵션 #일급호텔',
       brandKey: 'hanatour',
     })
     expect(title).toContain('[동유럽]')
     expect(title).toContain('#일급호텔')
+    expect(title).toContain('[무쇼핑]')
+    expect(title).toContain('#노팁노옵션')
     expect(title).not.toContain('★')
-    expect(title).not.toContain('[무쇼핑]')
-    expect(title).not.toContain('#노팁노옵션')
   })
 
   it('strips 출발확정 and 긴급모객 badges', () => {
@@ -60,7 +67,7 @@ describe('buildSupplierProductDisplayTitle', () => {
     expect(normalizeSupplierRegisterListingTitle('[매진임박][best] 나트랑 5박6일')).toBe('나트랑 5박6일')
   })
 
-  it('strips hanatour/modetour promo brackets but keeps region', () => {
+  it('strips hanatour/modetour promo brackets but keeps region and schedule tags', () => {
     expect(
       normalizeSupplierRegisterListingTitle('[출발확정] 홍콩/마카오 3일 #베스트셀러'),
     ).toBe('홍콩/마카오 3일')
@@ -69,18 +76,18 @@ describe('buildSupplierProductDisplayTitle', () => {
     )
     expect(normalizeSupplierRegisterListingTitle('[다낭] #바나힐 3박 5일')).toBe('[다낭] #바나힐 3박 5일')
     expect(normalizeSupplierRegisterListingTitle('[오전출발-휴양형] 다낭/호이안 3박5일')).toBe(
-      '다낭/호이안 3박5일',
+      '[오전출발-휴양형] 다낭/호이안 3박5일',
     )
   })
 
-  it('strips route badges but keeps promo hashtags', () => {
+  it('keeps [직항] and non-promo hashtags', () => {
     const title = buildSupplierProductDisplayTitle({
       verbatimOriginal: '일본 도쿄 3일 [직항] #두바이관광',
       brandKey: 'hanatour',
     })
     expect(title).toContain('일본 도쿄 3일')
     expect(title).toContain('#두바이관광')
-    expect(title).not.toContain('[직항]')
+    expect(title).toContain('[직항]')
   })
 
   it('does not collapse to city+duration marketing compose', () => {
@@ -120,13 +127,13 @@ describe('buildSupplierProductDisplayTitle', () => {
       brandKey: 'modetour',
     })
     expect(title).toContain('방콕')
-    expect(title).not.toContain('#노옵션')
+    expect(title).toContain('#노옵션')
   })
 })
 
 describe('stripSupplierTitlePromoBadges', () => {
-  it('removes 무옵션 hashtag', () => {
-    expect(stripSupplierTitlePromoBadges('[태국] 방콕 5일 #노옵션')).toBe('[태국] 방콕 5일')
+  it('keeps 노옵션 hashtag', () => {
+    expect(stripSupplierTitlePromoBadges('[태국] 방콕 5일 #노옵션')).toBe('[태국] 방콕 5일 #노옵션')
   })
 
   // REGRESSION-FREEZE[supplier-title-no-sale-status-season]: verygoodtour 선착순·만원·■확정■·유류세 — manifest
@@ -153,12 +160,17 @@ describe('stripSupplierTitlePromoBadges', () => {
       normalizeSupplierRegisterListingTitle(
         '선착순 2석 특가 [노팁/노옵션/노쇼핑+장가계 직항] 원가계/천문산/천자산+보봉호+대협곡 6일',
       ),
-    ).not.toMatch(/선착\s*순|노팁|노옵션|노쇼핑/)
+    ).toMatch(/노팁|노옵션|노쇼핑/)
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '선착순 2석 특가 [노팁/노옵션/노쇼핑+장가계 직항] 원가계/천문산/천자산+보봉호+대협곡 6일',
+      ),
+    ).not.toMatch(/선착\s*순/)
     expect(
       normalizeSupplierRegisterListingTitle(
         '추석연휴특가[터키항공직항]튀르키예 일주 10일 #괴베클리테페',
       ),
-    ).toBe('[터키항공직항]튀르키예 일주 10일 #괴베클리테페')
+    ).toBe('[터키항공직항] 튀르키예 일주 10일 #괴베클리테페')
     expect(
       normalizeSupplierRegisterListingTitle(
         '1석 예약시, 독실료 할인 가능◀ [시드니 타워 전망대+사막투어] 시드니 6일',
@@ -168,7 +180,7 @@ describe('stripSupplierTitlePromoBadges', () => {
       normalizeSupplierRegisterListingTitle(
         '●특가● ■오후출발 [인천출발/노팁+노쇼핑][리무진차량] 상해 4일',
       ),
-    ).toBe('[인천출발][리무진차량] 상해 4일')
+    ).toBe('오후출발 [인천출발/노팁+노쇼핑] [리무진차량] 상해 4일')
   })
 
   it('strips sale-status, cabin-class, and season promo from homepage titles', () => {
@@ -197,7 +209,7 @@ describe('stripSupplierTitlePromoBadges', () => {
       normalizeSupplierRegisterListingTitle(
         '[NO 유류세인상][특별전세기/후룬베이얼]내몽골/세계3대초원 5일',
       ),
-    ).toBe('[특별전세기+후룬베이얼]내몽골/세계3대초원 5일')
+    ).toBe('[특별전세기/후룬베이얼] 내몽골/세계3대초원 5일')
     expect(
       normalizeSupplierRegisterListingTitle('쿠알라룸푸르/말라카/겐팅 출발확정 3박 5일'),
     ).toBe('쿠알라룸푸르/말라카/겐팅 3박 5일')
@@ -214,7 +226,7 @@ describe('stripSupplierTitlePromoBadges', () => {
       normalizeSupplierRegisterListingTitle(
         '***출발확정[KE][NO옵션] 나트랑,달랏 5일',
       ),
-    ).toBe('[KE] 나트랑,달랏 5일')
+    ).toBe('[KE] [NO옵션] 나트랑,달랏 5일')
     expect(
       normalizeSupplierRegisterListingTitle(
         '미서부8일 # LA 다져스직관 # 4인이상출발확정',
@@ -224,7 +236,52 @@ describe('stripSupplierTitlePromoBadges', () => {
       normalizeSupplierRegisterListingTitle(
         '[풀패키지] 홍콩+마카오 2박4일 대한항공/저녁출발/익청빌딩',
       ),
-    ).toBe('[풀패키지] 홍콩+마카오 2박4일 대한항공/익청빌딩')
+    ).toBe('[풀패키지] 홍콩+마카오 2박4일 대한항공/저녁출발/익청빌딩')
+  })
+
+  it('plan-b-v5: symbol wrappers, channels, dates, HIT, 특가, 특급호텔 keep', () => {
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '★출발확정/대형기탑승★몽골 울란바토르 4박5일 #노쇼핑노옵션',
+      ),
+    ).toBe('대형기탑승 몽골 울란바토르 4박5일 #노쇼핑노옵션')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '[출발확정] [NO유류인상][Semi-프리미엄/청주출발]장가계/원가계 5일',
+      ),
+    ).toBe('[Semi-프리미엄/청주출발] 장가계/원가계 5일')
+    expect(
+      normalizeSupplierRegisterListingTitle('~웹예약20만원할인~황금연휴[오이타 직항] 벳부'),
+    ).toBe('[오이타 직항] 벳부')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        "[KE][롯데관광'단독][NO쇼핑][나다운 여행을 떠난다면] 싱가포르 5일",
+      ),
+    ).toBe('[KE] [NO쇼핑] [나다운 여행을 떠난다면] 싱가포르 5일')
+    expect(
+      normalizeSupplierRegisterListingTitle('12월2일 【후쿠오카】츠카사 로얄호텔 4일'),
+    ).toBe('【후쿠오카】 츠카사 로얄호텔 4일')
+    expect(
+      normalizeSupplierRegisterListingTitle(
+        '[여행핫딜] 스페인 9일 [9/5 출발확정_베스트 오브 베스트]',
+      ),
+    ).toBe('스페인 9일 [베스트 오브 베스트]')
+    expect(normalizeSupplierRegisterListingTitle('[CJ온스타일] 스페인 10일 #특급호텔')).toBe(
+      '스페인 10일 #특급호텔',
+    )
+    expect(normalizeSupplierRegisterListingTitle('[하나LIVE] 푸꾸옥 5일')).toBe('푸꾸옥 5일')
+    expect(normalizeSupplierRegisterListingTitle('[집중모객] 나고야 4일')).toBe('나고야 4일')
+    expect(normalizeSupplierRegisterListingTitle('튀르키예 9일 #양갈비 HIT')).toBe('튀르키예 9일 #양갈비')
+    expect(normalizeSupplierRegisterListingTitle('★추석특가★ 이스턴 크루즈 3일')).toBe(
+      '이스턴 크루즈 3일',
+    )
+    expect(normalizeSupplierRegisterListingTitle('특급호텔 유지 5일 #특식 #특전')).toBe(
+      '특급호텔 유지 5일 #특식 #특전',
+    )
+    expect(normalizeSupplierRegisterListingTitle('[SK스토아] 나트랑 5일')).toBe('나트랑 5일')
+    expect(normalizeSupplierRegisterListingTitle('[출발임박][2030전용] 동유럽 7일')).toBe(
+      '[2030전용] 동유럽 7일',
+    )
   })
 })
 

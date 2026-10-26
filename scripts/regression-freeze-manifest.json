@@ -25101,7 +25101,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "홈·등록대기 상품명에서 판매마감·잔여좌석·단풍시즌·비즈니스/클래스 등 판매 문구를 제거",
+      "summary": "plan-b-v5: 홈·등록대기 상품명에서 판매마감·잔여좌석·단풍시즌·비즈니스/클래스·홈쇼핑·특가 등 판매 문구를 제거 (노쇼핑/노옵션 유지)",
       "npmScripts": [
         "verify:supplier-product-title-plan-b"
       ],
@@ -25110,6 +25110,7 @@
           "file": "lib/supplier-product-title-display.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[supplier-title-no-sale-status-season]",
+            "plan-b-v5",
             "판매마감",
             "잔여좌석",
             "단풍시즌",
@@ -25121,7 +25122,8 @@
             "선착순",
             "유류세",
             "유류세인상",
-            "본문 출발확정·판매마감"
+            "본문 출발확정·판매마감",
+            "unwrapDecorativeSymbolPairs"
           ]
         },
         {
@@ -25173,6 +25175,7 @@
       ],
       "vitestSuites": [
         "lib/supplier-product-title-display.test.ts",
+        "lib/supplier-product-title-display.audit-fixture.test.ts",
         "lib/supplier-register-destination-forbidden.test.ts"
       ]
     },
