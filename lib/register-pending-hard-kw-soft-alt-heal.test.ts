@@ -343,7 +343,7 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
     }
   })
 
-  it('오로라 빌리지 route landmarks are Aurora not Laura', async () => {
+  it('오로라 빌리지 route landmarks are Aurora not Laura', { timeout: 30_000 }, async () => {
     const { collectRouteTextOrderedLandmarkKeywords } = await import(
       '@/lib/register-schedule-route-text-image-keyword-ssot'
     )
@@ -378,7 +378,10 @@ describe('register-pending-hard-kw-soft-alt-heal', () => {
 
   // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: middle empty kw1 — used kw2 clear for refill — manifest
   // REGRESSION-FREEZE[register-pre-photo-heal-keep-visit-city-keyword]: 자유 시간|공항 이동 requires primary — manifest
-  it('자유 시간 및 공항 이동 middle requires primary and dest soft-alt fills', async () => {
+  it(
+    '자유 시간 및 공항 이동 middle requires primary and dest soft-alt fills',
+    { timeout: 30_000 },
+    async () => {
     const { registerScheduleDayRequiresPrimaryImageKeyword } = await import(
       '@/lib/register-pre-photo-verify'
     )
