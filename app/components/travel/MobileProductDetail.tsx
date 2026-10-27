@@ -32,6 +32,7 @@ import {
 } from '@/lib/booking-departure-ssot'
 import { parseRangeOnDemandResponse, postRangeOnDemandDepartures } from '@/lib/departure-range-on-demand-client'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { toPublicDepartureStatusLabel } from '@/lib/departure-status-public-label'
 import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
 import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
 import { alignDepartureKeyFactsToSelectedCalendarDate } from '@/lib/departure-facts-calendar-align'
@@ -589,7 +590,7 @@ export default function MobileProductDetail({
     if (base) bits.push(base)
     if (seats != null && seats >= 0) bits.push(`여유좌석 약 ${seats}석`)
     if (normalizeSupplierOrigin(product.originSource) === 'hanatour') {
-      const seatBlob = priceRow?.seatsStatusRaw?.trim() || priceRow?.status?.trim()
+      const seatBlob = priceRow?.seatsStatusRaw?.trim() || toPublicDepartureStatusLabel(priceRow?.status)
       const hay = buildHanatourDepartureEvidenceHaystack(product)
       if (
         seatBlob &&

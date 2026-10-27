@@ -10,6 +10,7 @@ import {
   isDepartureSoldOut,
 } from '@/lib/departure-seat-availability'
 import { formatKRW } from '@/lib/price-utils'
+import { toPublicDepartureStatusLabel } from '@/lib/departure-status-public-label'
 import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
 import { normalizeSupplierOrigin, OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
 import { addDaysUtcYmd, kstTodayYmd } from '@/lib/calendar-ymd'
@@ -66,7 +67,8 @@ export function productPriceRowToDepartureView(
   const adultKrw = departureRowAdultKrw(row)
   const soldOut = adultKrw > 0 && isDepartureSoldOut(row)
   const isAvailable = isDepartureRowPublicBookable(row)
-  const statusRaw = row.status?.trim()
+  // REGRESSION-FREEZE[departure-status-public-label]: '100% 출발'→출발확정, '출발예정'→예약가능 (표시 전용)
+  const statusRaw = toPublicDepartureStatusLabel(row.status)
   let statusLabel = '미운영'
   if (soldOut) {
     statusLabel = '판매완료'

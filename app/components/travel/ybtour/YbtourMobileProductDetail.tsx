@@ -27,6 +27,7 @@ import {
 } from '@/lib/booking-departure-ssot'
 import { parseRangeOnDemandResponse, postRangeOnDemandDepartures } from '@/lib/departure-range-on-demand-client'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { toPublicDepartureStatusLabel } from '@/lib/departure-status-public-label'
 import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
 import { buildYbtourTripDateDisplaysForSelectedRow } from '@/lib/ybtour/ybtour-selected-row-trip-display'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
@@ -531,10 +532,10 @@ function YbtourMobileProductDetailView({ product, showEsimCrossSell = false }: P
     const bits: string[] = []
     if (base) bits.push(base)
     if (seats != null && seats >= 0) bits.push(`여유좌석 약 ${seats}석`)
-    const rowStatus = priceRow?.status?.trim()
+    const rowStatus = toPublicDepartureStatusLabel(priceRow?.status)
     if (rowStatus && !bits.some((b) => b.includes(rowStatus))) bits.push(rowStatus)
     if (normalizeSupplierOrigin(product.originSource) === 'hanatour') {
-      const seatBlob = priceRow?.seatsStatusRaw?.trim() || priceRow?.status?.trim()
+      const seatBlob = priceRow?.seatsStatusRaw?.trim() || toPublicDepartureStatusLabel(priceRow?.status)
       const hay = buildHanatourDepartureEvidenceHaystack(product)
       if (
         seatBlob &&

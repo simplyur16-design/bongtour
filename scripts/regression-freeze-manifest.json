@@ -28054,6 +28054,93 @@
       "vitestSuites": [
         "lib/supplier-sweep-pacing.test.ts"
       ]
+    },
+    {
+      "id": "departure-status-public-label",
+      "tier": "prebuild",
+      "summary": "공개 출발일 상태 표시: '100% 출발'→출발확정, '출발예정'→예약가능 (표시 전용, statusRaw 원문 유지). 뷰모델 + 상세 예약현황 줄 6곳.",
+      "checks": [
+        {
+          "file": "lib/departure-status-public-label.ts",
+          "mustInclude": [
+            "export function toPublicDepartureStatusLabel",
+            "'출발확정'",
+            "'예약가능'"
+          ]
+        },
+        {
+          "file": "lib/departure-price-view-model.ts",
+          "mustInclude": [
+            "const statusRaw = toPublicDepartureStatusLabel(row.status)"
+          ],
+          "mustNotInclude": [
+            "const statusRaw = row.status?.trim()"
+          ]
+        },
+        {
+          "file": "app/components/travel/MobileProductDetail.tsx",
+          "mustInclude": [
+            "toPublicDepartureStatusLabel("
+          ],
+          "mustNotInclude": [
+            "priceRow?.status?.trim()",
+            "selectedPriceRow?.status?.trim()"
+          ]
+        },
+        {
+          "file": "app/components/travel/TravelProductDetail.tsx",
+          "mustInclude": [
+            "toPublicDepartureStatusLabel("
+          ],
+          "mustNotInclude": [
+            "priceRow?.status?.trim()",
+            "selectedPriceRow?.status?.trim()"
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodMobileProductDetail.tsx",
+          "mustInclude": [
+            "toPublicDepartureStatusLabel("
+          ],
+          "mustNotInclude": [
+            "priceRow?.status?.trim()",
+            "selectedPriceRow?.status?.trim()"
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodTravelProductDetail.tsx",
+          "mustInclude": [
+            "toPublicDepartureStatusLabel("
+          ],
+          "mustNotInclude": [
+            "priceRow?.status?.trim()",
+            "selectedPriceRow?.status?.trim()"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
+          "mustInclude": [
+            "toPublicDepartureStatusLabel("
+          ],
+          "mustNotInclude": [
+            "priceRow?.status?.trim()",
+            "selectedPriceRow?.status?.trim()"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
+          "mustInclude": [
+            "toPublicDepartureStatusLabel("
+          ],
+          "mustNotInclude": [
+            "priceRow?.status?.trim()",
+            "selectedPriceRow?.status?.trim()"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/departure-status-public-label.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
