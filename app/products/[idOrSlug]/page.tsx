@@ -1,3 +1,4 @@
+import { resolvePublicProductDisplayFullTitle } from '@/lib/supplier-product-title-display'
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { headers } from 'next/headers'
@@ -59,7 +60,11 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
   const coverUrl = getFinalCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays: scheduleRows })
   const ogImage = toAbsoluteImageUrl(coverUrl) ?? absoluteUrl(DEFAULT_OG_IMAGE_PATH)
   // REGRESSION-FREEZE[local-departure-display-prefix]: 지방출발 머리말(태그 SSOT, 제목 추론 금지) — manifest
-  const displayTitle = applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))
+  // REGRESSION-FREEZE[public-title-meta-display-clean]: 탭·og·twitter 제목 = 상세 원명 줄과 같은 표시 정리 — manifest
+  const displayTitle = applyLocalDepartureDisplayPrefix(
+    resolvePublicProductDisplayFullTitle(p.title),
+    resolveDisplayLocalDepartureTags(p),
+  )
   const desc = buildPublicProductDescription({
     title: displayTitle,
     primaryDestination: p.primaryDestination,
@@ -68,7 +73,7 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
   const path = publicProductPath(p)
   const seoTitleInput = {
     displayTitle,
-    originalTitle: p.originalTitle,
+    originalTitle: p.originalTitle ? resolvePublicProductDisplayFullTitle(p.originalTitle) : p.originalTitle,
     primaryDestination: p.primaryDestination,
     destination: p.destination,
     duration: p.duration,

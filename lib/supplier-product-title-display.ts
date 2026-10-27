@@ -12,7 +12,10 @@
  * - display title: UI 노이즈·판매 문구만 제거, 나머지 원문 유지 (list/detail/compare/admin)
  */
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
-import { normalizeNaeiltourRegisterListingTitle } from '@/lib/naeiltour-register-product-title'
+import {
+  normalizeNaeiltourRegisterListingTitle,
+  stripNaeiltourBrandTokensForDisplay,
+} from '@/lib/naeiltour-register-product-title'
 import {
   collapseAdjacentDuplicateTitlePhrases,
   decodePublicHtmlEntities,
@@ -489,7 +492,19 @@ function isPromoOnlyBadgeText(raw: string): boolean {
 export function normalizeSupplierRegisterListingTitle(s: string): string {
   // REGRESSION-FREEZE[supplier-product-title-plan-b]: HTML 엔티티·중복 어절 공개 정리 — manifest
   const decoded = collapseAdjacentDuplicateTitlePhrases(decodePublicHtmlEntities(String(s ?? '')))
-  return stripSupplierTitlePromoBadges(stripSupplierTitleUiNoise(decoded))
+  // REGRESSION-FREEZE[naeiltour-title-bracket-tidy]: 표시 시 금까기·머리 진짜 제거 + 괄호 빈칸 정리 — manifest
+  return stripSupplierTitlePromoBadges(stripSupplierTitleUiNoise(stripNaeiltourBrandTokensForDisplay(decoded)))
+}
+
+/**
+ * 공개 상품명(원 상품명 줄·탭 <title>·og/twitter·JSON-LD) 공통 — 사장님 10/26 상품명 규칙의 표시 정리.
+ * DB Product.title(공급사 원문)은 그대로, 노출 시에만 상태·특가·홈쇼핑 문구 제거. 실패 시 원문.
+ */
+// REGRESSION-FREEZE[public-title-meta-display-clean]: 상세 원명 줄과 탭·공유 제목 = 같은 정리 함수 — manifest
+export function resolvePublicProductDisplayFullTitle(rawTitle: string | null | undefined): string {
+  const raw = decodePublicHtmlEntities(String(rawTitle ?? ''))
+  const cleaned = normalizeSupplierRegisterListingTitle(raw)
+  return cleaned || raw
 }
 
 function foldBusinessCabinKeepLabel(inner: string): string {

@@ -27835,8 +27835,9 @@
         {
           "file": "app/products/[idOrSlug]/page.tsx",
           "mustInclude": [
-            "applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))",
-            "title: displayTitle,"
+            "resolvePublicProductDisplayFullTitle(p.title),",
+            "title: displayTitle,",
+            "resolveDisplayLocalDepartureTags(p),"
           ]
         },
         {
@@ -28479,6 +28480,63 @@
       "vitestSuites": [
         "lib/register-kind-supplier-code.test.ts"
       ]
+    },
+    {
+      "id": "public-title-meta-display-clean",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 10/26 상품명 규칙 — 탭 <title>·og/twitter·JSON-LD·상세 원명 줄은 같은 표시 정리 함수(resolvePublicProductDisplayFullTitle). DB Product.title 원문 유지, 저장 없음",
+      "checks": [
+        {
+          "file": "lib/supplier-product-title-display.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-title-meta-display-clean]",
+            "export function resolvePublicProductDisplayFullTitle"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-title-meta-display-clean]",
+            "title: resolvePublicProductDisplayFullTitle(travelProduct.title),"
+          ]
+        },
+        {
+          "file": "app/products/[idOrSlug]/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-title-meta-display-clean]",
+            "resolvePublicProductDisplayFullTitle(p.title),"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-title-bracket-tidy",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 금까기·진짜 제거 뒤 괄호 안 빈칸·빈 괄호 정리 — 등록(normalizeNaeiltourRegisterListingTitle)과 표시(stripNaeiltourBrandTokensForDisplay) 공통",
+      "checks": [
+        {
+          "file": "lib/naeiltour-register-product-title.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-title-bracket-tidy]",
+            "export function tidyBracketSpacesAfterTokenStrip",
+            "return tidyBracketSpacesAfterTokenStrip(t)",
+            "export function stripNaeiltourBrandTokensForDisplay"
+          ]
+        },
+        {
+          "file": "lib/supplier-product-title-display.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-title-bracket-tidy]",
+            "stripNaeiltourBrandTokensForDisplay(decoded)"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -28530,7 +28588,8 @@
         "tests/lottetour-schedule-image-keyword-turkey.test.ts",
         "lib/lottetour-schedule-image-keyword-nhatrang.test.ts",
         "tests/verygoodtour-schedule-image-keyword.test.ts",
-        "tests/kyowontour-schedule-image-keyword.test.ts"
+        "tests/kyowontour-schedule-image-keyword.test.ts",
+        "lib/public-title-meta-display-clean.test.ts"
       ]
     },
     {
