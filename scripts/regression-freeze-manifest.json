@@ -28154,48 +28154,72 @@
         "prebuild",
         "ci"
       ],
-      "summary": "같은 공급사 상품 항공사·출발일 변형 — 그룹키(공급사+마스터코드+박일+지방출발+항공사·해시태그 제거 제목), browse 최저가 카드 1장+항공사 칩, 상세 항공사 선택. 항공사는 코드 접미/편명만(Product.airline·제목 추측 금지).",
+      "summary": "완전 같은 상품만 카드 1장(공급사+마스터코드+# 태그 포함 전체 제목+박일+지방출발; 항공사·편명·[..출발]·앞머리 판매표식만 제거) + 카드 아래 항공사별 최저가(실제 예약가능 회차 carrierName/편명 → 공개 항공사 SSOT, 상위 3+외 N, 클릭 시 상세 ?airline=). 대표가 = 상한 없는 실제 예약가능 최저가. 허브 전체 카탈로그는 묶지 않음. 코드 접미·Product.airline·제목으로 항공사 추측 금지.",
       "checks": [
         {
           "file": "lib/airline-variant-group.ts",
           "mustInclude": [
-            "export function groupAirlineVariants",
-            "export function airlineVariantGroupKey",
+            "export function duplicateGroupKey",
+            "export function normalizeTitleForDuplicateGroup",
+            "export function groupDuplicateProducts",
+            "export function carrierPriceLinesFromSummaries",
+            "export function departureCarrierPublicLabel",
+            "formatPublicAirlineDisplay(name)",
             "HANATOUR_CODE_RE",
-            "YBTOUR_CODE_RE",
-            "airlineCodeFromFlightNo(input.outboundFlightNo)"
+            "YBTOUR_CODE_RE"
           ],
           "mustNotInclude": [
             "input.airline",
-            ".airline ??"
+            ".airline ??",
+            "DUPLICATE_MIN_DATE_OVERLAP"
+          ]
+        },
+        {
+          "file": "lib/airline-variant-departures.ts",
+          "mustInclude": [
+            "isBrowseDeparturePublicBookable(d)",
+            "getPublicBookableMinDate(baseDate)",
+            "outboundFlightNo: true"
+          ],
+          "mustNotInclude": [
+            "minBookableAdultPrice",
+            "take:"
           ]
         },
         {
           "file": "lib/products-browse-build-payload.ts",
           "mustInclude": [
-            "groupAirlineVariants(scored",
-            "scored = airlineVariantGrouping.kept",
-            "airlineVariantChip: chip"
+            "groupDuplicateProducts(scored, duplicateInputOf, bookableSummaryById)",
+            "if (!isHubFullCatalog) {",
+            "realBookableMin ??",
+            "airlinePriceLines: shown.map("
           ]
         },
         {
           "file": "components/products/ProductResultsList.tsx",
           "mustInclude": [
-            "item.airlineVariantChip",
-            "data-airline-variant-chip"
+            "item.airlinePriceLines",
+            "<ProductCardAirlinePriceLines"
+          ]
+        },
+        {
+          "file": "components/products/ProductCardAirlinePriceLines.tsx",
+          "mustInclude": [
+            "data-airline-price-lines",
+            "?airline=${encodeURIComponent(line.param)}"
           ]
         },
         {
           "file": "app/products/[idOrSlug]/product-detail-page-content.tsx",
           "mustInclude": [
-            "<ProductAirlineVariantSelector productId={productId} />"
+            "<ProductAirlinePricePanel productId={productId} />"
           ]
         },
         {
-          "file": "lib/airline-variant-siblings.ts",
+          "file": "app/components/detail/ProductAirlinePricePanelClient.tsx",
           "mustInclude": [
-            "publicProductWhereClause()",
-            "airlineVariantGroupKey(input) !== selfKey"
+            "airlineLabelFromParam(searchParams.get('airline'))",
+            "data-airline-price-panel"
           ]
         }
       ],

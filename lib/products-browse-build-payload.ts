@@ -84,7 +84,15 @@ import {
 } from '@/lib/air-hotel-product-ssot'
 import { parseListingKind } from '@/lib/product-listing-kind'
 import { homeDepartureAirportDisplayText } from '@/lib/infer-home-departure-airport'
-import { airlineVariantChipLabel, groupAirlineVariants } from '@/lib/airline-variant-group'
+import {
+  capCarrierPriceLines,
+  carrierPriceLinesFromSummaries,
+  duplicateCandidateIds,
+  groupDuplicateProducts,
+  type DuplicateGroupInput,
+  type ProductBookableSummary,
+} from '@/lib/airline-variant-group'
+import { fetchProductBookableSummaries } from '@/lib/airline-variant-departures'
 
 function normalizeSportsThemeTagsForBrowse(raw: string[] | null | undefined): SportsThemeTag[] {
   if (!Array.isArray(raw) || raw.length === 0) return []
@@ -577,22 +585,32 @@ export async function productsBrowseBuildPayload(queryKey: string) {
 
     scored = scored.filter((s) => productRowPassesExtendedFilters(s.product as ProductBrowseFullRow, ext))
 
-    // REGRESSION-FREEZE[airline-variant-group]: 같은 상품 항공사·출발일 변형은 최저가 카드 1장 + 항공사 칩 — manifest
-    const airlineVariantGrouping = groupAirlineVariants(scored, (s) => ({
-      input: {
-        id: s.product.id,
-        originSource: s.product.originSource,
-        originCode: (s.product as { originCode?: string | null }).originCode ?? null,
-        title: s.product.title,
-        duration: s.product.duration,
-        tripDays: s.product.tripDays,
-        localDepartureTag: s.product.localDepartureTag,
-      },
-      slug: s.product.slug ?? null,
-      priceKrw: s.effectivePricePerPerson ?? null,
-      earliestDeparture: s.earliestDeparture ? toSeoulYmd(s.earliestDeparture) : null,
-    }))
-    scored = airlineVariantGrouping.kept
+    // REGRESSION-FREEZE[airline-variant-group]: 완전 같은 상품(공급사·마스터코드·전체제목·박일·지방출발)만 카드 1장 — 허브 전체 카탈로그는 묶지 않음 — manifest
+    const duplicateInputOf = (s: (typeof scored)[number]): DuplicateGroupInput => ({
+      id: s.product.id,
+      originSource: s.product.originSource,
+      originCode: (s.product as { originCode?: string | null }).originCode ?? null,
+      title: s.product.title,
+      duration: s.product.duration,
+      tripDays: s.product.tripDays,
+      localDepartureTag: s.product.localDepartureTag,
+    })
+    const bookableSummaryById = new Map<string, ProductBookableSummary>()
+    let duplicateMembersByKeptId = new Map<string, string[]>()
+    if (!isHubFullCatalog) {
+      const candidateIds = new Set(duplicateCandidateIds(scored, duplicateInputOf))
+      if (candidateIds.size > 0) {
+        const summaries = await fetchProductBookableSummaries(
+          scored
+            .filter((s) => candidateIds.has(s.product.id))
+            .map((s) => ({ id: s.product.id, slug: s.product.slug ?? null })),
+        )
+        for (const [id, sum] of summaries) bookableSummaryById.set(id, sum)
+        const duplicateGrouping = groupDuplicateProducts(scored, duplicateInputOf, bookableSummaryById)
+        scored = duplicateGrouping.kept
+        duplicateMembersByKeptId = duplicateGrouping.membersByKeptId
+      }
+    }
 
     if (perf) perf.score = performance.now() // PERF-LOG: 측정 후 제거
 
@@ -616,6 +634,27 @@ export async function productsBrowseBuildPayload(queryKey: string) {
           fetchBrowseDeparturesByProductIds(sliceProductIds),
           fetchProductBrowseScheduleByIds(sliceProductIdsNeedingSchedule),
         ])
+
+    // REGRESSION-FREEZE[airline-variant-group]: 카드 항공사별 가격·대표가 = 상한 없는 실제 예약가능 회차 — manifest
+    if (!isHubFullCatalog) {
+      const missingSummary = slice
+        .filter(({ product }) => !bookableSummaryById.has(product.id))
+        .map(({ product }) => ({ id: product.id, slug: product.slug ?? null }))
+      if (missingSummary.length > 0) {
+        for (const [id, sum] of await fetchProductBookableSummaries(missingSummary)) bookableSummaryById.set(id, sum)
+      }
+    }
+    const cardSummariesFor = (productId: string): ProductBookableSummary[] =>
+      (duplicateMembersByKeptId.get(productId) ?? [productId])
+        .map((id) => bookableSummaryById.get(id))
+        .filter((x): x is ProductBookableSummary => x != null)
+    const realBookableMinFor = (productId: string): number | null => {
+      let min: number | null = null
+      for (const s of cardSummariesFor(productId)) {
+        if (s.minPriceKrw != null && (min == null || s.minPriceKrw < min)) min = s.minPriceKrw
+      }
+      return min
+    }
 
     const metaRows = slice.map(({ product: p, effectivePricePerPerson }) => {
       const hasBgImage = Boolean(String(p.bgImageUrl ?? '').trim())
@@ -661,7 +700,9 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     for (const { p: pRaw, effectivePricePerPerson } of metaRows) {
       const departures = sliceDepartureByProductId.get(pRaw.id) ?? []
       const seatAwareMin = isHubFullCatalog ? null : minBrowseBookableAdultPrice(departures)
+      const realBookableMin = isHubFullCatalog ? null : realBookableMinFor(pRaw.id)
       const cardPriceKrw =
+        realBookableMin ??
         seatAwareMin ??
         (isHubFullCatalog && pRaw.minBookableAdultPrice != null ? pRaw.minBookableAdultPrice : null) ??
         computeEffectivePricePerPersonKrwFromRow(
@@ -794,9 +835,24 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       sportsThemeTags: normalizeSportsThemeTagsForBrowse(p.sportsThemeTag),
       departureAirportLabelDisplay: homeDepartureAirportDisplayText(p.departureAirportLabel),
       ...(() => {
-        const options = airlineVariantGrouping.variantsByKeptId.get(p.id)
-        const chip = options ? airlineVariantChipLabel(options) : null
-        return chip && options ? { airlineVariantChip: chip, airlineVariantCount: options.length } : {}
+        if (isHubFullCatalog) return {}
+        const memberCount = duplicateMembersByKeptId.get(p.id)?.length ?? 1
+        const { shown, moreCount } = capCarrierPriceLines(carrierPriceLinesFromSummaries(cardSummariesFor(p.id)))
+        return {
+          ...(memberCount > 1 ? { duplicateMergedCount: memberCount } : {}),
+          ...(shown.length > 0
+            ? {
+                airlinePriceLines: shown.map((l) => ({
+                  label: l.label,
+                  param: l.param,
+                  priceKrw: l.priceKrw,
+                  slug: l.slug,
+                  productId: l.productId,
+                })),
+                airlinePriceMoreCount: moreCount,
+              }
+            : {}),
+        }
       })(),
       ...(p.hasUrgentDeal
         ? (() => {
