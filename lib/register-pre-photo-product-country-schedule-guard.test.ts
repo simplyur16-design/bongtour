@@ -26,7 +26,8 @@ describe('parseNaeiltourProgramProcessListHtml', () => {
 </tr>
 </tbody>`
     const rows = parseNaeiltourProgramProcessListHtml(html, '202610')
-    expect(rows).toHaveLength(2)
+    // departure-onsale-import-filter: 마감 행은 import 단계에서 제외
+    expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
       departDate: '2026-10-13',
       adultPrice: 4_490_000,
@@ -34,11 +35,7 @@ describe('parseNaeiltourProgramProcessListHtml', () => {
       statusRaw: '예약가능',
       seatCount: 20,
     })
-    expect(rows[1]).toMatchObject({
-      departDate: '2026-10-06',
-      adultPrice: 4_790_000,
-      statusRaw: '마감',
-    })
+    expect(rows.some((r) => r.departDate === '2026-10-06')).toBe(false)
   })
 })
 
