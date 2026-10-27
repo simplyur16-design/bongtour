@@ -18,6 +18,7 @@ import { isProductDetailPerfLogEnabled, patchProductDetailPerf } from '@/lib/pro
 import { after } from 'next/server'
 import { isNextRouterPrefetchRequest } from '@/lib/next-router-prefetch'
 import { prisma } from '@/lib/prisma'
+import { withCheapestBookableDateDepartures } from '@/lib/product-detail-cheapest-date-departures'
 
 export type ProductDetailBuildSource = 'payload' | 'computed'
 
@@ -34,7 +35,7 @@ async function loadFullProductDetailRowForBuild(productId: string): Promise<Prod
       registrationStatus: 'registered',
     },
     select: buildProductDetailPageSelect(new Date()),
-  }) as Promise<ProductDetailViewRow | null>
+  }).then(withCheapestBookableDateDepartures) as Promise<ProductDetailViewRow | null>
 }
 
 async function resolveProductDetailRowForLiveBuild(

@@ -1,5 +1,6 @@
 import { isAirHotelProductType } from '@/lib/air-hotel-product-ssot'
 import { prisma } from '@/lib/prisma'
+import { withCheapestBookableDateDepartures } from '@/lib/product-detail-cheapest-date-departures'
 import { buildProductDetailPageSelect } from '@/lib/product-detail-page-include'
 import type { FitMasterWithDays } from '@/lib/product-public-detail/build-render-model'
 import { buildProductPublicDetailPayload } from '@/lib/product-public-detail/build-product-public-detail-payload'
@@ -25,10 +26,12 @@ async function loadFitMasterForProduct(productId: string, productType: string | 
 
 /** 등록·동기화·관리자 저장 후 호출 — 상세 SSR 파싱 생략용 DTO 저장 */
 export async function rebuildProductPublicDetailPayload(productId: string): Promise<boolean> {
-  const row = await prisma.product.findFirst({
-    where: { id: productId },
-    select: buildProductDetailPageSelect(new Date()),
-  })
+  const row = await prisma.product
+    .findFirst({
+      where: { id: productId },
+      select: buildProductDetailPageSelect(new Date()),
+    })
+    .then(withCheapestBookableDateDepartures)
   if (!row || row.registrationStatus !== 'registered') {
     await prisma.product.updateMany({
       where: { id: productId },

@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache'
 import { cache as reactCache } from 'react'
 import { prisma } from '@/lib/prisma'
+import { withCheapestBookableDateDepartures } from '@/lib/product-detail-cheapest-date-departures'
 import { bookableMinDateYmdForPayload } from '@/lib/product-public-detail/payload-io'
 import { requireAdmin } from '@/lib/require-admin'
 import {
@@ -87,7 +88,7 @@ async function loadProductDetailRowFull(
       select: buildProductDetailPageSelect(new Date()),
     })
   }
-  return row
+  return withCheapestBookableDateDepartures(row)
 }
 
 function loadProductDetailRowCachedPublic(productId: string): Promise<ProductDetailCachedLoad> {

@@ -28537,6 +28537,47 @@
           ]
         }
       ]
+    },
+    {
+      "id": "detail-cheapest-date-rows",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공개 상세 출발 100행 상한 밖에 더 싼 예약가능 출발일이 있으면 그 날짜 행 전체를 덧붙여 기본 출발 = 카드 최저가(yb-0026 등 다항공사). 읽기 전용, DB 미기록",
+      "checks": [
+        {
+          "file": "lib/product-detail-cheapest-date-departures.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[detail-cheapest-date-rows]",
+            "export async function withCheapestBookableDateDepartures"
+          ]
+        },
+        {
+          "file": "lib/product-detail-smart-load.ts",
+          "mustInclude": [
+            "withCheapestBookableDateDepartures"
+          ]
+        },
+        {
+          "file": "lib/product-detail-page-cache.ts",
+          "mustInclude": [
+            "withCheapestBookableDateDepartures"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/get-or-build-model.ts",
+          "mustInclude": [
+            "withCheapestBookableDateDepartures"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/persist-payload.ts",
+          "mustInclude": [
+            "withCheapestBookableDateDepartures"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -28589,7 +28630,8 @@
         "lib/lottetour-schedule-image-keyword-nhatrang.test.ts",
         "tests/verygoodtour-schedule-image-keyword.test.ts",
         "tests/kyowontour-schedule-image-keyword.test.ts",
-        "lib/public-title-meta-display-clean.test.ts"
+        "lib/public-title-meta-display-clean.test.ts",
+        "lib/product-detail-cheapest-date-departures.test.ts"
       ]
     },
     {

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { withCheapestBookableDateDepartures } from '@/lib/product-detail-cheapest-date-departures'
 import {
   buildProductDetailPageSelect,
   buildProductDetailSlimSelect,
@@ -15,14 +16,16 @@ export type ProductDetailSmartLoad = {
 }
 
 async function loadProductDetailRowFull(productId: string): Promise<ProductDetailPageRow | null> {
-  return prisma.product.findFirst({
-    where: {
-      id: productId,
-      registrationStatus: 'registered',
-      AND: [publicProductWhereClause()],
-    },
-    select: buildProductDetailPageSelect(new Date()),
-  })
+  return prisma.product
+    .findFirst({
+      where: {
+        id: productId,
+        registrationStatus: 'registered',
+        AND: [publicProductWhereClause()],
+      },
+      select: buildProductDetailPageSelect(new Date()),
+    })
+    .then(withCheapestBookableDateDepartures)
 }
 
 /** Public registered product: slim select on payload DTO hit, else full select. */

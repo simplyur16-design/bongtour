@@ -5,7 +5,7 @@ import type { Prisma } from '@prisma/client'
 import { getPublicBookableMinDate } from '@/lib/public-bookable-date'
 
 /** browse `BROWSE_DEPARTURE_PER_PRODUCT_TAKE`와 동일 상한 — 달력·요금 SSOT */
-const DETAIL_DEPARTURE_PER_PRODUCT_TAKE = 100
+export const DETAIL_DEPARTURE_PER_PRODUCT_TAKE = 100
 
 /**
  * 상세 달력·항공 key facts·공급사 price-row 변환에 필요한 출발 행만 로드.
