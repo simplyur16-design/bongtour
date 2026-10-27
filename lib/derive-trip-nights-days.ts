@@ -129,7 +129,11 @@ export function deriveTripNightsDays(input: DeriveTripNightsDaysInput): DeriveTr
   const fromTitle = parseNightsDaysFromLabel(titleHint)
 
   let tripDays = fromDuration.days ?? fromTitle.days
-  let tripNights = fromDuration.nights ?? fromTitle.nights
+  // REGRESSION-FREEZE[trip-duration-hashtag-leak]: 제목 nights는 제목 days가 고른 days와 같을 때만 —
+  // 「10일」 + 제목 속 「2박3일」 → 「2박 10일」 같은 출처 혼합 금지
+  let tripNights =
+    fromDuration.nights ??
+    (fromTitle.nights != null && (fromTitle.days == null || fromTitle.days === tripDays) ? fromTitle.nights : null)
 
   // REGRESSION-FREEZE[trip-duration-hashtag-leak]: 저장 duration이 제목 해시태그 속 부분 일정(N박M일)과 같고
   // 머리 구간이 다른 일수를 명시하면 머리 구간(공급사 상품 길이)을 쓴다. 다른 쪽 값은 지어내지 않는다.

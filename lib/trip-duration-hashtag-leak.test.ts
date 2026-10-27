@@ -71,3 +71,13 @@ describe('partial-day phrases are not the trip length', () => {
     expect(buildRegisterDurationLabel(null, null, '오사카 1일자유 4일')).toBe('4일')
   })
 })
+
+describe('no mixing nights and days from different sources', () => {
+  it('days-only duration + different N박M일 in the title keeps days only', () => {
+    expect(deriveTripNightsDays({ duration: '10일', title: '이집트 2박3일 크루즈 포함' }).label).toBe('10일')
+    expect(deriveTripNightsDays({ duration: '10일', title: EGYPT.replace(/#/g, ' ') }).label).toBe('10일')
+  })
+  it('days-only duration + matching N박M일 in the title still gets nights', () => {
+    expect(deriveTripNightsDays({ duration: '5일', title: '다낭 3박5일' }).label).toBe('3박 5일')
+  })
+})
