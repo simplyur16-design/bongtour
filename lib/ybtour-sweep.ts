@@ -7,6 +7,7 @@
  * REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]: sold-out 마커는 DB 가드 존중 — manifest
  */
 import type { PrismaClient } from '@prisma/client'
+import { createSupplierSweepPacer } from '@/lib/supplier-sweep-pacing'
 
 import { prismaRead as defaultPrismaRead } from '@/lib/prisma'
 import { buildDetailUrl } from '@/lib/admin-departure-rescrape'
@@ -248,7 +249,10 @@ export async function sweepDueYbtourProducts(
   const fromYmd = todayYmd
   const toYmd = addDaysUtcYmd(todayYmd, RULE_A_WINDOW_DAYS)
 
+  // REGRESSION-FREEZE[supplier-sweep-pacing]: 상품 간 딜레이 + 거절 연속 시 중단·알림
+  const pacer = createSupplierSweepPacer('ybtour')
   for (const product of products) {
+    if (!(await pacer.beforeProduct())) break
     result.processed += 1
     const now = new Date()
 
@@ -381,6 +385,7 @@ export async function sweepDueYbtourProducts(
       })
       result.updated += 1
     } catch (err) {
+      await pacer.onError(err)
       const msg = err instanceof Error ? err.message : String(err)
       console.warn('[ybtour-sweep] skip', {
         productId: product.id,

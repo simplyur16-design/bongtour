@@ -9,6 +9,7 @@
  * 수집 성공 시 `rawMeta.modetourNextPriceRecheckYmd` = KST 오늘 + 7일.
  */
 import type { PrismaClient } from '@prisma/client'
+import { createSupplierSweepPacer } from '@/lib/supplier-sweep-pacing'
 
 import { prismaRead as defaultPrismaRead } from '@/lib/prisma'
 import { isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
@@ -312,7 +313,10 @@ export async function sweepDueModetourProducts(
   const fromYmd = todayYmd
   const toYmd = addDaysUtcYmd(todayYmd, RULE_A_WINDOW_DAYS)
 
+  // REGRESSION-FREEZE[supplier-sweep-pacing]: 상품 간 딜레이 + 거절 연속 시 중단·알림
+  const pacer = createSupplierSweepPacer('modetour')
   for (const product of products) {
+    if (!(await pacer.beforeProduct())) break
     result.processed += 1
     const now = new Date()
 
@@ -480,6 +484,7 @@ export async function sweepDueModetourProducts(
       })
       result.updated += 1
     } catch (err) {
+      await pacer.onError(err)
       const msg = err instanceof Error ? err.message : String(err)
       console.warn('[modetour-sweep] skip', {
         productId: product.id,

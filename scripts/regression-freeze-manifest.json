@@ -27980,6 +27980,80 @@
         "lib/local-departure-new-product-path.test.ts",
         "lib/local-departure-display-prefix.test.ts"
       ]
+    },
+    {
+      "id": "supplier-sweep-pacing",
+      "tier": "prebuild",
+      "summary": "공급사 일일 sweep: 상품 간 딜레이 + 거절(403/429/captcha) 연속 시 루프 중단·프로세스 일시정지·운영 LMS 알림. 7 sweep 공통.",
+      "checks": [
+        {
+          "file": "lib/supplier-sweep-pacing.ts",
+          "mustInclude": [
+            "export function isSupplierRefusalError",
+            "export function createSupplierSweepPacer",
+            "sendAdminOperationalLms"
+          ]
+        },
+        {
+          "file": "lib/hanatour-sweep.ts",
+          "mustInclude": [
+            "createSupplierSweepPacer('hanatour')",
+            "if (!(await pacer.beforeProduct())) break",
+            "await pacer.onError(err)"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-sweep.ts",
+          "mustInclude": [
+            "createSupplierSweepPacer('kyowontour')",
+            "if (!(await pacer.beforeProduct())) break",
+            "await pacer.onError(err)"
+          ]
+        },
+        {
+          "file": "lib/lottetour-sweep.ts",
+          "mustInclude": [
+            "createSupplierSweepPacer('lottetour')",
+            "if (!(await pacer.beforeProduct())) break",
+            "await pacer.onError(err)"
+          ]
+        },
+        {
+          "file": "lib/modetour-sweep.ts",
+          "mustInclude": [
+            "createSupplierSweepPacer('modetour')",
+            "if (!(await pacer.beforeProduct())) break",
+            "await pacer.onError(err)"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-sweep.ts",
+          "mustInclude": [
+            "createSupplierSweepPacer('naeiltour')",
+            "if (!(await pacer.beforeProduct())) break",
+            "await pacer.onError(e)"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-sweep.ts",
+          "mustInclude": [
+            "createSupplierSweepPacer('verygoodtour')",
+            "if (!(await pacer.beforeProduct())) break",
+            "await pacer.onError(err)"
+          ]
+        },
+        {
+          "file": "lib/ybtour-sweep.ts",
+          "mustInclude": [
+            "createSupplierSweepPacer('ybtour')",
+            "if (!(await pacer.beforeProduct())) break",
+            "await pacer.onError(err)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/supplier-sweep-pacing.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
