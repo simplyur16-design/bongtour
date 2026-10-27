@@ -171,14 +171,14 @@ export async function POST(request: Request) {
             daily_schedule: dailyPrices
               .filter((row) => {
                 if (isAdultPriceAbsentMarker(row.price)) return false
-                const statusLabel = normalizeDepartureBookingStatus(row.status)
+                const statusLabel = normalizeDepartureBookingStatus((row as { status?: string | null }).status)
                 if (statusLabel && !isDepartureOnSaleForImport(statusLabel)) return false
                 const total = parseInt(String(row.price ?? '').replace(/,/g, ''), 10)
                 return Number.isFinite(total) && total > 0
               })
               .map((row): ExtractedDailyScheduleItem => {
                 const statusLabel =
-                  normalizeDepartureBookingStatus(row.status) ?? ('예약가능' as const)
+                  normalizeDepartureBookingStatus((row as { status?: string | null }).status) ?? ('예약가능' as const)
                 return {
                   date: String(row.date ?? '').slice(0, 10),
                   status: statusLabel,

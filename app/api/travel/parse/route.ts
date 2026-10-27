@@ -313,12 +313,16 @@ ${textInput}
         if (
           isAdultPriceAbsentMarker(p?.adult) ||
           isAdultPriceAbsentMarker(p?.adultBase) ||
-          isAdultPriceAbsentMarker(p?.price)
+          isAdultPriceAbsentMarker((p as { price?: unknown } | null | undefined)?.price)
         ) {
           return null
         }
+        const pStatus = p as
+          | { status?: string | null; statusRaw?: string | null; seatsStatusRaw?: string | null }
+          | null
+          | undefined
         const statusLabel = normalizeDepartureBookingStatus(
-          p?.status ?? p?.statusRaw ?? p?.seatsStatusRaw,
+          pStatus?.status ?? pStatus?.statusRaw ?? pStatus?.seatsStatusRaw,
         )
         if (statusLabel && !isDepartureOnSaleForImport(statusLabel)) return null
         const adult = Number(p?.adult) ?? (Number(p?.adultBase) ?? 0) + (Number(p?.adultFuel) ?? 0)
