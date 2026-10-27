@@ -9,6 +9,7 @@ import {
   filterPriceRowsByAirline,
   type AirlineDepartureOption,
 } from '@/lib/airline-variant-group'
+import { pickGloballyCheapestDepartureRowByAdultPrice } from '@/lib/public-default-departure-selection'
 import type { ProductPriceRow } from '@/app/components/travel/travel-product-detail-types'
 
 /**
@@ -1326,6 +1327,46 @@ describe('상세 달력 항공사 필터 — 공급사별 fixture', () => {
     expect(airlineOptionForParam(data, 'ZZ')).toBeNull()
     expect(airlineOptionForParam(data, '')).toBeNull()
     expect(airlineOptionForParam(null, 'KE')).toBeNull()
+  })
+
+  it('LOT폴란드항공(IATA 매핑 없음): ?airline=LOT·LO·소문자·공개명 모두 같은 항공사, 링크 값은 공개명 그대로', () => {
+    const data = { options: optionsFor(FX.hanatour) }
+    const lot = data.options.find((o) => o.label === 'LOT폴란드항공')!
+    expect(lot).toBeTruthy()
+    expect(lot.param).toBe('LOT폴란드항공')
+    for (const p of ['LOT', 'lot', 'LO', 'lo', 'LOT폴란드항공', ' LOT ']) {
+      expect(airlineOptionForParam(data, p)?.label).toBe('LOT폴란드항공')
+    }
+    // 카드 항공사 줄·상세 칩 링크: ?airline=encodeURIComponent(param) → 브라우저가 디코드한 값
+    const href = `/products/pkg-hn-0049?airline=${encodeURIComponent(lot.param)}`
+    const fromUrl = new URL(href, 'https://bongtour.com').searchParams.get('airline')
+    expect(airlineOptionForParam(data, fromUrl)).toBe(lot)
+    expect(airlineOptionForParam(data, 'LOTX')).toBeNull()
+  })
+
+  it('모든 공급사·항공사: 카드/칩이 만드는 링크 값(param)이 같은 항공사로 돌아온다 (전체로 떨어지지 않음)', () => {
+    for (const supplier of WITH_CARRIERS) {
+      const data = { options: optionsFor(FX[supplier]) }
+      for (const opt of data.options) {
+        const fromUrl = new URL(`/p?airline=${encodeURIComponent(opt.param)}`, 'https://bongtour.com').searchParams.get('airline')
+        expect(airlineOptionForParam(data, fromUrl)).toBe(opt)
+      }
+    }
+  })
+
+  it('항공사 선택 시 기본 출발 = 그 항공사 최저가(동가 → 빠른 날짜)', () => {
+    const base = new Date('2026-10-01T12:00:00+09:00')
+    for (const supplier of WITH_CARRIERS) {
+      const fx = FX[supplier]
+      const model = fx.rows.slice(0, 8).map((r) => toPriceRow(fx.productId, r))
+      for (const opt of optionsFor(fx)) {
+        const filtered = filterPriceRowsByAirline(model, opt, fx.productId)
+        const picked = pickGloballyCheapestDepartureRowByAdultPrice(filtered, base)!
+        expect(picked.adult).toBe(opt.minPriceKrw)
+        const earliestAtMin = filtered.filter((r) => r.adult === opt.minPriceKrw).map((r) => r.date).sort()[0]
+        expect(picked.date).toBe(earliestAtMin)
+      }
+    }
   })
 
   it('현장 수집 패치: 필터 중엔 그 항공사 회차 id 만, od-* 제외', () => {

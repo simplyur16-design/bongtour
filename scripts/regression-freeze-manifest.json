@@ -17580,7 +17580,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[public-default-departure-nearest]",
             "filterPublicBookableDepartureRows",
-            "getPublicBookableMinYmd"
+            "getPublicBookableMinYmd",
+            "mergePublicPriceRowsByDate",
+            "isDepartureSoldOut"
           ]
         },
         {
@@ -17595,6 +17597,48 @@
           "mustInclude": [
             "REGRESSION-FREEZE[public-default-departure-nearest]",
             "달력 SSOT"
+          ]
+        },
+        {
+          "file": "app/components/travel/TravelProductDetail.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-default-departure-nearest]",
+            "mergePublicPriceRowsByDate("
+          ]
+        },
+        {
+          "file": "app/components/travel/MobileProductDetail.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-default-departure-nearest]",
+            "mergePublicPriceRowsByDate("
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-default-departure-nearest]",
+            "mergePublicPriceRowsByDate("
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-default-departure-nearest]",
+            "mergePublicPriceRowsByDate("
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodTravelProductDetail.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-default-departure-nearest]",
+            "mergePublicPriceRowsByDate("
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodMobileProductDetail.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-default-departure-nearest]",
+            "mergePublicPriceRowsByDate("
           ]
         }
       ],
@@ -28246,42 +28290,42 @@
           "file": "app/components/travel/TravelProductDetail.tsx",
           "mustInclude": [
             "const product = useAirlineFilteredProduct(productInput)",
-            "for (const p of filterAirlinePatchRows(pricePatches))"
+            "filterAirlinePatchRows(pricePatches)"
           ]
         },
         {
           "file": "app/components/travel/MobileProductDetail.tsx",
           "mustInclude": [
             "const product = useAirlineFilteredProduct(productInput)",
-            "for (const p of filterAirlinePatchRows(pricePatches))"
+            "filterAirlinePatchRows(pricePatches)"
           ]
         },
         {
           "file": "app/components/travel/verygood/VerygoodTravelProductDetail.tsx",
           "mustInclude": [
             "const product = useAirlineFilteredProduct(productInput)",
-            "for (const p of filterAirlinePatchRows(pricePatches))"
+            "filterAirlinePatchRows(pricePatches)"
           ]
         },
         {
           "file": "app/components/travel/verygood/VerygoodMobileProductDetail.tsx",
           "mustInclude": [
             "const product = useAirlineFilteredProduct(productInput)",
-            "for (const p of filterAirlinePatchRows(pricePatches))"
+            "filterAirlinePatchRows(pricePatches)"
           ]
         },
         {
           "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
           "mustInclude": [
             "const product = useAirlineFilteredProduct(productInput)",
-            "for (const p of filterAirlinePatchRows(pricePatches))"
+            "filterAirlinePatchRows(pricePatches)"
           ]
         },
         {
           "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
           "mustInclude": [
             "const product = useAirlineFilteredProduct(productInput)",
-            "for (const p of filterAirlinePatchRows(pricePatches))"
+            "filterAirlinePatchRows(pricePatches)"
           ]
         }
       ],
