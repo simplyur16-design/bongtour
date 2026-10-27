@@ -15,6 +15,7 @@ import {
   formatPublicAirlineDisplay,
 } from '@/lib/airline-iata-public-display-ssot'
 import { deriveTripNightsDays } from '@/lib/derive-trip-nights-days'
+import type { ProductPriceRow } from '@/app/components/travel/travel-product-detail-types'
 
 /** 하나투어: EEP133 261108 OZ N */
 const HANATOUR_CODE_RE = /^([A-Z]{3}\d{3})(\d{6})([A-Z0-9]{2})([A-Z0-9])$/
@@ -306,4 +307,141 @@ export function groupDuplicateProducts<T>(
     if (idxs[0] === i) kept.push(entries[repIdxByKey.get(k)!]!)
   })
   return { kept, membersByKeptId }
+}
+/**
+ * 상세 달력 항공사 필터 — 공개 가격행(ProductPriceRow) 압축 튜플(RSC 페이로드 절감).
+ * [출발회차 id, 출발일 YYYY-MM-DD, 성인가, 아동(베드), 아동(노베드), 유아, 상태, 잔여석, 좌석원문, 기준성인가]
+ * 서버가 실제 예약가능 회차에서 만든다. localPrice(내부 수집 메모)는 싣지 않는다.
+ */
+export type AirlineCompactPriceRow = [
+  string,
+  string,
+  number,
+  (number | null)?,
+  (number | null)?,
+  (number | null)?,
+  (string | null)?,
+  (number | null)?,
+  (string | null)?,
+  (number | null)?,
+]
+
+/** 상세 — 항공사별 예약가능 회차(날짜별 그 항공사 최저가 회차 1개) */
+export type AirlineDepartureOption = {
+  label: string
+  param: string
+  minPriceKrw: number
+  rows: AirlineCompactPriceRow[]
+}
+
+export type ProductAirlineFilterData = {
+  options: AirlineDepartureOption[]
+}
+
+export function compactPublicPriceRow(r: ProductPriceRow): AirlineCompactPriceRow {
+  const c: AirlineCompactPriceRow = [
+    String(r.id),
+    String(r.date).slice(0, 10),
+    r.adult,
+    r.childBed ?? null,
+    r.childNoBed ?? null,
+    r.infant ?? null,
+    r.status || null,
+    r.availableSeats ?? null,
+    r.seatsStatusRaw || null,
+    r.baselineAdultPrice ?? null,
+  ]
+  while (c.length > 3 && c[c.length - 1] == null) c.pop()
+  return c
+}
+
+export function expandAirlineCompactRow(c: AirlineCompactPriceRow, productId: string): ProductPriceRow {
+  const [id, date, adult, cb, cn, inf, st, av, sr, bl] = c
+  const row: ProductPriceRow = {
+    id,
+    productId,
+    date,
+    adult,
+    childBed: cb ?? null,
+    childNoBed: cn ?? null,
+    infant: inf ?? null,
+    localPrice: null,
+    priceGap: 0,
+    priceAdult: adult,
+    priceChildWithBed: cb ?? null,
+    priceChildNoBed: cn ?? null,
+    priceInfant: inf ?? null,
+  }
+  if (st) row.status = st
+  if (av != null) row.availableSeats = av
+  if (sr) row.seatsStatusRaw = sr
+  if (bl != null) row.baselineAdultPrice = bl
+  return row
+}
+
+/**
+ * 예약가능 공개 가격행 + 회차 항공사 라벨 → 항공사별 옵션.
+ * 항공사별·날짜별 최저 성인가 회차 1개(달력은 날짜당 1행), 최저가 오름차순. 항공사 모름·가격 없음 제외(추측 금지).
+ */
+export function airlineOptionsFromPriceRows(
+  items: { row: ProductPriceRow; label: string | null }[],
+): AirlineDepartureOption[] {
+  const byLabel = new Map<string, Map<string, ProductPriceRow>>()
+  for (const { row, label } of items) {
+    if (!label || !(row.adult > 0)) continue
+    const ymd = String(row.date).slice(0, 10)
+    const m = byLabel.get(label) ?? new Map<string, ProductPriceRow>()
+    const cur = m.get(ymd)
+    if (!cur || row.adult < cur.adult) m.set(ymd, row)
+    byLabel.set(label, m)
+  }
+  return [...byLabel.entries()]
+    .map(([label, m]) => {
+      const rows = [...m.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([, r]) => compactPublicPriceRow(r))
+      return {
+        label,
+        param: airlineParamForLabel(label),
+        minPriceKrw: Math.min(...rows.map((r) => r[2])),
+        rows,
+      }
+    })
+    .sort((a, b) => a.minPriceKrw - b.minPriceKrw || a.label.localeCompare(b.label, 'ko'))
+}
+
+/** URL `?airline=` → 이 상품 옵션(모르는 항공사·이 상품에 없는 항공사는 null — 필터 안 함) */
+export function airlineOptionForParam(
+  data: ProductAirlineFilterData | null | undefined,
+  param: string | null | undefined,
+): AirlineDepartureOption | null {
+  if (!data) return null
+  const label = airlineLabelFromParam(param)
+  if (!label) return null
+  return data.options.find((o) => o.label === label) ?? null
+}
+
+/**
+ * 상세 product.prices → 선택 항공사 회차만(날짜당 그 항공사 최저가 1행, 전 예약가능 날짜).
+ * 상세 모델(캐시)에 같은 회차 행이 있으면 그 행(본문 표 보강 반영)을, 없으면 서버 회차 행을 쓴다.
+ * 선택 없음 → 원본 그대로(같은 배열 참조).
+ */
+export function filterPriceRowsByAirline(
+  modelRows: readonly ProductPriceRow[],
+  option: AirlineDepartureOption | null | undefined,
+  productId: string,
+): ProductPriceRow[] {
+  const src = modelRows as ProductPriceRow[]
+  if (!option) return src
+  const byId = new Map(src.map((r) => [String(r.id), r] as const))
+  return option.rows.map((c) => byId.get(c[0]) ?? expandAirlineCompactRow(c, productId))
+}
+
+/** 현장 수집(on-demand) 패치 행 — 필터 중엔 그 항공사 회차 id 만 통과(`od-*` 등 항공사 모르는 행 제외) */
+export function filterPatchRowsByAirline<T extends { id: string | number }>(
+  rows: readonly T[],
+  option: AirlineDepartureOption | null | undefined,
+): T[] {
+  const src = rows as T[]
+  if (!option) return src
+  const ids = new Set(option.rows.map((c) => c[0]))
+  return src.filter((r) => ids.has(String(r.id)))
 }

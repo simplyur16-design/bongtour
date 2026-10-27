@@ -6,15 +6,27 @@
  */
 import { prisma } from '@/lib/prisma'
 import { buildProductBrowseDepartureSelect } from '@/lib/product-browse-full-include'
+import { buildProductDetailDepartureSelect } from '@/lib/product-detail-page-include'
 import { isBrowseDeparturePublicBookable } from '@/lib/browse-product-seat-bookable'
 import { getPublicBookableMinDate, toSeoulYmd } from '@/lib/public-bookable-date'
+import { resolvePublicConsumptionModuleKey } from '@/lib/resolve-public-consumption-module-key'
+import * as priceRowsHanatour from '@/lib/product-departure-to-price-rows-hanatour'
+import * as priceRowsModetour from '@/lib/product-departure-to-price-rows-modetour'
+import * as priceRowsVerygoodtour from '@/lib/product-departure-to-price-rows-verygoodtour'
+import * as priceRowsYbtour from '@/lib/product-departure-to-price-rows-ybtour'
+import * as priceRowsKyowontour from '@/lib/product-departure-to-price-rows-kyowontour'
+import * as priceRowsLottetour from '@/lib/product-departure-to-price-rows-lottetour'
+import * as priceRowsNaeiltour from '@/lib/product-departure-to-price-rows-naeiltour'
 import {
-  airlineParamForLabel,
+  airlineOptionsFromPriceRows,
   departureCarrierPublicLabel,
   summarizeBookableDepartures,
   type BookableDepartureLike,
+  type ProductAirlineFilterData,
   type ProductBookableSummary,
 } from '@/lib/airline-variant-group'
+
+export type { AirlineDepartureOption, ProductAirlineFilterData } from '@/lib/airline-variant-group'
 
 async function loadBookableDepartures(
   productIds: string[],
@@ -56,33 +68,84 @@ export async function fetchProductBookableSummaries(
   return out
 }
 
-export type AirlineDepartureOption = {
+export type AirlineDepartureListOption = {
   label: string
   param: string
   minPriceKrw: number
   departures: { ymd: string; priceKrw: number }[]
 }
 
-/** 상세 — 항공사별 예약가능 회차(날짜별 그 항공사 최저가). 항공사 모르는 회차는 제외 */
+/** 상세 — 항공사별 예약가능 회차 날짜·가격(목록용) */
 export async function fetchAirlineDepartureOptionsForProduct(
   productId: string,
   baseDate: Date = new Date(),
-): Promise<AirlineDepartureOption[]> {
-  const deps = (await loadBookableDepartures([productId], baseDate)).get(productId) ?? []
-  const byLabel = new Map<string, Map<string, number>>()
-  for (const d of deps) {
-    const p = d.adultPrice != null && d.adultPrice > 0 ? d.adultPrice : null
-    const label = p != null ? departureCarrierPublicLabel(d) : null
-    if (!label || p == null) continue
-    const m = byLabel.get(label) ?? new Map<string, number>()
-    const cur = m.get(d.departureYmd)
-    if (cur === undefined || p < cur) m.set(d.departureYmd, p)
-    byLabel.set(label, m)
+): Promise<AirlineDepartureListOption[]> {
+  const data = await fetchAirlineFilterDataForProduct(productId, baseDate)
+  return (data?.options ?? []).map((o) => ({
+    label: o.label,
+    param: o.param,
+    minPriceKrw: o.minPriceKrw,
+    departures: o.rows.map((r) => ({ ymd: r[1], priceKrw: r[2] })),
+  }))
+}
+
+function priceRowsModuleFor(key: string) {
+  switch (key) {
+    case 'modetour':
+      return priceRowsModetour
+    case 'verygoodtour':
+      return priceRowsVerygoodtour
+    case 'ybtour':
+      return priceRowsYbtour
+    case 'kyowontour':
+      return priceRowsKyowontour
+    case 'lottetour':
+      return priceRowsLottetour
+    case 'naeiltour':
+      return priceRowsNaeiltour
+    default:
+      return priceRowsHanatour
   }
-  return [...byLabel.entries()]
-    .map(([label, m]) => {
-      const departures = [...m.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([ymd, priceKrw]) => ({ ymd, priceKrw }))
-      return { label, param: airlineParamForLabel(label), minPriceKrw: Math.min(...departures.map((x) => x.priceKrw)), departures }
-    })
-    .sort((a, b) => a.minPriceKrw - b.minPriceKrw || a.label.localeCompare(b.label, 'ko'))
+}
+
+/**
+ * 상세 달력·가격 항공사 필터 데이터 — 향후 공개예약가능 회차(마감 제외, 상한 없음)를
+ * 상세와 같은 공급사 가격행 변환으로 만든 뒤 항공사별·날짜별 최저가 1행.
+ * 항공사 데이터 없는 상품은 null → 필터 UI 없음, 상세는 기존 그대로.
+ */
+export async function fetchAirlineFilterDataForProduct(
+  productId: string,
+  baseDate: Date = new Date(),
+): Promise<ProductAirlineFilterData | null> {
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { originSource: true, brand: { select: { brandKey: true } } },
+  })
+  if (!product) return null
+  const rows = await prisma.productDeparture.findMany({
+    where: { productId, departureDate: { gte: getPublicBookableMinDate(baseDate) } },
+    orderBy: { departureDate: 'asc' },
+    select: {
+      ...buildProductBrowseDepartureSelect(),
+      ...buildProductDetailDepartureSelect(),
+      id: true,
+      productId: true,
+      outboundFlightNo: true,
+    },
+  })
+  const bookable = rows.filter((d) => isBrowseDeparturePublicBookable(d))
+  if (bookable.length === 0) return null
+  const labelById = new Map<string, string | null>()
+  for (const d of bookable) labelById.set(d.id, departureCarrierPublicLabel(d))
+  if (![...labelById.values()].some(Boolean)) return null
+  const mod = priceRowsModuleFor(
+    resolvePublicConsumptionModuleKey(product.brand?.brandKey, product.originSource),
+  )
+  const priceRows = mod.productDeparturesToProductPriceRows(
+    bookable as unknown as Parameters<typeof mod.productDeparturesToProductPriceRows>[0],
+  )
+  const options = airlineOptionsFromPriceRows(
+    priceRows.map((row) => ({ row, label: labelById.get(String(row.id)) ?? null })),
+  )
+  return options.length > 0 ? { options } : null
 }

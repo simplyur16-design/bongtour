@@ -85,6 +85,7 @@ import {
 } from '@/lib/public-product-extras'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
+import { useAirlineFilteredProduct, useAirlinePatchRowFilter } from '@/app/components/detail/product-airline-filter-context'
 
 type ScheduleDayWithMeta = TravelProduct['schedule'] extends (infer D)[] | null | undefined
   ? D & { title?: string; notice?: string }
@@ -107,9 +108,12 @@ function applyFlightManualCorrectionForPublicOrigin(
 }
 
 export default function MobileProductDetail({
-  product,
+  product: productInput,
   showEsimCrossSell = false,
 }: Props) {
+  // REGRESSION-FREEZE[airline-variant-group]: ?airline= 선택 시 메인 달력·가격·선택 출발행은 그 항공사 회차만
+  const product = useAirlineFilteredProduct(productInput)
+  const filterAirlinePatchRows = useAirlinePatchRowFilter()
   const router = useRouter()
   const initialDepartureYmd = useProductDepartureYmdFromUrl()
   const basePrices = Array.isArray(product.prices) ? product.prices : []
@@ -127,7 +131,7 @@ export default function MobileProductDetail({
     for (const p of basePrices) {
       by.set(toDateKey(p.date), p)
     }
-    for (const p of pricePatches) {
+    for (const p of filterAirlinePatchRows(pricePatches)) {
       by.set(toDateKey(p.date), p)
     }
     return [...by.values()].sort((a, b) => toDateKey(a.date).localeCompare(toDateKey(b.date)))

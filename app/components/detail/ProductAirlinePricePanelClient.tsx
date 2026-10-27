@@ -1,9 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { airlineLabelFromParam } from '@/lib/airline-variant-group'
-import type { AirlineDepartureOption } from '@/lib/airline-variant-departures'
+import { useState } from 'react'
+import type { AirlineDepartureOption } from '@/lib/airline-variant-group'
+import { useProductAirlineFilter } from '@/app/components/detail/product-airline-filter-context'
 
 const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토']
 const DEPARTURES_PREVIEW = 12
@@ -19,32 +18,31 @@ function won(n: number): string {
   return `${n.toLocaleString('ko-KR')}원`
 }
 
-/** REGRESSION-FREEZE[airline-variant-group]: `?airline=` 선택 시 그 항공사 회차·가격만 — manifest */
-export default function ProductAirlinePricePanelClient({ options }: { options: AirlineDepartureOption[] }) {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
-  const paramLabel = airlineLabelFromParam(searchParams.get('airline'))
-  const fromUrl = paramLabel ? (options.find((o) => o.label === paramLabel)?.label ?? null) : null
-  const [picked, setPicked] = useState<string | null>(null)
-  const selectedLabel = picked ?? fromUrl
-  const selected = useMemo(() => options.find((o) => o.label === selectedLabel) ?? null, [options, selectedLabel])
+const chipOn =
+  'inline-block rounded-full border border-teal-600 bg-teal-600 px-3 py-1 text-xs font-medium text-white'
+const chipOff =
+  'inline-block rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700 hover:border-teal-500 hover:text-teal-700'
+
+/**
+ * 상세 항공사별 가격 패널 — 선택은 공유 필터(context)로 → 아래 메인 달력·가격도 같은 항공사 회차만.
+ * '전체' 로 필터 해제. 항공사 데이터 없는 상품은 렌더 안 함.
+ * REGRESSION-FREEZE[airline-variant-group]: `?airline=` 선택 시 그 항공사 회차·가격만 — manifest
+ */
+export default function ProductAirlinePricePanelClient() {
+  const { data, selected, select } = useProductAirlineFilter()
+  const options: AirlineDepartureOption[] = data?.options ?? []
   const [showAll, setShowAll] = useState(false)
 
-  // 항공사 1곳뿐이고 URL 선택도 없으면 패널 생략 (본문 가격과 동일)
-  if (options.length < 2 && !fromUrl) return null
+  if (!data || options.length === 0) return null
+  // 항공사 1곳뿐이고 선택도 없으면 패널 생략 (본문 가격과 동일)
+  if (options.length < 2 && !selected) return null
 
-  const choose = (o: AirlineDepartureOption | null) => {
-    setPicked(o ? o.label : null)
+  const choose = (label: string | null) => {
     setShowAll(false)
-    const sp = new URLSearchParams(searchParams.toString())
-    if (o) sp.set('airline', o.param)
-    else sp.delete('airline')
-    const qs = sp.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    select(label)
   }
 
-  const deps = selected ? (showAll ? selected.departures : selected.departures.slice(0, DEPARTURES_PREVIEW)) : []
+  const deps = selected ? (showAll ? selected.rows : selected.rows.slice(0, DEPARTURES_PREVIEW)) : []
 
   return (
     <section
@@ -55,6 +53,17 @@ export default function ProductAirlinePricePanelClient({ options }: { options: A
     >
       <p className="text-xs font-semibold text-slate-600">항공사별 가격 (예약가능 출발일 기준)</p>
       <ul className="mt-1.5 flex flex-wrap gap-2">
+        <li>
+          <button
+            type="button"
+            aria-pressed={!selected}
+            onClick={() => choose(null)}
+            className={!selected ? chipOn : chipOff}
+            data-airline-filter-all
+          >
+            전체
+          </button>
+        </li>
         {options.map((o) => {
           const on = selected?.label === o.label
           return (
@@ -62,12 +71,8 @@ export default function ProductAirlinePricePanelClient({ options }: { options: A
               <button
                 type="button"
                 aria-pressed={on}
-                onClick={() => choose(on ? null : o)}
-                className={
-                  on
-                    ? 'inline-block rounded-full border border-teal-600 bg-teal-600 px-3 py-1 text-xs font-medium text-white'
-                    : 'inline-block rounded-full border border-slate-300 bg-white px-3 py-1 text-xs text-slate-700 hover:border-teal-500 hover:text-teal-700'
-                }
+                onClick={() => choose(on ? null : o.label)}
+                className={on ? chipOn : chipOff}
               >
                 {o.label} {won(o.minPriceKrw)}~
               </button>
@@ -79,22 +84,24 @@ export default function ProductAirlinePricePanelClient({ options }: { options: A
         <div className="mt-2 rounded-lg border border-teal-200 bg-teal-50/60 p-3" data-airline-price-selected>
           <p className="text-sm font-bold text-slate-900">
             {selected.label} 기준 <span className="text-teal-700">{won(selected.minPriceKrw)}~</span>
-            <span className="ml-1 text-xs font-normal text-slate-500">(1인 성인 · 예약가능 {selected.departures.length}회)</span>
+            <span className="ml-1 text-xs font-normal text-slate-500">(1인 성인 · 예약가능 {selected.rows.length}회)</span>
           </p>
           <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-700 sm:grid-cols-3 md:grid-cols-4">
             {deps.map((d) => (
-              <li key={d.ymd} className="flex justify-between gap-2">
-                <span>{formatYmdKo(d.ymd)}</span>
-                <span className="font-medium">{won(d.priceKrw)}</span>
+              <li key={d[0]} className="flex justify-between gap-2">
+                <span>{formatYmdKo(d[1])}</span>
+                <span className="font-medium">{won(d[2])}</span>
               </li>
             ))}
           </ul>
-          {selected.departures.length > DEPARTURES_PREVIEW ? (
+          {selected.rows.length > DEPARTURES_PREVIEW ? (
             <button type="button" className="mt-2 text-xs text-teal-700 underline" onClick={() => setShowAll((v) => !v)}>
-              {showAll ? '접기' : `출발일 ${selected.departures.length - DEPARTURES_PREVIEW}개 더보기`}
+              {showAll ? '접기' : `출발일 ${selected.rows.length - DEPARTURES_PREVIEW}개 더보기`}
             </button>
           ) : null}
-          <p className="mt-2 text-[11px] text-slate-500">아래 달력에서 위 날짜를 선택해 예약하세요. 가격은 성인 1인 기준입니다.</p>
+          <p className="mt-2 text-[11px] text-slate-500">
+            아래 달력·가격은 {selected.label} 출발일만 표시합니다. 다른 항공사는 &lsquo;전체&rsquo;를 누르세요. 가격은 성인 1인 기준입니다.
+          </p>
         </div>
       ) : null}
     </section>

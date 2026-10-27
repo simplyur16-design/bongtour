@@ -82,6 +82,7 @@ import {
   buildPublicOptionalDisplayInputFromProductFields,
   buildPublicShoppingDisplayInputFromProductFields,
 } from '@/lib/public-product-extras'
+import { useAirlineFilteredProduct, useAirlinePatchRowFilter } from '@/app/components/detail/product-airline-filter-context'
 
 type ScheduleDayWithMeta = TravelProduct['schedule'] extends (infer D)[] | null | undefined
   ? D & { title?: string; notice?: string }
@@ -104,7 +105,10 @@ function applyFlightManualCorrectionForPublicOrigin(
   return apply(facts, correction)
 }
 
-function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }: Props) {
+function VerygoodMobileProductDetailView({ product: productInput, showEsimCrossSell = false }: Props) {
+  // REGRESSION-FREEZE[airline-variant-group]: ?airline= 선택 시 메인 달력·가격·선택 출발행은 그 항공사 회차만
+  const product = useAirlineFilteredProduct(productInput)
+  const filterAirlinePatchRows = useAirlinePatchRowFilter()
   const router = useRouter()
   const schedule = product.schedule && product.schedule.length > 0 ? (product.schedule as ScheduleDayWithMeta[]) : []
   const heroUrl = useMemo(() => coverImageUrlForTravelProductClient({ ...product, schedule }), [product, schedule])
@@ -201,7 +205,7 @@ function VerygoodMobileProductDetailView({ product, showEsimCrossSell = false }:
     for (const p of Array.isArray(product.prices) ? product.prices : []) {
       by.set(toDateKey(p.date), p)
     }
-    for (const p of pricePatches) {
+    for (const p of filterAirlinePatchRows(pricePatches)) {
       by.set(toDateKey(p.date), p)
     }
     return [...by.values()].sort((a, b) => toDateKey(a.date).localeCompare(toDateKey(b.date)))

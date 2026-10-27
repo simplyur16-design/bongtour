@@ -86,6 +86,7 @@ import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import TravelProductDetail from '@/app/components/travel/TravelProductDetail'
 import type { TravelProduct as PackageTravelProduct } from '@/app/components/travel/TravelProductDetail'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
+import { useAirlineFilteredProduct, useAirlinePatchRowFilter } from '@/app/components/detail/product-airline-filter-context'
 
 /** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
 export type ProductPriceRow = {
@@ -252,7 +253,10 @@ function applyFlightManualCorrectionForPublicOrigin(
   return apply(facts, correction)
 }
 
-function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: Props) {
+function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSell = false }: Props) {
+  // REGRESSION-FREEZE[airline-variant-group]: ?airline= 선택 시 메인 달력·가격·선택 출발행은 그 항공사 회차만
+  const product = useAirlineFilteredProduct(productInput)
+  const filterAirlinePatchRows = useAirlinePatchRowFilter()
   const router = useRouter()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
   const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(() => {
@@ -275,7 +279,7 @@ function YbtourTravelProductDetailView({ product, showEsimCrossSell = false }: P
     for (const p of product.prices) {
       by.set(toDateKey(p.date), p)
     }
-    for (const p of pricePatches) {
+    for (const p of filterAirlinePatchRows(pricePatches)) {
       by.set(toDateKey(p.date), p)
     }
     return [...by.values()].sort((a, b) => toDateKey(a.date).localeCompare(toDateKey(b.date)))

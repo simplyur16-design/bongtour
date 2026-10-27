@@ -1,4 +1,3 @@
-import { Suspense } from 'react'
 import { headers } from 'next/headers'
 import { connection } from 'next/server'
 import { notFound, permanentRedirect } from 'next/navigation'
@@ -18,8 +17,10 @@ import {
   resetProductDetailPerf,
 } from '@/lib/product-detail-perf'
 import ProductDetailServerReadySignal from '@/components/products/ProductDetailServerReadySignal'
-import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
-import ProductAirlinePricePanel from '@/app/components/detail/ProductAirlinePricePanel'
+import { isAirHotelFitItineraryProduct, isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
+import ProductAirlinePricePanelClient from '@/app/components/detail/ProductAirlinePricePanelClient'
+import { ProductAirlineFilterProvider } from '@/app/components/detail/product-airline-filter-context'
+import { fetchAirlineFilterDataForProduct } from '@/lib/airline-variant-departures'
 
 const FIT_ITINERARY_MASTER_DETAIL_INCLUDE = {
   days: {
@@ -69,6 +70,10 @@ async function productDetailPageInner(idOrSlug: string) {
   }
 
   const productId = resolved.productId
+  // 항공사 필터 데이터(예약가능 회차 id → 항공사) — 상세 행 로드와 병렬. 실패·데이터 없음 → null(필터 UI 없음)
+  const airlineFilterDataPromise = allowAdminDraft
+    ? Promise.resolve(null)
+    : fetchAirlineFilterDataForProduct(productId).catch(() => null)
 
   const tProduct = perfPage ? Date.now() : 0
   const { row: travelProduct, selectKind } = await loadProductDetailRowCached(productId, allowAdminDraft)
@@ -94,20 +99,23 @@ async function productDetailPageInner(idOrSlug: string) {
   const userAgent = (await headers()).get('user-agent')
   const isMobile = isMobileUserAgent(userAgent)
 
+  // 에어텔 상세는 별도 가격행(priceRowsForPublic)·달력 — 항공사 필터 미적용(패널도 없음)
+  const airlineFilterData = isAirHotelProduct({ listingKind, productType: travelProduct.productType })
+    ? null
+    : await airlineFilterDataPromise
+
   const tView = perfPage ? Date.now() : 0
   const view = (
     <>
-      {/* REGRESSION-FREEZE[airline-variant-group]: 상세 항공사별 가격 · ?airline= 선택 — manifest */}
-      {allowAdminDraft ? null : (
-        <Suspense fallback={null}>
-          <ProductAirlinePricePanel productId={productId} />
-        </Suspense>
-      )}
-      <ProductDetailView
-        travelProduct={travelProduct}
-        fitMaster={fitMaster}
-        isMobile={isMobile}
-      />
+      {/* REGRESSION-FREEZE[airline-variant-group]: 상세 항공사별 가격 · ?airline= → 메인 달력·가격 필터 — manifest */}
+      <ProductAirlineFilterProvider data={airlineFilterData}>
+        {airlineFilterData ? <ProductAirlinePricePanelClient /> : null}
+        <ProductDetailView
+          travelProduct={travelProduct}
+          fitMaster={fitMaster}
+          isMobile={isMobile}
+        />
+      </ProductAirlineFilterProvider>
       <ProductDetailServerReadySignal productId={productId} />
     </>
   )

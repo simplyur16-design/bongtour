@@ -80,6 +80,7 @@ import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
 import type { ProductPriceRow, TravelProduct } from '@/app/components/travel/travel-product-detail-types'
+import { useAirlineFilteredProduct, useAirlinePatchRowFilter } from '@/app/components/detail/product-airline-filter-context'
 
 export type {
   CounselingPoint,
@@ -106,9 +107,12 @@ function applyFlightManualCorrectionForPublicOrigin(
 }
 
 export default function TravelProductDetail({
-  product,
+  product: productInput,
   showEsimCrossSell = false,
 }: Props) {
+  // REGRESSION-FREEZE[airline-variant-group]: ?airline= 선택 시 메인 달력·가격·선택 출발행은 그 항공사 회차만
+  const product = useAirlineFilteredProduct(productInput)
+  const filterAirlinePatchRows = useAirlinePatchRowFilter()
   const router = useRouter()
   const initialDepartureYmd = useProductDepartureYmdFromUrl()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
@@ -134,7 +138,7 @@ export default function TravelProductDetail({
     for (const p of product.prices) {
       by.set(toDateKey(p.date), p)
     }
-    for (const p of pricePatches) {
+    for (const p of filterAirlinePatchRows(pricePatches)) {
       by.set(toDateKey(p.date), p)
     }
     return [...by.values()].sort((a, b) => toDateKey(a.date).localeCompare(toDateKey(b.date)))
