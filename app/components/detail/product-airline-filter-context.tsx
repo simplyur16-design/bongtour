@@ -37,9 +37,10 @@ export function ProductAirlineFilterProvider({
   data: ProductAirlineFilterData | null
   children: ReactNode
 }) {
-  const searchParams = useSearchParams()
+  // pages/ 디렉터리가 있어 next build 호환 타입에서 useSearchParams/usePathname 은 null 가능 — 저장소 관례대로 기본값
+  const searchParams = useSearchParams() ?? new URLSearchParams()
   const router = useRouter()
-  const pathname = usePathname()
+  const pathname = usePathname() ?? '/'
   const urlOption = airlineOptionForParam(data, searchParams.get('airline'))
   const urlLabel = urlOption?.label ?? null
   /** undefined = URL 따름 · { label } = 방금 고른 값(라우터 반영 전 즉시 적용) */
