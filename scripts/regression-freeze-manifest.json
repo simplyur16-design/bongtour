@@ -28498,6 +28498,27 @@
           ]
         }
       ]
+    },
+    {
+      "id": "product-image-source-policy",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "WORK-ORDER 8 이미지 출처 정책 — Pexels → Unsplash/CC0 → 생성(최후·표시), iStock·CC BY 금지, 문과장 검수 전 공개 금지",
+      "checks": [
+        {
+          "file": "lib/product-image-source-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-source-policy]",
+            "['pexels', 'unsplash', 'cc0', 'generated']",
+            "L2-ISTOCK",
+            "L2-CC-BY",
+            "L3-GEN-NO-RECORD",
+            "awaiting_review"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -28551,7 +28572,8 @@
         "tests/verygoodtour-schedule-image-keyword.test.ts",
         "tests/kyowontour-schedule-image-keyword.test.ts",
         "lib/public-title-meta-display-clean.test.ts",
-        "lib/product-detail-cheapest-date-departures.test.ts"
+        "lib/product-detail-cheapest-date-departures.test.ts",
+        "lib/product-image-source-policy.test.ts"
       ]
     },
     {
