@@ -96,6 +96,9 @@ export type ResultItem = {
   sportsThemeTags?: SportsThemeTag[]
   /** browse API — 지방·제주 출발 공항 라벨 (인천·김포는 null) */
   departureAirportLabelDisplay?: string | null
+  /** browse API — 같은 상품 항공사·출발일 변형 묶음 칩 (REGRESSION-FREEZE[airline-variant-group]) */
+  airlineVariantChip?: string | null
+  airlineVariantCount?: number
   /** 해외 허브 클라이언트 geo 필터 — ProductCountryTag / ProductCityTag */
   countryTags?: Array<{ countryKey: string; nodeKey?: string | null }>
   cityTags?: Array<{ cityKey: string }>
@@ -871,6 +874,13 @@ export function ProductResultCard({
         ) : null}
         {!compact && !hubSquareSmall && item.departureAirportLabelDisplay ? (
           <p className="mt-0.5 text-xs font-medium text-teal-700">{item.departureAirportLabelDisplay}</p>
+        ) : null}
+        {!hubSquareSmall && item.airlineVariantChip ? (
+          <p className="mt-1" data-airline-variant-chip>
+            <span className="inline-block rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800">
+              ✈ {item.airlineVariantChip}
+            </span>
+          </p>
         ) : null}
         {!compact &&
         !hubSquareSmall &&

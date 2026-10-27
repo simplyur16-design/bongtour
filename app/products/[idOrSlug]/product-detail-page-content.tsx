@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { headers } from 'next/headers'
 import { connection } from 'next/server'
 import { notFound, permanentRedirect } from 'next/navigation'
@@ -18,6 +19,7 @@ import {
 } from '@/lib/product-detail-perf'
 import ProductDetailServerReadySignal from '@/components/products/ProductDetailServerReadySignal'
 import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
+import ProductAirlineVariantSelector from '@/app/components/detail/ProductAirlineVariantSelector'
 
 const FIT_ITINERARY_MASTER_DETAIL_INCLUDE = {
   days: {
@@ -95,6 +97,12 @@ async function productDetailPageInner(idOrSlug: string) {
   const tView = perfPage ? Date.now() : 0
   const view = (
     <>
+      {/* REGRESSION-FREEZE[airline-variant-group]: 상세 항공사 선택 — manifest */}
+      {allowAdminDraft ? null : (
+        <Suspense fallback={null}>
+          <ProductAirlineVariantSelector productId={productId} />
+        </Suspense>
+      )}
       <ProductDetailView
         travelProduct={travelProduct}
         fitMaster={fitMaster}

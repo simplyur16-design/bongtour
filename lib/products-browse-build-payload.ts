@@ -84,6 +84,7 @@ import {
 } from '@/lib/air-hotel-product-ssot'
 import { parseListingKind } from '@/lib/product-listing-kind'
 import { homeDepartureAirportDisplayText } from '@/lib/infer-home-departure-airport'
+import { airlineVariantChipLabel, groupAirlineVariants } from '@/lib/airline-variant-group'
 
 function normalizeSportsThemeTagsForBrowse(raw: string[] | null | undefined): SportsThemeTag[] {
   if (!Array.isArray(raw) || raw.length === 0) return []
@@ -576,6 +577,23 @@ export async function productsBrowseBuildPayload(queryKey: string) {
 
     scored = scored.filter((s) => productRowPassesExtendedFilters(s.product as ProductBrowseFullRow, ext))
 
+    // REGRESSION-FREEZE[airline-variant-group]: 같은 상품 항공사·출발일 변형은 최저가 카드 1장 + 항공사 칩 — manifest
+    const airlineVariantGrouping = groupAirlineVariants(scored, (s) => ({
+      input: {
+        id: s.product.id,
+        originSource: s.product.originSource,
+        originCode: (s.product as { originCode?: string | null }).originCode ?? null,
+        title: s.product.title,
+        duration: s.product.duration,
+        tripDays: s.product.tripDays,
+        localDepartureTag: s.product.localDepartureTag,
+      },
+      slug: s.product.slug ?? null,
+      priceKrw: s.effectivePricePerPerson ?? null,
+      earliestDeparture: s.earliestDeparture ? toSeoulYmd(s.earliestDeparture) : null,
+    }))
+    scored = airlineVariantGrouping.kept
+
     if (perf) perf.score = performance.now() // PERF-LOG: 측정 후 제거
 
     const total = scored.length
@@ -775,6 +793,11 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         : {}),
       sportsThemeTags: normalizeSportsThemeTagsForBrowse(p.sportsThemeTag),
       departureAirportLabelDisplay: homeDepartureAirportDisplayText(p.departureAirportLabel),
+      ...(() => {
+        const options = airlineVariantGrouping.variantsByKeptId.get(p.id)
+        const chip = options ? airlineVariantChipLabel(options) : null
+        return chip && options ? { airlineVariantChip: chip, airlineVariantCount: options.length } : {}
+      })(),
       ...(p.hasUrgentDeal
         ? (() => {
             const ymd = p.urgentDealNextDate

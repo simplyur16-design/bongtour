@@ -28147,6 +28147,61 @@
       "vitestSuites": [
         "lib/departure-status-public-label.test.ts"
       ]
+    },
+    {
+      "id": "airline-variant-group",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "같은 공급사 상품 항공사·출발일 변형 — 그룹키(공급사+마스터코드+박일+지방출발+항공사·해시태그 제거 제목), browse 최저가 카드 1장+항공사 칩, 상세 항공사 선택. 항공사는 코드 접미/편명만(Product.airline·제목 추측 금지).",
+      "checks": [
+        {
+          "file": "lib/airline-variant-group.ts",
+          "mustInclude": [
+            "export function groupAirlineVariants",
+            "export function airlineVariantGroupKey",
+            "HANATOUR_CODE_RE",
+            "YBTOUR_CODE_RE",
+            "airlineCodeFromFlightNo(input.outboundFlightNo)"
+          ],
+          "mustNotInclude": [
+            "input.airline",
+            ".airline ??"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "groupAirlineVariants(scored",
+            "scored = airlineVariantGrouping.kept",
+            "airlineVariantChip: chip"
+          ]
+        },
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": [
+            "item.airlineVariantChip",
+            "data-airline-variant-chip"
+          ]
+        },
+        {
+          "file": "app/products/[idOrSlug]/product-detail-page-content.tsx",
+          "mustInclude": [
+            "<ProductAirlineVariantSelector productId={productId} />"
+          ]
+        },
+        {
+          "file": "lib/airline-variant-siblings.ts",
+          "mustInclude": [
+            "publicProductWhereClause()",
+            "airlineVariantGroupKey(input) !== selfKey"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/airline-variant-group.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

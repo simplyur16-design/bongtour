@@ -12,6 +12,7 @@ export function buildProductBrowseListSelect() {
     id: true,
     slug: true,
     originSource: true,
+    originCode: true,
     title: true,
     destination: true,
     destinationRaw: true,
