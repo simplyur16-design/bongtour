@@ -27983,7 +27983,10 @@
     },
     {
       "id": "supplier-sweep-pacing",
-      "tier": "prebuild",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "공급사 일일 sweep: 상품 간 딜레이 + 거절(403/429/captcha) 연속 시 루프 중단·프로세스 일시정지·운영 LMS 알림. 7 sweep 공통.",
       "checks": [
         {
@@ -28057,7 +28060,10 @@
     },
     {
       "id": "departure-status-public-label",
-      "tier": "prebuild",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "공개 출발일 상태 표시: '100% 출발'→출발확정, '출발예정'→예약가능 (표시 전용, statusRaw 원문 유지). 뷰모델 + 상세 예약현황 줄 6곳.",
       "checks": [
         {
