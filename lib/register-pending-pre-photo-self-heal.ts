@@ -149,6 +149,8 @@ export async function healPendingRegisterPrePhoto(
     select: {
       id: true,
       title: true,
+      originalTitle: true,
+      rawTitle: true,
       destination: true,
       originSource: true,
       countryKey: true,
@@ -168,6 +170,7 @@ export async function healPendingRegisterPrePhoto(
       registerPrePhotoQueueReady: true,
       registerPhotosReady: true,
       brand: { select: { brandKey: true } },
+      departures: { select: { outboundDepartureAirport: true }, take: 20 },
     },
       }),
     8,
@@ -287,6 +290,13 @@ export async function healPendingRegisterPrePhoto(
           scheduleText: scheduleRowsToInferHaystack(mapped),
           flightSummary: titleForInfer,
         }),
+        // REGRESSION-FREEZE[local-departure-detect-explicit]: 원 제목·rawTitle(힐 머리말 무시)·출발공항 — tag만 기록 — manifest
+        explicitSignals: {
+          originalTitle: product.originalTitle,
+          rawTitle: product.rawTitle,
+          departureAirports: (product.departures ?? []).map((d) => d.outboundDepartureAirport),
+          bareCityBracketIsDeparture: String(product.originSource ?? '').trim().toLowerCase() === 'naeiltour',
+        },
       })
       const prevDepTags = Array.isArray(product.localDepartureTag)
         ? product.localDepartureTag.map((t) => String(t))

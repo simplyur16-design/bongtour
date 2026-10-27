@@ -27830,6 +27830,42 @@
         "lib/local-departure-display-prefix.test.ts",
         "lib/local-departure-tab-visibility.test.ts"
       ]
+    },
+    {
+      "id": "local-departure-detect-explicit",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "지방출발 감지 — 명시 신호만(원 제목·rawTitle·출발공항 필드), X항공 제외, 힐 머리말 무시, 복수 도시, 태그 없는/미등록 도시는 review; localDepartureTag만 기록(Product.title 금지)",
+      "checks": [
+        {
+          "file": "lib/local-departure-detect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-detect-explicit]",
+            "export function detectLocalDepartureFromExplicitSignals",
+            "export function stripHealAddedDeparturePrefix",
+            "'city-known-no-tag'",
+            "'city-unlisted'"
+          ]
+        },
+        {
+          "file": "lib/register-product-departure-airport-save.ts",
+          "mustInclude": [
+            "explicit && explicit.cities.length > 0 ? explicit.tags : weakInferredTags"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-detect-explicit]",
+            "explicitSignals: {"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/local-departure-detect.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

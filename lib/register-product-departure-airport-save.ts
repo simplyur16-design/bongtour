@@ -14,6 +14,10 @@ import {
   type HomeDepartureAirportLabel,
 } from '@/lib/infer-home-departure-airport'
 import type { RegisterFactFlightLeg } from '@/lib/register-facts/types'
+import {
+  detectLocalDepartureFromExplicitSignals,
+  type LocalDepartureDetectInput,
+} from '@/lib/local-departure-detect'
 
 export function buildRegisterFlightInferHaystack(parts: {
   airline?: string | null
@@ -69,6 +73,8 @@ export function resolveRegisterProductDepartureAirportFields(args: {
   manualLocalDepartureTags: LocalDepartureTag[]
   inferHaystack: string
   factFlights?: RegisterFactFlightLeg[]
+  /** 명시 신호(원 제목·rawTitle·출발공항 필드) — 감지되면 haystack 추론보다 우선 */
+  explicitSignals?: LocalDepartureDetectInput | null
 }): {
   localDepartureTag: LocalDepartureTag[]
   departureAirportLabel: HomeDepartureAirportLabel | null
@@ -83,10 +89,14 @@ export function resolveRegisterProductDepartureAirportFields(args: {
   // 항공 leg에 지방 라벨이 없으면 제목·본문 강한 신호로 폴백 (ICN-only facts가 [부산] 제목을 가리지 않음)
   // REGRESSION-FREEZE[register-pending-local-departure-strong-signal]
   const airportLabel = fromFacts?.airportLabel ?? fromHaystack.airportLabel
-  const inferredTags =
+  const weakInferredTags =
     fromFacts?.airportLabel != null
       ? fromFacts.localDepartureTags
       : fromHaystack.localDepartureTags
+  // REGRESSION-FREEZE[local-departure-detect-explicit]: 명시 지방 도시가 있으면 그 결과만(태그 없는 도시 → [] + review) — manifest
+  const explicit = args.explicitSignals ? detectLocalDepartureFromExplicitSignals(args.explicitSignals) : null
+  const inferredTags: LocalDepartureTag[] =
+    explicit && explicit.cities.length > 0 ? explicit.tags : weakInferredTags
 
   return {
     localDepartureTag: manual.length > 0 ? manual : inferredTags,
