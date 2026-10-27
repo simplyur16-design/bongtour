@@ -24,6 +24,7 @@ import {
   pickAnyRowForDateKey,
   pickBookableRowForDateKey,
   pickGloballyCheapestDepartureRowByAdultPrice,
+  mergePublicPriceRowsByDate,
 } from '@/lib/public-default-departure-selection'
 import {
   advisoryForDepartureRow,
@@ -274,16 +275,11 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
     return row ? toDateKey(row.date) : null
   })
 
-  const mergedPrices = useMemo(() => {
-    const by = new Map<string, ProductPriceRow>()
-    for (const p of product.prices) {
-      by.set(toDateKey(p.date), p)
-    }
-    for (const p of filterAirlinePatchRows(pricePatches)) {
-      by.set(toDateKey(p.date), p)
-    }
-    return [...by.values()].sort((a, b) => toDateKey(a.date).localeCompare(toDateKey(b.date)))
-  }, [product.prices, pricePatches])
+  // REGRESSION-FREEZE[public-default-departure-nearest]: 날짜당 1행 병합 + 기본 출발(전 회차 최저가)은 그 날짜에 유지
+  const mergedPrices = useMemo(
+    () => mergePublicPriceRowsByDate(product.prices, filterAirlinePatchRows(pricePatches)),
+    [product.prices, pricePatches]
+  )
 
   useEffect(() => {
     setDepartureUserPinned(false)

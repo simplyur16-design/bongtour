@@ -162,11 +162,22 @@ export function airlineParamForLabel(label: string): string {
   return IATA_BY_PUBLIC_LABEL.get(label) ?? label
 }
 
+/**
+ * `?airline=` 전용 코드 별칭 — 공개 표시 SSOT(AIRLINE_IATA_KO_PUBLIC)에 없는 항공사의 코드 입력 허용.
+ * 표시·카드/칩 링크는 바꾸지 않는다(링크는 계속 공개명). LOT폴란드항공: IATA LO, 통칭 LOT.
+ */
+const AIRLINE_PARAM_CODE_ALIAS: Readonly<Record<string, string>> = {
+  LO: 'LOT폴란드항공',
+  LOT: 'LOT폴란드항공',
+}
+
 /** `?airline=` 값 → 공개명 (IATA 코드 또는 이름 모두 허용). 판정 불가면 null */
 export function airlineLabelFromParam(param: string | null | undefined): string | null {
   const raw = String(param ?? '').trim()
   if (!raw) return null
   const up = raw.toUpperCase()
+  const aliased = AIRLINE_PARAM_CODE_ALIAS[up]
+  if (aliased) return aliased
   if (/^[A-Z0-9]{2}$/.test(up)) {
     const ko = (AIRLINE_IATA_KO_PUBLIC as Record<string, string>)[up]
     return ko ? cleanCarrierLabel(ko) : null
