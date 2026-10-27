@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[verygoodtour-register-api-parse]: collectVerygoodtourRegisterFacts → RegisterParsed — manifest
  */
+import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import { collectVerygoodtourRegisterFacts, parseVerygoodProCodeFromUrl } from '@/lib/register-facts/verygoodtour'
 import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
@@ -67,11 +68,6 @@ function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProduc
     .filter((row): row is ParsedProductPrice => row != null)
 }
 
-function buildDuration(nights: number | null, days: number | null): string {
-  if (nights != null && days != null) return `${nights}박 ${days}일`
-  if (days != null) return `${days}일`
-  return ''
-}
 
 async function fetchVerygoodDetailHtml(originUrl: string): Promise<string | null> {
   const res = await fetch(originUrl, {
@@ -167,7 +163,7 @@ export async function parseVerygoodtourRegisterFromApi(
     destination: '미지정',
     destinationRaw: null,
     primaryDestination: null,
-    duration: buildDuration(bundle.nights, bundle.days),
+    duration: buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title),
     includedItems: bundle.includedBullets,
     excludedItems: bundle.excludedBullets,
     includedText: bundle.includedBullets.join('\n'),

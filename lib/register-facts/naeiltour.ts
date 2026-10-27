@@ -78,7 +78,8 @@ export async function collectNaeiltourRegisterFacts(originUrl: string): Promise<
     originUrl: url,
     originCode: bundle.goodCd,
     title,
-    nights: nights ?? (parsedDays.length > 0 ? parsedDays.length - 1 : null),
+    // REGRESSION-FREEZE[trip-duration-hashtag-leak]: 일정 일수로 nights(=일수-1) 추측 금지 — 야간 출발(2박4일 등) 오기
+    nights: nights ?? null,
     days: days ?? (parsedDays.length > 0 ? parsedDays.length : null),
     meetingInfo: extractMeetingFromTab1(bundle.tab1Html),
     includedBullets: includedItems,

@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import { deriveTripNightsDays, resolvePublicTripDurationLabel } from '@/lib/derive-trip-nights-days'
 import { prisma } from '@/lib/prisma'
 import {
   attachBrowseDeparturesToProducts,
@@ -454,7 +455,15 @@ export async function productsBrowseBuildPayload(queryKey: string) {
 
     let filteredRows = pool
     if (tripDaysFilter != null && !Number.isNaN(tripDaysFilter)) {
-      filteredRows = filteredRows.filter((p) => p.tripDays === tripDaysFilter)
+      // REGRESSION-FREEZE[trip-duration-hashtag-leak]: DB tripDays는 미기록(null) — duration·제목에서 도출한 일수로 거른다
+      filteredRows = filteredRows.filter(
+        (p) =>
+          deriveTripNightsDays({
+            duration: p.duration,
+            title: p.title,
+            tripDays: p.tripDays,
+          }).tripDays === tripDaysFilter,
+      )
     }
     if (paxFilter != null && !Number.isNaN(paxFilter) && paxFilter > 0) {
       filteredRows = filteredRows.filter((p) => {
@@ -813,7 +822,8 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         excludedText: p.excludedText,
       }),
       primaryRegion: p.primaryRegion,
-      duration: p.duration,
+      // REGRESSION-FREEZE[trip-duration-hashtag-leak]: 카드 박일 — 빈 duration은 제목 머리, 해시태그 누수 교정 (DB 미기록)
+      duration: resolvePublicTripDurationLabel({ duration: p.duration, title: p.title }),
       bgImageUrl: p.bgImageUrl,
       coverImageUrl: coverUrl,
       priceFrom: p.priceFrom,

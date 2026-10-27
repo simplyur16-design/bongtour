@@ -5,7 +5,7 @@
  * REGRESSION-FREEZE[bongtour-ocean-warm-design-l0]: heroShortTitle 계약 — manifest
  */
 
-import { deriveTripNightsDays } from '@/lib/derive-trip-nights-days'
+import { deriveTripNightsDays, durationHintFromTitleLocal } from '@/lib/derive-trip-nights-days'
 import { BONGTOUR_PRODUCT_TITLE_FORBIDDEN_TOKENS } from '@/lib/bongtour-product-title-tone-ssot'
 import {
   collapseAdjacentDuplicateTitlePhrases,
@@ -220,13 +220,9 @@ export function sanitizePlaceLabel(s: string): string {
 }
 
 /** DB duration 없을 때 원제목에서 N박 M일 / M일 추출 */
+// REGRESSION-FREEZE[trip-duration-hashtag-leak]: 머리 구간(첫 # 이전) 우선 — derive-trip-nights-days SSOT
 export function durationHintFromTitle(title: string): string | null {
-  const hay = String(title || '')
-  const nm = hay.match(/(\d+)\s*박\s*(\d+)\s*일/)
-  if (nm) return `${nm[1]}박 ${nm[2]}일`
-  const only = hay.match(/(?<!\d)(\d+)\s*일(?!\d)/)
-  if (only) return `${only[1]}일`
-  return null
+  return durationHintFromTitleLocal(title)
 }
 
 function uniqPreserve(list: readonly string[]): string[] {

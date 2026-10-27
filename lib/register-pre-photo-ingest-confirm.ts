@@ -19,7 +19,10 @@ import { collectSupplierRegisterFacts } from '@/lib/register-facts/collect'
 import { registerFactBundleToPasteText } from '@/lib/register-facts-to-paste-text'
 import { resolveRegisterTravelScopeFromRequest } from '@/lib/register-admin-travel-category'
 import { inferSportsThemeTagsFromListingHaystack } from '@/lib/product-listing-kind'
-import { parseRegisterFactProductKind } from '@/lib/register-facts/product-kind'
+import {
+  inferRegisterFactProductKindFromSupplierProductCode,
+  parseRegisterFactProductKind,
+} from '@/lib/register-facts/product-kind'
 import {
   factKindMatchesIngestLane,
   travelScopeForIngestLane,
@@ -62,11 +65,18 @@ export async function confirmRegisterPendingFromOriginUrl(args: {
   let productId: string | undefined
   try {
     const bundle = await collectSupplierRegisterFacts(args.supplier, originUrl)
-    const factKind = bundle ? parseRegisterFactProductKind(bundle) : null
+    // REGRESSION-FREEZE[register-kind-supplier-code]: 공급사 상품코드 유형 글자가 있으면 슬롯·팩트 노트보다 우선 — manifest
+    const codeKind = bundle
+      ? inferRegisterFactProductKindFromSupplierProductCode(args.supplier, bundle.originCode)
+      : null
+    const factKind = codeKind ?? (bundle ? parseRegisterFactProductKind(bundle) : null)
     // 슬롯은 어떤 메뉴를 눌렀는지, 저장 kind는 상품 팩트. 내일투어처럼 목록에 자유여행이 섞이면 슬롯만 보면 패키지로 굳는다.
     // REGRESSION-FREEZE[register-pre-photo-ingest-pkg-fit-theme-kind]: 팩트 kind로 travelScope — manifest
-    const travelScope =
-      args.supplier === 'naeiltour' &&
+    const travelScope = codeKind
+      ? codeKind === 'air_hotel_free'
+        ? 'air_hotel_free'
+        : 'overseas'
+      : args.supplier === 'naeiltour' &&
       (args.ingestLane === 'air_hotel_free' || factKind === 'air_hotel_free')
         ? 'air_hotel_free'
         : factKind === 'air_hotel_free'

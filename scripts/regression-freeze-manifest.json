@@ -28289,6 +28289,152 @@
         "lib/airline-variant-group.test.ts",
         "lib/airline-variant-detail-filter.test.ts"
       ]
+    },
+    {
+      "id": "trip-duration-hashtag-leak",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "여행 박일 — 제목 머리 구간(첫 # 이전) 우선, 해시태그 부분 일정(#후르가다 2박3일)·「1일자유」를 상품 길이로 쓰지 않음; 빈 duration은 표시 시 제목 일수(nights 미발명); browse tripDays 필터는 도출 일수; 등록 저장은 공통 buildRegisterDurationLabel, 내일투어 일수-1 nights 추측 금지. DB 미기록",
+      "checks": [
+        {
+          "file": "lib/derive-trip-nights-days.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[trip-duration-hashtag-leak]",
+            "export function titleHeadBeforeHashtag",
+            "export function resolvePublicTripDurationLabel",
+            "PARTIAL_DAY_SUFFIX_RE"
+          ]
+        },
+        {
+          "file": "lib/register-duration-label.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[trip-duration-hashtag-leak]",
+            "export function buildRegisterDurationLabel"
+          ]
+        },
+        {
+          "file": "lib/register-facts/naeiltour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[trip-duration-hashtag-leak]"
+          ],
+          "mustNotInclude": [
+            "parsedDays.length - 1"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[trip-duration-hashtag-leak]",
+            "resolvePublicTripDurationLabel"
+          ],
+          "mustNotInclude": [
+            "p.tripDays === tripDaysFilter"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/render-from-model.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[trip-duration-hashtag-leak]",
+            "withPublicTripDuration"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-api-parse.ts",
+          "mustInclude": [
+            "buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title)"
+          ],
+          "mustNotInclude": [
+            "function buildDuration("
+          ]
+        },
+        {
+          "file": "lib/modetour-register-api-parse.ts",
+          "mustInclude": [
+            "buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title)"
+          ],
+          "mustNotInclude": [
+            "function buildDuration("
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-api-parse.ts",
+          "mustInclude": [
+            "buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title)"
+          ],
+          "mustNotInclude": [
+            "function buildDuration("
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-api-parse.ts",
+          "mustInclude": [
+            "buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title)"
+          ],
+          "mustNotInclude": [
+            "function buildDuration("
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-api-parse.ts",
+          "mustInclude": [
+            "buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title)"
+          ],
+          "mustNotInclude": [
+            "function buildDuration("
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-api-parse.ts",
+          "mustInclude": [
+            "buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title)"
+          ],
+          "mustNotInclude": [
+            "function buildDuration("
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-parse.ts",
+          "mustInclude": [
+            "buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title)"
+          ],
+          "mustNotInclude": [
+            "function buildDuration("
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/trip-duration-hashtag-leak.test.ts",
+        "lib/derive-trip-nights-days.test.ts"
+      ]
+    },
+    {
+      "id": "register-kind-supplier-code",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "수집 등록 패키지/자유여행 — 공급사 상품코드 유형 글자(하나투어 P·K·G·X 패키지/B 에어텔, 모두·교원 P/A)가 목록 슬롯·API 자유일정 플래그보다 우선 (「1일자유」 패키지가 자유여행 메뉴로 가지 않게)",
+      "checks": [
+        {
+          "file": "lib/register-facts/product-kind.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-kind-supplier-code]",
+            "export function inferRegisterFactProductKindFromSupplierProductCode"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-confirm.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-kind-supplier-code]",
+            "inferRegisterFactProductKindFromSupplierProductCode(args.supplier, bundle.originCode)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-kind-supplier-code.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

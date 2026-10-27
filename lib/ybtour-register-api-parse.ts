@@ -6,6 +6,7 @@
  * REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]: ensureYbtourRegisterScheduleImageKeywords — manifest
  * REGRESSION-FREEZE[ybtour-register-flight-from-fact-legs]: facts legs → flightStructured in api-parse — manifest
  */
+import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import {
   parseYbtourEvCdFromUrl,
   parseYbtourGoodsCdFromUrl,
@@ -67,11 +68,6 @@ function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProduc
     .filter((row): row is ParsedProductPrice => row != null)
 }
 
-function buildDuration(nights: number | null, days: number | null): string {
-  if (nights != null && days != null) return `${nights}박 ${days}일`
-  if (days != null) return `${days}일`
-  return ''
-}
 
 /**
  * prefetch skip 조건 — 귀국일(마지막) route 비움은 허용, 그 외 일차 routeText 필수.
@@ -176,7 +172,7 @@ export async function parseYbtourRegisterFromApi(
     destination: dest.destination || '미지정',
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,
-    duration: buildDuration(bundle.nights, bundle.days),
+    duration: buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title),
     includedItems: bundle.includedBullets,
     excludedItems: bundle.excludedBullets,
     includedText: bundle.includedBullets.join('\n'),

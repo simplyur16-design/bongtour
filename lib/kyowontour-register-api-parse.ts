@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[kyowontour-register-api-parse]: collectKyowontourRegisterFacts → RegisterParsed — manifest
  */
+import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import { collectKyowontourRegisterFacts } from '@/lib/register-facts/kyowontour'
 import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
@@ -52,11 +53,6 @@ function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProduc
     .filter((row): row is ParsedProductPrice => row != null)
 }
 
-function buildDuration(nights: number | null, days: number | null): string {
-  if (nights != null && days != null) return `${nights}박 ${days}일`
-  if (days != null) return `${days}일`
-  return ''
-}
 
 export function resolveKyowontourRegisterDestination(title: string, paste: string = ''): {
   destination: string
@@ -144,7 +140,7 @@ export async function parseKyowontourRegisterFromApi(
     destination: dest.destination,
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,
-    duration: buildDuration(bundle.nights, bundle.days),
+    duration: buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title),
     includedItems: bundle.includedBullets,
     excludedItems: bundle.excludedBullets,
     includedText: bundle.includedBullets.join('\n'),

@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[naeiltour-register-ssot-freeze]: API-only register parse — manifest
  * REGRESSION-FREEZE[naeiltour-register-airtel]: travelScope=air_hotel_free — 패키지 일정·kw 생략 — manifest
  */
+import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import { collectNaeiltourRegisterFacts, parseNaeiltourGoodCdFromUrlExport } from '@/lib/register-facts/naeiltour'
 import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import {
@@ -77,11 +78,6 @@ function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProduc
     .filter((row): row is ParsedProductPrice => row != null)
 }
 
-function buildDuration(nights: number | null, days: number | null): string {
-  if (nights != null && days != null) return `${nights}박 ${days}일`
-  if (days != null) return `${days}일`
-  return ''
-}
 
 function applyNaeiltourFeesToParsed(parsed: RegisterParsed): RegisterParsed {
   const included = parsed.includedItems ?? []
@@ -221,7 +217,7 @@ export async function parseNaeiltourRegisterFromApi(
     destination: dest.destination,
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,
-    duration: buildDuration(bundle.nights, bundle.days),
+    duration: buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title),
     includedItems: bundle.includedBullets,
     excludedItems: bundle.excludedBullets,
     includedText: bundle.includedBullets.join('\n'),

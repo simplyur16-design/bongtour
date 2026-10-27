@@ -22,6 +22,17 @@ import type {
 } from '@/lib/product-public-detail/types'
 import { mergeViewProductWithYbtourSlice } from '@/lib/product-public-detail/ybtour-payload-slim'
 import type { ProductDetailViewRow } from '@/lib/product-public-detail/build-render-model'
+import { resolvePublicTripDurationLabel } from '@/lib/derive-trip-nights-days'
+
+/**
+ * REGRESSION-FREEZE[trip-duration-hashtag-leak]: 상세 히어로·귀국일 박일 — 렌더 시점 도출(캐시 payload·DB 미기록).
+ * 빈 duration은 제목 머리 구간 일수, 해시태그 부분 일정 누수는 머리 구간으로.
+ */
+function withPublicTripDuration<T extends { duration?: string | null; title?: string | null }>(p: T): T {
+  const label = resolvePublicTripDurationLabel({ duration: p.duration, title: p.title })
+  if (label === (p.duration ?? null) || (label == null && !String(p.duration ?? '').trim())) return p
+  return { ...p, duration: label }
+}
 
 function resolveSeoProductPath(
   seo: { productPath?: string },
@@ -40,8 +51,19 @@ export function renderProductDetailFromModel(
   const isAdminDraftPreview = travelProduct.registrationStatus !== 'registered'
 
   if (isAirHotelDetailVariant(model.variant)) {
-    const airModel = model as ProductPublicDetailAirHotelRenderModel
-    const product = airModel.viewProduct
+    const airModel0 = model as ProductPublicDetailAirHotelRenderModel
+    const product = withPublicTripDuration(airModel0.viewProduct)
+    const airModel: ProductPublicDetailAirHotelRenderModel = {
+      ...airModel0,
+      travelProductScalars: {
+        ...airModel0.travelProductScalars,
+        duration:
+          resolvePublicTripDurationLabel({
+            duration: airModel0.travelProductScalars.duration,
+            title: airModel0.viewProduct.title,
+          }) ?? airModel0.travelProductScalars.duration,
+      },
+    }
     const airtelDefaultDate = airModel.priceInfo.departureDateFrom
     const airtelDefaultFacts = product.departureKeyFactsByDate?.[airtelDefaultDate] ?? null
     // REGRESSION-FREEZE[public-card-no-kr-departure-place]: airtel travelCities scrub — manifest
@@ -154,7 +176,8 @@ export function renderProductDetailFromModel(
   if (model.variant !== 'package') {
     throw new Error(`[renderProductDetailFromModel] unsupported variant: ${model.variant}`)
   }
-  const { viewProduct, ybtourDetailProduct, showEsimCrossSell, seo } = model
+  const { ybtourDetailProduct, showEsimCrossSell, seo } = model
+  const viewProduct = withPublicTripDuration(model.viewProduct)
   const ybtourProduct = mergeViewProductWithYbtourSlice(viewProduct, ybtourDetailProduct)
 
   const packageDetailMobile = <MobileProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />

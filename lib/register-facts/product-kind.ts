@@ -50,6 +50,35 @@ export function inferRegisterFactProductKindFromListingHaystack(
   return FIT_LISTING_HAYSTACK_RE.test(String(haystack ?? '')) ? 'air_hotel_free' : 'package'
 }
 
+/**
+ * 공급사 상품코드 3번째 글자 — 공급사가 직접 매긴 상품 유형 (추측 아님).
+ * REGRESSION-FREEZE[register-kind-supplier-code]: 목록 메뉴 슬롯(lane)·API 자유일정 플래그보다 우선 — manifest
+ * - hanatour: P 패키지 · K 테마 · G 골프 · X 현지투어 → package / B 에어텔 → air_hotel_free
+ * - modetour·kyowontour: P → package / A 에어텔 → air_hotel_free
+ * 그 외 공급사·글자는 null (기존 판정 유지).
+ */
+export function inferRegisterFactProductKindFromSupplierProductCode(
+  supplier: string | null | undefined,
+  productCode: string | null | undefined,
+): RegisterFactProductKind | null {
+  const code = String(productCode ?? '').trim().toUpperCase()
+  if (!/^[A-Z]{3}/.test(code)) return null
+  const t = code[2]
+  switch (String(supplier ?? '').trim().toLowerCase()) {
+    case 'hanatour':
+      if (t === 'B') return 'air_hotel_free'
+      if (t === 'P' || t === 'K' || t === 'G' || t === 'X') return 'package'
+      return null
+    case 'modetour':
+    case 'kyowontour':
+      if (t === 'A') return 'air_hotel_free'
+      if (t === 'P') return 'package'
+      return null
+    default:
+      return null
+  }
+}
+
 /** URL·공급사 휴리스틱 — collect 단계에서 API 확인 전 1차 추정 */
 export function inferRegisterFactProductKindFromOriginUrl(
   supplier: SupplierRegisterFactSource,
@@ -92,6 +121,9 @@ export function inferHanatourRegisterFactProductKind(
   info: HanatourPkgProdInfo | null | undefined,
   originUrl: string,
 ): RegisterFactProductKind {
+  // REGRESSION-FREEZE[register-kind-supplier-code]: saleProdCd 유형 글자 우선 — 「1일자유」 패키지(FS 플래그)를 에어텔로 오분류 금지
+  const byCode = inferRegisterFactProductKindFromSupplierProductCode('hanatour', parseHanatourPkgCdFromUrl(originUrl))
+  if (byCode) return byCode
   if (info && isHanatourAirtelLikeProdInfo(info)) return 'air_hotel_free'
   return inferRegisterFactProductKindFromOriginUrl('hanatour', originUrl)
 }

@@ -6,6 +6,7 @@
  * REGRESSION-FREEZE[hanatour-register-ssot-freeze]: API-only register parse — manifest
  * REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: parse 후 ensureHanatourRegisterScheduleImageKeywords — manifest
  */
+import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import { parseDetailBodyStructuredHanatour } from '@/lib/detail-body-parser-hanatour'
 import { applyHanatourBasicInfoBodyExtract } from '@/lib/hanatour-basic-info-body-extract'
 import { parseHanatourPkgCdFromUrl } from '@/lib/hanatour-api-departures'
@@ -61,11 +62,6 @@ function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProduc
     .filter((row): row is ParsedProductPrice => row != null)
 }
 
-function buildDuration(nights: number | null, days: number | null): string {
-  if (nights != null && days != null) return `${nights}박 ${days}일`
-  if (days != null) return `${days}일`
-  return ''
-}
 
 /** originUrl + 선택 붙여넣기(혜택·쿠폰 등) → RegisterParsed 골격. 구조화 축은 detail-collect가 채운다. */
 export async function parseHanatourRegisterFromApi(
@@ -155,7 +151,7 @@ export async function parseHanatourRegisterFromApi(
     destination: dest.destination || '미지정',
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,
-    duration: buildDuration(bundle.nights, bundle.days),
+    duration: buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title),
     includedItems: bundle.includedBullets,
     excludedItems: bundle.excludedBullets,
     includedText: bundle.includedBullets.join('\n'),

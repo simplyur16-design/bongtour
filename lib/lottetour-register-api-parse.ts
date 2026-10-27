@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[lottetour-register-api-parse]: collectLottetourRegisterFacts → RegisterParsed — manifest
  * REGRESSION-FREEZE[lottetour-register-ssot-freeze]: API-only register parse — manifest
  */
+import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import { collectLottetourRegisterFacts } from '@/lib/register-facts/lottetour'
 import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import {
@@ -60,11 +61,6 @@ function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProduc
     .filter((row): row is ParsedProductPrice => row != null)
 }
 
-function buildDuration(nights: number | null, days: number | null): string {
-  if (nights != null && days != null) return `${nights}박 ${days}일`
-  if (days != null) return `${days}일`
-  return ''
-}
 
 /** originUrl + 선택 붙여넣기 → RegisterParsed 골격. 구조화 축은 detail-collect가 채운다. */
 export async function parseLottetourRegisterFromApi(
@@ -145,7 +141,7 @@ export async function parseLottetourRegisterFromApi(
     destination: dest.destination,
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,
-    duration: buildDuration(bundle.nights, bundle.days),
+    duration: buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title),
     includedItems: bundle.includedBullets,
     excludedItems: bundle.excludedBullets,
     includedText: bundle.includedBullets.join('\n'),

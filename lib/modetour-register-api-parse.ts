@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[modetour-register-api-parse]: collectModetourRegisterFacts → RegisterParsed — manifest
  * REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]: schedule imageKeyword 규칙 — manifest
  */
+import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
 import { resolveModetourRegisterDestination } from '@/lib/modetour-register-destination-from-paste'
@@ -61,11 +62,6 @@ function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProduc
     .filter((row): row is ParsedProductPrice => row != null)
 }
 
-function buildDuration(nights: number | null, days: number | null): string {
-  if (nights != null && days != null) return `${nights}박 ${days}일`
-  if (days != null) return `${days}일`
-  return ''
-}
 
 /** originUrl + 선택 붙여넣기 → RegisterParsed 골격. 구조화 축은 detail-collect가 채운다. */
 export async function parseModetourRegisterFromApi(
@@ -146,7 +142,7 @@ export async function parseModetourRegisterFromApi(
     destination: dest.destination || '미지정',
     destinationRaw: dest.destinationRaw,
     primaryDestination: dest.primaryDestination,
-    duration: buildDuration(bundle.nights, bundle.days),
+    duration: buildRegisterDurationLabel(bundle.nights, bundle.days, bundle.title),
     includedItems: bundle.includedBullets,
     excludedItems: bundle.excludedBullets,
     includedText: bundle.includedBullets.join('\n'),
