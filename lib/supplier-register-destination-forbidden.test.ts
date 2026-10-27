@@ -34,7 +34,7 @@ describe('supplier title promo badges — all suppliers', () => {
 
   it('strips 판매마감 · 잔여좌석 · 단풍시즌 · 캐빈 뱃지', () => {
     expect(normalizeSupplierRegisterListingTitle('판매마감 [비즈니스/클래스] 캐나다 단풍시즌 10일')).toBe(
-      '[비즈니스] 캐나다 10일',
+      '[비즈니스/클래스] 캐나다 10일',
     )
     expect(normalizeSupplierRegisterListingTitle('[비즈니스] 캐나다 10일')).toBe('[비즈니스] 캐나다 10일')
   })
