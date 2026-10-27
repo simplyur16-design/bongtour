@@ -493,7 +493,22 @@ export function normalizeSupplierRegisterListingTitle(s: string): string {
   // REGRESSION-FREEZE[supplier-product-title-plan-b]: HTML 엔티티·중복 어절 공개 정리 — manifest
   const decoded = collapseAdjacentDuplicateTitlePhrases(decodePublicHtmlEntities(String(s ?? '')))
   // REGRESSION-FREEZE[naeiltour-title-bracket-tidy]: 표시 시 금까기·머리 진짜 제거 + 괄호 빈칸 정리 — manifest
-  return stripSupplierTitlePromoBadges(stripSupplierTitleUiNoise(stripNaeiltourBrandTokensForDisplay(decoded)))
+  return stripOrphanEdgeBrackets(
+    stripSupplierTitlePromoBadges(stripSupplierTitleUiNoise(stripNaeiltourBrandTokensForDisplay(decoded))),
+  )
+}
+
+/** 깨진 기호 — 맨 앞의 짝 없는 닫는 괄호·맨 뒤의 짝 없는 여는 괄호 제거(예: 「]<시내4성>타이중」). */
+function stripOrphanEdgeBrackets(s: string): string {
+  const openOf: Record<string, string> = { ']': '[', '】': '【', ')': '(' }
+  const closeOf: Record<string, string> = { '[': ']', '【': '】', '(': ')' }
+  const count = (str: string, ch: string) => str.split(ch).length - 1
+  let t = s.trim()
+  while (t && openOf[t[0]] && count(t, t[0]) > count(t, openOf[t[0]])) t = t.slice(1).trim()
+  while (t && closeOf[t[t.length - 1]] && count(t, t[t.length - 1]) > count(t, closeOf[t[t.length - 1]])) {
+    t = t.slice(0, -1).trim()
+  }
+  return t
 }
 
 /**

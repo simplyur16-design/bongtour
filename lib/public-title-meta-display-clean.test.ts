@@ -23,6 +23,10 @@ describe('tab/og title = same display clean as detail full-name line (CEO 10/26 
     expect(buildProductPublicSeoSocialTitle(input)).not.toMatch(/출발확정/)
     expect(buildProductPublicSeoDocumentTitle(input)).toContain('방콕/파타야 5일')
   })
+  it('drops broken orphan bracket at edges', () => {
+    expect(resolvePublicProductDisplayFullTitle(']<시내4성>타이중 자유여행 4일')).toBe('<시내4성>타이중 자유여행 4일')
+    expect(resolvePublicProductDisplayFullTitle('[하노이] 하롱베이 5일')).toBe('[하노이] 하롱베이 5일')
+  })
   it('falls back to raw when cleaning empties the title', () => {
     expect(resolvePublicProductDisplayFullTitle('')).toBe('')
     expect(resolvePublicProductDisplayFullTitle('오사카 3일')).toBe('오사카 3일')
