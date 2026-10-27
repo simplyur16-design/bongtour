@@ -58,14 +58,14 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
   const scheduleRows = getScheduleFromProduct(p)
   const coverUrl = getFinalCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays: scheduleRows })
   const ogImage = toAbsoluteImageUrl(coverUrl) ?? absoluteUrl(DEFAULT_OG_IMAGE_PATH)
+  // REGRESSION-FREEZE[local-departure-display-prefix]: 지방출발 머리말(태그 SSOT, 제목 추론 금지) — manifest
+  const displayTitle = applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))
   const desc = buildPublicProductDescription({
-    title: p.title,
+    title: displayTitle,
     primaryDestination: p.primaryDestination,
     destination: p.destination,
   })
   const path = publicProductPath(p)
-  // REGRESSION-FREEZE[local-departure-display-prefix]: 지방출발 머리말(태그 SSOT, 제목 추론 금지) — manifest
-  const displayTitle = applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))
   const seoTitleInput = {
     displayTitle,
     originalTitle: p.originalTitle,

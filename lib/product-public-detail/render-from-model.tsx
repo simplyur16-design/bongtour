@@ -15,6 +15,7 @@ import { buildProductMetaChips } from '@/lib/product-meta-chips'
 import { isAirHotelDetailVariant } from '@/lib/air-hotel-product-ssot'
 import { publicProductPath } from '@/lib/product-public-path'
 import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
+import { applyLocalDepartureDisplayPrefix, resolveDetailLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import type {
   ProductPublicDetailAirHotelRenderModel,
   ProductPublicDetailRenderModel,
@@ -65,7 +66,7 @@ export function renderProductDetailFromModel(
           <ProductJsonLd
             productId={travelProduct.id}
             productPath={resolveSeoProductPath(seo, product)}
-            name={product.title ?? ''}
+            name={applyLocalDepartureDisplayPrefix(product.title ?? '', resolveDetailLocalDepartureTags(product))}
             description={seo.productDescription}
             imageUrl={seo.coverUrl}
             offers={seo.offers}
@@ -189,7 +190,7 @@ export function renderProductDetailFromModel(
         <ProductJsonLd
           productId={travelProduct.id}
           productPath={resolveSeoProductPath(seo, viewProduct)}
-          name={viewProduct.title ?? ''}
+          name={applyLocalDepartureDisplayPrefix(viewProduct.title ?? '', resolveDetailLocalDepartureTags(viewProduct))}
           description={seo.productDescription}
           imageUrl={seo.coverUrl}
           offers={seo.offers}

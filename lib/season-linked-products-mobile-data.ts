@@ -9,6 +9,7 @@ import { computeEffectivePricePerPersonKrwFromRow, PRODUCT_PRICE_FOR_BROWSE_INCL
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import type { ResultItem } from '@/components/products/ProductResultsList'
+import { applyLocalDepartureDisplayPrefix, resolveDisplayLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 
 function startOfTodayKst(): Date {
   const seoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
@@ -29,6 +30,8 @@ function earliestFutureDeparture(departures: { departureDate: Date }[], nowFloor
 function toResultItem(p: {
   id: string
   title: string
+  localDepartureTag?: readonly string[] | null
+  departureAirportLabel?: string | null
   originSource: string
   productType: string | null
   listingKind: string | null
@@ -50,7 +53,8 @@ function toResultItem(p: {
   })
   return {
     id: p.id,
-    title: p.title,
+    // REGRESSION-FREEZE[local-departure-display-prefix]: 공개 상품명은 지방출발 표시 함수 경유 — manifest
+    title: applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p)),
     originSource: p.originSource,
     productType: p.productType,
     listingKind: p.listingKind ?? null,
@@ -67,6 +71,8 @@ function toResultItem(p: {
 const productSelect = {
   id: true,
   title: true,
+  localDepartureTag: true,
+  departureAirportLabel: true,
   originSource: true,
   productType: true,
   listingKind: true,

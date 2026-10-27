@@ -7,6 +7,7 @@ import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { isOnOrAfterPublicBookableMinDate } from '@/lib/public-bookable-date'
 import { LUXURY_FALLBACK_IMAGE_URL } from '@/lib/image-fallback'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
+import { applyLocalDepartureDisplayPrefix, resolveDisplayLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 
 /** 갤러리 한 요청당 Pexels 검색 상한 — 초과 분은 로컬 럭셔리 폴백 URL과 동일 처리(getPexelsImage 실패 경로와 정합) */
 const GALLERY_PEXELS_MAX_FETCHES = 12
@@ -14,6 +15,8 @@ const GALLERY_PEXELS_MAX_FETCHES = 12
 const galleryProductDbSelect = {
   id: true,
   title: true,
+  localDepartureTag: true,
+  departureAirportLabel: true,
   originSource: true,
   bgImageSource: true,
   bgImageIsGenerated: true,
@@ -160,7 +163,8 @@ export async function GET(request: Request) {
 
       return {
         id: p.id,
-        title: p.title,
+        // REGRESSION-FREEZE[local-departure-display-prefix]: 공개 상품명은 지방출발 표시 함수 경유 — manifest
+        title: applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p)),
         originSource: p.originSource,
         bgImageSource: p.bgImageSource ?? null,
         bgImageIsGenerated: p.bgImageIsGenerated ?? false,

@@ -61,7 +61,7 @@ import {
   verifyRegisterPrePhoto,
 } from '@/lib/register-pre-photo-verify'
 import {
-  buildRegisterFlightInferHaystack,
+  buildHealPendingDepartureResolveArgs,
   resolveRegisterProductDepartureAirportFields,
   scheduleRowsToInferHaystack,
 } from '@/lib/register-product-departure-airport-save'
@@ -282,22 +282,15 @@ export async function healPendingRegisterPrePhoto(
         String(destinationToPersist) !== String(product.destination ?? '')
 
       // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: [부산] 제목 → 지방출발 — manifest
-      const depResolved = resolveRegisterProductDepartureAirportFields({
-        manualLocalDepartureTags: [],
-        inferHaystack: buildRegisterFlightInferHaystack({
-          airline: product.airline,
-          includedText: product.includedText,
+      // REGRESSION-FREEZE[local-departure-detect-explicit]: 원 제목·rawTitle(힐 머리말 무시)·출발공항 — tag만 기록 — manifest
+      // REGRESSION-FREEZE[local-departure-new-product-path]: 등록 confirm 과 같은 명시 신호 빌더 — manifest
+      const depResolved = resolveRegisterProductDepartureAirportFields(
+        buildHealPendingDepartureResolveArgs({
+          product,
+          titleForInfer,
           scheduleText: scheduleRowsToInferHaystack(mapped),
-          flightSummary: titleForInfer,
         }),
-        // REGRESSION-FREEZE[local-departure-detect-explicit]: 원 제목·rawTitle(힐 머리말 무시)·출발공항 — tag만 기록 — manifest
-        explicitSignals: {
-          originalTitle: product.originalTitle,
-          rawTitle: product.rawTitle,
-          departureAirports: (product.departures ?? []).map((d) => d.outboundDepartureAirport),
-          bareCityBracketIsDeparture: String(product.originSource ?? '').trim().toLowerCase() === 'naeiltour',
-        },
-      })
+      )
       const prevDepTags = Array.isArray(product.localDepartureTag)
         ? product.localDepartureTag.map((t) => String(t))
         : []

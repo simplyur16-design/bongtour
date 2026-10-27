@@ -146,6 +146,7 @@ import {
   buildRegisterFlightInferHaystack,
   parseRegisterFactFlightsFromAdminBody,
   resolveRegisterProductDepartureAirportFields,
+  buildRegisterExplicitDepartureSignals,
   scheduleRowsToInferHaystack,
 } from '@/lib/register-product-departure-airport-save'
 import { parseSingleDepartureOnlyFromAdminBody } from '@/lib/single-departure-product-ssot'
@@ -1567,6 +1568,12 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
         scheduleText: scheduleRowsToInferHaystack(schedule),
       }),
       factFlights: parseRegisterFactFlightsFromAdminBody(body),
+      // REGRESSION-FREEZE[local-departure-new-product-path]: 원 제목·rawTitle 명시 신호 — tag만, Product.title 미기록 — manifest
+      explicitSignals: buildRegisterExplicitDepartureSignals({
+        originalTitle: titlePair.prismaOriginalTitle,
+        rawTitle: parsed.supplierListingTitleRaw ?? null,
+        originSource: effectiveOriginSource,
+      }),
     })
     const productData = {
       originSource: effectiveOriginSource,

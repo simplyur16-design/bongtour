@@ -104,6 +104,57 @@ export function resolveRegisterProductDepartureAirportFields(args: {
   }
 }
 
+/**
+ * 신규 상품 경로(등록 confirm·self-heal) 공통 명시 신호.
+ * REGRESSION-FREEZE[local-departure-new-product-path]: 원 제목·rawTitle·출발공항만 — tag만 기록, Product.title 미기록 — manifest
+ */
+export function buildRegisterExplicitDepartureSignals(args: {
+  originalTitle?: string | null
+  rawTitle?: string | null
+  departureAirports?: ReadonlyArray<string | null | undefined> | null
+  originSource?: string | null
+}): LocalDepartureDetectInput {
+  return {
+    originalTitle: args.originalTitle ?? null,
+    rawTitle: args.rawTitle ?? null,
+    departureAirports: args.departureAirports ?? [],
+    // 내일투어 `[대구]` 관례만 괄호 도시명 단독을 출발로 인정
+    bareCityBracketIsDeparture: String(args.originSource ?? '').trim().toLowerCase() === 'naeiltour',
+  }
+}
+
+/** self-heal 이 `resolveRegisterProductDepartureAirportFields` 에 넘기는 인자 (테스트·heal 동일 경로) */
+export function buildHealPendingDepartureResolveArgs(args: {
+  product: {
+    airline?: string | null
+    includedText?: string | null
+    originalTitle?: string | null
+    rawTitle?: string | null
+    originSource?: string | null
+    departures?: ReadonlyArray<{ outboundDepartureAirport?: string | null }> | null
+  }
+  titleForInfer: string
+  scheduleText: string
+}): Parameters<typeof resolveRegisterProductDepartureAirportFields>[0] {
+  const p = args.product
+  return {
+    manualLocalDepartureTags: [],
+    inferHaystack: buildRegisterFlightInferHaystack({
+      airline: p.airline,
+      includedText: p.includedText,
+      scheduleText: args.scheduleText,
+      flightSummary: args.titleForInfer,
+    }),
+    // REGRESSION-FREEZE[local-departure-detect-explicit]: 원 제목·rawTitle(힐 머리말 무시)·출발공항 — tag만 기록 — manifest
+    explicitSignals: buildRegisterExplicitDepartureSignals({
+      originalTitle: p.originalTitle,
+      rawTitle: p.rawTitle,
+      departureAirports: (p.departures ?? []).map((d) => d.outboundDepartureAirport),
+      originSource: p.originSource,
+    }),
+  }
+}
+
 export function departureAirportLabelDisplayText(
   label: string | null | undefined,
 ): string | null {

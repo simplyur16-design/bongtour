@@ -1,3 +1,4 @@
+import { applyLocalDepartureDisplayPrefix, resolveDisplayLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import { prisma } from '@/lib/prisma'
 import { getSiteOrigin } from '@/lib/site-metadata'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
@@ -64,6 +65,8 @@ export async function GET() {
     id: string
     slug: string | null
     title: string
+    localDepartureTag: string[]
+    departureAirportLabel: string | null
     bgImageUrl: string | null
     bgImageRehostSearchLabel: string | null
     bgImagePlaceName: string | null
@@ -80,6 +83,8 @@ export async function GET() {
         id: true,
         slug: true,
         title: true,
+        localDepartureTag: true,
+        departureAirportLabel: true,
         bgImageUrl: true,
         bgImageRehostSearchLabel: true,
         bgImagePlaceName: true,
@@ -104,8 +109,10 @@ export async function GET() {
     if (!imgUrl) continue
 
     const loc = `${origin}${publicProductPath(p)}`
-    const title = (p.title ?? '').trim() || '상품'
-    const caption = pickImageCaption(p)
+    // REGRESSION-FREEZE[local-departure-display-prefix]: 공개 상품명은 지방출발 표시 함수 경유 — manifest
+    const displayTitle = applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))
+    const title = (displayTitle ?? '').trim() || '상품'
+    const caption = pickImageCaption({ ...p, title: displayTitle })
 
     lines.push('  <url>')
     lines.push(`    <loc>${escapeXml(loc)}</loc>`)

@@ -29,6 +29,7 @@ import {
   buildRegisterFlightInferHaystack,
   parseRegisterFactFlightsFromAdminBody,
   resolveRegisterProductDepartureAirportFields,
+  buildRegisterExplicitDepartureSignals,
   scheduleRowsToInferHaystack,
 } from '@/lib/register-product-departure-airport-save'
 import { findExistingProductForRegister } from '@/lib/register-product-duplicate-guard'
@@ -1859,6 +1860,12 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
         scheduleText: scheduleRowsToInferHaystack(parsedWithFinalNotice.schedule),
       }),
       factFlights: parseRegisterFactFlightsFromAdminBody(body),
+      // REGRESSION-FREEZE[local-departure-new-product-path]: 원 제목·rawTitle 명시 신호 — tag만, Product.title 미기록 — manifest
+      explicitSignals: buildRegisterExplicitDepartureSignals({
+        originalTitle: titlePair.prismaOriginalTitle,
+        rawTitle: parsed.supplierListingTitleRaw ?? null,
+        originSource: effectiveOriginSource,
+      }),
     })
     const productData = {
       originSource: effectiveOriginSource,

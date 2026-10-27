@@ -27734,7 +27734,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "지방출발 상품 공개명 맨 앞 [부산/대구/청주/제주출발] — 태그 SSOT(localDepartureTag→departureAirportLabel), 제목 추론·Product.title 기록 금지, 시작 괄호 중복 금지; 카드·상세 히어로/원명·탭/공유 제목; 제주출발 탭은 ≥1건일 때만",
+      "summary": "지방출발 공개명 — 태그 도시 [X출발] 맨 앞 정확히 한 번(시작 괄호에 있으면 유지, 그 외 [청주출발]·[A+청주출발] 조각·#청주출발·부산오전출발 표시에서 제거; 타 도시·항공사·해외 출발 유지). 태그 SSOT, Product.title 미기록; 카드·상세 히어로/원명·탭/공유 제목; 제주출발 탭은 ≥1건일 때만",
       "checks": [
         {
           "file": "lib/local-departure-display-prefix.ts",
@@ -27742,7 +27742,9 @@
             "REGRESSION-FREEZE[local-departure-display-prefix]",
             "export function applyLocalDepartureDisplayPrefix",
             "export function resolveDisplayLocalDepartureTags",
-            "export function resolveDetailLocalDepartureTags"
+            "export function resolveDetailLocalDepartureTags",
+            "export function countLocalDepartureMentions",
+            "stripCityDepartureMentions(rest, list)"
           ],
           "mustNotInclude": [
             "@/lib/prisma",
@@ -27789,7 +27791,8 @@
         {
           "file": "app/products/[idOrSlug]/page.tsx",
           "mustInclude": [
-            "applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))"
+            "applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))",
+            "title: displayTitle,"
           ]
         },
         {
@@ -27823,6 +27826,34 @@
           "mustInclude": [
             "useVisibleMegaMenuRegions(TOP_NAV_MEGA_REGIONS)",
             "{visibleRegions.map((r) => {"
+          ]
+        },
+        {
+          "file": "app/api/gallery/route.ts",
+          "mustInclude": [
+            "title: applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))",
+            "localDepartureTag: true"
+          ]
+        },
+        {
+          "file": "lib/season-linked-products-mobile-data.ts",
+          "mustInclude": [
+            "title: applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))",
+            "localDepartureTag: true"
+          ]
+        },
+        {
+          "file": "app/sitemap-images.xml/route.ts",
+          "mustInclude": [
+            "applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))",
+            "localDepartureTag: true"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/render-from-model.tsx",
+          "mustInclude": [
+            "name={applyLocalDepartureDisplayPrefix(product.title ?? '', resolveDetailLocalDepartureTags(product))}",
+            "name={applyLocalDepartureDisplayPrefix(viewProduct.title ?? '', resolveDetailLocalDepartureTags(viewProduct))}"
           ]
         }
       ],
@@ -27859,12 +27890,95 @@
           "file": "lib/register-pending-pre-photo-self-heal.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[local-departure-detect-explicit]",
-            "explicitSignals: {"
+            "buildHealPendingDepartureResolveArgs({"
           ]
         }
       ],
       "vitestSuites": [
         "lib/local-departure-detect.test.ts"
+      ]
+    },
+    {
+      "id": "local-departure-new-product-path",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "신규 상품 지방출발 자동 — 등록 confirm 7사·self-heal 이 같은 명시 신호 빌더로 localDepartureTag 만 기록(Product.title 미기록), 공개명·SEO 는 [X출발] 맨 앞 한 번",
+      "checks": [
+        {
+          "file": "lib/register-product-departure-airport-save.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-new-product-path]",
+            "export function buildRegisterExplicitDepartureSignals",
+            "export function buildHealPendingDepartureResolveArgs"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-new-product-path]",
+            "buildHealPendingDepartureResolveArgs({"
+          ],
+          "mustNotInclude": [
+            "data.title =",
+            "data.rawTitle =",
+            "data.originalTitle ="
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-new-product-path]",
+            "explicitSignals: buildRegisterExplicitDepartureSignals({"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-new-product-path]",
+            "explicitSignals: buildRegisterExplicitDepartureSignals({"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-new-product-path]",
+            "explicitSignals: buildRegisterExplicitDepartureSignals({"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-new-product-path]",
+            "explicitSignals: buildRegisterExplicitDepartureSignals({"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-new-product-path]",
+            "explicitSignals: buildRegisterExplicitDepartureSignals({"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-new-product-path]",
+            "explicitSignals: buildRegisterExplicitDepartureSignals({"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-new-product-path]",
+            "explicitSignals: buildRegisterExplicitDepartureSignals({"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/local-departure-new-product-path.test.ts",
+        "lib/local-departure-display-prefix.test.ts"
       ]
     }
   ],
