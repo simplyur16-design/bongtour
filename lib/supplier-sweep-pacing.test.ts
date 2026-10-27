@@ -16,6 +16,8 @@ describe('isSupplierRefusalError', () => {
     expect(isSupplierRefusalError(new Error('captcha challenge page'))).toBe(true)
     expect(isSupplierRefusalError(new Error('Access Denied'))).toBe(true)
     expect(isSupplierRefusalError(new Error('비정상적인 접근입니다'))).toBe(true)
+    expect(isSupplierRefusalError(new Error('ybtour fetch failed: 403'))).toBe(true)
+    expect(isSupplierRefusalError(new Error('hanatour gw /x HTTP 429: busy'))).toBe(true)
   })
   it('ignores ordinary failures', () => {
     expect(isSupplierRefusalError(new Error('Navigation timeout of 30000 ms exceeded'))).toBe(false)

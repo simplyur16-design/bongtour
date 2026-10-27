@@ -34,6 +34,7 @@ export type SupplierSweepPacer = {
 const REFUSAL_PATTERNS: RegExp[] = [
   /\b(?:status|http|code)\s*[:=]?\s*(?:403|429|503)\b/i,
   /\b(?:403|429|503)\b\s*(?:forbidden|too many|service unavailable)/i,
+  /(?:failed|error|fetch)\s*[:=]?\s*(?:403|429|503)\b/i,
   /\btoo many requests\b/i,
   /\bforbidden\b/i,
   /\baccess denied\b/i,
