@@ -212,7 +212,9 @@ const OverseasHero: FC<OverseasHeroProps> = ({
         ? '청주'
         : normalizedSelectedRegionSlug === 'daegu_dep'
           ? '대구'
-          : null
+          : normalizedSelectedRegionSlug === 'jeju_dep'
+            ? '제주'
+            : null
   const isLocalDepartureMode = Boolean(localDepLabel)
   const isSpotlightMode = Boolean(countrySlug) || isLocalDepartureMode
 

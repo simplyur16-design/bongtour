@@ -6,7 +6,7 @@ import {
 import { getCurrentCycle } from '@/lib/season-curation'
 import { getCachedCurrentCycle } from '@/lib/season-curation-content'
 
-const LOCAL_DEPARTURE_REGIONS = ['busan_dep', 'cheongju_dep', 'daegu_dep'] as const
+const LOCAL_DEPARTURE_REGIONS = ['busan_dep', 'cheongju_dep', 'daegu_dep', 'jeju_dep'] as const
 
 type Props = {
   selectedCountrySlug: string | null

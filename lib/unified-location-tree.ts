@@ -40,7 +40,7 @@ export type MegaMenuRegion = {
   countryGroups?: MegaMenuCountryGroup[]
   special?: MegaMenuSpecial
   /** 지방출발 단일 링크 탭 마커 — 도시/국가 펼침 없이 `/travel/overseas?region={id}` 로 즉시 이동. SSOT: `lib/mega-menu-regions.data.ts` MEGA_MENU_TAB_DEFINITIONS. */
-  localDeparture?: 'busan' | 'cheongju' | 'daegu'
+  localDeparture?: 'busan' | 'cheongju' | 'daegu' | 'jeju'
 }
 
 export type UnifiedLocationNode = {

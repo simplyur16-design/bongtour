@@ -10,6 +10,7 @@ import {
   buildProductPublicSeoDocumentTitle,
   buildProductPublicSeoSocialTitle,
 } from '@/lib/product-public-seo-title'
+import { applyLocalDepartureDisplayPrefix, resolveDisplayLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import {
   absoluteUrl,
   buildPublicProductDescription,
@@ -63,8 +64,10 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
     destination: p.destination,
   })
   const path = publicProductPath(p)
+  // REGRESSION-FREEZE[local-departure-display-prefix]: 지방출발 머리말(태그 SSOT, 제목 추론 금지) — manifest
+  const displayTitle = applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))
   const seoTitleInput = {
-    displayTitle: p.title,
+    displayTitle,
     originalTitle: p.originalTitle,
     primaryDestination: p.primaryDestination,
     destination: p.destination,
@@ -75,7 +78,7 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
   const scheduleImageCaption = scheduleRows.find((d) => d.imageDisplayName?.trim())?.imageDisplayName?.trim()
   const captionFromImageAsset = await tryCaptionFromPublicImageUrl(coverUrl)
   const ogCaption = scheduleImageCaption || captionFromImageAsset
-  const ogImageAlt = ogCaption ? `${p.title} — ${ogCaption}` : p.title
+  const ogImageAlt = ogCaption ? `${displayTitle} — ${ogCaption}` : displayTitle
   const isDraft = p.registrationStatus !== 'registered'
   return {
     title: isDraft ? `${documentTitle} (관리자 미리보기)` : documentTitle,

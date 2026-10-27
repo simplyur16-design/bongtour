@@ -24,6 +24,8 @@ const PRODUCT_METADATA_SELECT = {
   bgImageUrl: true,
   schedule: true,
   registrationStatus: true,
+  localDepartureTag: true,
+  departureAirportLabel: true,
   itineraries: { orderBy: { day: 'asc' as const }, select: { day: true, description: true } },
 } as const
 

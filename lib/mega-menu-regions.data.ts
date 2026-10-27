@@ -32,7 +32,7 @@ export type MegaMenuTabDef = {
   label: string
   groups: MegaMenuCountryGroupDef[]
   /** 지방출발 단일 링크 탭 마커. 설정되면 도시/국가 펼침 없이 `/travel/overseas?region={id}` 로 즉시 이동. */
-  localDeparture?: 'busan' | 'cheongju' | 'daegu'
+  localDeparture?: 'busan' | 'cheongju' | 'daegu' | 'jeju'
 }
 
 function makeMegaMenuLeaf(
@@ -635,6 +635,8 @@ export const MEGA_MENU_TAB_DEFINITIONS: MegaMenuTabDef[] = [
   { id: 'busan_dep', label: '부산출발', groups: [], localDeparture: 'busan' },
   { id: 'cheongju_dep', label: '청주출발', groups: [], localDeparture: 'cheongju' },
   { id: 'daegu_dep', label: '대구출발', groups: [], localDeparture: 'daegu' },
+  // REGRESSION-FREEZE[local-departure-display-prefix]: 제주출발 — 공개 상품 ≥1건일 때만 노출(lib/local-departure-tab-visibility) — manifest
+  { id: 'jeju_dep', label: '제주출발', groups: [], localDeparture: 'jeju' },
 ]
 
 /**

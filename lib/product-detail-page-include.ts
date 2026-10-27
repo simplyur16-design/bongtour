@@ -138,6 +138,7 @@ export function buildProductDetailScalarsSelect() {
     mandatoryCurrency: true,
     flightAdminJson: true,
     departureAirportLabel: true,
+    localDepartureTag: true,
     publicDetailPayloadJson: true,
     publicDetailPayloadBuiltAt: true,
   } satisfies Prisma.ProductSelect

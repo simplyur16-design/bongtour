@@ -27727,6 +27727,109 @@
         "lib/derive-trip-nights-null-not-zero.test.ts",
         "lib/derive-trip-nights-days.test.ts"
       ]
+    },
+    {
+      "id": "local-departure-display-prefix",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "지방출발 상품 공개명 맨 앞 [부산/대구/청주/제주출발] — 태그 SSOT(localDepartureTag→departureAirportLabel), 제목 추론·Product.title 기록 금지, 시작 괄호 중복 금지; 카드·상세 히어로/원명·탭/공유 제목; 제주출발 탭은 ≥1건일 때만",
+      "checks": [
+        {
+          "file": "lib/local-departure-display-prefix.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[local-departure-display-prefix]",
+            "export function applyLocalDepartureDisplayPrefix",
+            "export function resolveDisplayLocalDepartureTags",
+            "export function resolveDetailLocalDepartureTags"
+          ],
+          "mustNotInclude": [
+            "@/lib/prisma",
+            "prisma.product"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "applyLocalDepartureDisplayPrefix(card.cardTitle, resolveDisplayLocalDepartureTags(p))"
+          ]
+        },
+        {
+          "file": "lib/season-product-grid-data.ts",
+          "mustInclude": [
+            "applyLocalDepartureDisplayPrefix(card.cardTitle, resolveDisplayLocalDepartureTags(p))",
+            "localDepartureTag: true"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroSection.tsx",
+          "mustInclude": [
+            "applyLocalDeparturePrefixToHeroTitles(resolvePublicDetailHeroTitles({"
+          ]
+        },
+        {
+          "file": "app/components/detail/FitItineraryHeroSection.tsx",
+          "mustInclude": [
+            "applyLocalDeparturePrefixToHeroTitles(resolvePublicDetailHeroTitles({"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "localDepartureDisplayTags: resolveDisplayLocalDepartureTags(travelProduct)"
+          ]
+        },
+        {
+          "file": "lib/product-detail-page-include.ts",
+          "mustInclude": [
+            "localDepartureTag: true"
+          ]
+        },
+        {
+          "file": "app/products/[idOrSlug]/page.tsx",
+          "mustInclude": [
+            "applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))"
+          ]
+        },
+        {
+          "file": "lib/product-detail-page-cache.ts",
+          "mustInclude": [
+            "localDepartureTag: true",
+            "departureAirportLabel: true"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "{ id: 'jeju_dep', label: '제주출발', groups: [], localDeparture: 'jeju' }"
+          ]
+        },
+        {
+          "file": "lib/local-departure-tab-visibility.ts",
+          "mustInclude": [
+            "LOCAL_DEPARTURE_TABS_HIDDEN_WHEN_EMPTY: readonly LocalDepartureTag[] = ['jeju']"
+          ]
+        },
+        {
+          "file": "components/top-nav/TopMegaMenu.tsx",
+          "mustInclude": [
+            "useVisibleMegaMenuRegions(TOP_NAV_MEGA_REGIONS)",
+            "regions={visibleRegions}"
+          ]
+        },
+        {
+          "file": "components/top-nav/MobileDrilldownMenu.tsx",
+          "mustInclude": [
+            "useVisibleMegaMenuRegions(TOP_NAV_MEGA_REGIONS)",
+            "{visibleRegions.map((r) => {"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/local-departure-display-prefix.test.ts",
+        "lib/local-departure-tab-visibility.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

@@ -41,6 +41,7 @@ import { buildModetourHeroHaystackFromProduct } from '@/lib/modetour-body-dates'
 import { alignDepartureKeyFactsToSelectedCalendarDate } from '@/lib/departure-facts-calendar-align'
 import { buildCalendarSsotHeroTripDisplays, resolveHeroTripDates } from '@/lib/product-hero-dates'
 import PackageProductHeroSection from '@/app/components/detail/PackageProductHeroSection'
+import { resolveDetailLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
 import ProductLiveQuoteCard from '@/app/components/detail/ProductLiveQuoteCard'
@@ -640,6 +641,7 @@ export default function TravelProductDetail({
           heroUrl={heroUrl}
           daySlides={daySlides}
           productTitle={product.title}
+          localDepartureTags={resolveDetailLocalDepartureTags(product)}
           heroImageSourceType={product.bgImageSource ?? null}
           heroImagePhotographer={product.bgImagePhotographer ?? null}
           heroImageIsGenerated={product.bgImageIsGenerated ?? null}

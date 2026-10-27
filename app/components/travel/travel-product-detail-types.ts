@@ -145,6 +145,8 @@ export type TravelProduct = {
   flightAdminJson?: string | null
   /** 인천·김포(서울권)는 null — 부산·청주·대구·제주만 표기 */
   departureAirportLabelDisplay?: string | null
+  /** 지방출발 표시 머리말 태그(busan|cheongju|daegu|jeju) — 구 캐시 DTO엔 없음 → departureAirportLabelDisplay 폴백 */
+  localDepartureDisplayTags?: string[]
   /** 테마여행 browse 태그 — 2030 성인 전용 판정용 */
   sportsThemeTag?: string[]
   /** 2030 성인 전용 — 아동·유아 스텝퍼/요금 비노출 */

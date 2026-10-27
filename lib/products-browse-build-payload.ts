@@ -43,6 +43,7 @@ import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
+import { applyLocalDepartureDisplayPrefix, resolveDisplayLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import {
   resolveBrowseCountryParamToCountryKeySlugs,
   resolveBrowseCountryParamToDbCountries,
@@ -738,7 +739,8 @@ export async function productsBrowseBuildPayload(queryKey: string) {
           planB,
         )
         return {
-          title: card.cardTitle,
+          // REGRESSION-FREEZE[local-departure-display-prefix]: 지방출발 머리말(태그 SSOT, 제목 추론 금지) — manifest
+          title: applyLocalDepartureDisplayPrefix(card.cardTitle, resolveDisplayLocalDepartureTags(p)),
           heroSubtitle: card.heroSubtitle,
           primaryDestination,
         }

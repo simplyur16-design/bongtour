@@ -38,6 +38,7 @@ import { alignDepartureKeyFactsToSelectedCalendarDate } from '@/lib/departure-fa
 import { buildCalendarSsotHeroTripDisplays, resolveHeroTripDates } from '@/lib/product-hero-dates'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import PackageProductHeroSection from '@/app/components/detail/PackageProductHeroSection'
+import { resolveDetailLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import { ItineraryViewPackageMain } from '@/components/itinerary/ItineraryViewPackageMain'
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
 import DeparturePriceCollectOverlay from '@/app/components/detail/DeparturePriceCollectOverlay'
@@ -630,6 +631,7 @@ export default function MobileProductDetail({
         heroUrl={heroUrl}
         daySlides={daySlides}
         productTitle={product.title}
+        localDepartureTags={resolveDetailLocalDepartureTags(product)}
         heroImageSourceType={product.bgImageSource ?? null}
         heroImagePhotographer={product.bgImagePhotographer ?? null}
         heroImageIsGenerated={product.bgImageIsGenerated ?? null}

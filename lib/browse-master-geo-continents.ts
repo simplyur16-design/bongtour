@@ -15,11 +15,12 @@ export function browseTabIdToMegaMenuCardKeys(regionId: string | null | undefine
 /** SSOT 지방출발 탭 id → `Product.localDepartureTag` */
 export function localDepartureTagForBrowseRegion(
   region: string | null | undefined,
-): 'busan' | 'cheongju' | 'daegu' | null {
+): 'busan' | 'cheongju' | 'daegu' | 'jeju' | null {
   const t = (region ?? '').trim().toLowerCase()
   if (t === 'busan_dep') return 'busan'
   if (t === 'cheongju_dep') return 'cheongju'
   if (t === 'daegu_dep') return 'daegu'
+  if (t === 'jeju_dep') return 'jeju'
   return null
 }
 

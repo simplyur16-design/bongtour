@@ -39,6 +39,7 @@ import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
 import { buildVerygoodTripDateDisplaysForSelectedRow } from '@/lib/verygood/verygood-selected-row-trip-display'
 import PackageProductHeroSection from '@/app/components/detail/PackageProductHeroSection'
+import { resolveDetailLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
 import DeparturePriceCollectOverlay from '@/app/components/detail/DeparturePriceCollectOverlay'
 import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
@@ -734,6 +735,7 @@ function VerygoodTravelProductDetailView({ product, showEsimCrossSell = false }:
         heroUrl={heroUrl}
         daySlides={daySlides}
         productTitle={product.title}
+        localDepartureTags={resolveDetailLocalDepartureTags(product)}
         heroImageSourceType={product.bgImageSource ?? null}
         heroImagePhotographer={product.bgImagePhotographer ?? null}
         heroImageIsGenerated={product.bgImageIsGenerated ?? null}

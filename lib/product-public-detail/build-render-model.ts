@@ -4,6 +4,7 @@ import { buildPublicRouteMapView } from '@/lib/bongtour-route-map-public'
 import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { scrubKrDepartureFromPlaceLabel } from '@/lib/bongtour-product-display-title-ssot'
+import { resolveDisplayLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import { scrubPublicHotelDisplayLine, scrubPublicHotelNameList } from '@/lib/public-hotel-display-ssot'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
@@ -911,6 +912,8 @@ export async function buildProductPublicDetailRenderModel(
     primaryDestination: scrubKrDepartureFromPlaceLabel(travelProduct.primaryDestination) || null,
     listingKind: travelProduct.listingKind ?? null,
     departureAirportLabelDisplay: homeDepartureAirportDisplayText(travelProduct.departureAirportLabel),
+    // REGRESSION-FREEZE[local-departure-display-prefix]: 지방출발 머리말(태그 SSOT, 제목 추론 금지) — manifest
+    localDepartureDisplayTags: resolveDisplayLocalDepartureTags(travelProduct),
     sportsThemeTag: Array.isArray(travelProduct.sportsThemeTag) ? travelProduct.sportsThemeTag : [],
     adultOnly2030,
     infantAgeRuleText: structured?.infantAgeRuleText ?? null,

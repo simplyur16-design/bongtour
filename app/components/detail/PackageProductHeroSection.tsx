@@ -11,6 +11,10 @@ import {
   formatPublicDestinationDisplayLabel,
   scrubKrDepartureFromPlaceLabel,
 } from '@/lib/bongtour-product-display-title-ssot'
+import {
+  applyLocalDeparturePrefixToHeroTitles,
+  } from '@/lib/local-departure-display-prefix'
+import type { LocalDepartureTag } from '@/lib/product-listing-kind'
 
 type CarouselProps = {
   heroUrl: string | null
@@ -26,6 +30,8 @@ type CarouselProps = {
 }
 
 type Props = CarouselProps & {
+  /** 지방출발 표시 머리말 태그 — `resolveDetailLocalDepartureTags(product)` */
+  localDepartureTags?: readonly LocalDepartureTag[] | null
   infoPanel: PackageProductHeroInfoPanelProps
 }
 
@@ -41,16 +47,18 @@ export default function PackageProductHeroSection({
   primaryDestination,
   destination,
   primaryRegion,
+  localDepartureTags,
   infoPanel,
 }: Props) {
   // REGRESSION-FREEZE[public-detail-hero-short-listing]: 히어로 short · 옆 원 상품명 — manifest
-  const heroTitles = resolvePublicDetailHeroTitles({
+  // REGRESSION-FREEZE[local-departure-display-prefix]: 지방출발 머리말(태그 SSOT, 제목 추론 금지) — manifest
+  const heroTitles = applyLocalDeparturePrefixToHeroTitles(resolvePublicDetailHeroTitles({
     title: productTitle,
     duration: infoPanel.duration || infoPanel.durationLabel,
     primaryDestination: primaryDestination ?? null,
     destination: destination ?? null,
     primaryRegion: primaryRegion ?? null,
-  })
+  }), localDepartureTags)
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: SEO 칩·dest 출발허브 제거 — manifest
   const seoOverlayScrubbed = heroImageSeoKeywordOverlay
     ? (() => {

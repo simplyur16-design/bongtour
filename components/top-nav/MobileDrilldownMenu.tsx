@@ -7,6 +7,7 @@ import type { ProductBrowseType } from '@/lib/products-browse-filter'
 import { TOP_NAV_MEGA_REGIONS } from '@/lib/top-nav-resolve'
 import { buildMegaMenuGroupHeaderHref, buildMegaMenuLeafHref } from '@/lib/top-nav-resolve'
 import { OVERSEAS_SUB_NAV_ITEMS } from '@/components/top-nav/overseas-sub-nav-items'
+import { useVisibleMegaMenuRegions } from '@/components/top-nav/use-local-departure-tab-visibility'
 
 type Step = 'types' | 'regions' | 'countries' | 'cities'
 
@@ -20,6 +21,8 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
   const [regionId, setRegionId] = useState<string | null>(null)
   const [countryLabel, setCountryLabel] = useState<string | null>(null)
   const [step, setStep] = useState<Step>('types')
+  // REGRESSION-FREEZE[local-departure-display-prefix]: 제주출발 탭 ≥1건일 때만 — manifest
+  const visibleRegions = useVisibleMegaMenuRegions(TOP_NAV_MEGA_REGIONS)
 
   const region = regionId ? TOP_NAV_MEGA_REGIONS.find((r) => r.id === regionId) : null
 
@@ -86,7 +89,7 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
               '여행상품'}
           </div>
           <ul className="mt-2 space-y-0">
-            {TOP_NAV_MEGA_REGIONS.map((r) => {
+            {visibleRegions.map((r) => {
               // 지방출발 단일 링크 탭(부산/청주/대구) — drilldown 안 들어가고 즉시 페이지 이동. SSOT: lib/mega-menu-regions.data.ts (localDeparture 마커).
               if (r.localDeparture) {
                 return (

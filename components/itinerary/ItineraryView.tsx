@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import DepartureDatePickerModal from '@/app/components/detail/DepartureDatePickerModal'
 import FitItineraryHeroSection from '@/app/components/detail/FitItineraryHeroSection'
+import { resolveDetailLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import FitItineraryQuoteCard from '@/app/components/detail/FitItineraryQuoteCard'
 import SafeImage from '@/app/components/SafeImage'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
@@ -510,6 +511,7 @@ export function ItineraryView({
         heroUrl={product.bgImageUrl}
         daySlides={daySlidesData}
         productTitle={product.title}
+        localDepartureTags={resolveDetailLocalDepartureTags(product)}
         heroImageSourceType={product.bgImageSource ?? null}
         heroImagePhotographer={product.bgImagePhotographer ?? null}
         heroImageIsGenerated={product.bgImageIsGenerated ?? null}

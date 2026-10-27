@@ -11,6 +11,7 @@ import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { readCachedArrayOrBypassEmpty } from '@/lib/unstable-cache-empty-bypass'
 import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
+import { applyLocalDepartureDisplayPrefix, resolveDisplayLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import type { ResultItem } from '@/components/products/ProductResultsList'
 
@@ -47,6 +48,8 @@ function toResultItem(p: {
   departures: { adultPrice: number | null; departureDate: Date }[]
   prices: { adult: number }[]
   priceFrom: number | null
+  localDepartureTag: string[]
+  departureAirportLabel: string | null
 }): ResultItem {
   // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: schedule JSON SSOT — manifest
   const scheduleRows = getScheduleFromProduct(p as Parameters<typeof getScheduleFromProduct>[0])
@@ -70,7 +73,8 @@ function toResultItem(p: {
   )
   return {
     id: p.id,
-    title: card.cardTitle,
+    // REGRESSION-FREEZE[local-departure-display-prefix]: 지방출발 머리말(태그 SSOT, 제목 추론 금지) — manifest
+    title: applyLocalDepartureDisplayPrefix(card.cardTitle, resolveDisplayLocalDepartureTags(p)),
     heroSubtitle: card.heroSubtitle,
     originSource: p.originSource,
     productType: p.productType,
@@ -99,6 +103,8 @@ const productSelect = {
   priceFrom: true,
   cityKey: true,
   countryKey: true,
+  localDepartureTag: true,
+  departureAirportLabel: true,
   // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: schedule JSON만 — itineraries N+1 금지 — manifest
   schedule: true,
   ...PRODUCT_PRICE_FOR_BROWSE_INCLUDE,

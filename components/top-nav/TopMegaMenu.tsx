@@ -6,6 +6,7 @@ import { TOP_NAV_MEGA_REGIONS } from '@/lib/top-nav-resolve'
 import OverseasMegaMenuHoverTrigger from '@/components/top-nav/OverseasMegaMenuHoverTrigger'
 import RegionHoverTabs from '@/components/top-nav/RegionHoverTabs'
 import CountryCityMegaPanel from '@/components/top-nav/CountryCityMegaPanel'
+import { useVisibleMegaMenuRegions } from '@/components/top-nav/use-local-departure-tab-visibility'
 
 const CLOSE_DELAY_MS = 220
 
@@ -14,6 +15,8 @@ export default function TopMegaMenu() {
   const megaBrowseType: ProductBrowseType = 'travel'
   const [activeRegionId, setActiveRegionId] = useState<string | null>(TOP_NAV_MEGA_REGIONS[0]?.id ?? null)
   const [isMegaMenuOpen, setMegaMenuOpen] = useState(false)
+  // REGRESSION-FREEZE[local-departure-display-prefix]: 제주출발 탭 ≥1건일 때만 — manifest
+  const visibleRegions = useVisibleMegaMenuRegions(TOP_NAV_MEGA_REGIONS)
 
   const openTimerRef = useRef<number | null>(null)
   const closeTimerRef = useRef<number | null>(null)
@@ -88,7 +91,7 @@ export default function TopMegaMenu() {
             onMouseLeave={scheduleClose}
           >
             <RegionHoverTabs
-              regions={TOP_NAV_MEGA_REGIONS}
+              regions={visibleRegions}
               activeRegionId={activeRegion.id}
               onHoverRegion={onHoverRegion}
               onPickLocalDepartureLink={onPickLocalDepartureLink}
