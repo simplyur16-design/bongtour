@@ -1,7 +1,7 @@
 /**
  * 등록대기 → 사진 자동 채움(03·04) → 자동 검사(05) → 등록 완료 — 끊긴 사슬 재연결.
  * - 셀프힐(02)과 분리된 작업: REGRESSION-FREEZE[register-pre-photo-self-heal] "셀프힐 cron 사진 생성 금지" 유지.
- * - 사진 채움은 기존 /api/travel/process-images(Pexels → … → Gemini, 출처 정책 게이트)를 그대로 부른다. 새 검색 로직 없음.
+ * - 사진 채움은 기존 /api/travel/process-images 를 photoChain:'v2'(Pexels → Unsplash → AI 표시) 로 부른다.
  * - 스위치 3개, 모두 기본 꺼짐(사장님 실행 승인 전에는 읽기·보고만):
  *   BONGTOUR_AUTO_PHOTO_FILL=1        사진 없는 등록대기 상품에 process-images 실행
  *   BONGTOUR_AUTO_REGISTER_FLIP=1     자동 검사 통과 상품만 registered 로 전환
@@ -131,7 +131,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
           const res = await f(`${appOrigin(env)}/api/travel/process-images`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-            body: JSON.stringify({ productId: id }),
+            body: JSON.stringify({ productId: id, photoChain: 'v2' }),
           })
           const j = (await res.json().catch(() => ({}))) as { success?: boolean }
           if (res.ok && j.success) result.filled++

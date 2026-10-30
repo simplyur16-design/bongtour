@@ -42,6 +42,13 @@ import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-
 import { resolveProductBgImageFieldsFromPhoto } from '@/lib/product-image-source-attribution'
 // REGRESSION-FREEZE[product-image-auto-register-gate]: 신규·등록대기 대표 사진만 정책 적용(기본 꺼짐) — manifest
 import { gatedAutoCoverUpdateData } from '@/lib/product-image-auto-register-gate'
+// REGRESSION-FREEZE[register-photo-source-chain]: v2 = Pexels → Unsplash → (CC0 없음) → AI — manifest
+import {
+  findStockPhotoByChain,
+  isPhotoChainV2Enabled,
+  type ChainCandidate,
+} from '@/lib/register-photo-source-chain'
+import { isUnsplashHotlinkUrl } from '@/lib/unsplash-service'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -272,6 +279,10 @@ async function sealProductCoverPhoto(
   if (!isExternalHttpProductImageUrl(photo.url)) {
     return photo
   }
+  // Unsplash 가이드라인: 핫링크 그대로(재호스팅 금지)
+  if (isUnsplashHotlinkUrl(photo.url)) {
+    return photo
+  }
   const extId = photo.externalId != null ? Number(String(photo.externalId).trim()) : NaN
   const pidFromUrl = extractPexelsPhotoIdFromCdnUrl(photo.url)
   const pexelsPhotoId =
@@ -346,6 +357,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}))
     const productId = body.productId ?? body.id
     const debugMode = body.debug === true
+    const photoChainV2 = isPhotoChainV2Enabled(body)
     if (productId == null) {
       return jsonWithLeakGuard({ success: false, error: 'productId 필요' }, 'travel.process-images.no-id', {
         status: 400,
@@ -542,6 +554,39 @@ export async function POST(req: Request) {
 
     const usage = createPhotoUsage()
     const usedSemanticKeys = new Set<string>()
+    const chainTrace: Array<{ slot: string; tried: string[]; picked: string | null }> = []
+    /** v2: 출처 순서 후보 → Pexels 는 풀 저장(재호스팅), Unsplash 는 핫링크 + 크레딧 */
+    const adoptChainPhoto = async (c: ChainCandidate, label: string): Promise<PhotoResult | null> => {
+      if (c.tier === 'unsplash') {
+        return {
+          url: c.url,
+          source: 'Unsplash',
+          photographer: c.photographer,
+          originalLink: c.originalLink,
+          externalId: c.externalId,
+        }
+      }
+      const saved = await savePhotoFromUrl(prisma, c.url, destination, label, 'Pexels', {
+        photographer: c.photographer,
+        sourceUrl: c.originalLink,
+        sourcePhotoId: c.externalId,
+      })
+      return photoFromPoolSave(saved)
+    }
+    const chainAccept = (extra?: (c: ChainCandidate) => boolean) => (c: ChainCandidate) =>
+      !usage.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId }) && (extra ? extra(c) : true)
+    const runChain = async (
+      slot: string,
+      query: string,
+      label: string,
+      extra?: (c: ChainCandidate) => boolean
+    ): Promise<PhotoResult | null> => {
+      const r = await findStockPhotoByChain(query, { accept: chainAccept(extra) })
+      newFetchCount++
+      const adopted = r.photo ? await adoptChainPhoto(r.photo, label) : null
+      chainTrace.push({ slot, tried: r.tried, picked: adopted ? adopted.source : null })
+      return adopted
+    }
     const slotDebug: Array<{
       day: number
       imageUrl: string
@@ -578,9 +623,14 @@ export async function POST(req: Request) {
         mainPhoto = cachedToResult(cachedMain)
         cacheHitCount++
       } else {
-        const pexelsMain = await fetchPexelsPhotoObject(mainQuery)
-        newFetchCount++
-        if (isPexelsFallbackUrl(pexelsMain.url)) {
+        const chainMain = photoChainV2 ? await runChain('main', mainQuery, mainQuery) : null
+        // v2: 재고 사진이 없을 때만 AI 생성(아래 Gemini 분기)으로 간다
+        const pexelsMain = photoChainV2 ? null : await fetchPexelsPhotoObject(mainQuery)
+        if (!photoChainV2) newFetchCount++
+        if (chainMain) {
+          mainPhoto = chainMain
+          console.log(`[CHAIN] 메인 ${chainMain.source}`)
+        } else if (!pexelsMain || isPexelsFallbackUrl(pexelsMain.url)) {
           const geminiBuffer = await generateImageWithGemini({ prompt: mainQuery })
           if (geminiBuffer) {
             const saved = await savePhotoToPool(prisma, geminiBuffer, destination, mainQuery, 'Gemini', {
@@ -714,6 +764,31 @@ export async function POST(req: Request) {
         const bundleToSave = { ...heroOut.bundle, heroImageUrl: heroOut.photo.url }
         await saveDayHeroResult(prisma, product.id as string, dayNum, bundleToSave)
         console.log(`[HERO] day ${dayNum} ${heroOut.bundle.heroImageSource} → ${photo.url.slice(0, 80)}…`)
+        if (photoChainV2 && heroOut.bundle.heroImageSource === 'gemini') {
+          // v2: AI 는 마지막 — Pexels·Unsplash 를 먼저 본다
+          const stock = await runChain(`day${dayNum}-before-ai`, keywordUsed, `${destination}_${dayNum}`, (c) =>
+            normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url)
+          )
+          if (stock) {
+            photo = stock
+            selectedOrigin = `chain-${stock.source.toLowerCase()}`
+            usage.mark(stock)
+          }
+        }
+      }
+
+      if (!photo && photoChainV2) {
+        const chainKw =
+          normalizeToPlaceName(keywordUsed) || normalizeToPlaceName(sched?.imageKeyword ?? '') || mainQuery
+        const stock = await runChain(`day${dayNum}`, chainKw, `${destination}_${dayNum}`, (c) =>
+          normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url)
+        )
+        if (stock) {
+          photo = stock
+          fallbackUsed = true
+          selectedOrigin = `chain-${stock.source.toLowerCase()}`
+          usage.mark(stock)
+        }
       }
 
       if (!photo) {
@@ -813,6 +888,17 @@ export async function POST(req: Request) {
       if (existing2) continue
       const primaryUrl = schedulePhotos[n]?.photo?.url ?? sched?.imageUrl ?? null
       const query = normalizeToPlaceName(kw2) || kw2
+      if (photoChainV2) {
+        const dayNum2 = typeof sched?.day === 'number' && sched.day > 0 ? sched.day : n + 1
+        const stock2 = await runChain(`day${dayNum2}-slot2`, query, `${destination}_${dayNum2}_slot2`, (c) =>
+          primaryUrl == null || normAssetUrl(c.url) !== normAssetUrl(String(primaryUrl))
+        )
+        if (!stock2) continue
+        usage.mark(stock2)
+        const sealed2 = await sealProductCoverPhoto(prisma, destination, stock2, kw2, stock2.source)
+        scheduleSecondaryPhotos[n] = { photo: sealed2, imageKeyword: kw2 }
+        continue
+      }
       const pexelsPhoto = await fetchPexelsPhotoObject(query)
       const pexelsResult = pexelsToResult(pexelsPhoto)
       const sameAsPrimary =
@@ -964,6 +1050,7 @@ export async function POST(req: Request) {
           heroKeywordSource: heroPick.source,
         },
         slots: slotDebug,
+        ...(photoChainV2 ? { photoChain: 'v2', chain: chainTrace } : {}),
       }
     }
     return jsonWithLeakGuard(response, 'travel.process-images.ok')

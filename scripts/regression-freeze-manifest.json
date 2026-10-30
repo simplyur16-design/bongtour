@@ -29141,6 +29141,39 @@
           ]
         }
       ]
+    },
+    {
+      "id": "register-photo-chain-v2",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사진 자동 채움 v2 — Pexels → Unsplash(크레딧) → CC0(제공자 없음) → AI(표시), 점수·최근 사용 감점·도시 내 돌려쓰기, 대표≠일차, 일차 정책·도시 일치, 기본 꺼짐",
+      "checks": [
+        {
+          "file": "lib/register-photo-source-chain.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-source-chain]",
+            "PHOTO_CHAIN_STOCK_ORDER = ['pexels', 'unsplash', 'cc0']",
+            "cc0:no-provider",
+            "triggerUnsplashDownload",
+            "BONGTOUR_PHOTO_SOURCE_CHAIN"
+          ],
+          "mustNotInclude": [
+            "istockphoto",
+            "CC BY 4"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-source-chain]",
+            "isPhotoChainV2Enabled(body)",
+            "isUnsplashHotlinkUrl(photo.url)",
+            "gatedAutoCoverUpdateData"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -29200,7 +29233,8 @@
         "lib/product-image-stage4.test.ts",
         "lib/unsplash-credit.test.ts",
         "lib/pexels-city-location-filter.test.ts",
-        "lib/register-auto-register-gate.test.ts"
+        "lib/register-auto-register-gate.test.ts",
+        "lib/register-photo-source-chain.test.ts"
       ]
     },
     {
