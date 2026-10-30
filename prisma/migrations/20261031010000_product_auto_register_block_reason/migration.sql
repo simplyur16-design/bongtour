@@ -5,7 +5,7 @@
 --      the columns are covered by the same row policies as the rest of "Product".
 -- Not applied by the agent (no DB write). Apply only after owner approval, after the backup step.
 -- Rollback: rollback.sql in this folder.
--- REGRESSION-FREEZE[register-auto-register-gate]: additive columns only, no GRANT/REVOKE/RLS change — manifest
+-- REGRESSION-FREEZE[register-auto-register-gate]: additive columns only, no grant, no revoke, no RLS change — manifest
 
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "autoRegisterBlockReason" TEXT;
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "autoRegisterCheckedAt" TIMESTAMP(3);
