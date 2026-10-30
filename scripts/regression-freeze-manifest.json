@@ -28730,6 +28730,33 @@
           ]
         }
       ]
+    },
+    {
+      "id": "pexels-city-location-filter-1030",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "10/30 review-01 반려 후속: 대표사진 재검색은 상품 실제 도시만 — Pexels 위치 메타(alt+페이지 slug)에 도시/랜드마크명이 있어야 통과, 위치 정보 없음·호텔/간판/로고/사람 중심 제외, 0건이면 Unsplash(크레딧 필수), 그래도 없으면 현재 사진 유지. 다도시 leaf 별칭 확장 금지.",
+      "checks": [
+        {
+          "file": "lib/pexels-city-location-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-city-location-filter-1030]",
+            "'NO_LOCATION'",
+            "'EXCLUDED_SUBJECT'",
+            "'CITY_MISMATCH'",
+            "if (leaf.nodeLabel.includes('·')) continue"
+          ]
+        },
+        {
+          "file": "scripts/image-batch-city-research.ts",
+          "mustInclude": [
+            "cityLocationVerdict(",
+            "usedIds"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -28787,7 +28814,8 @@
         "lib/product-image-source-policy.test.ts",
         "lib/product-image-auto-register-stage3.test.ts",
         "lib/product-image-stage4.test.ts",
-        "lib/unsplash-credit.test.ts"
+        "lib/unsplash-credit.test.ts",
+        "lib/pexels-city-location-filter.test.ts"
       ]
     },
     {
