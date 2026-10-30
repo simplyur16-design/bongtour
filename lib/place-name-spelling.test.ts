@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  PLACE_NAME_COMMON_VS_STANDARD,
   PLACE_NAME_SPELLING_DICTIONARY,
   PLACE_NAME_SPELLING_PROMPT_RULE,
   buildPlaceNameSpellingReview,
@@ -19,10 +20,20 @@ describe('place-name-spelling dictionary', () => {
       expect(e.variant).not.toBe(e.standard)
     }
   })
-  it('policy names are never certain (나트랑·푸켓·호치민·시엠립)', () => {
-    for (const v of ['나트랑', '푸켓', '호치민', '시엠립']) {
-      const e = PLACE_NAME_SPELLING_DICTIONARY.find((x) => x.variant === v)
-      expect(e?.confidence, v).toBe('uncertain')
+  it('owner 23:44: common names are the standard — never a dictionary variant', () => {
+    for (const v of ['나트랑', '푸켓', '호치민', '씨엠립', '시엠립', '크라비']) {
+      expect(PLACE_NAME_SPELLING_DICTIONARY.find((x) => x.variant === v), v).toBeUndefined()
+    }
+    for (const bad of ['냐짱', '푸껫', '호찌민', '시엠레아프']) {
+      expect(PLACE_NAME_SPELLING_DICTIONARY.some((x) => x.standard === bad), bad).toBe(false)
+    }
+  })
+  it('common-vs-standard pairs are not auto-fixed nor flagged', () => {
+    for (const [a, b] of PLACE_NAME_COMMON_VS_STANDARD) {
+      expect(PLACE_NAME_SPELLING_DICTIONARY.some((x) => x.variant === a && x.confidence === 'certain'), a).toBe(false)
+      expect(normalizePlaceNameSpellingText(a)).toBe(a)
+      expect(normalizePlaceNameSpellingText(b)).toBe(b)
+      expect(detectPlaceNameSpellingFlags([a]).filter((f) => f.type !== 'mixed_spelling'), a).toEqual([])
     }
   })
 })
@@ -32,19 +43,27 @@ describe('normalizePlaceNameSpelling', () => {
     expect(normalizePlaceNameSpellingText('[노보텔 푸꼽옥]')).toBe('[노보텔 푸꾸옥]')
     expect(normalizePlaceNameSpellingText('푸꾸욱자유여행. 자유여행')).toBe('푸꾸옥자유여행. 자유여행')
   })
-  it('Japanese tense consonant / ㅊ→ㅆ rules', () => {
-    expect(normalizePlaceNameSpellingText('북큐슈 기타큐슈 큐슈')).toBe('북규슈 기타큐슈 규슈')
-    expect(normalizePlaceNameSpellingText('마츠야마성 다카마츠 벳부 온천')).toBe('마쓰야마성 다카마쓰 벳푸 온천')
+  it('owner 23:44: 냐짱→나트랑, 푸껫/푸께/푸껓/푸껑→푸켓, 호찌민→호치민', () => {
+    expect(normalizePlaceNameSpellingText('냐짱 빈펄')).toBe('나트랑 빈펄')
+    for (const v of ['푸껫', '푸께', '푸껓', '푸껑']) expect(normalizePlaceNameSpellingText(`${v} 빠똥`)).toBe('푸켓 빠똥')
+    expect(normalizePlaceNameSpellingText('호찌민 시내')).toBe('호치민 시내')
   })
-  it('터키 guard: 튀르키예(터키)·터키항공 untouched, standalone fixed', () => {
-    expect(normalizePlaceNameSpellingText('튀르키예(터키) 터키항공 터키 일주')).toBe('튀르키예(터키) 터키항공 튀르키예 일주')
+  it('display never converts common names into 국립국어원 forms', () => {
+    const s = '나트랑 푸켓 호치민 씨엠립 시엠립 크라비 벳부 큐슈 마츠야마 타이페이 울란바타르 비엔티엔 꾸따 터키'
+    expect(normalizePlaceNameSpellingText(s)).toBe(s)
+    expect(postCheckGeneratedPlaceNames(s).text).toBe(s)
+  })
+  it('Siem Reap: 시엠레아프·씬엠립 flagged only (owner spelling unconfirmed)', () => {
+    expect(normalizePlaceNameSpellingText('시엠레아프 씬엠립')).toBe('시엠레아프 씬엠립')
+    const f = detectPlaceNameSpellingFlags(['시엠레아프 씬엠립'])
+    expect(f.filter((x) => x.type === 'dictionary_uncertain').length).toBe(2)
   })
   it('typos: 효도협·하와리·도톰보리', () => {
     expect(normalizePlaceNameSpellingText('효도협 트레킹')).toBe('호도협 트레킹')
     expect(normalizePlaceNameSpellingText('하와리')).toBe('하와이')
     expect(normalizePlaceNameSpellingText('도톰보리')).toBe('도톤보리')
   })
-  it('uncertain/policy names stay as-is', () => {
+  it('uncertain names stay as-is', () => {
     const s = '나트랑 푸켓 호치민 혼똠섬 테렐지 츠카사'
     expect(normalizePlaceNameSpelling(s).text).toBe(s)
   })
@@ -53,20 +72,20 @@ describe('normalizePlaceNameSpelling', () => {
     expect(normalizePlaceNameSpellingText(s)).toBe(s)
   })
   it('no-op returns identical value; non-string passthrough; digits/prices untouched', () => {
-    const s = '벳부 2박3일 1,290,000원'
-    expect(normalizePlaceNameSpellingText(s)).toBe('벳푸 2박3일 1,290,000원')
+    const s = '효도협 2박3일 1,290,000원'
+    expect(normalizePlaceNameSpellingText(s)).toBe('호도협 2박3일 1,290,000원')
     expect(normalizePlaceNameSpellingText(null)).toBeNull()
     expect(normalizePlaceNameSpellingText(123 as unknown)).toBe(123)
   })
   it('idempotent', () => {
-    const once = normalizePlaceNameSpellingText('벳부 큐슈 비엔티엔 울란바타르')
+    const once = normalizePlaceNameSpellingText('푸꾸욱 냐짱 효도협 하와리 이태리')
     expect(normalizePlaceNameSpellingText(once)).toBe(once)
   })
 })
 
 describe('flags', () => {
-  it('policy, uncertain, suspicious, mixed', () => {
-    const f = detectPlaceNameSpellingFlags(['나트랑 혼똠섬 푸꾸웍 샤먼 하문'])
+  it('uncertain, suspicious, mixed', () => {
+    const f = detectPlaceNameSpellingFlags(['시엠레아프 혼똠섬 푸꾸웍 샤먼 하문'])
     const types = f.map((x) => x.type)
     expect(types).toContain('dictionary_uncertain')
     expect(types).toContain('suspicious_name')
@@ -79,24 +98,26 @@ describe('flags', () => {
 })
 
 describe('post-check + prompt', () => {
-  it('prompt rule forbids invented names and price edits', () => {
+  it('prompt rule: common names, no 국립국어원 forms, no invented names, no price edits', () => {
+    expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/나트랑·푸켓·호치민/)
+    expect(PLACE_NAME_SPELLING_PROMPT_RULE).not.toMatch(/마쓰야마|규슈\)|벳푸/)
     expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/만들거나 추측/)
     expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/가격|금액/)
   })
   it('postCheckGeneratedPlaceNames fixes certain + reports flags', () => {
-    const r = postCheckGeneratedPlaceNames('벳부 지옥온천, 나트랑 해변')
-    expect(r.text).toBe('벳푸 지옥온천, 나트랑 해변')
+    const r = postCheckGeneratedPlaceNames('푸꼽옥 해변, 혼똠섬')
+    expect(r.text).toBe('푸꾸옥 해변, 혼똠섬')
     expect(r.flags.length).toBeGreaterThan(0)
   })
 })
 
 describe('rawMeta review', () => {
   it('deterministic merge, unchanged when equal, removed when null', () => {
-    const review = buildPlaceNameSpellingReview({ title: '벳부 온천', summary: '나트랑' })
-    expect(review?.autoDisplayFixes[0]).toMatchObject({ field: 'title', variant: '벳부', standard: '벳푸' })
+    const review = buildPlaceNameSpellingReview({ title: '효도협 트레킹', summary: '혼똠섬' })
+    expect(review?.autoDisplayFixes[0]).toMatchObject({ field: 'title', variant: '효도협', standard: '호도협' })
     const base = JSON.stringify({ a: 1 })
     const m1 = mergePlaceNameSpellingReviewIntoRawMeta(base, review)
-    expect(mergePlaceNameSpellingReviewIntoRawMeta(m1, buildPlaceNameSpellingReview({ title: '벳부 온천', summary: '나트랑' }))).toBe(m1)
+    expect(mergePlaceNameSpellingReviewIntoRawMeta(m1, buildPlaceNameSpellingReview({ title: '효도협 트레킹', summary: '혼똠섬' }))).toBe(m1)
     expect(parsePlaceNameSpellingReviewFromRawMeta(m1)?.version).toBe('n1-v1')
     expect(JSON.parse(m1).a).toBe(1)
     const cleared = mergePlaceNameSpellingReviewIntoRawMeta(m1, null)

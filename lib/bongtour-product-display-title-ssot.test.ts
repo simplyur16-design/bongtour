@@ -582,8 +582,7 @@ describe('resolvePublicBrowseCardTitle KR departure place', () => {
       '마츠야마/오즈/우치코 역사 도고 온천가 2박 3일',
     )
     expect(r.usedHeroShort).toBe(true)
-    // place-name-spelling-n1: 카드 출력은 표준 표기(마쓰야마), 저장 title 은 공급사 표기 유지
-    expect(r.cardTitle).toBe('마쓰야마 2박 3일')
+    expect(r.cardTitle).toBe('마츠야마 2박 3일')
     expect(r.cardTitle).not.toMatch(/부산/)
   })
 

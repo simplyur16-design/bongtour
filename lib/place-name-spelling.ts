@@ -10,6 +10,8 @@
  * - 가격·숫자는 다루지 않는다(문자열 지명만).
  *
  * 기준 순서(문과장 N1): ① 국립국어원 외래어 표기법·용례 ② 관광청·기관·호텔 공식 한국어 표기 ③ 주요 언론·포털 통용.
+ * 사장님 결정(2026-10-30 23:44): 흔히 쓰는 이름(업계 통용)이 표준. 나트랑·푸켓·호치민은 냐짱·푸껫·호찌민 등으로 바꾸지 않는다.
+ *   통용 vs 국립국어원 표기가 갈리는 쌍은 PLACE_NAME_COMMON_VS_STANDARD(사장님 결정 대기)로 빼고 자동 교정하지 않는다.
  * 단, 외래어 표기법 제4장 제2절 제4항(중국·일본 지명의 한국 한자음 관용 허용: 동경·상해·북경·장가계 등)은 오류로 보지 않는다.
  *
  * 이 파일은 외부 import 없이 동작해야 한다(감사 스크립트가 node 타입 스트립으로 직접 실행).
@@ -40,6 +42,7 @@ const SRC_JA =
 const SRC_ID = 'N1① 외래어 표기법 말레이인도네시아어 표기(된소리 안 씀) https://kornorms.korean.go.kr/regltn/regltnView.do?regltn_code=0003'
 const SRC_DE = 'N1① 외래어 표기법 독일어 표기 https://kornorms.korean.go.kr/regltn/regltnView.do?regltn_code=0003'
 const SRC_KORNORMS = 'N1① 국립국어원 외래어 표기 용례 https://kornorms.korean.go.kr/example/exampleList.do'
+const SRC_OWNER_COMMON = '사장님 결정 2026-10-30 23:44 「흔히 쓰는 이름이 표준」(통용 표기 우선)'
 
 export const PLACE_NAME_SPELLING_DICTIONARY: readonly PlaceNameSpellingEntry[] = [
   // ── 베트남
@@ -48,69 +51,42 @@ export const PLACE_NAME_SPELLING_DICTIONARY: readonly PlaceNameSpellingEntry[] =
   { variant: '푸꾸억', standard: '푸꾸옥', kind: 'place', confidence: 'certain', source: 'N1 예시(푸꾸옥) — 오타' },
   { variant: '푸쿠옥', standard: '푸꾸옥', kind: 'place', confidence: 'certain', source: 'N1 예시(푸꾸옥) — 오타' },
   // ── 라오스
-  { variant: '비엔티엔', standard: '비엔티안', kind: 'place', confidence: 'certain', source: `${SRC_KORNORMS} (Vientiane 비엔티안)` },
   // ── 인도네시아
-  { variant: '울루와뚜', standard: '울루와투', kind: 'landmark', confidence: 'certain', source: SRC_ID },
-  { variant: '꾸따', standard: '쿠타', kind: 'place', confidence: 'certain', source: SRC_ID },
-  { variant: '따만미니', standard: '타만미니', kind: 'landmark', confidence: 'certain', source: SRC_ID },
-  { variant: '쁘람바난', standard: '프람바난', kind: 'landmark', confidence: 'certain', source: SRC_ID },
   // ── 일본
-  { variant: '벳부', standard: '벳푸', kind: 'place', confidence: 'certain', source: `${SRC_JA} · N1② https://www.japan.travel/ko/spot/716/` },
-  { variant: '큐슈', standard: '규슈', kind: 'place', confidence: 'certain', source: `${SRC_JA} · N1② https://www.japan.travel/ko/spot/ma_213/`, notAfter: ['기타'] },
-  { variant: '마츠야마', standard: '마쓰야마', kind: 'place', confidence: 'certain', source: `${SRC_JA} · N1② https://www.japan.travel/ko/destinations/shikoku/ehime/matsuyama-and-around/` },
-  { variant: '마츠에', standard: '마쓰에', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '마츠모토', standard: '마쓰모토', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '다카마츠', standard: '다카마쓰', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '타카마츠', standard: '다카마쓰', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '카츠야마', standard: '가쓰야마', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '사츠마', standard: '사쓰마', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '노보리베츠', standard: '노보리베쓰', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '도게츠교', standard: '도게쓰교', kind: 'landmark', confidence: 'certain', source: SRC_JA },
-  { variant: '시코츠', standard: '시코쓰', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '유노츠보', standard: '유노쓰보', kind: 'landmark', confidence: 'certain', source: SRC_JA },
-  { variant: '가츠라하마', standard: '가쓰라하마', kind: 'landmark', confidence: 'certain', source: SRC_JA },
-  { variant: '미츠코시', standard: '미쓰코시', kind: 'brand', confidence: 'certain', source: SRC_JA },
-  { variant: '미츠이', standard: '미쓰이', kind: 'brand', confidence: 'certain', source: SRC_JA },
-  { variant: '쿠로가와', standard: '구로카와', kind: 'place', confidence: 'certain', source: SRC_JA },
   { variant: '카고시마', standard: '가고시마', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '쿠마모토', standard: '구마모토', kind: 'place', confidence: 'certain', source: SRC_JA },
   { variant: '타카야마', standard: '다카야마', kind: 'place', confidence: 'certain', source: SRC_JA },
   { variant: '카나자와', standard: '가나자와', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '키타큐슈', standard: '기타큐슈', kind: 'place', confidence: 'certain', source: SRC_JA },
   { variant: '훗카이도', standard: '홋카이도', kind: 'place', confidence: 'certain', source: SRC_JA },
   { variant: '삿뽀로', standard: '삿포로', kind: 'place', confidence: 'certain', source: SRC_JA },
   { variant: '유휴인', standard: '유후인', kind: 'place', confidence: 'certain', source: SRC_JA },
-  { variant: '유니버셜', standard: '유니버설', kind: 'brand', confidence: 'certain', source: 'N1② 유니버설 스튜디오 재팬 공식 한국어 https://www.usj.co.jp/web/ko/kr', notBefore: [] },
   // ── 중국 (한자음 관용은 허용 — 오타만)
   { variant: '효도협', standard: '호도협', kind: 'landmark', confidence: 'certain', source: 'N1① 虎跳峽 한자음 호도협(제4장 제2절 제4항 관용) — 효/호 오타' },
   // ── 유럽·튀르키예
   { variant: '이태리', standard: '이탈리아', kind: 'country', confidence: 'certain', source: `${SRC_KORNORMS} (Italia 이탈리아; 이태리는 음역 비표준)` },
-  { variant: '터키', standard: '튀르키예', kind: 'country', confidence: 'certain', source: 'N1② 외교부 국명 변경(2022) 튀르키예', notBefore: ['항공', '석', ')'], notAfter: ['튀르키예(', '('] },
-  { variant: '돌로미테', standard: '돌로미티', kind: 'place', confidence: 'certain', source: `${SRC_KORNORMS} (Dolomiti 돌로미티)` },
-  { variant: '쉔부른', standard: '쇤브룬', kind: 'landmark', confidence: 'certain', source: `${SRC_KORNORMS} (Schönbrunn 쇤브룬)` },
   { variant: '잘츠캄머구트', standard: '잘츠카머구트', kind: 'place', confidence: 'certain', source: SRC_DE },
   { variant: '짤츠부르크', standard: '잘츠부르크', kind: 'place', confidence: 'certain', source: SRC_DE },
   { variant: '하이델베르그', standard: '하이델베르크', kind: 'place', confidence: 'certain', source: SRC_DE },
   { variant: '노이슈반스타인', standard: '노이슈반슈타인', kind: 'landmark', confidence: 'certain', source: SRC_DE },
   { variant: '몽생미쉘', standard: '몽생미셸', kind: 'landmark', confidence: 'certain', source: SRC_KORNORMS },
-  { variant: '두브로브닉', standard: '두브로브니크', kind: 'place', confidence: 'certain', source: SRC_KORNORMS, notBefore: ['크'] },
-  { variant: '블라디보스톡', standard: '블라디보스토크', kind: 'place', confidence: 'certain', source: SRC_KORNORMS },
-  { variant: '울란바타르', standard: '울란바토르', kind: 'place', confidence: 'certain', source: SRC_KORNORMS },
-  { variant: '타이페이', standard: '타이베이', kind: 'place', confidence: 'certain', source: `${SRC_KORNORMS} (Taipei 타이베이) · N1② 대만관광청 표기 타이베이` },
   { variant: '오끼나와', standard: '오키나와', kind: 'place', confidence: 'certain', source: SRC_JA },
   { variant: '도톰보리', standard: '도톤보리', kind: 'landmark', confidence: 'certain', source: `${SRC_JA} — 오타` },
   { variant: '마추피추', standard: '마추픽추', kind: 'landmark', confidence: 'certain', source: `${SRC_KORNORMS} (Machu Picchu 마추픽추)` },
-  { variant: '씨엠립', standard: '시엠레아프', kind: 'place', confidence: 'uncertain', policy: true, source: `${SRC_KORNORMS} (Siem Reap 시엠레아프) vs N1③ 통용 시엠립`, note: '정책 결정 필요(최소 시엠립으로 통일)' },
   { variant: '하와리', standard: '하와이', kind: 'place', confidence: 'certain', source: `${SRC_KORNORMS} (Hawaii 하와이) — 오타` },
   { variant: '포르토', standard: '포르투', kind: 'place', confidence: 'uncertain', source: `${SRC_KORNORMS} (Porto 포르투) — 포르토피노 등 다른 지명과 혼동 우려로 확인 필요`, note: '리스본과 함께 쓰이면 포르투' },
   { variant: '싱가폴', standard: '싱가포르', kind: 'country', confidence: 'certain', source: SRC_KORNORMS },
 
+  // ── 사장님 결정 2026-10-30 23:44 「흔히 쓰는 나트랑·푸켓·호치민·씬엠립으로 통일」 — 통용 표기가 표준
+  { variant: '냐짱', standard: '나트랑', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
+  { variant: '푸껫', standard: '푸켓', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
+  { variant: '푸께', standard: '푸켓', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
+  { variant: '푸껓', standard: '푸켓', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
+  { variant: '푸껑', standard: '푸켓', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
+  { variant: '호찌민', standard: '호치민', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
+  // 씨엠립(Siem Reap): 사장님 지시 표기 「씬엠립」은 웹·업계·우리 DB 사용례 0건 → 오타 가능성. 확정 전까지 자동 교정 안 함.
+  { variant: '시엠레아프', standard: '씨엠립', kind: 'place', confidence: 'uncertain', policy: true, source: `${SRC_OWNER_COMMON} · N1③ 업계 통용 씨엠립/시엠립(하나투어·모두투어)`, note: '사장님 지시 「씬엠립」 사용례 0건 — 씨엠립인지 확인 필요(확정 시 certain 전환)' },
+  { variant: '씬엠립', standard: '씨엠립', kind: 'place', confidence: 'uncertain', policy: true, source: 'N1③ 사용례 0건(웹·업계·우리 DB) — 확인 필요', note: '사장님 지시 표기 — 오타 여부 확인 필요' },
+
   // ── uncertain: 교정하지 않고 플래그만
-  { variant: '나트랑', standard: '냐짱', kind: 'place', confidence: 'uncertain', policy: true, source: `${SRC_KORNORMS} (Nha Trang 냐짱) vs N1③ 통용 나트랑`, note: '국립국어원 표기는 냐짱이나 업계·포털 통용은 나트랑 — 사장님 정책 결정 필요' },
-  { variant: '푸켓', standard: '푸껫', kind: 'place', confidence: 'uncertain', policy: true, source: `${SRC_KORNORMS} (Phuket 푸껫) vs N1③ 통용 푸켓`, note: '정책 결정 필요' },
-  { variant: '호치민', standard: '호찌민', kind: 'place', confidence: 'uncertain', policy: true, source: `${SRC_KORNORMS} (Ho Chi Minh 호찌민) vs N1③ 통용 호치민`, note: '정책 결정 필요' },
-  { variant: '시엠립', standard: '시엠레아프', kind: 'place', confidence: 'uncertain', policy: true, source: `${SRC_KORNORMS} (Siem Reap 시엠레아프) vs N1③ 통용 시엠립`, note: '정책 결정 필요' },
-  { variant: '크라비', standard: '끄라비', kind: 'place', confidence: 'uncertain', policy: true, source: 'N1① 외래어 표기법 타이어 표기(Krabi 끄라비) vs N1③ 통용 크라비', note: '정책 결정 필요' },
   { variant: '혼똠섬', standard: '혼똔섬', kind: 'place', confidence: 'uncertain', source: 'N1 「한 글 안 같은 표기」 — Hòn Thơm, 상품 대부분 혼똔섬 사용', note: '표준 표기 확인 안 됨(규칙상 혼텀) — 통일 방향만 제안' },
   { variant: '테렐지', standard: '테를지', kind: 'place', confidence: 'uncertain', source: 'N1③ 통용 표기 혼재(Terelj) — 확인 필요', note: '표준 표기 확인 안 됨' },
   { variant: '터키항공', standard: '튀르키예항공', kind: 'brand', confidence: 'uncertain', source: 'N1② 항공사 공식 한국어 상호 확인 필요(Turkish Airlines)', note: '항공사 상호는 국명 변경과 별개일 수 있음' },
@@ -118,6 +94,45 @@ export const PLACE_NAME_SPELLING_DICTIONARY: readonly PlaceNameSpellingEntry[] =
   { variant: '오오츠리바시', standard: '오쓰리바시', kind: 'landmark', confidence: 'uncertain', source: `${SRC_JA} (장음 미표기) — 확인 필요` },
   { variant: '츠카사', standard: '쓰카사', kind: 'hotel', confidence: 'uncertain', source: 'N1 호텔명은 공식 한국어 표기 우선 — 공식 표기 확인 안 됨' },
   { variant: '후게츠', standard: '후게쓰', kind: 'hotel', confidence: 'uncertain', source: 'N1 호텔명은 공식 한국어 표기 우선 — 공식 표기 확인 안 됨' },
+]
+
+/**
+ * 통용 표기(a, 여행업계) vs 국립국어원 표기(b) — 사장님 결정 대기. 자동 교정·플래그 모두 하지 않음(둘 다 허용).
+ * 근거·건수: /workspace/live/name-spelling-1030/common-vs-standard-for-owner.csv
+ */
+export const PLACE_NAME_COMMON_VS_STANDARD: readonly (readonly [string, string])[] = [
+  ['벳부', '벳푸'],
+  ['큐슈', '규슈'],
+  ['마츠야마', '마쓰야마'],
+  ['마츠에', '마쓰에'],
+  ['마츠모토', '마쓰모토'],
+  ['다카마츠', '다카마쓰'],
+  ['타카마츠', '다카마쓰'],
+  ['카츠야마', '가쓰야마'],
+  ['사츠마', '사쓰마'],
+  ['노보리베츠', '노보리베쓰'],
+  ['도게츠교', '도게쓰교'],
+  ['시코츠', '시코쓰'],
+  ['유노츠보', '유노쓰보'],
+  ['가츠라하마', '가쓰라하마'],
+  ['미츠코시', '미쓰코시'],
+  ['미츠이', '미쓰이'],
+  ['쿠로가와', '구로카와'],
+  ['쿠마모토', '구마모토'],
+  ['키타큐슈', '기타큐슈'],
+  ['비엔티엔', '비엔티안'],
+  ['울루와뚜', '울루와투'],
+  ['꾸따', '쿠타'],
+  ['따만미니', '타만미니'],
+  ['쁘람바난', '프람바난'],
+  ['유니버셜', '유니버설'],
+  ['터키', '튀르키예'],
+  ['돌로미테', '돌로미티'],
+  ['쉔부른', '쇤브룬'],
+  ['블라디보스톡', '블라디보스토크'],
+  ['울란바타르', '울란바토르'],
+  ['타이페이', '타이베이'],
+  ['두브로브닉', '두브로브니크'],
 ]
 
 /** 한 글 안 혼용 검사(둘 다 허용 표기라도 섞이면 플래그) — 외래어 표기법 제4장 제2절 제4항 관용 쌍 */
@@ -140,6 +155,7 @@ export const PLACE_NAME_CONSISTENCY_PAIRS: readonly (readonly [string, string])[
   ['규슈', '큐슈'],
   ['벳푸', '벳부'],
   ['마쓰야마', '마츠야마'],
+  ['씨엠립', '시엠립'],
 ]
 
 /** 의심 이름 탐지용 표준 지명 목록(사전 표준값 + 자주 쓰는 목적지). 존재하는 표준 표기만. */
@@ -148,7 +164,7 @@ export const PLACE_NAME_GAZETTEER: readonly string[] = [
   '방콕', '파타야', '치앙마이', '치앙라이', '푸켓', '끄라비', '크라비', '코사무이', '아유타야', '후아힌',
   '세부', '보홀', '보라카이', '마닐라', '팔라완', '클락', '코타키나발루', '쿠알라룸푸르', '말라카', '랑카위', '페낭', '겐팅',
   '싱가포르', '센토사', '발리', '우붓', '스미냑', '누사두아', '울루와투', '자카르타', '족자카르타', '마나도', '부나켄',
-  '비엔티안', '방비엥', '루앙프라방', '시엠립', '앙코르와트', '프놈펜',
+  '비엔티안', '방비엥', '루앙프라방', '시엠립', '씨엠립', '앙코르와트', '프놈펜',
   '오사카', '교토', '고베', '나라', '도쿄', '요코하마', '하코네', '후쿠오카', '유후인', '벳푸', '구마모토', '가고시마',
   '나가사키', '사세보', '미야자키', '오이타', '기타큐슈', '규슈', '삿포로', '오타루', '하코다테', '홋카이도', '후라노', '비에이',
   '노보리베쓰', '오키나와', '나하', '나고야', '가나자와', '다카야마', '시라카와고', '도야마', '마쓰야마', '다카마쓰', '시코쿠',
@@ -269,7 +285,10 @@ export function normalizePlaceNameSpellingText<T>(v: T): T {
 
 const GAZ_SET = new Set(PLACE_NAME_GAZETTEER)
 const STANDARD_SET = new Set([...PLACE_NAME_GAZETTEER, ...PLACE_NAME_SPELLING_DICTIONARY.map((e) => e.standard)])
-const VARIANT_SET = new Set(PLACE_NAME_SPELLING_DICTIONARY.map((e) => e.variant))
+const VARIANT_SET = new Set([
+  ...PLACE_NAME_SPELLING_DICTIONARY.map((e) => e.variant),
+  ...PLACE_NAME_COMMON_VS_STANDARD.flat(),
+])
 
 /** 지명 뒤에 붙는 흔한 꼬리말(띄어쓰기 없는 제목 대응) */
 const SUSPICIOUS_TAIL_RE =
@@ -339,8 +358,9 @@ export function detectPlaceNameSpellingFlags(texts: readonly (string | null | un
 
 /** Gemini 생성 프롬프트에 붙이는 규칙(추천일정·핵심포인트 정리본·요약·제목) */
 export const PLACE_NAME_SPELLING_PROMPT_RULE = `[지명·호텔명 표기 규칙 — 필수]
-- 지명·호텔명·명소명은 표준 한국어 표기를 쓴다(국립국어원 외래어 표기법·관광청·호텔 공식 한국어 표기). 예: 푸꼽옥(X) → 푸꾸옥, 마츠야마(X) → 마쓰야마, 큐슈(X) → 규슈, 벳부(X) → 벳푸.
-- 원문에 없는 지명·호텔명·명소명을 새로 만들거나 추측해서 쓰지 않는다. 표준 표기를 모르면 원문 표기 그대로 쓴다.
+- 지명·호텔명·명소명은 한국 여행업계에서 흔히 쓰는 표기를 쓴다(예: 나트랑·푸켓·호치민·푸꾸옥). 냐짱·푸껫·호찌민·시엠레아프처럼 낯선 표기로 바꾸지 않는다.
+- 명백한 오타만 바로잡는다(예: 푸꼽옥 → 푸꾸옥, 효도협 → 호도협). 그 밖의 표기는 원문 표기를 그대로 쓴다.
+- 원문에 없는 지명·호텔명·명소명을 새로 만들거나 추측해서 쓰지 않는다.
 - 한 결과물 안에서 같은 이름은 같은 표기로 쓴다.
 - 가격·금액·숫자는 원문 그대로 두고 바꾸거나 추정하지 않는다.`
 
@@ -348,7 +368,7 @@ export const PLACE_NAME_SPELLING_PROMPT_RULE = `[지명·호텔명 표기 규칙
 export const PLACE_NAME_SPELLING_HIGHLIGHT_PROMPT_RULE = `
 지명·호텔명 표기:
 - highlightPointsRaw는 공급사 원문 표기 그대로 둔다(고치지 않음).
-- highlightPoints에서는 지명·호텔명을 표준 한국어 표기로 쓴다(예: 푸꼽옥→푸꾸옥, 마츠야마→마쓰야마). 표준 표기를 모르면 원문 표기 그대로 쓰고, 원문에 없는 이름은 만들지 않는다.
+- highlightPoints에서는 업계 통용 표기를 쓰고 명백한 오타만 바로잡는다(예: 푸꼽옥→푸꾸옥). 나트랑·푸켓·호치민을 냐짱·푸껫·호찌민으로 바꾸지 않는다. 그 밖에는 원문 표기 그대로 쓰고, 원문에 없는 이름은 만들지 않는다.
 `
 
 /** Gemini 출력 사후 검사: certain 교정 + 플래그 */
