@@ -29074,6 +29074,73 @@
           ]
         }
       ]
+    },
+    {
+      "id": "register-auto-register-gate",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록대기 사진 자동 채움 → 자동 검사 → registered 재연결 — 스위치 기본 꺼짐, 관리자 게이트 동일, 실패=사유만, 셀프힐과 분리",
+      "checks": [
+        {
+          "file": "lib/register-auto-register-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-auto-register-gate]",
+            "isRegisterPendingPhotosReady",
+            "verifyRegisterPrePhotoForStoredProduct",
+            "AUTO_REGISTER_CARD_MAX_BYTES = 200_000",
+            "AUTO_REGISTER_DETAIL_MAX_BYTES = 400_000",
+            "no_bookable_price",
+            "photo_needed",
+            "cover_day_duplicate"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-auto-register-gate]",
+            "BONGTOUR_AUTO_PHOTO_FILL",
+            "BONGTOUR_AUTO_REGISTER_FLIP",
+            "=== '1'",
+            "if (sw.flip)",
+            "registrationStatus: 'pending'"
+          ],
+          "mustNotInclude": [
+            "minBookableAdultPrice: true",
+            "priceFrom"
+          ]
+        },
+        {
+          "file": "app/api/cron/register-auto-photo-register/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-auto-register-gate]",
+            "isAuthorizedCronRequest",
+            "status: 202"
+          ]
+        },
+        {
+          "file": "prisma/migrations/20261031010000_product_auto_register_block_reason/migration.sql",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-auto-register-gate]",
+            "GRANT: none",
+            "RLS: unchanged"
+          ],
+          "mustNotInclude": [
+            "GRANT SELECT",
+            "REVOKE",
+            "ENABLE ROW LEVEL SECURITY",
+            "CREATE POLICY"
+          ]
+        },
+        {
+          "file": "lib/register-auto-register-gate.test.ts",
+          "mustInclude": [
+            "all switches are off by default",
+            "byte limits"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -29132,7 +29199,8 @@
         "lib/product-image-auto-register-stage3.test.ts",
         "lib/product-image-stage4.test.ts",
         "lib/unsplash-credit.test.ts",
-        "lib/pexels-city-location-filter.test.ts"
+        "lib/pexels-city-location-filter.test.ts",
+        "lib/register-auto-register-gate.test.ts"
       ]
     },
     {
