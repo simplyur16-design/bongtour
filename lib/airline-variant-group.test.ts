@@ -178,3 +178,13 @@ describe('airline-variant-group (설계 C + 항공사별 가격)', () => {
     expect(c.moreCount).toBe(2)
   })
 })
+
+describe('VZ 비엣젯 타일랜드 — 출발 회차 항공사 라벨 (표시 전용)', () => {
+  it('VZ 편명·타이비엣젯(항공) 원문 → 비엣젯 타일랜드, VJ 는 비엣젯항공', () => {
+    expect(departureCarrierPublicLabel({ carrierName: '타이비엣젯', outboundFlightNo: 'VZ0851' })).toBe('비엣젯 타일랜드')
+    expect(departureCarrierPublicLabel({ carrierName: '타이비엣젯항공' })).toBe('비엣젯 타일랜드')
+    expect(departureCarrierPublicLabel({ carrierName: '', outboundFlightNo: 'VZ0851' })).toBe('비엣젯 타일랜드')
+    expect(departureCarrierPublicLabel({ carrierName: '비엣젯항공', outboundFlightNo: 'VJ0979' })).toBe('비엣젯항공')
+    expect(departureCarrierPublicLabel({ carrierName: '', outboundFlightNo: 'VJ0979' })).toBe('비엣젯항공')
+  })
+})

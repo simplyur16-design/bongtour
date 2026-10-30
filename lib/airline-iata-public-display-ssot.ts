@@ -23,6 +23,8 @@ export const AIRLINE_IATA_KO_PUBLIC: Readonly<Record<string, string>> = {
   TG: '타이항공',
   VN: '베트남항공',
   VJ: '비엣젯항공',
+  // REGRESSION-FREEZE[airline-vz-vietjet-thailand]: VZ = 비엣젯 타일랜드 (사장님 10/31 00:17, 표시 전용) — ssot test
+  VZ: '비엣젯 타일랜드',
   PR: '필리핀항공',
   CX: '캐세이퍼시픽',
   KA: '캐세이드래곤',
@@ -90,11 +92,23 @@ export function canonicalizePublicAirlineKo(raw: string): string {
     .replace(/T['’]?\s*way(?:\s*Air)?/gi, '트리니티항공')
 }
 
+/**
+ * 표시 전용 별칭 — 공급사 파싱·저장 경로(canonicalizePublicAirlineKo)에는 쓰지 않음.
+ * 사장님 10/31 00:17 "VZ는 비엣젯 타일랜드로" — 타이비엣젯 / 타이비엣젯항공(코드 없는 행 포함) → 비엣젯 타일랜드. VJ(비엣젯항공)는 그대로.
+ * REGRESSION-FREEZE[airline-vz-vietjet-thailand]: display-only alias — ssot test
+ */
+const THAI_VIETJET_DISPLAY_RE = /타이\s*비엣젯(?:\s*항공)?/g
+export const VIETJET_THAILAND_PUBLIC_KO = '비엣젯 타일랜드'
+
+export function applyDisplayOnlyAirlineAliases(label: string): string {
+  return String(label ?? '').replace(THAI_VIETJET_DISPLAY_RE, VIETJET_THAILAND_PUBLIC_KO)
+}
+
 /** 히어로 항공 줄 — `TW` → `트리니티항공` (구 티웨이명도 정규화) */
 export function formatPublicAirlineDisplay(raw: string | null | undefined): string | null {
   const s = String(raw ?? '').trim()
   if (!s) return null
-  if (/[가-힣]{2,}/.test(s)) return canonicalizePublicAirlineKo(s)
+  if (/[가-힣]{2,}/.test(s)) return applyDisplayOnlyAirlineAliases(canonicalizePublicAirlineKo(s))
   const bare = s.toUpperCase().match(/^(?:[A-Z]{2}|[A-Z]\d|\d[A-Z])$/)?.[0]
   if (bare) {
     const ko = airlineIataToKoPublic(bare)
