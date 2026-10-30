@@ -116,9 +116,13 @@ describe('backfill plan (dry-run classification)', () => {
     expect(classifyBackfillRow({ ...row, bgImageWidth: null }).action).toBe('measure_width')
     expect(classifyBackfillRow({ ...row, bgImageWidth: null }, 2000).action).toBe('ok')
     expect(classifyBackfillRow({ ...row, bgImageUrl: ISTOCK, bgImageSource: 'istock', bgImageWidth: 500 }).action).toBe('keep_existing_istock')
-    expect(classifyBackfillRow({ ...row, bgImageSource: 'photo_owned', bgImageUrl: 'https://x/own.webp' }).action).toBe('owner_decision_own_photo')
-    expect(classifyBackfillRow({ ...row, bgImageSource: 'gemini_auto', bgImageUrl: 'https://x/g.webp', bgImageIsGenerated: false }).action).toBe('set_ai_label')
-    expect(classifyBackfillRow({ ...row, bgImageSource: 'gemini_auto', bgImageUrl: 'https://x/g.webp', bgImageIsGenerated: true }).action).toBe('owner_decision_ai_prompt')
+    // 자체 사진: 허용 목록 7장만 유지, 목록 밖 photo_owned 는 출처 밖 → 교체 대상
+    expect(classifyBackfillRow({ ...row, bgImageSource: 'photo_owned', bgImageUrl: 'https://x/own.webp' }).action).toBe('replace_cover')
+    expect(classifyBackfillRow({ ...row, bgImageSource: 'gemini_auto', bgImageUrl: 'https://x/g.webp', bgImageIsGenerated: false }).action).toBe('ai_missing_record')
+    expect(classifyBackfillRow({ ...row, bgImageSource: 'gemini_auto', bgImageUrl: 'https://x/g.webp', bgImageIsGenerated: true }).action).toBe('ai_missing_record')
+    expect(
+      classifyBackfillRow({ ...row, bgImageSource: 'gemini_auto', bgImageUrl: 'https://x/g.webp', bgImageIsGenerated: true, bgImageAiPrompt: 'Da Nang beach' }).action
+    ).toBe('ok')
     expect(classifyBackfillRow({ ...row, bgImageSource: 'photopool', bgImageUrl: 'https://x/p.webp' }).action).toBe('replace_cover')
   })
   it('writes only image fields, never credit fields', () => {
@@ -127,7 +131,9 @@ describe('backfill plan (dry-run classification)', () => {
   })
   it('script is dry-run by default and backs up before writing', () => {
     const src = fs.readFileSync('scripts/image-policy-backfill.ts', 'utf8')
-    expect(src).toContain("(has('--apply') ? apply() : dryRun())")
+    expect(src).toContain("return has('--apply') ? apply() : dryRun()")
+    // 공개 중 배치 쓰기는 문과장 승인 파일 확인 뒤에만
+    expect(src.indexOf('checkApprovedBatch(reviewText')).toBeLessThan(src.lastIndexOf('prisma.product.update'))
     expect(src).toContain("IMAGE_BACKFILL_CONFIRM ?? '') !== 'YES'")
     expect(src.indexOf('fs.writeFileSync(backupFile')).toBeLessThan(src.indexOf('prisma.product.update'))
   })

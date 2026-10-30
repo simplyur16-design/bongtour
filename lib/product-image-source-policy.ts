@@ -11,6 +11,12 @@
  * - 이미 bongtour.com에 붙어 있는 iStock(사장님 구매분)은 허용 목록(EXISTING_ISTOCK_IMAGE_KEYS)으로만 예외 통과. 새 iStock·CC BY는 계속 금지.
  * - 가로폭을 모르면 통과가 아니라 'T1-RES-UNKNOWN'(확인 필요).
  * REGRESSION-FREEZE[product-image-source-policy-1030]: 출처 기록 불필요·기존 iStock 허용 목록·가로폭 미상=확인 필요 — manifest
+ *
+ * 2026-10-30 19:34 KST 사장님 지시("자체 사진 7장 허용해" / "AI 표시 칸 추가해" / pkg-yb-0004 940px iStock 유지):
+ * - 봉투어 자체 사진 7장은 허용 목록(OWNED_BONGTOUR_IMAGE_KEYS)으로 'owned' 출처 통과(크레딧 불필요). 새 자체/수동 업로드는 목록 추가 전까지 출처 밖.
+ * - 사장님이 유지하기로 한 사진(기존 iStock·자체 사진 7장)은 가로폭 검사 예외(ownerKeptLowRes 로만 표시, 교체 대상 아님).
+ * - 생성 이미지는 생성 표시(bgImageIsGenerated=true) + prompt 기록(bgImageAiPrompt) 둘 다 있어야 통과.
+ * REGRESSION-FREEZE[product-image-stage4-1030]: 자체 사진 7장 허용 목록·사장님 유지 사진 가로폭 예외·생성=표시+prompt — manifest
  */
 import { inferSourceKeyFromImageUrl } from '@/lib/product-image-source-attribution'
 
@@ -37,6 +43,8 @@ export type ImagePolicyFailCode =
   | 'L2-ISTOCK'
   | 'L2-CC-BY'
   | 'L3-GEN-NO-RECORD'
+  /** 생성 이미지인데 생성 표시(bgImageIsGenerated)가 꺼짐 */
+  | 'L3-GEN-FLAG-OFF'
   | 'T1-RES'
   /** 가로폭을 모름 → 통과 아님, 측정(헤더/메타데이터) 후 재판정 */
   | 'T1-RES-UNKNOWN'
@@ -44,8 +52,10 @@ export type ImagePolicyFailCode =
 
 export type ImagePolicyResult = {
   /** 'istock_existing' = 허용 목록에 있는 기존 iStock(유지만, 새 후보로 고르지 않음) */
-  tier: ImageSourceTier | 'istock_existing' | null
+  tier: ImageSourceTier | 'istock_existing' | 'owned' | null
   pass: boolean
+  /** 사장님 유지 사진(기존 iStock·자체 사진)이 1200px 미만 — 예외 통과, 정보 표시만 */
+  ownerKeptLowRes: boolean
   fails: ImagePolicyFailCode[]
   /** 공개 화면 크레딧: 라이선스상 의무일 때만 true (Pexels·Unsplash·CC0는 의무 아님) */
   creditRequired: boolean
@@ -74,12 +84,37 @@ export const EXISTING_ISTOCK_IMAGE_KEYS: readonly string[] = [
   'photo-pool/primary_hero_manual-upload__1f51d6ca2f3cf344.webp', // fit-mt-0018
 ] as const
 
-/** 이미지 URL → 저장 파일 키(버킷 뒤 경로, 쿼리 제거) */
+/**
+ * 봉투어 자체 사진 허용 목록 — 2026-10-30 KST 운영 DB(읽기 전용, 18:39 스냅샷)에서 bgImageSource='photo_owned'(6)·'manual'(1)로
+ * 대표 사진에 붙어 있던 7개 상품의 저장 파일 키(디코딩된 경로). 사장님 19:34 "자체 사진 7장 허용해".
+ * 목록에 추가하려면 사장님 확인 후 코드 변경으로만.
+ */
+export const OWNED_BONGTOUR_IMAGE_KEYS: readonly string[] = [
+  'photo-pool/남부_레이카비크_블루라군_primary_hero_manual-upload__mr3ak5q0.webp', // pkg-mt-0161
+  'photo-pool/밍글링_투어_Light_밍글링_타임_외_primary_hero_manual-upload__mrg383yd.webp', // pkg-hn-0046
+  'photo-pool/밍글링_투어_Light_밍글링_타임_외_primary_hero_manual-upload__mrg2r3sf.webp', // pkg-hn-0045
+  'photo-pool/나트랑_해적_호핑_DAY2_manual-upload__ms40u251.webp', // pkg-hn-0073 (manual)
+  'photo-pool/미지정_primary_hero_manual-upload__mrkdlqza.webp', // pkg-yb-0054
+  'photo-pool/오키나와_미야코지마_외_9도시_primary_hero_manual-upload__mr7sw0di.webp', // pkg-mt-0171 (640px)
+  'photo-pool/미야코지마_토오리이케_외_7도시_primary_hero_manual-upload__mr7uegf6.webp', // fit-mt-0050 (640px)
+] as const
+
+/** 이미지 URL → 저장 파일 키(버킷 뒤 경로, 쿼리 제거, %인코딩 풀기) */
 export function imageStorageKeyFromUrl(url: string | null | undefined): string {
   const raw = String(url ?? '').trim().split('?')[0]?.split('#')[0] ?? ''
   if (!raw) return ''
   const m = raw.match(/^https?:\/\/[^/]+\/(?:bongtour\/)?(.+)$/i)
-  return (m ? m[1] : raw).replace(/^\/+/, '')
+  const key = (m ? m[1] : raw).replace(/^\/+/, '')
+  try {
+    return decodeURIComponent(key).normalize('NFC')
+  } catch {
+    return key
+  }
+}
+
+export function isOwnedBongtourImage(url: string | null | undefined): boolean {
+  const key = imageStorageKeyFromUrl(url)
+  return !!key && OWNED_BONGTOUR_IMAGE_KEYS.some((k) => k.normalize('NFC') === key)
 }
 
 export function isExistingIstockImage(url: string | null | undefined): boolean {
@@ -124,24 +159,35 @@ export function evaluateImageCandidatePolicy(c: ImageCandidate): ImagePolicyResu
   const fails: ImagePolicyFailCode[] = []
   const tier = resolveImageSourceTier(c)
   const istockExisting = tier === 'istock' && isExistingIstockImage(c.url)
+  const owned = !istockExisting && isOwnedBongtourImage(c.url)
+  const ownerKept = istockExisting || owned
   if (tier === 'istock' && !istockExisting) fails.push('L2-ISTOCK')
-  else if (tier === null) fails.push('L2-OTHER-SOURCE')
-  if (!istockExisting && isAttributionRequiredLicense(c.license)) fails.push('L2-CC-BY')
+  else if (tier === null && !owned) fails.push('L2-OTHER-SOURCE')
+  if (!ownerKept && isAttributionRequiredLicense(c.license)) fails.push('L2-CC-BY')
   // Pexels·Unsplash·CC0: 출처 기록(ID·원본링크·작가) 없어도 불합격 아님 (사장님 2026-10-30)
-  if (tier === 'generated' && !String(c.prompt ?? '').trim()) fails.push('L3-GEN-NO-RECORD')
+  // 생성 이미지: 생성 표시 + prompt 기록 둘 다 있어야 통과 (사장님 2026-10-30 19:34 "AI 표시 칸 추가해")
+  if (!owned && tier === 'generated') {
+    if (!String(c.prompt ?? '').trim()) fails.push('L3-GEN-NO-RECORD')
+    if (c.isGenerated !== true) fails.push('L3-GEN-FLAG-OFF')
+  }
+  let ownerKeptLowRes = false
   if (typeof c.width === 'number' && c.width > 0) {
-    if (c.width < MIN_WIDTH) fails.push('T1-RES')
-  } else {
+    if (c.width < MIN_WIDTH) {
+      if (ownerKept) ownerKeptLowRes = true // 사장님 유지 결정(pkg-yb-0004 940px 등) — 교체 대상 아님
+      else fails.push('T1-RES')
+    }
+  } else if (!ownerKept) {
     fails.push('T1-RES-UNKNOWN')
   }
   if (!String(c.url ?? '').trim()) fails.push('T4-LINK')
   const okTier = tier === 'pexels' || tier === 'unsplash' || tier === 'cc0' || tier === 'generated'
   return {
-    tier: istockExisting ? 'istock_existing' : okTier ? (tier as ImageSourceTier) : null,
+    tier: istockExisting ? 'istock_existing' : owned ? 'owned' : okTier ? (tier as ImageSourceTier) : null,
     pass: fails.length === 0,
+    ownerKeptLowRes,
     fails,
     creditRequired: false,
-    aiLabelRequired: tier === 'generated',
+    aiLabelRequired: !owned && tier === 'generated',
   }
 }
 
@@ -149,7 +195,7 @@ export function evaluateImageCandidatePolicy(c: ImageCandidate): ImagePolicyResu
 export function orderImageCandidatesByPolicy<T extends ImageCandidate>(cands: readonly T[]): T[] {
   const rank = (c: T) => {
     const r = evaluateImageCandidatePolicy(c)
-    const t = r.tier && r.tier !== 'istock_existing' ? IMAGE_SOURCE_TIER_ORDER.indexOf(r.tier) : 99
+    const t = r.tier && r.tier !== 'istock_existing' && r.tier !== 'owned' ? IMAGE_SOURCE_TIER_ORDER.indexOf(r.tier) : 99
     return (r.pass ? 0 : 1000) + t
   }
   return [...cands].map((c, i) => ({ c, i, k: rank(c) })).sort((a, b) => a.k - b.k || a.i - b.i).map((x) => x.c)

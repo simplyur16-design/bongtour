@@ -28591,7 +28591,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[product-image-backfill-plan]",
             "keep_existing_istock",
-            "owner_decision_own_photo",
+            "keep_own_photo",
             "BACKFILL_WRITABLE_FIELDS"
           ],
           "mustNotInclude": [
@@ -28602,10 +28602,68 @@
           "file": "scripts/image-policy-backfill.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[product-image-backfill-plan]",
-            "(has('--apply') ? apply() : dryRun())",
+            "return has('--apply') ? apply() : dryRun()",
             "IMAGE_BACKFILL_CONFIRM",
             "fs.writeFileSync(backupFile",
             "pickBackfillWritableData("
+          ]
+        }
+      ]
+    },
+    {
+      "id": "product-image-stage4-1030",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "WORK-ORDER 8 4단계 준비(사장님 10/30 19:34): 자체 사진 7장 허용 목록, pkg-yb-0004 등 사장님 유지 사진 가로폭 예외, 생성=표시+prompt, Unsplash(env 없으면 꺼짐·키 로그 금지·핫링크·download_location), 공개 중 50개 배치+문과장 승인 파일, 추가 전용 마이그레이션",
+      "checks": [
+        {
+          "file": "lib/product-image-source-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-stage4-1030]",
+            "OWNED_BONGTOUR_IMAGE_KEYS",
+            "L3-GEN-FLAG-OFF",
+            "ownerKeptLowRes"
+          ]
+        },
+        {
+          "file": "lib/unsplash-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-stage4-1030]",
+            "UNSPLASH_ACCESS_KEY",
+            "Client-ID",
+            "download_location",
+            "if (!key) return []"
+          ]
+        },
+        {
+          "file": "lib/product-image-backfill-plan.ts",
+          "mustInclude": [
+            "LIVE_REPLACE_BATCH_SIZE = 50",
+            "checkApprovedBatch",
+            "review_file_changed_after_approval"
+          ]
+        },
+        {
+          "file": "scripts/image-policy-backfill.ts",
+          "mustInclude": [
+            "checkApprovedBatch(reviewText",
+            "--apply-batch",
+            "triggerUnsplashDownload"
+          ]
+        },
+        {
+          "file": "prisma/migrations/20261030200000_product_bg_image_ai_label/migration.sql",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-stage4-1030]",
+            "ENABLE ROW LEVEL SECURITY",
+            "REVOKE ALL ON TABLE \"Product\" FROM anon",
+            "REVOKE ALL ON TABLE \"Product\" FROM authenticated",
+            "GRANT ALL ON TABLE \"Product\" TO service_role"
+          ],
+          "mustNotInclude": [
+            "DROP COLUMN"
           ]
         }
       ]
@@ -28664,7 +28722,8 @@
         "lib/public-title-meta-display-clean.test.ts",
         "lib/product-detail-cheapest-date-departures.test.ts",
         "lib/product-image-source-policy.test.ts",
-        "lib/product-image-auto-register-stage3.test.ts"
+        "lib/product-image-auto-register-stage3.test.ts",
+        "lib/product-image-stage4.test.ts"
       ]
     },
     {

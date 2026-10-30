@@ -55,7 +55,9 @@ export function decideAutoCoverWrite(params: {
 export function applyAutoCoverDecisionToUpdateData<T extends Record<string, unknown>>(
   base: T,
   decision: AutoCoverDecision,
-  measured: { width: number; height: number } | null
+  measured: { width: number; height: number } | null,
+  aiPrompt: string | null = null,
+  now: Date = new Date()
 ): T {
   if (decision.action === 'legacy') return base
   const out: Record<string, unknown> = { ...base }
@@ -74,6 +76,14 @@ export function applyAutoCoverDecisionToUpdateData<T extends Record<string, unkn
     out.bgImageHeight = measured.height
   }
   out.bgImageIsGenerated = decision.isGenerated
+  // 생성 이미지: 생성 표시 + prompt 기록을 함께 씀 (bgImageAiPrompt 칸 — 마이그레이션 20261030200000, 4단계 배포 승인 뒤 적용)
+  if (decision.isGenerated) {
+    out.bgImageAiPrompt = String(aiPrompt ?? '').trim()
+    out.bgImageAiLabeledAt = now
+  } else {
+    out.bgImageAiPrompt = null
+    out.bgImageAiLabeledAt = null
+  }
   return out as T
 }
 
@@ -87,7 +97,7 @@ export type AutoCoverPhotoLike = {
 
 /**
  * process-images 의 prisma.product.update data 감싸기. 꺼져 있거나 범위 밖이면 data 그대로(측정·네트워크 없음).
- * 생성 이미지 prompt 는 메모리에서만 판정에 씀(DB prompt 칸 없음 — 사장님 결정 대기, 칸 추가 안 함).
+ * 생성 이미지: 생성 표시 + prompt 가 있어야 통과, 통과 시 bgImageAiPrompt 에 prompt 기록(사장님 10/30 19:34 "AI 표시 칸 추가해").
  */
 export async function gatedAutoCoverUpdateData<T extends Record<string, unknown>>(
   product: Record<string, unknown>,
@@ -125,5 +135,5 @@ export async function gatedAutoCoverUpdateData<T extends Record<string, unknown>
   if (decision.action === 'hold') {
     console.warn(`[image-policy] 대표 사진 보류 ${decision.policy.fails.join(',')}`)
   }
-  return applyAutoCoverDecisionToUpdateData(data, decision, measured)
+  return applyAutoCoverDecisionToUpdateData(data, decision, measured, isGen ? prompt : null)
 }
