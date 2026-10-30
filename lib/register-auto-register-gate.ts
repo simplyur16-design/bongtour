@@ -13,6 +13,8 @@ import {
   IMAGE_MIN_WIDTH,
 } from '@/lib/product-image-source-policy'
 import { mapDestination } from '@/lib/pexels-keyword'
+// REGRESSION-FREEZE[register-day-photo-policy]: 일차 사진 도시 일치 — manifest
+import { dayPhotoCityVerified } from '@/lib/register-day-photo-policy'
 
 /** 카드에도 쓰이는 대표 사진 상한(카드 기준) */
 export const AUTO_REGISTER_CARD_MAX_BYTES = 200_000
@@ -64,6 +66,7 @@ export type AutoRegisterBlockReason =
   | 'day_photo_low_res'
   | 'day_photo_over_detail_bytes'
   | 'day_photo_not_measured'
+  | 'day_photo_city_unverified'
   | 'cover_day_duplicate'
 
 export const AUTO_REGISTER_BLOCK_REASON_KO: Record<AutoRegisterBlockReason, string> = {
@@ -82,6 +85,7 @@ export const AUTO_REGISTER_BLOCK_REASON_KO: Record<AutoRegisterBlockReason, stri
   day_photo_low_res: '일차 사진 1200px 미만',
   day_photo_over_detail_bytes: '일차 사진 용량 초과(상세 400,000B)',
   day_photo_not_measured: '일차 사진 측정 실패',
+  day_photo_city_unverified: '일차 사진 도시 일치 확인 안 됨',
   cover_day_duplicate: '대표·일차 사진 중복',
 }
 
@@ -96,6 +100,10 @@ type DayRow = {
   imageUrl?: unknown
   imageManualSelected?: unknown
   imageSource?: unknown
+  imageKeyword?: unknown
+  title?: unknown
+  description?: unknown
+  routeText?: unknown
 }
 
 function parseDays(schedule: string | null): DayRow[] {
@@ -231,6 +239,10 @@ export function evaluateAutoRegisterGate(p: AutoRegisterGateInput): AutoRegister
     if (!pol.pass) {
       reasons.add('day_photo_policy_failed')
       detail.push(...pol.fails.map((f) => `day${String(d.day ?? '?')}:${f}`))
+    }
+    if (!dayPhotoCityVerified(d, { destination: p.destination, title: p.title })) {
+      reasons.add('day_photo_city_unverified')
+      detail.push(`day${String(d.day ?? '?')}:city`)
     }
   }
   return { ok: reasons.size === 0, reasons: [...reasons], detail }

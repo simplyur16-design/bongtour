@@ -29174,7 +29174,10 @@
             "REGRESSION-FREEZE[register-photo-score]",
             "rankPhotosByScore(cands",
             "rotatePoolWithinCity(poolListRaw, recentIndex)",
-            "dropDayPhotosDuplicatingMain(mainPhoto.url"
+            "dropDayPhotosDuplicatingMain(mainPhoto.url",
+            "REGRESSION-FREEZE[register-day-photo-policy]",
+            "checkDayPhotoPolicy({",
+            "dayCityOk(c)"
           ]
         },
         {
@@ -29199,6 +29202,24 @@
             ".create(",
             ".update(",
             "deleteMany"
+          ]
+        },
+        {
+          "file": "lib/register-day-photo-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-day-photo-policy]",
+            "DAY_PHOTO_DETAIL_MAX_BYTES = 400_000",
+            "if (p.width < IMAGE_MIN_WIDTH) reasons.push('low_res')",
+            "evaluateImageCandidatePolicy",
+            "cityLocationVerdict"
+          ]
+        },
+        {
+          "file": "lib/register-auto-register-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-day-photo-policy]",
+            "day_photo_city_unverified",
+            "dayPhotoCityVerified(d"
           ]
         }
       ]
@@ -29263,7 +29284,8 @@
         "lib/pexels-city-location-filter.test.ts",
         "lib/register-auto-register-gate.test.ts",
         "lib/register-photo-source-chain.test.ts",
-        "lib/register-photo-score.test.ts"
+        "lib/register-photo-score.test.ts",
+        "lib/register-day-photo-policy.test.ts"
       ]
     },
     {

@@ -18,8 +18,8 @@ const cover = 'https://cdn.example/a-pexels-1.webp'
 const d1 = 'https://cdn.example/d1-pexels-2.webp'
 const d2 = 'https://cdn.example/d2-pexels-3.webp'
 const sched = JSON.stringify([
-  { day: 1, imageUrl: d1, imageKeyword: '미케비치', imageSource: { source: 'Pexels', photographer: 'A', originalLink: 'https://www.pexels.com/photo/1' } },
-  { day: 2, imageUrl: d2, imageKeyword: '바나힐', imageSource: { source: 'Pexels', photographer: 'B', originalLink: 'https://www.pexels.com/photo/2' } },
+  { day: 1, imageUrl: d1, imageKeyword: '미케비치', imageSource: { source: 'Pexels', photographer: 'A', originalLink: 'https://www.pexels.com/photo/1', cityMatch: 'meta' } },
+  { day: 2, imageUrl: d2, imageKeyword: '바나힐', title: '바나힐 테마파크 관광', imageSource: { source: 'Pexels', photographer: 'B', originalLink: 'https://www.pexels.com/photo/2' } },
 ])
 const ok = (bytes: number, width = 1920) => ({ bytes, width })
 
@@ -116,5 +116,12 @@ describe('register-auto-register-gate', () => {
     expect(autoRegisterSwitches({})).toEqual({ fill: false, flip: false, record: false })
     expect(autoRegisterSwitches({ BONGTOUR_AUTO_REGISTER_FLIP: '1' })).toEqual({ fill: false, flip: true, record: true })
     expect(autoRegisterSwitches({ BONGTOUR_AUTO_PHOTO_FILL: 'true' }).fill).toBe(false)
+  })
+  it('day photo city match: needs a recorded match or the day keyword in that day text', () => {
+    const bad = JSON.stringify([
+      { day: 1, imageUrl: d1, imageKeyword: 'Eiffel Tower', imageSource: { source: 'Pexels', photographer: 'A', originalLink: 'https://www.pexels.com/photo/1' } },
+    ])
+    const r = evaluateAutoRegisterGate(base({ schedule: bad }))
+    expect(r.reasons).toContain('day_photo_city_unverified')
   })
 })

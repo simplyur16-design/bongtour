@@ -57,6 +57,13 @@ import {
   type RecentUseIndex,
 } from '@/lib/register-photo-score'
 import { loadRecentUseIndex } from '@/lib/register-photo-recent-use'
+// REGRESSION-FREEZE[register-day-photo-policy]: v2 일차 사진 1200px·iStock 신규·CC BY·용량·도시 일치 — manifest
+import {
+  checkDayPhotoPolicy,
+  dayCandidateCityMatch,
+  type DayCityMatch,
+} from '@/lib/register-day-photo-policy'
+import { probeStoredImage } from '@/lib/register-auto-photo-register-job'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -76,7 +83,14 @@ type ScheduleEntry = {
   imageKeyword2?: string
   imageUrl?: string | null
   imageUrl2?: string | null
-  imageSource?: { source: string; photographer: string; originalLink: string; externalId?: string }
+  imageSource?: {
+    source: string
+    photographer: string
+    originalLink: string
+    externalId?: string
+    /** v2: 도시 일치 근거 */
+    cityMatch?: string
+  }
   imageSource2?: { source: string; photographer: string; originalLink: string; externalId?: string }
   imagePhotographer?: string | null
   imageSourcePageUrl?: string | null
@@ -99,6 +113,8 @@ type PhotoResult = {
   photographer: string
   originalLink: string
   externalId?: string
+  /** v2: 일차 사진 도시 일치 근거 */
+  cityMatch?: DayCityMatch
 }
 
 type ItineraryRowLite = {
@@ -592,7 +608,8 @@ export async function POST(req: Request) {
       slot: string,
       query: string,
       label: string,
-      extra?: (c: ChainCandidate) => boolean
+      extra?: (c: ChainCandidate) => boolean,
+      cityMatch?: DayCityMatch
     ): Promise<PhotoResult | null> => {
       const r = await findStockPhotoByChain(query, {
         accept: chainAccept(extra),
@@ -600,7 +617,8 @@ export async function POST(req: Request) {
         pick: (cands) => rankPhotosByScore(cands, { keywords: [query, mapDestination(destination)], recent: recentIndex })[0] ?? null,
       })
       newFetchCount++
-      const adopted = r.photo ? await adoptChainPhoto(r.photo, label) : null
+      const adoptedRaw = r.photo ? await adoptChainPhoto(r.photo, label) : null
+      const adopted = adoptedRaw && cityMatch ? { ...adoptedRaw, cityMatch } : adoptedRaw
       chainTrace.push({ slot, tried: r.tried, picked: adopted ? adopted.source : null })
       return adopted
     }
@@ -737,6 +755,9 @@ export async function POST(req: Request) {
       const itRow = itineraryRows.find((r) => r.day === dayNum) ?? itineraryRows[n] ?? null
 
       const poolRec = poolBySlot.get(n)
+      /** v2: 후보 설명·주소가 이 일차 도시 또는 명소를 가리키는지 */
+      const dayCityOk = (c: ChainCandidate) =>
+        dayCandidateCityMatch(c, [itRow?.city ?? null, destination], [sched?.imageKeyword ?? null, c.queryUsed]) != null
       let photo: PhotoResult | null = null
       let keywordUsed = `day ${dayNum}`
       let selectedOrigin = 'itinerary_hero'
@@ -750,6 +771,7 @@ export async function POST(req: Request) {
           photo = cand
           keywordUsed = poolRec.attractionName?.trim() || keywordUsed
           selectedOrigin = 'pool'
+          if (photoChainV2) photo.cityMatch = 'pool'
           selectedSemanticKey = normalizeSemanticPoiKey(poolRec.attractionName || `pool_${n}`)
           usage.mark(photo)
           usedSemanticKeys.add(normalizeSemanticPoiKey(poolRec.attractionName || `pool_${n}`))
@@ -777,6 +799,7 @@ export async function POST(req: Request) {
           usage
         )
         photo = heroOut.photo
+        if (photoChainV2 && photo) photo = { ...photo, cityMatch: 'keyword' }
         keywordUsed = heroOut.bundle.heroPlaceQuery || heroOut.bundle.heroPlaceName
         selectedOrigin = `hero-${heroOut.bundle.heroImageSource}`
         selectedSemanticKey = heroOut.semanticKey
@@ -790,8 +813,12 @@ export async function POST(req: Request) {
         console.log(`[HERO] day ${dayNum} ${heroOut.bundle.heroImageSource} → ${photo.url.slice(0, 80)}…`)
         if (photoChainV2 && heroOut.bundle.heroImageSource === 'gemini') {
           // v2: AI 는 마지막 — Pexels·Unsplash 를 먼저 본다
-          const stock = await runChain(`day${dayNum}-before-ai`, keywordUsed, `${destination}_${dayNum}`, (c) =>
-            normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url)
+          const stock = await runChain(
+            `day${dayNum}-before-ai`,
+            keywordUsed,
+            `${destination}_${dayNum}`,
+            (c) => normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url) && dayCityOk(c),
+            'meta'
           )
           if (stock) {
             photo = stock
@@ -804,8 +831,12 @@ export async function POST(req: Request) {
       if (!photo && photoChainV2) {
         const chainKw =
           normalizeToPlaceName(keywordUsed) || normalizeToPlaceName(sched?.imageKeyword ?? '') || mainQuery
-        const stock = await runChain(`day${dayNum}`, chainKw, `${destination}_${dayNum}`, (c) =>
-          normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url)
+        const stock = await runChain(
+          `day${dayNum}`,
+          chainKw,
+          `${destination}_${dayNum}`,
+          (c) => normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url) && dayCityOk(c),
+          'meta'
         )
         if (stock) {
           photo = stock
@@ -858,6 +889,7 @@ export async function POST(req: Request) {
             if (!usage.isUsed(fromPool) && normAssetUrl(fromPool.url) !== normAssetUrl(mainPhoto.url)) {
               photo = fromPool
               fallbackReason = 'fallback-pool-reuse'
+              if (photoChainV2) photo.cityMatch = 'pool'
               break
             }
           }
@@ -891,7 +923,57 @@ export async function POST(req: Request) {
         continue
       }
 
-      const sealedSlot = await sealProductCoverPhoto(prisma, destination, photo, keywordUsed, photo.source)
+      let sealedSlot = await sealProductCoverPhoto(prisma, destination, photo, keywordUsed, photo.source)
+      if (photoChainV2) {
+        // 일차 사진 정책: 측정해서 1200px·출처·용량을 보고, 걸리면 다음 후보 한 번 → 그래도 안 되면 '사진 필요'
+        const verdictOf = async (ph: PhotoResult) => {
+          const pr = await probeStoredImage(ph.url)
+          return checkDayPhotoPolicy({
+            url: ph.url,
+            source: ph.source,
+            photographer: ph.photographer,
+            originalLink: ph.originalLink,
+            width: pr.width,
+            bytes: pr.bytes,
+          })
+        }
+        let verdict = await verdictOf(sealedSlot)
+        if (!verdict.ok) {
+          const first = verdict.reasons.join(',')
+          const retry = await runChain(
+            `day${dayNum}-policy-retry`,
+            normalizeToPlaceName(keywordUsed) || keywordUsed,
+            `${destination}_${dayNum}`,
+            (c) =>
+              normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url) &&
+              normAssetUrl(c.url) !== normAssetUrl(sealedSlot.url) &&
+              dayCityOk(c),
+            'meta'
+          )
+          if (retry) {
+            usage.mark(retry)
+            const sealedRetry = await sealProductCoverPhoto(prisma, destination, retry, keywordUsed, retry.source)
+            verdict = await verdictOf(sealedRetry)
+            if (verdict.ok) {
+              sealedSlot = sealedRetry
+              photo = retry
+              selectedOrigin = `policy-retry-${retry.source.toLowerCase()}`
+            }
+          }
+          if (!verdict.ok) {
+            slotDebug.push({
+              day: dayNum,
+              imageUrl: '',
+              imageSource: '',
+              candidateOrigin: selectedOrigin,
+              semanticKey: selectedSemanticKey,
+              fallbackUsed,
+              fallbackReason: `day-photo-policy:${first}`.slice(0, 200),
+            })
+            continue
+          }
+        }
+      }
       putSlot(n, { photo: sealedSlot, imageKeyword: keywordUsed })
       slotDebug.push({
         day: dayNum,
@@ -991,6 +1073,7 @@ export async function POST(req: Request) {
               photographer: photo.photographer,
               originalLink: photo.originalLink,
               ...(photo.externalId ? { externalId: photo.externalId } : {}),
+              ...(photo.cityMatch ? { cityMatch: photo.cityMatch } : {}),
             }
           : item.imageSource,
         imageSource2: photo2
