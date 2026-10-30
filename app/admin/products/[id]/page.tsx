@@ -73,6 +73,10 @@ import {
 import ScheduleImage from './_components/ScheduleImage'
 import PrimaryImagePreview from './_components/PrimaryImagePreview'
 import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
+import {
+  buildPlaceNameSpellingReview,
+  parsePlaceNameSpellingReviewFromRawMeta,
+} from '@/lib/place-name-spelling'
 
 const ADMIN_HIGHLIGHT_POINTS_MAX = 5000
 
@@ -869,6 +873,22 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
   const airtelHotelInfo = parseAirtelHotelInfo(product.airtelHotelInfoJson)
   const optionalToursDirty = JSON.stringify(optionalToursDraft) !== optionalToursSnapshot
   const detailBodyReview = parseDetailBodyReviewFromRawMeta(product.rawMeta ?? null)
+  // REGRESSION-FREEZE[place-name-spelling-n1]: 지명 표기 검수(읽기 전용) — heal 기록 우선, 없으면 화면에서 즉시 계산
+  const placeNameReview = (() => {
+    const stored = parsePlaceNameSpellingReviewFromRawMeta(product.rawMeta ?? null)
+    if (stored) return stored
+    const p = product as unknown as Record<string, unknown>
+    const s = (k: string) => (typeof p[k] === 'string' ? (p[k] as string) : null)
+    return buildPlaceNameSpellingReview({
+      title: s('title'),
+      originalTitle: s('originalTitle'),
+      summary: s('summary'),
+      highlightPoints: s('highlightPoints'),
+      highlightPointsRaw: s('highlightPointsRaw'),
+      hotelSummaryText: s('hotelSummaryText'),
+      themeTags: s('themeTags'),
+    })
+  })()
   const { brandForInternal, originForInternal } = supplierInternal!
   const structuredSignalsView = parseStructuredSignalsView(
     product.rawMeta ?? null,
@@ -1305,6 +1325,33 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
               </p>
             </div>
           </div>
+        ) : null}
+        {isEditMode && placeNameReview ? (
+          <section className="mb-4 rounded-lg border border-violet-500/40 bg-violet-950/30 p-3">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-violet-200">
+              지명 표기 검수 (N1 · 표시용 자동 교정 {placeNameReview.autoDisplayFixes.length} · 확인 필요 {placeNameReview.flags.length})
+            </h3>
+            <p className="mt-1 text-[11px] text-bt-meta">
+              저장된 공급사 원문은 바꾸지 않습니다. 자동 교정은 고객 화면 출력에만 적용되며, 확인 필요 항목은 사람이 판단합니다.
+            </p>
+            <div className="mt-2 space-y-1 text-[11px] leading-relaxed">
+              {placeNameReview.autoDisplayFixes.slice(0, 8).map((f, i) => (
+                <p key={`pnfix_${i}`} className="text-emerald-100">
+                  [자동] {f.field}: {f.variant} → {f.standard}
+                </p>
+              ))}
+              {placeNameReview.flags.slice(0, 8).map((f, i) => (
+                <p key={`pnflag_${i}`} className="text-amber-100">
+                  [확인] {f.field}:{' '}
+                  {f.type === 'dictionary_uncertain'
+                    ? `${f.variant} → ${f.suggestion}?${f.policy ? ' (정책 결정 필요)' : ''}`
+                    : f.type === 'suspicious_name'
+                      ? `${f.token} (오타 의심 · ${f.nearest}?)`
+                      : `${f.a} / ${f.b} 혼용`}
+                </p>
+              ))}
+            </div>
+          </section>
         ) : null}
         {isEditMode && detailBodyReview ? (
           <section className="mb-4 rounded-lg border border-bt-border-strong bg-bt-title/40 p-3">

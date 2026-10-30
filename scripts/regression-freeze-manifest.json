@@ -852,6 +852,53 @@
       ]
     },
     {
+      "id": "place-name-spelling-n1",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "지명 표준 표기(N1): certain 사전만 화면 출력·생성 결과에 교정, 저장 공급사 원문·title 불변, 불확실은 rawMeta 검수 플래그",
+      "checks": [
+        {
+          "file": "lib/place-name-spelling.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[place-name-spelling-n1]",
+            "PLACE_NAME_SPELLING_DICTIONARY",
+            "sortedEntries('certain')",
+            "placeNameSpellingReview"
+          ]
+        },
+        {
+          "file": "lib/place-name-spelling-render.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[place-name-spelling-n1]",
+            "normalizeProductPublicDetailModelPlaceNames"
+          ],
+          "mustNotInclude": [
+            "prisma"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/get-or-build-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[place-name-spelling-n1]",
+            "normalizeProductPublicDetailModelPlaceNames(cached)"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[place-name-spelling-n1]",
+            "mergePlaceNameSpellingReviewIntoRawMeta"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/place-name-spelling.test.ts",
+        "lib/place-name-spelling-render.test.ts"
+      ]
+    },
+    {
       "id": "heal-write-guard-registered",
       "tier": [
         "prebuild",

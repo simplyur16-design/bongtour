@@ -69,6 +69,7 @@ import {
 } from '@/lib/register-product-departure-airport-save'
 import { isRegisterPrePhotoPlaceLikeDestination } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { isSupplierListingTitleUnacceptable } from '@/lib/supplier-listing-title-unacceptable'
+import { buildPlaceNameSpellingReview, mergePlaceNameSpellingReviewIntoRawMeta } from '@/lib/place-name-spelling'
 import {
   hasSupplierHomepageForbiddenTitlePhrase,
   normalizeSupplierRegisterListingTitle,
@@ -153,6 +154,11 @@ export async function healPendingRegisterPrePhoto(
       title: true,
       originalTitle: true,
       rawTitle: true,
+      summary: true,
+      highlightPoints: true,
+      highlightPointsRaw: true,
+      hotelSummaryText: true,
+      themeTags: true,
       destination: true,
       originSource: true,
       countryKey: true,
@@ -639,7 +645,21 @@ export async function healPendingRegisterPrePhoto(
           ? (sanitizeHighlightPointsIfNoisy(highlightBefore) ?? null)
           : highlightBefore
       const highlightChanged = (highlightAfter ?? null) !== (highlightBefore ?? null)
-      const nextRawMeta = mergeRegisterPrePhotoStampIntoRawMeta(product.rawMeta, verify)
+      // REGRESSION-FREEZE[place-name-spelling-n1]: 지명 표기 검토 결과를 rawMeta(derived_ops)에만 기록 — 원문·title 은 쓰지 않음
+      const nextRawMeta = mergePlaceNameSpellingReviewIntoRawMeta(
+        mergeRegisterPrePhotoStampIntoRawMeta(product.rawMeta, verify),
+        buildPlaceNameSpellingReview({
+          title: product.title,
+          originalTitle: product.originalTitle,
+          rawTitle: product.rawTitle,
+          summary: product.summary,
+          highlightPoints: product.highlightPoints,
+          highlightPointsRaw: product.highlightPointsRaw,
+          hotelSummaryText: product.hotelSummaryText,
+          themeTags: product.themeTags,
+          schedule: typeof product.schedule === 'string' ? product.schedule : null,
+        }),
+      )
       const stampChanged = nextRawMeta !== String(product.rawMeta ?? '')
       if (
         !scheduleChanged &&

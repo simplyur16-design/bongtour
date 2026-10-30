@@ -19,6 +19,8 @@ import { after } from 'next/server'
 import { isNextRouterPrefetchRequest } from '@/lib/next-router-prefetch'
 import { prisma } from '@/lib/prisma'
 import { withCheapestBookableDateDepartures } from '@/lib/product-detail-cheapest-date-departures'
+// REGRESSION-FREEZE[place-name-spelling-n1]: 화면 출력 시점에만 지명 표준 표기 — 저장 payload·원문 불변
+import { normalizeProductPublicDetailModelPlaceNames } from '@/lib/place-name-spelling-render'
 
 export type ProductDetailBuildSource = 'payload' | 'computed'
 
@@ -74,7 +76,7 @@ export async function getOrBuildProductPublicDetailModel(
     if (isProductDetailPerfLogEnabled()) {
       patchProductDetailPerf({ payloadSource: 'payload' })
     }
-    return { model: cached, source: 'payload' }
+    return { model: normalizeProductPublicDetailModelPlaceNames(cached), source: 'payload' }
   }
 
   const { row: buildRow, canPersistPayload } = await resolveProductDetailRowForLiveBuild(travelProduct)
@@ -90,7 +92,7 @@ export async function getOrBuildProductPublicDetailModel(
   ) {
     const json = finalizeProductPublicDetailPayloadJson(model, bookableYmd)
     if (!json) {
-      return { model, source: 'computed' }
+      return { model: normalizeProductPublicDetailModelPlaceNames(model), source: 'computed' }
     }
     const productId = travelProduct.id
     /** RSC render 중 revalidateTag 금지(Next 15) — payload는 DB에만 저장, 태그 무효화는 admin·야간 cron */
@@ -109,5 +111,5 @@ export async function getOrBuildProductPublicDetailModel(
     })
   }
 
-  return { model, source: 'computed' }
+  return { model: normalizeProductPublicDetailModelPlaceNames(model), source: 'computed' }
 }

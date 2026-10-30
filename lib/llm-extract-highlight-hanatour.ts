@@ -4,6 +4,10 @@
  */
 import { parseGeminiJsonOutput } from '@/lib/bong-marketing/gemini-json-parse'
 import { geminiTimeoutOpts, getGenAI, getModelName } from '@/lib/gemini-client'
+import {
+  PLACE_NAME_SPELLING_HIGHLIGHT_PROMPT_RULE,
+  normalizePlaceNameSpellingText,
+} from '@/lib/place-name-spelling'
 
 const MAX_RAW_INPUT = 120_000
 const MAX_FIELD_OUT = 5000
@@ -89,6 +93,8 @@ const HANATOUR_SYSTEM = `당신은 하나투어 상세 붙여넣기 원문에서
 - 원문에 없는 내용 추가 금지.
 - highlightPointsRaw는 공급사 문구를 유지하고 태그만 정리 가능.
 - highlightPoints는 봉투어 톤으로 다듬되 새 정보 금지. 5~7줄, 한 줄 핵심 1개.
+
+${PLACE_NAME_SPELLING_HIGHLIGHT_PROMPT_RULE}
 `
 
 const JSON_SCHEMA_HINT = `출력 스키마:
@@ -145,12 +151,19 @@ ${clipped}
     let highlightPoints = capField(pickStringField(rec, 'highlightPoints'))
 
     if (!rawExtractGrounded(highlightPointsRaw, clipped)) return null
-    if (highlightPoints != null && !curatedGroundedInRaw(highlightPoints, clipped)) {
+    // REGRESSION-FREEZE[place-name-spelling-n1]: 표준 지명으로 다듬은 줄도 원문 근거로 인정(교정 원문으로도 대조)
+    if (
+      highlightPoints != null &&
+      !curatedGroundedInRaw(highlightPoints, clipped) &&
+      !curatedGroundedInRaw(highlightPoints, normalizePlaceNameSpellingText(clipped))
+    ) {
       highlightPoints = null
     }
 
     highlightPointsRaw = highlightPointsRaw?.replace(/\r\n/g, '\n').trim() || null
     highlightPoints = highlightPoints?.replace(/\r\n/g, '\n').trim() || null
+    // 원문(highlightPointsRaw)은 그대로, 봉투어 큐레이션(highlightPoints)만 certain 사전으로 지명 교정
+    highlightPoints = normalizePlaceNameSpellingText(highlightPoints)
 
     return { highlightPointsRaw, highlightPoints }
   } catch (e) {

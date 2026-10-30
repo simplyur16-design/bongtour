@@ -18,6 +18,10 @@ import {
   parseFitItineraryGeminiJson,
   type FitItineraryGeminiResponse,
 } from '@/lib/fit-itinerary-gemini-parse'
+import {
+  PLACE_NAME_SPELLING_PROMPT_RULE,
+  normalizePlaceNameSpellingText,
+} from '@/lib/place-name-spelling'
 import type { FitItineraryDayForKeyword } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import { logLlmJsonRawDebug } from '@/lib/llm-json-extract'
 import { buildProductScheduleJsonForDb } from '@/lib/schedule-image-keyword-persist'
@@ -120,6 +124,8 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - 가족·연인·부모 등 페르소나 언급 활동 1~2개 포함
 - 야경/포토존 1개 포함
 - days 배열 길이 = ${p.totalDays}일 (dayNumber 1부터 연속)
+
+${PLACE_NAME_SPELLING_PROMPT_RULE}
 
 [출력] 아래 JSON만, 다른 설명 없이:
 - 응답은 반드시 유효한 JSON 객체 하나만. markdown 코드블록(\`\`\`json), 설명 문장, 주석 절대 금지.
@@ -358,6 +364,8 @@ export async function persistFitItineraryFromGeminiJson(
   } catch (error) {
     return { success: false, reason: 'gemini_failed', error }
   }
+  // REGRESSION-FREEZE[place-name-spelling-n1]: Gemini 추천일정 사후 검사 — certain 사전만 교정(비용 필드 불변)
+  parsed = applyPlaceNameSpellingToFitGemini(parsed)
 
   const cityNameKo =
     product.primaryDestination?.trim() || product.destination?.trim() || product.cityKey || ''
@@ -492,5 +500,26 @@ export async function generateFitItineraryForProduct(
   } catch (error) {
     console.error(`[fit-itinerary-generate] gemini_failed productId=${productId}`, error)
     return { success: false, reason: 'gemini_failed', error }
+  }
+}
+
+/** Gemini 추천일정 텍스트(제목·요약·일차·활동) 지명 사후 교정 — estimatedCostKrw/estimatedCostNote 등 비용은 그대로 */
+export function applyPlaceNameSpellingToFitGemini(parsed: FitItineraryGeminiResponse): FitItineraryGeminiResponse {
+  const t = normalizePlaceNameSpellingText
+  return {
+    ...parsed,
+    title: t(parsed.title),
+    summary: t(parsed.summary),
+    days: parsed.days.map((d) => ({
+      ...d,
+      title: t(d.title),
+      summary: t(d.summary),
+      activities: (d.activities ?? []).map((a) => ({
+        ...a,
+        title: t(a.title),
+        description: t(a.description),
+        location: t(a.location),
+      })),
+    })),
   }
 }

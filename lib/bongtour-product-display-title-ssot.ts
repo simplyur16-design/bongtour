@@ -20,6 +20,8 @@ import {
   megaMenuLeafMentionedInHaystack,
 } from '@/lib/align-destination-to-mega-menu-leaf'
 import { megaMenuClickLabelForCityKey } from '@/lib/mega-menu-click-label'
+// REGRESSION-FREEZE[place-name-spelling-n1]: 카드·히어로 제목 출력 시 지명 표준 표기(저장 title 불변)
+import { normalizePlaceNameSpellingText } from '@/lib/place-name-spelling'
 
 export const BONGTOUR_PRODUCT_DISPLAY_TITLE_VERSION = 'v1-2026-10-15'
 
@@ -594,6 +596,16 @@ export function resolvePublicBrowseCardTitle(
   input: PublicBrowseCardTitleInput,
   fallbackTitle: string,
 ): PublicBrowseCardTitleResult {
+  const r = resolvePublicBrowseCardTitleBeforePlaceNameSpelling(input, fallbackTitle)
+  const cardTitle = normalizePlaceNameSpellingText(r.cardTitle)
+  const heroSubtitle = normalizePlaceNameSpellingText(r.heroSubtitle)
+  return cardTitle === r.cardTitle && heroSubtitle === r.heroSubtitle ? r : { ...r, cardTitle, heroSubtitle }
+}
+
+function resolvePublicBrowseCardTitleBeforePlaceNameSpelling(
+  input: PublicBrowseCardTitleInput,
+  fallbackTitle: string,
+): PublicBrowseCardTitleResult {
   // REGRESSION-FREEZE[public-card-hero-short-title]: 북인도 short ≠ 바라나시 — manifest
   // 인도 서킷·권역 — 도시 short 금지 (북인도/남인도 문구 우선, 없으면 인도)
   const indiaPlaceForced =
@@ -912,7 +924,7 @@ export function resolvePublicDetailHeroTitles(
       rawListing
   return {
     heroTitle: card.cardTitle,
-    listingTitle,
+    listingTitle: normalizePlaceNameSpellingText(listingTitle),
     heroSubtitle: card.heroSubtitle,
     usedHeroShort: card.usedHeroShort,
   }
