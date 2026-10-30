@@ -28861,6 +28861,89 @@
           ]
         }
       ]
+    },
+    {
+      "id": "a5-two-buttons-1030",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "A-5 상세 항공사 영역 두 버튼 — 상단=선택 출발 회차 항공사, '출발일 변경해서 보기'=같은 항공사 달력, '다른 항공사 찾기'=기존 가격행 최저가만·항공사 1곳이면 숨김",
+      "checks": [
+        {
+          "file": "lib/detail-airline-two-buttons.ts",
+          "mustInclude": [
+            "export function resolveCurrentDepartureAirlineOption",
+            "export function otherAirlineRows",
+            "export function shouldShowOtherAirlineButton",
+            "export function lowestPublicPriceFromRows",
+            "n > 0"
+          ],
+          "mustNotInclude": [
+            "minPriceKrw:"
+          ]
+        },
+        {
+          "file": "app/components/detail/ProductAirlinePricePanelClient.tsx",
+          "mustInclude": [
+            "data-airline-two-buttons",
+            "data-airline-btn-change-departure",
+            "data-airline-btn-other-airline",
+            "shouldShowOtherAirlineButton(data)",
+            "requestDeparturePicker()",
+            "o.lowestPriceKrw != null"
+          ]
+        },
+        {
+          "file": "app/components/detail/product-airline-filter-context.tsx",
+          "mustInclude": [
+            "export function useAirlineTwoButtonBridge",
+            "requestDeparturePicker"
+          ]
+        },
+        {
+          "file": "app/components/travel/TravelProductDetail.tsx",
+          "mustInclude": [
+            "useAirlineTwoButtonBridge({",
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+          ]
+        },
+        {
+          "file": "app/components/travel/MobileProductDetail.tsx",
+          "mustInclude": [
+            "useAirlineTwoButtonBridge({",
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
+          "mustInclude": [
+            "useAirlineTwoButtonBridge({",
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
+          "mustInclude": [
+            "useAirlineTwoButtonBridge({",
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodTravelProductDetail.tsx",
+          "mustInclude": [
+            "useAirlineTwoButtonBridge({",
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodMobileProductDetail.tsx",
+          "mustInclude": [
+            "useAirlineTwoButtonBridge({",
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -29309,6 +29392,16 @@
       "summary": "A-5 상세 항공사 정합·귀국일 UTC",
       "files": [
         "lib/a5-airline-detail-1030.test.ts"
+      ]
+    },
+    {
+      "id": "a5-two-buttons-1030",
+      "tier": [
+        "ci"
+      ],
+      "summary": "A-5 상세 두 버튼 — 단일 항공사 버튼 2 숨김·항공사 전환 정합·가격행 없으면 가격 없음",
+      "files": [
+        "lib/a5-two-buttons-1030.test.ts"
       ]
     }
   ]

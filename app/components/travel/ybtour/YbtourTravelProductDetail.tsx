@@ -92,6 +92,7 @@ import {
   useAirlineFilteredProduct,
   useAirlinePatchRowFilter,
   useSelectedAirlineFilter,
+  useAirlineTwoButtonBridge,
 } from '@/app/components/detail/product-airline-filter-context'
 
 /** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
@@ -610,6 +611,14 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
       }),
     [selectedDepartureFacts, selectedDate, packageTotalDays]
   )
+  // REGRESSION-FREEZE[a5-two-buttons-1030]: 상단 항공사 = 지금 출발 회차 · '출발일 변경해서 보기' → 같은 항공사 달력
+  const openDeparturePickerFromAirlinePanel = useCallback(() => setDeparturePickerOpen(true), [])
+  useAirlineTwoButtonBridge({
+    rowId: selectedDepartureRowId,
+    ymd: selectedDate,
+    factsAirline: calendarAlignedDepartureFacts?.airline ?? null,
+    openDeparturePicker: openDeparturePickerFromAirlinePanel,
+  })
 
   /** 꼭 알아야 할 사항: `mustKnowItems`만(공급사 공통). 비면 기본 안내 문구. */
   const mustKnowFiltered = useMemo(

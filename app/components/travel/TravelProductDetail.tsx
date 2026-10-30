@@ -86,6 +86,7 @@ import {
   useAirlineFilteredProduct,
   useAirlinePatchRowFilter,
   useSelectedAirlineFilter,
+  useAirlineTwoButtonBridge,
 } from '@/app/components/detail/product-airline-filter-context'
 
 export type {
@@ -542,6 +543,14 @@ export default function TravelProductDetail({
       }),
     [selectedDepartureFacts, selectedDate, packageTotalDays]
   )
+  // REGRESSION-FREEZE[a5-two-buttons-1030]: 상단 항공사 = 지금 출발 회차 · '출발일 변경해서 보기' → 같은 항공사 달력
+  const openDeparturePickerFromAirlinePanel = useCallback(() => setDeparturePickerOpen(true), [])
+  useAirlineTwoButtonBridge({
+    rowId: selectedDepartureRowId,
+    ymd: selectedDate,
+    factsAirline: calendarAlignedDepartureFacts?.airline ?? null,
+    openDeparturePicker: openDeparturePickerFromAirlinePanel,
+  })
 
   const heroResolved = useMemo(
     () =>
