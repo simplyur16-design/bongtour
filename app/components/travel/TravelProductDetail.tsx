@@ -1,5 +1,6 @@
 'use client'
 
+import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline } from '@/lib/detail-selected-departure-airline'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useProductDepartureYmdFromUrl } from '@/lib/use-product-departure-url-param'
@@ -81,7 +82,11 @@ import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
 import type { ProductPriceRow, TravelProduct } from '@/app/components/travel/travel-product-detail-types'
-import { useAirlineFilteredProduct, useAirlinePatchRowFilter } from '@/app/components/detail/product-airline-filter-context'
+import {
+  useAirlineFilteredProduct,
+  useAirlinePatchRowFilter,
+  useSelectedAirlineFilter,
+} from '@/app/components/detail/product-airline-filter-context'
 
 export type {
   CounselingPoint,
@@ -433,7 +438,7 @@ export default function TravelProductDetail({
     [mergedPrices, selectedDate, departureCollectOpen]
   )
 
-  const selectedDepartureFacts = useMemo(() => {
+  const selectedDepartureFactsRaw = useMemo(() => {
     const row = pickDepartureKeyFactsForSelection({
       selectedDate,
       selectedDepartureRowId,
@@ -455,6 +460,12 @@ export default function TravelProductDetail({
     product.flightManualCorrection,
     product.originSource,
   ])
+  // REGRESSION-FREEZE[a5-airline-detail-1030]: ?airline= 선택 시 상단·하단 항공사·편명은 고른 항공사 회차 기준(다른 항공사 facts 폴백 금지)
+  const selectedAirlineFilter = useSelectedAirlineFilter()
+  const selectedDepartureFacts = useMemo(
+    () => alignDepartureFactsToSelectedAirline(selectedDepartureFactsRaw, selectedAirlineFilter),
+    [selectedDepartureFactsRaw, selectedAirlineFilter]
+  )
 
   /** mustKnowItems filter — shared with travel/private/semi. Empty falls back to default trip-readiness items. */
   const mustKnowFiltered = useMemo(
@@ -658,7 +669,7 @@ export default function TravelProductDetail({
             destination: product.destination,
             primaryDestination: product.primaryDestination ?? null,
             durationLabel: product.duration ?? '',
-            airline: product.airline,
+            airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),
             heroDepartureDisplay,
             heroReturnDisplay,
             duration: product.duration ?? '',

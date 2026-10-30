@@ -99,3 +99,9 @@ export function useAirlineFilteredProduct<P extends { id: string | number; price
     return { ...product, prices: filterPriceRowsByAirline(base, selected, String(product.id)) }
   }, [product, selected])
 }
+
+/** 상세 상단·하단 항공사/편명 정합 — 선택 항공사(label·param), 필터 없으면 null */
+export function useSelectedAirlineFilter(): { label: string; param: string } | null {
+  const { selected } = useProductAirlineFilter()
+  return useMemo(() => (selected ? { label: selected.label, param: selected.param } : null), [selected])
+}

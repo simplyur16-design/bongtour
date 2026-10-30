@@ -1,5 +1,6 @@
 'use client'
 
+import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline } from '@/lib/detail-selected-departure-airline'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -89,7 +90,11 @@ import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import TravelProductDetail from '@/app/components/travel/TravelProductDetail'
 import type { TravelProduct as PackageTravelProduct } from '@/app/components/travel/TravelProductDetail'
 import { coverImageUrlForTravelProductClient } from '@/lib/travel-product-cover-url'
-import { useAirlineFilteredProduct, useAirlinePatchRowFilter } from '@/app/components/detail/product-airline-filter-context'
+import {
+  useAirlineFilteredProduct,
+  useAirlinePatchRowFilter,
+  useSelectedAirlineFilter,
+} from '@/app/components/detail/product-airline-filter-context'
 
 /** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
 export type ProductPriceRow = {
@@ -567,7 +572,7 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
     [mergedPrices, selectedDate, departureCollectOpen]
   )
 
-  const selectedDepartureFacts = useMemo(() => {
+  const selectedDepartureFactsRaw = useMemo(() => {
     const raw = pickDepartureKeyFactsForSelection({
       selectedDate,
       selectedDepartureRowId,
@@ -591,6 +596,12 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
     product.flightManualCorrection,
     product.originSource,
   ])
+  // REGRESSION-FREEZE[a5-airline-detail-1030]: ?airline= 선택 시 상단·하단 항공사·편명은 고른 항공사 회차 기준(다른 항공사 facts 폴백 금지)
+  const selectedAirlineFilter = useSelectedAirlineFilter()
+  const selectedDepartureFacts = useMemo(
+    () => alignDepartureFactsToSelectedAirline(selectedDepartureFactsRaw, selectedAirlineFilter),
+    [selectedDepartureFactsRaw, selectedAirlineFilter]
+  )
 
   const packageTotalDays = getProductTotalDays(
     product,
@@ -753,7 +764,7 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
           originCode: product.originCode,
           destination: product.destination,
           durationLabel: rowDurationLabel?.trim() || product.duration || '',
-          airline: selectedDepartureFacts?.airline?.trim() ?? product.airline,
+          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),
           heroDepartureDisplay,
           duration: product.duration ?? '',
           heroPriceSsot,
@@ -804,7 +815,7 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
         <div className="mt-6 space-y-8">
             <TravelCoreInfoSection
               facts={calendarAlignedDepartureFacts}
-              productAirline={calendarAlignedDepartureFacts?.airline?.trim() ?? null}
+              productAirline={resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)}
               periodContent={periodContent}
               travelCitiesLine={travelCitiesLine}
               reservationLine={reservationDisplayLine}

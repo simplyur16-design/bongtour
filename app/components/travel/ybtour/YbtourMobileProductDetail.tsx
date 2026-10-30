@@ -1,5 +1,6 @@
 'use client'
 
+import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline } from '@/lib/detail-selected-departure-airline'
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { TravelProduct, ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
@@ -83,7 +84,11 @@ import {
   buildPublicOptionalDisplayInputFromProductFields,
   buildPublicShoppingDisplayInputFromProductFields,
 } from '@/lib/public-product-extras'
-import { useAirlineFilteredProduct, useAirlinePatchRowFilter } from '@/app/components/detail/product-airline-filter-context'
+import {
+  useAirlineFilteredProduct,
+  useAirlinePatchRowFilter,
+  useSelectedAirlineFilter,
+} from '@/app/components/detail/product-airline-filter-context'
 
 type ScheduleDayWithMeta = TravelProduct['schedule'] extends (infer D)[] | null | undefined
   ? D & { title?: string; notice?: string }
@@ -419,7 +424,7 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
     return lines
   }, [product.mandatoryLocalFee, product.mandatoryCurrency, product.counselingNotes])
 
-  const selectedDepartureFacts = useMemo(() => {
+  const selectedDepartureFactsRaw = useMemo(() => {
     const row = pickDepartureKeyFactsForSelection({
       selectedDate,
       selectedDepartureRowId,
@@ -441,6 +446,12 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
     product.flightManualCorrection,
     product.originSource,
   ])
+  // REGRESSION-FREEZE[a5-airline-detail-1030]: ?airline= 선택 시 상단·하단 항공사·편명은 고른 항공사 회차 기준(다른 항공사 facts 폴백 금지)
+  const selectedAirlineFilter = useSelectedAirlineFilter()
+  const selectedDepartureFacts = useMemo(
+    () => alignDepartureFactsToSelectedAirline(selectedDepartureFactsRaw, selectedAirlineFilter),
+    [selectedDepartureFactsRaw, selectedAirlineFilter]
+  )
 
   const packageTotalDays = getProductTotalDays(
     product,
@@ -592,7 +603,7 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
           originCode: product.originCode,
           destination: product.destination,
           durationLabel: product.duration ?? '',
-          airline: selectedDepartureFacts?.airline?.trim() ?? product.airline,
+          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),
           heroDepartureDisplay,
           duration: product.duration ?? '',
           heroPriceSsot,
@@ -636,7 +647,7 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
       <div className="border-b border-bt-border-soft p-4">
         <TravelCoreInfoSection
           facts={calendarAlignedDepartureFacts}
-          productAirline={calendarAlignedDepartureFacts?.airline?.trim() ?? null}
+          productAirline={resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)}
           periodContent={periodContent}
           travelCitiesLine={travelCitiesLine}
           reservationLine={reservationDisplayLine}

@@ -28756,6 +28756,111 @@
           ]
         }
       ]
+    },
+    {
+      "id": "a5-airline-detail-1030",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "A-5 상세 ?airline= — 상단(히어로)·하단(핵심정보/예약박스) 항공사·편명 = 고른 항공사 회차, 키팩트 가격행 전부, 귀국일 UTC 안전",
+      "checks": [
+        {
+          "file": "lib/product-public-detail/slim-departure-key-facts-for-payload.ts",
+          "mustInclude": [
+            "publicPriceRowFactKeys",
+            "PAYLOAD_DEPARTURE_KEY_FACTS_MAX_PRICE_ROW_ENTRIES"
+          ]
+        },
+        {
+          "file": "lib/package-rules.ts",
+          "mustInclude": [
+            "setUTCDate"
+          ],
+          "mustNotInclude": [
+            "d.setDate(d.getDate() + totalDays - 1)"
+          ]
+        },
+        {
+          "file": "lib/detail-selected-departure-airline.ts",
+          "mustInclude": [
+            "export function alignDepartureFactsToSelectedAirline",
+            "export function resolveSelectedDepartureAirlineForDisplay"
+          ]
+        },
+        {
+          "file": "app/components/detail/product-airline-filter-context.tsx",
+          "mustInclude": [
+            "export function useSelectedAirlineFilter"
+          ]
+        },
+        {
+          "file": "app/components/travel/TravelProductDetail.tsx",
+          "mustInclude": [
+            "resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)",
+            "alignDepartureFactsToSelectedAirline(selectedDepartureFactsRaw, selectedAirlineFilter)"
+          ],
+          "mustNotInclude": [
+            "selectedDepartureFacts?.airline?.trim() ?? product.airline",
+            "airline: product.airline,"
+          ]
+        },
+        {
+          "file": "app/components/travel/MobileProductDetail.tsx",
+          "mustInclude": [
+            "resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)",
+            "alignDepartureFactsToSelectedAirline(selectedDepartureFactsRaw, selectedAirlineFilter)"
+          ],
+          "mustNotInclude": [
+            "selectedDepartureFacts?.airline?.trim() ?? product.airline",
+            "airline: product.airline,"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
+          "mustInclude": [
+            "resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)",
+            "alignDepartureFactsToSelectedAirline(selectedDepartureFactsRaw, selectedAirlineFilter)"
+          ],
+          "mustNotInclude": [
+            "selectedDepartureFacts?.airline?.trim() ?? product.airline",
+            "airline: product.airline,"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
+          "mustInclude": [
+            "resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)",
+            "alignDepartureFactsToSelectedAirline(selectedDepartureFactsRaw, selectedAirlineFilter)"
+          ],
+          "mustNotInclude": [
+            "selectedDepartureFacts?.airline?.trim() ?? product.airline",
+            "airline: product.airline,"
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodTravelProductDetail.tsx",
+          "mustInclude": [
+            "resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)",
+            "alignDepartureFactsToSelectedAirline(selectedDepartureFactsRaw, selectedAirlineFilter)"
+          ],
+          "mustNotInclude": [
+            "selectedDepartureFacts?.airline?.trim() ?? product.airline",
+            "airline: product.airline,"
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodMobileProductDetail.tsx",
+          "mustInclude": [
+            "resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)",
+            "alignDepartureFactsToSelectedAirline(selectedDepartureFactsRaw, selectedAirlineFilter)"
+          ],
+          "mustNotInclude": [
+            "selectedDepartureFacts?.airline?.trim() ?? product.airline",
+            "airline: product.airline,"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -29194,6 +29299,16 @@
       "summary": "next/font 재시도 판별",
       "files": [
         "lib/build-next-font-retry.test.ts"
+      ]
+    },
+    {
+      "id": "a5-airline-detail-1030",
+      "tier": [
+        "ci"
+      ],
+      "summary": "A-5 상세 항공사 정합·귀국일 UTC",
+      "files": [
+        "lib/a5-airline-detail-1030.test.ts"
       ]
     }
   ]
