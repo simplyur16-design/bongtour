@@ -51,7 +51,7 @@
     }
   },
   "why": {
-    "title": "Why simplyUR",
+    "title": "Why Simplyur eSIM",
     "items": {
       "instant": {
         "title": "Instant activation",
@@ -469,7 +469,7 @@
   },
   "auth": {
     "title": "Sign in",
-    "welcomeTitle": "Welcome to Simply UR",
+    "welcomeTitle": "Welcome to Simplyur eSIM",
     "welcomeSubtitle": "Sign in to manage your eSIM",
     "skip": "Skip",
     "continueEmail": "Continue with Email",

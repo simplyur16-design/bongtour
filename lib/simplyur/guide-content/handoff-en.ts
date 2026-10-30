@@ -4,7 +4,7 @@ import type { SimplyurGuideMessages } from "@/lib/simplyur/guide-types";
 export const GUIDE_EN_HANDOFF: SimplyurGuideMessages = {
   title: "How to install your eSIM",
   intro:
-    "This guide matches the Simply UR website and app flow, so the steps below are exactly what you'll see when you set up your Korea eSIM.",
+    "This guide matches the Simplyur website and app flow, so the steps below are exactly what you'll see when you set up your Korea eSIM.",
   // REGRESSION-FREEZE[simplyur-mobile-p1-account-settings]: live checkout/My eSIM copy — manifest
   phaseBanner:
     "Live now: browse Korea plans, in-app checkout, install guide, and My eSIM (QR + usage) after sign-in.",
@@ -50,7 +50,7 @@ export const GUIDE_EN_HANDOFF: SimplyurGuideMessages = {
     {
       title: "1. Receive your eSIM",
       bullets: [
-        "After choosing a plan, check your email and your Simply UR order page for your QR code and activation details.",
+        "After choosing a plan, check your email and your Simplyur order page for your QR code and activation details.",
       ],
     },
     {
@@ -62,33 +62,33 @@ export const GUIDE_EN_HANDOFF: SimplyurGuideMessages = {
       ],
       bullets: [
         "Settings → Cellular → Add eSIM → Use QR Code, then scan the code from your order",
-        "Tap Continue, then Done — your Simply UR eSIM is installed",
+        "Tap Continue, then Done — your Simplyur eSIM is installed",
       ],
       note: 'No camera handy? Tap "Enter Details Manually" and type in the SM-DP+ address and activation code shown on your order page instead of scanning.',
     },
     {
       title: "3. Activate in Korea",
       mockRows: [
-        { label: "Cellular Data", value: "Simply UR", highlight: true },
+        { label: "Cellular Data", value: "Simplyur", highlight: true },
         { label: "Data Roaming", value: "On", highlight: true },
         { label: "Allow Cellular Data Switching", value: "Off" },
       ],
       bullets: [
-        "Once you land, go to Settings → Cellular and set Cellular Data to your Simply UR line",
+        "Once you land, go to Settings → Cellular and set Cellular Data to your Simplyur line",
         "Turn on Data Roaming for that line",
         'Turn OFF "Allow Cellular Data Switching" so your phone doesn\'t quietly fall back to your home SIM\'s data (and its roaming charges)',
       ],
     },
     {
       title: "4. Remove after your trip",
-      bullets: ["Settings → Cellular → select the Simply UR line → Remove eSIM"],
+      bullets: ["Settings → Cellular → select the Simplyur line → Remove eSIM"],
     },
   ],
   androidStepCards: [
     {
       title: "1. Receive your eSIM",
       bullets: [
-        "After choosing a plan, check your email and your Simply UR order page for your QR code and activation details.",
+        "After choosing a plan, check your email and your Simplyur order page for your QR code and activation details.",
       ],
     },
     {
@@ -100,24 +100,24 @@ export const GUIDE_EN_HANDOFF: SimplyurGuideMessages = {
       ],
       bullets: [
         'Settings → Connections → SIM manager → Add eSIM → "Scan QR code from service provider", then scan the code from your order',
-        "Tap Add to finish — your Simply UR eSIM is installed",
+        "Tap Add to finish — your Simplyur eSIM is installed",
       ],
       note: 'Menu names vary a little by manufacturer (e.g. "Network & Internet → SIMs" on Pixel), but it\'s always under your phone\'s network/SIM settings. No camera handy? Use "Enter activation code" instead.',
     },
     {
       title: "3. Activate in Korea",
       mockRows: [
-        { label: "Mobile data", value: "Simply UR", highlight: true },
+        { label: "Mobile data", value: "Simplyur", highlight: true },
         { label: "Data switching", value: "Off" },
       ],
       bullets: [
-        "Once you land, go to Settings → Connections → SIM manager → Mobile data, select your Simply UR eSIM, then tap Apply",
+        "Once you land, go to Settings → Connections → SIM manager → Mobile data, select your Simplyur eSIM, then tap Apply",
         'Keep "Data switching" off so your phone doesn\'t fall back to your home SIM\'s data',
       ],
     },
     {
       title: "4. Remove after your trip",
-      bullets: ["Settings → Connections → SIM manager → select Simply UR → Remove"],
+      bullets: ["Settings → Connections → SIM manager → select Simplyur → Remove"],
     },
   ],
   faqItems: [
@@ -127,7 +127,7 @@ export const GUIDE_EN_HANDOFF: SimplyurGuideMessages = {
     },
     {
       q: "Will I keep my home phone number?",
-      a: "Yes. Simply UR only provides data; calls and texts continue on your original SIM/eSIM line.",
+      a: "Yes. Simplyur eSIM only provides data; calls and texts continue on your original SIM/eSIM line.",
     },
     {
       q: "When does my plan actually start?",
@@ -151,7 +151,7 @@ export const GUIDE_EN_HANDOFF: SimplyurGuideMessages = {
     },
     {
       q: "Can I use this plan outside Korea?",
-      a: "No — Simply UR plans are for use within Korea only.",
+      a: "No — Simplyur eSIM plans are for use within Korea only.",
     },
   ],
 };

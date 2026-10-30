@@ -51,7 +51,7 @@
     }
   },
   "why": {
-    "title": "Why simplyUR",
+    "title": "Why Simplyur eSIM",
     "items": {
       "instant": {
         "title": "Instant activation",
@@ -191,7 +191,7 @@
   },
   "auth": {
     "title": "ログイン",
-    "welcomeTitle": "Simply URへようこそ",
+    "welcomeTitle": "Simplyur eSIMへようこそ",
     "welcomeSubtitle": "eSIMを管理するにはサインインしてください",
     "skip": "スキップ",
     "continueEmail": "メールで続行",
