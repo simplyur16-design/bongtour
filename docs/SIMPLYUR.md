@@ -60,8 +60,8 @@ SSOT: `lib/simplyur/colors.ts` (web), `apps/simplyur-mobile/src/constants/palett
 |-------|--------|
 | **1** ✅ | Korea-only eSIM, plan cards, web + Expo, i18n, pricing |
 | **1b** | Japan eSIM |
-| **2** | PortOne checkout (`portone` provider): **PayPal** + **KICC overseas** (WeChat / Alipay Plus), USD charge, USIMSA fulfillment via OrderPaid outbox |
-| **2b** | Eximbay payment-window **live** (FGKey / ready / status_url → OrderPaid). Mobile UI (`ostype=M`, redirect). PortOne is not used for Simplyur checkout. Bongtour Welcomepay untouched |
+| **2** | ~~PortOne checkout (PayPal + KICC)~~ — retired 2026-07-31, code removed 2026-10-30. Replaced by 2b (Eximbay) |
+| **2b** | Eximbay payment-window **live** (FGKey / ready / status_url → OrderPaid). Mobile UI (`ostype=M`, redirect). Simplyur checkout PG is Eximbay only. Bongtour Welcomepay untouched |
 | **2c** | App store release + **ASO listing SSOT** (`apps/simplyur-mobile/store-listing/aso/`) — Buy → web Eximbay handoff ✅; EAS build checklist [`STORE_RELEASE.md`](../apps/simplyur-mobile/STORE_RELEASE.md) |
 | **3** | Capacitor optional; store release polish |
 | **4** | Korea tourism, tickets, experiences |
@@ -77,63 +77,13 @@ Contract: [`docs/ops/simplyur-eximbay-payment-prep-contract.md`](ops/simplyur-ex
 - Optional smoke UI: `SIMPLYUR_EXIMBAY_PREP_UI=1`
 - **Later:** native app checkout (Expo) — not PC popup; web handoff or in-app Eximbay WebView first
 
-## PortOne setup (simplyur overseas PG)
+## PortOne (retired)
 
-Docs: [PortOne V2 PG overview](https://developers.portone.io/opi/ko/integration/pg/v2/readme?v=v2) · [PayPal](https://developers.portone.io/opi/ko/integration/pg/v2/paypal-v2) · [KICC overseas](https://developers.portone.io/opi/ko/integration/pg/v2/kicc-v2) · **[PayPal channel console SSOT](https://help.portone.io/content/paypal)**
+PortOne (PayPal / KICC) was dropped from checkout on 2026-07-31 (`2ff6c980`) and its code, `@portone/*` packages, `PORTONE_*` env and `/api/simplyur/webhooks/portone` were removed on 2026-10-30. Historical rows may still carry `provider = 'portone'` (DB unchanged).
 
-### PayPal (SPB) — test channel (required for simplyur)
+### PG review URLs
 
-Operator checklist from [help.portone.io/content/paypal](https://help.portone.io/content/paypal):
-
-1. **PortOne console** → 결제 연동 → 채널관리 → **+ 채널 추가**
-2. Set exactly:
-   - **연동 모드**: 테스트 연동
-   - **결제대행사**: 페이팔
-   - **결제모듈**: **결제창 일반결제(SPB)/정기결제(RT)** — not Express Checkout
-3. **PG상점아이디 (PayPal Merchant ID)** — use PortOne **shared test seller ID** (not PayPal Developer Client ID / NVP-SOAP):
-
-   | Country | Merchant ID |
-   |---------|---------------|
-   | UK (recommended) | `PA4DULN9V66L6` |
-   | US | `7WBB3CKT63FRG` |
-   | KR | `UFYSG9T7RFW2A` |
-   | JP | `PX5CTVZJTRXG4` |
-   | (others) | see help.portone.io table |
-
-4. **Save**, then copy this channel’s **channel key** → `PORTONE_CHANNEL_KEY_PAYPAL` in `.env.local`.
-5. **Buyer for test**: PayPal Sandbox **Personal**, **Country = US** (KR seller + KR buyer is blocked by PayPal policy).
-
-**Do not put in PortOne SPB channel:** PayPal REST Client ID/Secret, NVP/SOAP Username/Password/Signature — those are **Express Checkout (V1 only)**. simplyur uses `loadPaymentUI` + `PAYPAL_SPB` (V2). Wrong channel type → `PG_PROVIDER_PAYPAL credential 조회 미지원`.
-
-Verify: `npx tsx scripts/inspect-portone-channels-safe.ts` · `npx tsx scripts/verify-simplyur-portone-payment-window.ts --base-url=http://localhost:3000`
-
-### KICC (WeChat / Alipay Plus) — test channel
-
-SSOT: [help.portone.io/content/kicc](https://help.portone.io/content/kicc) · code: [KICC v2](https://developers.portone.io/opi/ko/integration/pg/v2/kicc-v2)
-
-Operator checklist (**결제창 일반/정기결제 V1** — PortOne shared test MID, **no separate key**):
-
-1. **PortOne console** → 결제 연동 → 채널관리 → **+ 채널 추가**
-2. Set exactly:
-   - **연동 모드**: 테스트 연동
-   - **결제대행사**: 이지페이(KICC)
-   - **결제모듈**: **일반결제 V1** (콘솔 표기; help = 구모듈 결제창 일반/정기결제)
-3. **PG상점아이디 (MID)** — 클릭 후 선택 (직접 입력·암복호화 키 없음):
-   - **이지페이_KICC 결제창 일반결제 및 정기결제 (`T5102001`)**
-4. **Save**, copy **channel key** → `PORTONE_CHANNEL_KEY_KICC` in `.env.local` (and Railway).
-5. **Webhook** (required for QR async paid): `https://bongtour.com/api/simplyur/webhooks/portone` (Payment module V2).
-6. **Mobile WeChat**: register checkout domain `bongtour.com` with KICC.
-
-simplyur calls `requestPayment` with `EASY_PAY`/`WECHAT` and `ALIPAY_PLUS`.
-
-Verify: `npx tsx scripts/verify-simplyur-portone-payment-window.ts --base-url=http://localhost:3000` — KICC should open a payment window.
-
-### Env + webhook
-
-1. **Env** (see `.env.example`) — `PORTONE_STORE_ID`, `PORTONE_API_SECRET`, `PORTONE_CHANNEL_KEY_PAYPAL`, `PORTONE_CHANNEL_KEY_KICC`, enable `SIMPLYUR_CHECKOUT_ENABLED`.
-2. **Webhook** — register `https://bongtour.com/api/simplyur/webhooks/portone` (Payment module V2, `Transaction.Paid`). Required for KICC QR async approval and recommended for PayPal.
-3. **KICC domain** — register `bongtour.com` (checkout path) with KICC for mobile WeChat Pay.
-4. **PG resubmit URLs** — service `/simplyur/en`, products `/simplyur/en/recommend`, legal `/simplyur/en/legal/*`.
+- **PG resubmit URLs** — service `/simplyur/en`, products `/simplyur/en/recommend`, legal `/simplyur/en/legal/*`.
 
 Checkout charges in **USD** (minor units) derived from order KRW total via the same FX snapshot as catalog display (`resolveSimplyurFxRates` / `SIMPLYUR_FX_*` fallback).
 | **3** | Capacitor optional; store release polish |

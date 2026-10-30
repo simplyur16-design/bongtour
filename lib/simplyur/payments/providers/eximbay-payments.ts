@@ -15,7 +15,7 @@ import {
   toEximbayRequestPayPayload,
   type EximbayTransactionType,
 } from "@/lib/simplyur/payments/eximbay-ready";
-import { krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/portone-methods";
+import { krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/usd-minor";
 import { SIMPLYUR_EXIMBAY_PROVIDER_ID } from "@/lib/simplyur/payments/providers/eximbay-provider-id";
 
 export { SIMPLYUR_EXIMBAY_PROVIDER_ID };
@@ -40,7 +40,7 @@ export class SimplyurEximbayPaymentsProvider implements BongsimPaymentProviderAd
       throw new Error("[simplyur:eximbay] NEXT_PUBLIC_SITE_URL (or APP/NEXTAUTH) required for status_url");
     }
 
-    const locale = input.simplyur_locale ?? input.simplyur_portone?.locale ?? "en";
+    const locale = input.simplyur_locale ?? "en";
     const webReturnBase = resolveSimplyurEximbayReturnUrl(locale);
     if (!webReturnBase) {
       throw new Error("[simplyur:eximbay] NEXT_PUBLIC_SITE_URL (or APP/NEXTAUTH) required for return_url");

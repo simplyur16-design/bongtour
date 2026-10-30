@@ -19,7 +19,7 @@ type Props = {
 
 /**
  * Dev-only Eximbay FGKey + request_pay smoke. Hidden unless SIMPLYUR_EXIMBAY_PREP_UI=1.
- * Does not replace PortOne checkout.
+ * Does not replace the live Eximbay checkout.
  */
 export function SimplyurEximbayPrepSmokePanel({ locale }: Props) {
   const [busy, setBusy] = useState(false);
@@ -60,7 +60,7 @@ export function SimplyurEximbayPrepSmokePanel({ locale }: Props) {
     >
       <strong>Eximbay prep smoke</strong>
       <p style={{ margin: "8px 0", color: "#666" }}>
-        Calls payments/ready → FGKey → EXIMBAY.request_pay ($1). Not the live PortOne path.
+        Calls payments/ready → FGKey → EXIMBAY.request_pay ($1). Not the live checkout path.
       </p>
       <button type="button" disabled={busy} onClick={() => void runSmoke()}>
         {busy ? "…" : "Open Eximbay test window"}

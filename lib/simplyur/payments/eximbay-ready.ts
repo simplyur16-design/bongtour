@@ -8,7 +8,7 @@ import {
   resolveEximbayEnv,
   type EximbayEnv,
 } from "@/lib/simplyur/payments/eximbay-env";
-import { krwOrderTotalToUsdMinor, krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/portone-methods";
+import { krwOrderTotalToUsdMinor, krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/usd-minor";
 
 /** Default hosted methods: credit card + UnionPay. Not Eximbay Pay app. */
 export const SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD_DEFAULT = "P000-P002";

@@ -14,22 +14,16 @@ import {
   SIMPLYUR_EXIMBAY_PROVIDER_ID,
   SimplyurEximbayPaymentsProvider,
 } from "@/lib/simplyur/payments/providers/eximbay-payments";
-import {
-  SIMPLYUR_PORTONE_PROVIDER_ID,
-  SimplyurPortonePaymentsProvider,
-} from "@/lib/simplyur/payments/providers/portone-payments";
 
 export const BONGSIM_KNOWN_PAYMENT_PROVIDER_IDS = [
   "bongsim_mock",
   "welcomepay",
-  "portone",
   "eximbay",
 ] as const;
 
 export function getPaymentProviderAdapter(providerId: string): BongsimPaymentProviderAdapter | null {
   if (providerId === "bongsim_mock") return new BongsimMockPaymentProvider();
   if (providerId === "welcomepay") return new WelcomepayPaymentsProvider();
-  if (providerId === SIMPLYUR_PORTONE_PROVIDER_ID) return new SimplyurPortonePaymentsProvider();
   if (providerId === SIMPLYUR_EXIMBAY_PROVIDER_ID) return new SimplyurEximbayPaymentsProvider();
   return null;
 }

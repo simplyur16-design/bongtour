@@ -14,13 +14,7 @@ import { getPaymentProviderAdapter } from "@/lib/bongsim/payments/payment-provid
 import { isMockPaymentCaptureAllowed } from "@/lib/bongsim/runtime/mock-payment-allowance";
 import { isNodeProduction } from "@/lib/bongsim/runtime/node-env";
 import { resolveEximbayEnv } from "@/lib/simplyur/payments/eximbay-env";
-import {
-  resolvePortoneCoreEnv,
-  resolvePortoneMethodChannel,
-} from "@/lib/simplyur/payments/portone-env";
-import { parseSimplyurPortoneMethod } from "@/lib/simplyur/payments/portone-methods";
 import { SIMPLYUR_EXIMBAY_PROVIDER_ID } from "@/lib/simplyur/payments/providers/eximbay-payments";
-import { SIMPLYUR_PORTONE_PROVIDER_ID } from "@/lib/simplyur/payments/providers/portone-payments";
 
 // REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]: session channel×PG + race opts — manifest
 
@@ -116,7 +110,6 @@ function validateBody(body: unknown): { ok: true; req: BongsimPaymentSessionRequ
 
   const provider = typeof o.provider === "string" && o.provider.trim() ? o.provider.trim() : "bongsim_mock";
 
-  const simplyur_portone_method = parseSimplyurPortoneMethod(o.simplyur_portone_method);
   const simplyur_locale =
     typeof o.simplyur_locale === "string" && o.simplyur_locale.trim() ? o.simplyur_locale.trim() : undefined;
   const ostypeRaw = typeof o.eximbay_ostype === "string" ? o.eximbay_ostype.trim().toUpperCase() : "";
@@ -142,7 +135,6 @@ function validateBody(body: unknown): { ok: true; req: BongsimPaymentSessionRequ
       idempotency_key: key,
       provider,
       return_urls,
-      ...(simplyur_portone_method ? { simplyur_portone_method } : {}),
       ...(simplyur_locale ? { simplyur_locale } : {}),
       ...(eximbay_ostype ? { eximbay_ostype } : {}),
       ...(eximbay_transaction_type ? { eximbay_transaction_type } : {}),
@@ -228,28 +220,6 @@ export async function createPaymentSessionFromRequest(body: unknown): Promise<Cr
       reason: "validation",
       details: { welcomepay: "WELCOMEPAY_MID가 설정되지 않았습니다. 서버 .env를 확인하세요." },
     };
-  }
-
-  if (effProvider === SIMPLYUR_PORTONE_PROVIDER_ID) {
-    const portoneEnv = resolvePortoneCoreEnv();
-    if (!portoneEnv.ok) {
-      return {
-        ok: false,
-        reason: "validation",
-        details: {
-          // 값은 시크릿이 아니라 누락 환경변수 이름 — UI에 그대로 노출해도 안전하다.
-          portone: `missing:${portoneEnv.missing.join(",")}`,
-        },
-      };
-    }
-    const methodResolved = resolvePortoneMethodChannel(req.simplyur_portone_method);
-    if (!methodResolved.ok) {
-      return {
-        ok: false,
-        reason: "validation",
-        details: { simplyur_portone_method: methodResolved.reason },
-      };
-    }
   }
 
   if (effProvider === SIMPLYUR_EXIMBAY_PROVIDER_ID) {

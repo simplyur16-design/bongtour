@@ -35,21 +35,12 @@ describe("assertCheckoutProviderAllowed", () => {
     expect(r).toEqual({ ok: false, providerDetail: "eximbay_simplyur_orders_only" });
   });
 
-  it("rejects portone on non-simplyur channel", () => {
-    const r = assertCheckoutProviderAllowed("portone", "web");
-    expect(r).toEqual({ ok: false, providerDetail: "portone_simplyur_orders_only" });
-  });
-
   it("allows welcomepay on domestic channel", () => {
     expect(assertCheckoutProviderAllowed("welcomepay", "web")).toEqual({ ok: true });
   });
 
   it("allows eximbay on simplyur channel", () => {
     expect(assertCheckoutProviderAllowed("eximbay", "simplyur_web")).toEqual({ ok: true });
-  });
-
-  it("allows portone on simplyur_app", () => {
-    expect(assertCheckoutProviderAllowed("portone", "simplyur_app")).toEqual({ ok: true });
   });
 });
 
@@ -66,11 +57,9 @@ describe("buildPaymentProviderCreateInput", () => {
       req: sessionReq({
         simplyur_locale: "ja",
         eximbay_ostype: "P",
-        simplyur_portone_method: "paypal",
       }),
     });
     expect(input.simplyur_locale).toBe("ja");
     expect(input.eximbay_ostype).toBe("P");
-    expect(input.simplyur_portone).toEqual({ method: "paypal", locale: "ja" });
   });
 });

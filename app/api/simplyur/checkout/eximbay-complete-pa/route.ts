@@ -16,7 +16,7 @@ import {
   mapSimplyurLocaleToEximbayLang,
 } from "@/lib/simplyur/payments/eximbay-ready";
 import { processEximbayPaymentOutcome } from "@/lib/simplyur/payments/process-eximbay-payment-outcome";
-import { krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/portone-methods";
+import { krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/usd-minor";
 import { SIMPLYUR_EXIMBAY_PROVIDER_ID } from "@/lib/simplyur/payments/providers/eximbay-provider-id";
 
 // REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]: mobile complete-pa — manifest

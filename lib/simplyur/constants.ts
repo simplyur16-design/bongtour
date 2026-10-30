@@ -20,7 +20,7 @@ export const SIMPLYUR_DOMESTIC_SIGNIN_HREF = "/auth/signin" as const;
 
 export const SIMPLYUR_BRAND_NAME = "simplyur" as const;
 
-/** PortOne checkout — set NEXT_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED=1 when PG is live. */
+/** Eximbay checkout — set NEXT_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED=1 when PG is live. */
 export const SIMPLYUR_CHECKOUT_ENABLED = isSimplyurCheckoutEnabledClient();
 
 export const SIMPLYUR_PARENT_LEGAL_NAME = "Bong Tour Co., Ltd." as const;

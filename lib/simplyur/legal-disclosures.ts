@@ -4,7 +4,7 @@ import type { SimplyurLocale } from "@/lib/simplyur/constants";
 
 // REGRESSION-FREEZE[simplyur-pg-legal-surface]: simplyur PG 심사용 법인·약관 경로 SSOT — manifest
 
-/** PortOne·PG 심사용 사업자 정보 — 주소는 simplyur 표면 영문(addressEn) 우선 */
+/** PG 심사용 사업자 정보 — 주소는 simplyur 표면 영문(addressEn) 우선 */
 export const SIMPLYUR_LEGAL_ENTITY = {
   legalName: LEGAL_ENTITY.legalName,
   serviceName: "Simplyur eSIM",

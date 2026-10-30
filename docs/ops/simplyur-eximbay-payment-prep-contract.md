@@ -5,7 +5,7 @@
 **Out of scope (do not touch):**
 
 - 봉투어 웰컴페이먼츠 (`lib/bongsim/welcomepay*`, `/travel/esim/.../welcomepay`, `WELCOMEPAY_*`)
-- Simplyur PortOne 실결제 기본 경로 (PayPal / KICC) — 이번 단계는 병행 준비만
+- (PortOne 경로는 2026-10-30 코드 삭제 — 해당 없음)
 
 REGRESSION-FREEZE: `simplyur-eximbay-payment-prep`
 
@@ -41,11 +41,11 @@ Currency: **USD** (KRW order total → USD via existing Simplyur FX helpers).
 - Params for `request_pay` **must match** ready body (else FGKey fails)
 - Hosted methods: default `other.multi_paymethod` = `P000-P002` (credit card + UnionPay). **Not** Eximbay Pay app. PayPal `P001` / Alipay Plus `P003` stay off until `SIMPLYUR_EXIMBAY_MULTI_PAYMETHOD` is set (e.g. `P000-P002-P001-P003`).
 - EXIMPay+ app install is **optional**. Checkout does not require it. People who want the app get a store link (Play / App Store); payment continues with card in simplyur.
-- Smoke panel only when prep UI flag is on; live checkout remains PortOne
+- Smoke panel only when prep UI flag is on; live checkout is Eximbay
 
 ## Next phase (not this contract)
 
-- Replace PortOne as default Simplyur PG
+- ~~Replace PortOne as default Simplyur PG~~ (done — Eximbay only; PortOne removed 2026-10-30)
 - Mark order paid + USIMSA fulfillment from verified status
 - Cancel / inquiry APIs
 - Live `live_` keys in production

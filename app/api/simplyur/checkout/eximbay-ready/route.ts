@@ -16,7 +16,7 @@ import {
   toEximbayRequestPayPayload,
   formatEximbayUsdAmountFromMinor,
 } from "@/lib/simplyur/payments/eximbay-ready";
-import { krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/portone-methods";
+import { krwOrderTotalToUsdMinorResolved } from "@/lib/simplyur/payments/usd-minor";
 import { isNodeProduction } from "@/lib/bongsim/runtime/node-env";
 
 // REGRESSION-FREEZE[simplyur-eximbay-payment-prep]: simplyur checkout eximbay-ready — manifest

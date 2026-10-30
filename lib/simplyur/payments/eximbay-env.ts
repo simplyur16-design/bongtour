@@ -157,7 +157,7 @@ export function isSimplyurEximbayPrepUiEnabled(): boolean {
   );
 }
 
-/** Simplyur live PG is Eximbay only — PortOne is not used on checkout. */
+/** Simplyur live PG is Eximbay only. */
 export function isSimplyurEximbayLiveEnabled(): boolean {
   return resolveEximbayEnv().ok;
 }

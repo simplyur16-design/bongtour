@@ -4,19 +4,11 @@ import type { BongsimPaymentProviderCreateInput } from "@/lib/bongsim/payments/p
 
 // REGRESSION-FREEZE[bongsim-simplyur-payment-channel-gate]: shared createSession input (race=happy) — manifest
 
-function simplyurPortoneCreateOpts(req: BongsimPaymentSessionRequestV1) {
-  if (!req.simplyur_portone_method) return undefined;
-  return {
-    method: req.simplyur_portone_method,
-    locale: req.simplyur_locale,
-  };
-}
-
 function toInt(n: string | number): number {
   return typeof n === "string" ? Number.parseInt(n, 10) : Math.trunc(Number(n));
 }
 
-/** Happy / reuse / 23505 race — identical simplyur_locale·eximbay_ostype·portone opts. */
+/** Happy / reuse / 23505 race — identical simplyur_locale·eximbay_ostype opts. */
 export function buildPaymentProviderCreateInput(args: {
   provider: string;
   payment_attempt_id: string;
@@ -36,7 +28,6 @@ export function buildPaymentProviderCreateInput(args: {
     amount_krw: toInt(args.amount_krw),
     currency: "KRW",
     return_urls: args.return_urls,
-    simplyur_portone: simplyurPortoneCreateOpts(args.req),
     simplyur_locale: args.req.simplyur_locale,
     eximbay_ostype: args.req.eximbay_ostype,
     eximbay_transaction_type: args.req.eximbay_transaction_type,

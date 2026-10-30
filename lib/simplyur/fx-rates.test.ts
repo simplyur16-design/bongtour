@@ -10,7 +10,7 @@ import {
   getSimplyurFxRates,
   krwToDisplayAmount,
 } from "@/lib/simplyur/currency";
-import { krwOrderTotalToUsdMinor } from "@/lib/simplyur/payments/portone-methods";
+import { krwOrderTotalToUsdMinor } from "@/lib/simplyur/payments/usd-minor";
 import { SIMPLYUR_MARKUP_MULTIPLIER, simplyurSellPriceKrw } from "@/lib/simplyur/pricing";
 
 // REGRESSION-FREEZE[simplyur-fx-daily-price]: vitest SSOT — manifest
@@ -80,7 +80,7 @@ describe("simplyur fx + daily price", () => {
     expect(jpy!.amount).toBe(500);
   });
 
-  it("keeps display USD and PortOne USD minor aligned for a snapshot", () => {
+  it("keeps display USD and charge USD minor aligned for a snapshot", () => {
     const rates = {
       USD: 1400,
       JPY: 9.5,

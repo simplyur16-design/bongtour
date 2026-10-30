@@ -1,4 +1,4 @@
-// REGRESSION-FREEZE[simplyur-portone-checkout-p2]: checkout env gate — manifest
+// REGRESSION-FREEZE[simplyur-eximbay-live-checkout]: checkout env gate — manifest
 
 function truthyEnv(v: string | undefined): boolean {
   const s = (v ?? "").trim().toLowerCase();
