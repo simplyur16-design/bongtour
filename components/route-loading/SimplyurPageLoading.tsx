@@ -21,10 +21,11 @@ export default function SimplyurPageLoading() {
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3 sm:max-w-3xl sm:px-6 sm:py-4 lg:max-w-6xl">
           <Image
             src={SIMPLYUR_BRAND.wordmarkImage}
-            alt="simplyur"
-            width={148}
-            height={44}
+            alt="Simplyur eSIM"
+            width={183}
+            height={36}
             priority
+            unoptimized
             className="h-9 w-auto"
           />
           <div className="flex items-center gap-2">

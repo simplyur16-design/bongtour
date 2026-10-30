@@ -20,7 +20,7 @@ describe("simplyur eSIM delivery mail", () => {
       activationCode: "CODE",
       myEsimUrl: "https://bongtour.com/simplyur/en/my-esim",
     });
-    expect(mail.subject).toContain("simplyur");
+    expect(mail.subject).toContain("Simplyur eSIM");
     expect(mail.html).toContain("Install on iPhone");
     expect(mail.html).toContain("Install on Android");
     expect(mail.html).toContain(apple!);

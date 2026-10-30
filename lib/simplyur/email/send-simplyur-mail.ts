@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 
-const FROM_NAME = "simplyur";
+const FROM_NAME = "Simplyur eSIM";
 
 export async function sendSimplyurMail(input: {
   to: string;

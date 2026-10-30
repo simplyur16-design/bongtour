@@ -4,7 +4,7 @@ Run from repo root: python scripts/build-favicon-bongtour.py
 Requires: Pillow, numpy, scipy
 
 Outputs:
-- app/favicon.ico, app/icon.png (Next.js App Router file convention)
+- public/favicon.ico (served as /favicon.ico; kept out of app/ so /simplyur does not inherit it), app/icon.png
 - public/icons/*.png (static PNG + source)
 """
 from __future__ import annotations
@@ -18,6 +18,7 @@ from scipy import ndimage
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
 APP_DIR = os.path.join(ROOT, "app")
+PUBLIC_DIR = os.path.join(ROOT, "public")
 OUT_DIR = os.path.join(ROOT, "public", "icons")
 SRC_PRIMARY = os.path.join(ROOT, "public", "_favicon_src.png")
 SRC_FALLBACK = r"C:\Users\USER\.cursor\projects\c-Users-USER-Desktop-BONGTOUR\assets\c__Users_USER_AppData_Roaming_Cursor_User_workspaceStorage_b8d9c2c829ee296ba4410b6c45b2b76a_images_Gemini_Generated_Image_eew9mceew9mceew9-ad6fc54d-dab2-41c7-adf1-b33e055798ef.png"
@@ -111,7 +112,7 @@ def main() -> None:
     s16 = squared.resize((16, 16), Image.Resampling.LANCZOS)
     s32 = squared.resize((32, 32), Image.Resampling.LANCZOS)
     s48 = squared.resize((48, 48), Image.Resampling.LANCZOS)
-    ico_path = os.path.join(APP_DIR, "favicon.ico")
+    ico_path = os.path.join(PUBLIC_DIR, "favicon.ico")  # moved out of app/ so /simplyur does not inherit the B favicon
     s32.save(
         ico_path,
         format="ICO",
@@ -122,7 +123,7 @@ def main() -> None:
     icon512 = squared.resize((512, 512), Image.Resampling.LANCZOS)
     icon512.save(os.path.join(APP_DIR, "icon.png"), "PNG", optimize=True)
 
-    print("Wrote app/favicon.ico, app/icon.png, public/icons/* from:", src)
+    print("Wrote public/favicon.ico, app/icon.png, public/icons/* from:", src)
 
 
 if __name__ == "__main__":

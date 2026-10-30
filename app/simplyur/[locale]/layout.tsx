@@ -17,7 +17,6 @@ import {
 } from "@/lib/simplyur/constants";
 import { getSimplyurMessages, t } from "@/lib/simplyur/i18n";
 import { SIMPLYUR_BRAND } from "@/lib/simplyur/brand";
-import { getSeasonalDefaultOgImagePath } from "@/lib/og-image-seasonal";
 import "../simplyur-theme.css";
 
 const SIMPLYUR_TITLE_BRAND = "Simplyur eSIM";
@@ -45,8 +44,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const title = t(messages, "meta.title");
   const description = t(messages, "meta.description");
   // 루트 template(`%s | Bong투어`)을 끊고 simplyur 브랜드 기준으로 제목을 맞춘다.
-  // openGraph/twitter는 자식에서 정의하면 루트 값을 통째로 덮으므로 기존 이미지·카드 형식은 그대로 유지한다.
-  const ogImagePath = getSeasonalDefaultOgImagePath();
+  // openGraph/twitter는 자식에서 정의하면 루트 값을 통째로 덮는다. 공유 이미지는 승인된 Simplyur eSIM OG(1200x630)로 둔다.
+  const ogImagePath = SIMPLYUR_BRAND.ogImage;
   return {
     title: {
       absolute: title,
@@ -58,7 +57,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       siteName: SIMPLYUR_TITLE_BRAND,
       title,
       description,
-      images: [{ url: ogImagePath, alt: SIMPLYUR_TITLE_BRAND }],
+      images: [{ url: ogImagePath, width: 1200, height: 630, alt: SIMPLYUR_TITLE_BRAND }],
     },
     twitter: {
       card: "summary_large_image",
@@ -66,9 +65,15 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       description,
       images: [ogImagePath],
     },
+    // Bong투어 'B' favicon is no longer injected here: it moved from app/favicon.ico (file convention, emitted on every route) to public/favicon.ico.
     icons: {
-      icon: SIMPLYUR_BRAND.iconImage,
-      apple: SIMPLYUR_BRAND.iconImage,
+      icon: [
+        { url: SIMPLYUR_BRAND.faviconIco, sizes: "16x16 32x32 48x48", type: "image/x-icon" },
+        { url: SIMPLYUR_BRAND.faviconSvg, type: "image/svg+xml" },
+        { url: SIMPLYUR_BRAND.icon192, sizes: "192x192", type: "image/png" },
+        { url: SIMPLYUR_BRAND.icon512, sizes: "512x512", type: "image/png" },
+      ],
+      apple: [{ url: SIMPLYUR_BRAND.appleTouchIcon, sizes: "180x180", type: "image/png" }],
     },
   };
 }

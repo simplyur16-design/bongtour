@@ -21,7 +21,7 @@ export function buildSimplyurRefundDoneMailContent(input: SimplyurRefundDoneMail
 } {
   const orderNumber = input.orderNumber.trim();
   const myEsim = input.myEsimUrl.trim();
-  const subject = `simplyur — refund complete (${orderNumber})`;
+  const subject = `Simplyur eSIM — refund complete (${orderNumber})`;
   const text = [
     "Your unused eSIM order was cancelled.",
     "",
@@ -40,7 +40,7 @@ export function buildSimplyurRefundDoneMailContent(input: SimplyurRefundDoneMail
   const html = `<!DOCTYPE html>
 <html lang="en"><body style="margin:0;padding:24px;background:#FFF7F2;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;border:1px solid #f1e4dc;">
-    <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.08em;color:#e86a58;font-weight:700;">simplyur</p>
+    <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.08em;color:#e86a58;font-weight:700;">Simplyur eSIM</p>
     <h1 style="margin:0 0 12px;font-size:20px;color:#12233F;">Refund complete</h1>
     <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#5c6578;">Order <strong>${safeOrder}</strong> was cancelled because the eSIM was unused (not registered / no data used).</p>
     <ol style="margin:0 0 16px;padding-left:20px;font-size:14px;line-height:1.6;color:#12233F;">

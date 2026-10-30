@@ -29,7 +29,7 @@ export function SimplyurHeader({ locale, currentPath = "", user = null }: Props)
         <Link href={simplyurPath(locale)} className="min-w-0 shrink">
           <SimplyurWordmark
             size="sm"
-            className="[&_img]:h-7 [&_img]:w-auto [&_img]:max-w-[6.75rem] sm:[&_img]:h-9 sm:[&_img]:max-w-none"
+            className="[&_img]:h-7 [&_img]:w-auto [&_img]:max-w-[9rem] sm:[&_img]:h-9 sm:[&_img]:max-w-none"
           />
         </Link>
 

@@ -13,13 +13,14 @@ type Props = {
 };
 
 const SIZE_CLASS: Record<SimplyurWordmarkSize, { text: string; tagline: string; image: { w: number; h: number } }> = {
-  sm: { text: "text-xl", tagline: "text-[8px] tracking-[0.22em]", image: { w: 148, h: 44 } },
-  md: { text: "text-2xl sm:text-3xl", tagline: "text-[9px] sm:text-[10px] tracking-[0.24em]", image: { w: 188, h: 56 } },
-  lg: { text: "text-4xl sm:text-5xl", tagline: "text-[10px] sm:text-[11px] tracking-[0.26em]", image: { w: 272, h: 80 } },
+  // image: displayed height kept as before (sm footer rendered 69px high); width follows the approved SVG aspect (5.08:1)
+  sm: { text: "text-xl", tagline: "text-[8px] tracking-[0.22em]", image: { w: 351, h: 69 } },
+  md: { text: "text-2xl sm:text-3xl", tagline: "text-[9px] sm:text-[10px] tracking-[0.24em]", image: { w: 285, h: 56 } },
+  lg: { text: "text-4xl sm:text-5xl", tagline: "text-[10px] sm:text-[11px] tracking-[0.26em]", image: { w: 407, h: 80 } },
   hero: {
     text: "text-5xl sm:text-6xl md:text-7xl",
     tagline: "text-[11px] sm:text-xs tracking-[0.28em]",
-    image: { w: 400, h: 118 },
+    image: { w: 600, h: 118 },
   },
 };
 
@@ -41,7 +42,8 @@ export function SimplyurWordmark({
           alt="Simplyur eSIM"
           width={dim.w}
           height={dim.h}
-          className="h-auto w-auto max-w-full"
+          unoptimized
+          className="h-auto max-w-full object-contain"
           priority={size === "hero"}
         />
         {showTagline ? (

@@ -56,7 +56,7 @@ export function buildSimplyurEsimQrMailContent(input: SimplyurEsimQrMailInput, q
   const androidUrl = lpa ? buildAndroidQuickInstallUrl(lpa) : null;
   const smDp = input.smDpPlusAddress?.trim() || "";
   const activationCode = input.activationCode?.trim() || "";
-  const subject = `simplyur — your Korea eSIM is ready (${orderNumber})`;
+  const subject = `Simplyur eSIM — your Korea eSIM is ready (${orderNumber})`;
 
   const text = [
     "Your Korea eSIM is ready to install.",
@@ -98,7 +98,7 @@ export function buildSimplyurEsimQrMailContent(input: SimplyurEsimQrMailInput, q
   const html = `<!DOCTYPE html>
 <html lang="en"><body style="margin:0;padding:24px;background:#FFF7F2;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;border:1px solid #f1e4dc;">
-    <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.08em;color:#e86a58;font-weight:700;">simplyur</p>
+    <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.08em;color:#e86a58;font-weight:700;">Simplyur eSIM</p>
     <h1 style="margin:0 0 12px;font-size:20px;color:#12233F;">Your Korea eSIM is ready</h1>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#5c6578;">Order <strong>${safeOrder}</strong>. Tap an install link or scan the QR. You can also open My eSIM in the app or on the web.</p>
     ${appleUrl ? btn(appleUrl, "Install on iPhone") : ""}
