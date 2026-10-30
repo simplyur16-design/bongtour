@@ -28657,10 +28657,9 @@
           "file": "prisma/migrations/20261030200000_product_bg_image_ai_label/migration.sql",
           "mustInclude": [
             "REGRESSION-FREEZE[product-image-stage4-1030]",
-            "ENABLE ROW LEVEL SECURITY",
-            "REVOKE ALL ON TABLE \"Product\" FROM anon",
-            "REVOKE ALL ON TABLE \"Product\" FROM authenticated",
-            "GRANT ALL ON TABLE \"Product\" TO service_role"
+            "ADD COLUMN IF NOT EXISTS \"bgImageAiPrompt\" TEXT",
+            "ADD COLUMN IF NOT EXISTS \"bgImageAiLabeledAt\" TIMESTAMP(3)",
+            "GRANTs and RLS on \"Product\" are intentionally unchanged"
           ],
           "mustNotInclude": [
             "DROP COLUMN"

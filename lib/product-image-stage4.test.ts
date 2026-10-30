@@ -61,18 +61,17 @@ describe('stage 4: AI label = flag + prompt', () => {
   })
 })
 
-describe('stage 4: migration is additive + RLS lock + rollback', () => {
+describe('stage 4: migration is additive (column-only) + rollback', () => {
   const dir = 'prisma/migrations/20261030200000_product_bg_image_ai_label'
   it('migration', () => {
     const sql = fs.readFileSync(`${dir}/migration.sql`, 'utf8')
     const body = sql.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n')
     expect(body).not.toMatch(/\bDROP\b|\bNOT NULL\b|\bDEFAULT\b|\bUPDATE\b|\bDELETE\b|\bRENAME\b/i)
     expect(body).toContain('ADD COLUMN IF NOT EXISTS "bgImageAiPrompt" TEXT')
-    expect(body).toContain('ENABLE ROW LEVEL SECURITY')
-    expect(body).toMatch(/REVOKE ALL ON TABLE "Product" FROM anon/)
-    expect(body).toMatch(/REVOKE ALL ON TABLE "Product" FROM authenticated/)
-    expect(body).toMatch(/GRANT ALL ON TABLE "Product" TO postgres/)
-    expect(body).toMatch(/GRANT ALL ON TABLE "Product" TO service_role/)
+    expect(body).toContain('ADD COLUMN IF NOT EXISTS "bgImageAiLabeledAt" TIMESTAMP(3)')
+    // column-only: GRANTs/RLS on "Product" intentionally unchanged (owner approved columns only)
+    expect(body).not.toMatch(/\bREVOKE\b|\bGRANT\b|ROW LEVEL SECURITY|\bPOLICY\b/i)
+    expect(sql).toContain('GRANTs and RLS on "Product" are intentionally unchanged')
     const rb = fs.readFileSync(`${dir}/rollback.sql`, 'utf8')
     expect(rb).toContain('DROP COLUMN IF EXISTS "bgImageAiPrompt"')
     expect(fs.existsSync('scripts/ops/backup-product-image-fields-20261030.sh')).toBe(true)
