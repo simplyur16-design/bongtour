@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useProductAirlineFilter } from '@/app/components/detail/product-airline-filter-context'
 import {
   A5_TWO_BUTTON_LABELS as L,
+  isUnderPhotoAirlineBoxEnabled,
   otherAirlineRows,
   resolveCurrentDepartureAirlineOption,
   shouldShowOtherAirlineButton,
@@ -31,6 +32,8 @@ export default function ProductAirlinePricePanelClient() {
   const { data, selected, select, currentDeparture, requestDeparturePicker } = useProductAirlineFilter()
   const [othersOpen, setOthersOpen] = useState(false)
 
+  // REGRESSION-FREEZE[a5-two-buttons-1030]: 히어로 아래 상자 유지/제거 스위치(NEXT_PUBLIC_A5_UNDER_PHOTO_AIRLINE_BOX=off) — manifest
+  if (!isUnderPhotoAirlineBoxEnabled()) return null
   if (!data || data.options.length === 0) return null
 
   const current = resolveCurrentDepartureAirlineOption(data, selected, currentDeparture)

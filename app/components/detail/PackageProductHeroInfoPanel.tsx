@@ -1,5 +1,10 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import {
+  HeroCardAirlineList,
+  HeroCardAirlineSwitchButton,
+} from '@/app/components/detail/HeroCardAirlineSwitcher'
 import {
   KrwAmountDisplay,
   ProductDetailTitle,
@@ -90,6 +95,11 @@ export default function PackageProductHeroInfoPanel({
   const airlineDisplay = formatPublicAirlineDisplay(airline)
   // REGRESSION-FREEZE[public-card-no-kr-departure-place]: 상세 dest 출발허브 제거 — manifest
   const destinationDisplay = formatPublicDestinationDisplayLabel(destination)
+  // REGRESSION-FREEZE[a5-two-buttons-1030]: 카드 '다른 항공사' — 열면 출발/귀국·가격 자리에 목록(카드 높이·잘림 방지), 고르면 닫힘
+  const [airlineListOpen, setAirlineListOpen] = useState(false)
+  useEffect(() => {
+    setAirlineListOpen(false)
+  }, [airline, heroDepartureDisplay])
 
   const body = (
     <>
@@ -126,7 +136,11 @@ export default function PackageProductHeroInfoPanel({
         ) : null}
       </p>
 
-      {heroDepartureDisplay || heroReturnDisplay ? (
+      <HeroCardAirlineSwitchButton open={airlineListOpen} onToggle={() => setAirlineListOpen((v) => !v)} />
+
+      {airlineListOpen ? <HeroCardAirlineList onDone={() => setAirlineListOpen(false)} /> : null}
+
+      {!airlineListOpen && (heroDepartureDisplay || heroReturnDisplay) ? (
         <div className="mt-3 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 rounded-xl border border-[#DAD4EE]/60 bg-[#FAFAFC] px-3 py-2.5 text-center text-sm">
           <span className="text-bt-meta">출발</span>
           <span className="font-semibold tabular-nums text-bt-title">{heroDepartureDisplay ?? '—'}</span>
@@ -136,7 +150,7 @@ export default function PackageProductHeroInfoPanel({
         </div>
       ) : null}
 
-      {showPriceBlock ? (
+      {!airlineListOpen && showPriceBlock ? (
         <div className="mt-3 rounded-xl border border-bt-card-accent-border bg-bt-card-accent-soft p-2.5">
           <FlightLegTwoLineBlock label="가는편" leg={outboundFlight} />
           <FlightLegTwoLineBlock label="오는편" leg={inboundFlight} />
@@ -183,7 +197,7 @@ export default function PackageProductHeroInfoPanel({
         </div>
       ) : null}
 
-      {departureConditionLine?.trim() ? (
+      {!airlineListOpen && departureConditionLine?.trim() ? (
         <p className="mt-2 text-center text-[11px] font-semibold leading-snug text-bt-card-accent-strong">
           {departureConditionLine.trim()}
         </p>

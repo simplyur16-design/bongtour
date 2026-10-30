@@ -93,3 +93,30 @@ export const A5_TWO_BUTTON_LABELS = {
   otherListTitle: '같은 상품 · 다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)',
   showAll: '항공사 구분 없이 전체 출발일 보기',
 } as const
+
+/**
+ * A-5 히어로 가격카드 안 '다른 항공사' 선택기 문구 (문과장 규칙: 성인 1인 기준 · '가장 낮은 요금'은 여러 출발일 중일 때만 · '최저가' 금지).
+ * REGRESSION-FREEZE[a5-two-buttons-1030]: 카드 선택기 문구 — manifest
+ */
+export const A5_HERO_CARD_AIRLINE_LABELS = {
+  openButton: '다른 항공사 보기',
+  closeButton: '닫기',
+  listTitle: '다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)',
+  priceSuffix: '원부터',
+  noPrice: '요금 문의',
+  showAll: '항공사 구분 없이 전체 출발일 보기',
+} as const
+
+/** 카드 선택기 노출 — 가격행 있는 항공사 2곳 이상일 때만(단일 항공사는 지금처럼 항공사 이름만). */
+export function shouldShowHeroCardAirlineSwitch(data: ProductAirlineFilterData | null | undefined): boolean {
+  return shouldShowOtherAirlineButton(data)
+}
+
+/**
+ * 히어로 아래 항공사 상자(ProductAirlinePricePanelClient) 스위치.
+ * 빌드 시 `NEXT_PUBLIC_A5_UNDER_PHOTO_AIRLINE_BOX=off` → 상자 숨김(카드 선택기만). 기본: 유지.
+ * REGRESSION-FREEZE[a5-two-buttons-1030]: 상자 유지/제거 스위치 — manifest
+ */
+export function isUnderPhotoAirlineBoxEnabled(raw: string | undefined = process.env.NEXT_PUBLIC_A5_UNDER_PHOTO_AIRLINE_BOX): boolean {
+  return String(raw ?? '').trim().toLowerCase() !== 'off'
+}

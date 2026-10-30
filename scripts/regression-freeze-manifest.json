@@ -28868,7 +28868,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "A-5 상세 항공사 영역 두 버튼 — 상단=선택 출발 회차 항공사, '출발일 변경해서 보기'=같은 항공사 달력, '다른 항공사 찾기'=기존 가격행 최저가만·항공사 1곳이면 숨김 · 항공사 영역은 사이트 머리말 아래(상세 본문 히어로 다음), 머리말 위 렌더·sticky/fixed 금지",
+      "summary": "A-5 상세 항공사 영역 두 버튼 — 상단=선택 출발 회차 항공사, '출발일 변경해서 보기'=같은 항공사 달력, '다른 항공사 찾기'=기존 가격행 최저가만·항공사 1곳이면 숨김 · 항공사 영역은 사이트 머리말 아래(상세 본문 히어로 다음), 머리말 위 렌더·sticky/fixed 금지 · 히어로 가격카드 안 '다른 항공사' 선택기(항공사 2곳 이상만, 기존 가격행 성인 1인 가장 낮은 값, select→?airline=) · 히어로 아래 상자 스위치(NEXT_PUBLIC_A5_UNDER_PHOTO_AIRLINE_BOX=off)",
       "checks": [
         {
           "file": "lib/detail-airline-two-buttons.ts",
@@ -28878,7 +28878,10 @@
             "export function shouldShowOtherAirlineButton",
             "export function lowestPublicPriceFromRows",
             "n > 0",
-            "'같은 상품 · 다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)'"
+            "'같은 상품 · 다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)'",
+            "export function shouldShowHeroCardAirlineSwitch",
+            "export function isUnderPhotoAirlineBoxEnabled",
+            "'다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)'"
           ],
           "mustNotInclude": [
             "minPriceKrw:"
@@ -28894,7 +28897,8 @@
             "requestDeparturePicker()",
             "o.lowestPriceKrw != null",
             "L.otherListTitle",
-            "L.unknownAirline"
+            "L.unknownAirline",
+            "if (!isUnderPhotoAirlineBoxEnabled()) return null"
           ],
           "mustNotInclude": [
             "sticky",
@@ -28961,6 +28965,29 @@
           "file": "app/products/[idOrSlug]/product-detail-page-content.tsx",
           "mustNotInclude": [
             "<ProductAirlinePricePanelClient"
+          ]
+        },
+        {
+          "file": "app/components/detail/HeroCardAirlineSwitcher.tsx",
+          "mustInclude": [
+            "shouldShowHeroCardAirlineSwitch(ctx.data)",
+            "otherAirlineRows(ctx.data",
+            "select(label)",
+            "o.lowestPriceKrw != null"
+          ],
+          "mustNotInclude": [
+            "sticky",
+            "fixed",
+            "createPortal",
+            "최저가"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageProductHeroInfoPanel.tsx",
+          "mustInclude": [
+            "<HeroCardAirlineSwitchButton",
+            "<HeroCardAirlineList",
+            "{!airlineListOpen && showPriceBlock ? ("
           ]
         }
       ]
@@ -29419,7 +29446,7 @@
       "tier": [
         "ci"
       ],
-      "summary": "A-5 상세 두 버튼 — 단일 항공사 버튼 2 숨김·항공사 전환 정합·가격행 없으면 가격 없음",
+      "summary": "A-5 상세 두 버튼 — 단일 항공사 버튼 2 숨김·항공사 전환 정합·가격행 없으면 가격 없음 · 히어로 카드 다른 항공사 선택기·상자 스위치",
       "files": [
         "lib/a5-two-buttons-1030.test.ts"
       ]

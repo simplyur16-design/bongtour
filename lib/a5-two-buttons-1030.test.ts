@@ -8,7 +8,10 @@ import {
   type ProductAirlineFilterData,
 } from '@/lib/airline-variant-group'
 import {
+  A5_HERO_CARD_AIRLINE_LABELS,
   A5_TWO_BUTTON_LABELS,
+  isUnderPhotoAirlineBoxEnabled,
+  shouldShowHeroCardAirlineSwitch,
   lowestPublicPriceFromRows,
   otherAirlineRows,
   resolveCurrentDepartureAirlineOption,
@@ -155,5 +158,44 @@ describe('A-5 두 버튼 — 항공사 바꾸면 달력·가격·편명·귀국 
     expect(aligned?.inbound).toBeNull()
     expect(aligned?.outboundSummary).toBeNull()
     expect(aligned?.meetingSummary).toBe('인천공항 3층')
+  })
+})
+
+describe('A-5 히어로 가격카드 — 다른 항공사 선택기 (사장님 23:47)', () => {
+  const single: ProductAirlineFilterData = {
+    options: airlineOptionsFromPriceRows([
+      { row: row('t1', '2026-12-01', 1500000), label: '터키항공' },
+      { row: row('t2', '2026-12-08', 1400000), label: '터키항공' },
+    ]),
+  }
+  it('항공사 1곳이면 카드 선택기 없음, 2곳 이상이면 있음', () => {
+    expect(shouldShowHeroCardAirlineSwitch(single)).toBe(false)
+    expect(shouldShowHeroCardAirlineSwitch(null)).toBe(false)
+    expect(shouldShowHeroCardAirlineSwitch(twoAirlines)).toBe(true)
+  })
+  it('카드 목록 가격 = 그 항공사 공개 가격행 성인 1인 중 가장 낮은 값(추정 없음)', () => {
+    const others = otherAirlineRows(twoAirlines, '대한항공')
+    const jeju = twoAirlines.options.find((o) => o.label === '제주항공')!
+    expect(others.map((o) => o.label)).toEqual(['제주항공'])
+    expect(others[0].lowestPriceKrw).toBe(lowestPublicPriceFromRows(jeju))
+  })
+  it('카드 문구: 성인 1인 기준 · 가장 낮은 요금 · 최저가 없음', () => {
+    expect(A5_HERO_CARD_AIRLINE_LABELS.listTitle).toBe('다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)')
+    for (const v of Object.values(A5_HERO_CARD_AIRLINE_LABELS)) expect(v).not.toContain('최저가')
+  })
+  it('히어로 아래 상자 스위치: off 면 숨김, 기본은 유지', () => {
+    expect(isUnderPhotoAirlineBoxEnabled(undefined)).toBe(true)
+    expect(isUnderPhotoAirlineBoxEnabled('')).toBe(true)
+    expect(isUnderPhotoAirlineBoxEnabled('off')).toBe(false)
+    expect(isUnderPhotoAirlineBoxEnabled(' OFF ')).toBe(false)
+  })
+  it('소스: 카드 안에서만 렌더(sticky/fixed/portal 없음), 선택은 기존 필터 select → ?airline=', () => {
+    const sw = readFileSync(resolve(process.cwd(), 'app/components/detail/HeroCardAirlineSwitcher.tsx'), 'utf8')
+    expect(sw).toContain('select(label)')
+    expect(sw).not.toMatch(/\bsticky\b|\bfixed\b|createPortal/)
+    expect(sw).not.toContain('최저가')
+    const card = readFileSync(resolve(process.cwd(), 'app/components/detail/PackageProductHeroInfoPanel.tsx'), 'utf8')
+    expect(card).toContain('<HeroCardAirlineSwitchButton')
+    expect(card).toContain('{!airlineListOpen && showPriceBlock ? (')
   })
 })
