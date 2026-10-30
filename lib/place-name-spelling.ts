@@ -10,7 +10,7 @@
  * - 가격·숫자는 다루지 않는다(문자열 지명만).
  *
  * 기준 순서(문과장 N1): ① 국립국어원 외래어 표기법·용례 ② 관광청·기관·호텔 공식 한국어 표기 ③ 주요 언론·포털 통용.
- * 사장님 결정(2026-10-30 23:44): 흔히 쓰는 이름(업계 통용)이 표준. 나트랑·푸켓·호치민은 냐짱·푸껫·호찌민 등으로 바꾸지 않는다.
+ * 사장님 결정(2026-10-30 23:44): 흔히 쓰는 이름(업계 통용)이 표준. 나트랑·푸켓·호치민·씨엠립은 냐짱·푸껫·호찌민·시엠레아프 등으로 바꾸지 않는다.
  *   통용 vs 국립국어원 표기가 갈리는 쌍은 PLACE_NAME_COMMON_VS_STANDARD(사장님 결정 대기)로 빼고 자동 교정하지 않는다.
  * 단, 외래어 표기법 제4장 제2절 제4항(중국·일본 지명의 한국 한자음 관용 허용: 동경·상해·북경·장가계 등)은 오류로 보지 않는다.
  *
@@ -75,16 +75,15 @@ export const PLACE_NAME_SPELLING_DICTIONARY: readonly PlaceNameSpellingEntry[] =
   { variant: '포르토', standard: '포르투', kind: 'place', confidence: 'uncertain', source: `${SRC_KORNORMS} (Porto 포르투) — 포르토피노 등 다른 지명과 혼동 우려로 확인 필요`, note: '리스본과 함께 쓰이면 포르투' },
   { variant: '싱가폴', standard: '싱가포르', kind: 'country', confidence: 'certain', source: SRC_KORNORMS },
 
-  // ── 사장님 결정 2026-10-30 23:44 「흔히 쓰는 나트랑·푸켓·호치민·씬엠립으로 통일」 — 통용 표기가 표준
+  // ── 사장님 결정 2026-10-30 23:44 「흔히 쓰는 나트랑·푸켓·호치민·씨엠립으로 통일」 — 통용 표기가 표준
   { variant: '냐짱', standard: '나트랑', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
   { variant: '푸껫', standard: '푸켓', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
   { variant: '푸께', standard: '푸켓', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
   { variant: '푸껓', standard: '푸켓', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
   { variant: '푸껑', standard: '푸켓', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
   { variant: '호찌민', standard: '호치민', kind: 'place', confidence: 'certain', source: SRC_OWNER_COMMON },
-  // 씨엠립(Siem Reap): 사장님 지시 표기 「씬엠립」은 웹·업계·우리 DB 사용례 0건 → 오타 가능성. 확정 전까지 자동 교정 안 함.
-  { variant: '시엠레아프', standard: '씨엠립', kind: 'place', confidence: 'uncertain', policy: true, source: `${SRC_OWNER_COMMON} · N1③ 업계 통용 씨엠립/시엠립(하나투어·모두투어)`, note: '사장님 지시 「씬엠립」 사용례 0건 — 씨엠립인지 확인 필요(확정 시 certain 전환)' },
-  { variant: '씬엠립', standard: '씨엠립', kind: 'place', confidence: 'uncertain', policy: true, source: 'N1③ 사용례 0건(웹·업계·우리 DB) — 확인 필요', note: '사장님 지시 표기 — 오타 여부 확인 필요' },
+  { variant: '시엠레아프', standard: '씨엠립', kind: 'place', confidence: 'certain', source: `${SRC_OWNER_COMMON} · N1③ 업계 통용 씨엠립(하나투어·모두투어·아세안문화원)` },
+  { variant: '시엠립', standard: '씨엠립', kind: 'place', confidence: 'certain', source: `${SRC_OWNER_COMMON} · N1③ 업계 통용 씨엠립(하나투어·모두투어·아세안문화원)` },
 
   // ── uncertain: 교정하지 않고 플래그만
   { variant: '혼똠섬', standard: '혼똔섬', kind: 'place', confidence: 'uncertain', source: 'N1 「한 글 안 같은 표기」 — Hòn Thơm, 상품 대부분 혼똔섬 사용', note: '표준 표기 확인 안 됨(규칙상 혼텀) — 통일 방향만 제안' },
@@ -155,7 +154,6 @@ export const PLACE_NAME_CONSISTENCY_PAIRS: readonly (readonly [string, string])[
   ['규슈', '큐슈'],
   ['벳푸', '벳부'],
   ['마쓰야마', '마츠야마'],
-  ['씨엠립', '시엠립'],
 ]
 
 /** 의심 이름 탐지용 표준 지명 목록(사전 표준값 + 자주 쓰는 목적지). 존재하는 표준 표기만. */
@@ -164,7 +162,7 @@ export const PLACE_NAME_GAZETTEER: readonly string[] = [
   '방콕', '파타야', '치앙마이', '치앙라이', '푸켓', '끄라비', '크라비', '코사무이', '아유타야', '후아힌',
   '세부', '보홀', '보라카이', '마닐라', '팔라완', '클락', '코타키나발루', '쿠알라룸푸르', '말라카', '랑카위', '페낭', '겐팅',
   '싱가포르', '센토사', '발리', '우붓', '스미냑', '누사두아', '울루와투', '자카르타', '족자카르타', '마나도', '부나켄',
-  '비엔티안', '방비엥', '루앙프라방', '시엠립', '씨엠립', '앙코르와트', '프놈펜',
+  '비엔티안', '방비엥', '루앙프라방', '씨엠립', '앙코르와트', '프놈펜',
   '오사카', '교토', '고베', '나라', '도쿄', '요코하마', '하코네', '후쿠오카', '유후인', '벳푸', '구마모토', '가고시마',
   '나가사키', '사세보', '미야자키', '오이타', '기타큐슈', '규슈', '삿포로', '오타루', '하코다테', '홋카이도', '후라노', '비에이',
   '노보리베쓰', '오키나와', '나하', '나고야', '가나자와', '다카야마', '시라카와고', '도야마', '마쓰야마', '다카마쓰', '시코쿠',
@@ -358,8 +356,8 @@ export function detectPlaceNameSpellingFlags(texts: readonly (string | null | un
 
 /** Gemini 생성 프롬프트에 붙이는 규칙(추천일정·핵심포인트 정리본·요약·제목) */
 export const PLACE_NAME_SPELLING_PROMPT_RULE = `[지명·호텔명 표기 규칙 — 필수]
-- 지명·호텔명·명소명은 한국 여행업계에서 흔히 쓰는 표기를 쓴다(예: 나트랑·푸켓·호치민·푸꾸옥). 냐짱·푸껫·호찌민·시엠레아프처럼 낯선 표기로 바꾸지 않는다.
-- 명백한 오타만 바로잡는다(예: 푸꼽옥 → 푸꾸옥, 효도협 → 호도협). 그 밖의 표기는 원문 표기를 그대로 쓴다.
+- 지명·호텔명·명소명은 한국 여행업계에서 흔히 쓰는 표기를 쓴다(예: 나트랑·푸켓·호치민·씨엠립·푸꾸옥). 냐짱·푸껫·호찌민·시엠레아프처럼 낯선 표기로 바꾸지 않는다.
+- 명백한 오타만 바로잡는다(예: 푸꼽옥 → 푸꾸옥, 효도협 → 호도협, 시엠립 → 씨엠립). 그 밖의 표기는 원문 표기를 그대로 쓴다.
 - 원문에 없는 지명·호텔명·명소명을 새로 만들거나 추측해서 쓰지 않는다.
 - 한 결과물 안에서 같은 이름은 같은 표기로 쓴다.
 - 가격·금액·숫자는 원문 그대로 두고 바꾸거나 추정하지 않는다.`
@@ -368,7 +366,7 @@ export const PLACE_NAME_SPELLING_PROMPT_RULE = `[지명·호텔명 표기 규칙
 export const PLACE_NAME_SPELLING_HIGHLIGHT_PROMPT_RULE = `
 지명·호텔명 표기:
 - highlightPointsRaw는 공급사 원문 표기 그대로 둔다(고치지 않음).
-- highlightPoints에서는 업계 통용 표기를 쓰고 명백한 오타만 바로잡는다(예: 푸꼽옥→푸꾸옥). 나트랑·푸켓·호치민을 냐짱·푸껫·호찌민으로 바꾸지 않는다. 그 밖에는 원문 표기 그대로 쓰고, 원문에 없는 이름은 만들지 않는다.
+- highlightPoints에서는 업계 통용 표기를 쓰고 명백한 오타만 바로잡는다(예: 푸꼽옥→푸꾸옥). 나트랑·푸켓·호치민·씨엠립을 냐짱·푸껫·호찌민·시엠레아프로 바꾸지 않는다. 그 밖에는 원문 표기 그대로 쓰고, 원문에 없는 이름은 만들지 않는다.
 `
 
 /** Gemini 출력 사후 검사: certain 교정 + 플래그 */

@@ -21,7 +21,7 @@ describe('place-name-spelling dictionary', () => {
     }
   })
   it('owner 23:44: common names are the standard — never a dictionary variant', () => {
-    for (const v of ['나트랑', '푸켓', '호치민', '씨엠립', '시엠립', '크라비']) {
+    for (const v of ['나트랑', '푸켓', '호치민', '씨엠립', '크라비']) {
       expect(PLACE_NAME_SPELLING_DICTIONARY.find((x) => x.variant === v), v).toBeUndefined()
     }
     for (const bad of ['냐짱', '푸껫', '호찌민', '시엠레아프']) {
@@ -49,14 +49,14 @@ describe('normalizePlaceNameSpelling', () => {
     expect(normalizePlaceNameSpellingText('호찌민 시내')).toBe('호치민 시내')
   })
   it('display never converts common names into 국립국어원 forms', () => {
-    const s = '나트랑 푸켓 호치민 씨엠립 시엠립 크라비 벳부 큐슈 마츠야마 타이페이 울란바타르 비엔티엔 꾸따 터키'
+    const s = '나트랑 푸켓 호치민 씨엠립 크라비 벳부 큐슈 마츠야마 타이페이 울란바타르 비엔티엔 꾸따 터키'
     expect(normalizePlaceNameSpellingText(s)).toBe(s)
     expect(postCheckGeneratedPlaceNames(s).text).toBe(s)
   })
-  it('Siem Reap: 시엠레아프·씬엠립 flagged only (owner spelling unconfirmed)', () => {
-    expect(normalizePlaceNameSpellingText('시엠레아프 씬엠립')).toBe('시엠레아프 씬엠립')
-    const f = detectPlaceNameSpellingFlags(['시엠레아프 씬엠립'])
-    expect(f.filter((x) => x.type === 'dictionary_uncertain').length).toBe(2)
+  it('owner 23:44: 시엠립·시엠레아프 → 씨엠립 (U+C528)', () => {
+    expect(normalizePlaceNameSpellingText('시엠립 앙코르와트, 시엠레아프 공항')).toBe('씨엠립 앙코르와트, 씨엠립 공항')
+    expect('씨엠립'.charCodeAt(0)).toBe(0xc528)
+    expect(normalizePlaceNameSpellingText('씨엠립')).toBe('씨엠립')
   })
   it('typos: 효도협·하와리·도톰보리', () => {
     expect(normalizePlaceNameSpellingText('효도협 트레킹')).toBe('호도협 트레킹')
@@ -90,7 +90,6 @@ describe('flags', () => {
     expect(types).toContain('dictionary_uncertain')
     expect(types).toContain('suspicious_name')
     expect(types).toContain('mixed_spelling')
-    expect(f.some((x) => x.type === 'dictionary_uncertain' && x.policy)).toBe(true)
   })
   it('common words not flagged', () => {
     expect(detectPlaceNameSpellingFlags(['시그니처 굿바이 스트리트 프라자']).filter((x) => x.type === 'suspicious_name')).toEqual([])
@@ -99,7 +98,7 @@ describe('flags', () => {
 
 describe('post-check + prompt', () => {
   it('prompt rule: common names, no 국립국어원 forms, no invented names, no price edits', () => {
-    expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/나트랑·푸켓·호치민/)
+    expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/나트랑·푸켓·호치민·씨엠립/)
     expect(PLACE_NAME_SPELLING_PROMPT_RULE).not.toMatch(/마쓰야마|규슈\)|벳푸/)
     expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/만들거나 추측/)
     expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/가격|금액/)
