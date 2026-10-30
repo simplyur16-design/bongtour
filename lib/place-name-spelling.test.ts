@@ -49,7 +49,7 @@ describe('normalizePlaceNameSpelling', () => {
     expect(normalizePlaceNameSpellingText('호찌민 시내')).toBe('호치민 시내')
   })
   it('display never converts common names into 국립국어원 forms', () => {
-    const s = '나트랑 푸켓 호치민 씨엠립 크라비 벳부 큐슈 마츠야마 타이페이 울란바타르 비엔티엔 꾸따 터키'
+    const s = '나트랑 푸켓 호치민 씨엠립 크라비 벳부 큐슈 마츠야마 노보리베츠 비엔티엔 꾸따 울루와뚜 도게츠교 다카마츠 쉔부른 튀르키예(터키) 터키항공'
     expect(normalizePlaceNameSpellingText(s)).toBe(s)
     expect(postCheckGeneratedPlaceNames(s).text).toBe(s)
   })
@@ -62,6 +62,61 @@ describe('normalizePlaceNameSpelling', () => {
     expect(normalizePlaceNameSpellingText('효도협 트레킹')).toBe('호도협 트레킹')
     expect(normalizePlaceNameSpellingText('하와리')).toBe('하와이')
     expect(normalizePlaceNameSpellingText('도톰보리')).toBe('도톤보리')
+  })
+  it('owner 23:53: decided pairs auto-correct', () => {
+    const cases: [string, string][] = [
+      ['울란바타르 테를지', '울란바토르 테를지'],
+      ['북규슈 기타규슈 키타규슈 규슈', '북큐슈 기타큐슈 키타큐슈 큐슈'],
+      ['타이페이 101', '타이베이 101'],
+      ['돌로미테 트레킹', '돌로미티 트레킹'],
+      ['쿠로가와 온천', '구로카와 온천'],
+      ['타카마츠 다카마쓰', '다카마츠 다카마츠'],
+      ['이태리 싱가폴', '이탈리아 싱가포르'],
+    ]
+    for (const [a, b] of cases) expect(normalizePlaceNameSpellingText(a), a).toBe(b)
+  })
+  it('터키 → 튀르키예(터키): airline·이미 병기·튀르키예 단독은 그대로, 이중 적용 없음', () => {
+    expect(normalizePlaceNameSpellingText('터키 일주 9일')).toBe('튀르키예(터키) 일주 9일')
+    expect(normalizePlaceNameSpellingText('터키항공 직항')).toBe('터키항공 직항')
+    expect(normalizePlaceNameSpellingText('터키 항공 카운터')).toBe('터키 항공 카운터')
+    expect(normalizePlaceNameSpellingText('튀르키예(터키) 일주')).toBe('튀르키예(터키) 일주')
+    expect(normalizePlaceNameSpellingText('튀르키예 일주')).toBe('튀르키예 일주')
+    const once = normalizePlaceNameSpellingText('터키/그리스 10일 터키항공')
+    expect(once).toBe('튀르키예(터키)/그리스 10일 터키항공')
+    expect(normalizePlaceNameSpellingText(once)).toBe(once)
+  })
+  it('유니버셜 → 유니버설 only inside 유니버설 스튜디오 재팬', () => {
+    expect(normalizePlaceNameSpellingText('유니버셜 스튜디오 재팬 입장권')).toBe('유니버설 스튜디오 재팬 입장권')
+    expect(normalizePlaceNameSpellingText('유니버셜스튜디오재팬')).toBe('유니버설스튜디오재팬')
+    expect(normalizePlaceNameSpellingText('유니버셜 스튜디오 싱가포르')).toBe('유니버셜 스튜디오 싱가포르')
+    expect(normalizePlaceNameSpellingText('유니버셜 시티워크')).toBe('유니버셜 시티워크')
+  })
+  it('kept common forms: reverse (국립국어원) variants unify to the kept form', () => {
+    const cases: [string, string][] = [
+      ['벳푸 지옥', '벳부 지옥'],
+      ['비엔티안', '비엔티엔'],
+      ['마쓰야마성', '마츠야마성'],
+      ['노보리베쓰 지옥계곡', '노보리베츠 지옥계곡'],
+      ['마쓰에성', '마츠에성'],
+      ['쿠타 비치', '꾸따 비치'],
+      ['울루와투 사원', '울루와뚜 사원'],
+      ['도게쓰교', '도게츠교'],
+      ['가쓰야마', '카츠야마'],
+      ['사쓰마', '사츠마'],
+      ['마쓰모토성', '마츠모토성'],
+      ['타만미니', '따만미니'],
+    ]
+    for (const [a, b] of cases) expect(normalizePlaceNameSpellingText(a), a).toBe(b)
+    expect(normalizePlaceNameSpellingText('아쿠타가와')).toBe('아쿠타가와')
+  })
+  it('쉔부른 kept, never to 쇤브룬 (and 쇤브룬 not auto-reversed)', () => {
+    expect(normalizePlaceNameSpellingText('쉔부른 궁전')).toBe('쉔부른 궁전')
+    expect(normalizePlaceNameSpellingText('쇤브룬 궁전')).toBe('쇤브룬 궁전')
+  })
+  it('no certain standard is itself rewritten (idempotent dictionary)', () => {
+    for (const e of PLACE_NAME_SPELLING_DICTIONARY.filter((x) => x.confidence === 'certain')) {
+      expect(normalizePlaceNameSpellingText(e.standard), e.standard).toBe(e.standard)
+    }
   })
   it('uncertain names stay as-is', () => {
     const s = '나트랑 푸켓 호치민 혼똠섬 테렐지 츠카사'
@@ -99,7 +154,9 @@ describe('flags', () => {
 describe('post-check + prompt', () => {
   it('prompt rule: common names, no 국립국어원 forms, no invented names, no price edits', () => {
     expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/나트랑·푸켓·호치민·씨엠립/)
-    expect(PLACE_NAME_SPELLING_PROMPT_RULE).not.toMatch(/마쓰야마|규슈\)|벳푸/)
+    expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/큐슈·벳부·마츠야마/)
+    expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/튀르키예\(터키\)/)
+    expect(PLACE_NAME_SPELLING_PROMPT_RULE).not.toMatch(/마쓰야마|규슈|벳푸/)
     expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/만들거나 추측/)
     expect(PLACE_NAME_SPELLING_PROMPT_RULE).toMatch(/가격|금액/)
   })

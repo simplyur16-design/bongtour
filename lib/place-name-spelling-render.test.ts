@@ -42,7 +42,7 @@ describe('normalizeProductPublicDetailModelPlaceNames', () => {
     expect(out.masterArg.days[0].activities[0]).toMatchObject({ title: '호도협 트레킹', location: '호도협', estimatedCostKrw: 3000, estimatedCostNote: '효도협 입장료' })
   })
   it('common names (나트랑·푸켓·호치민·벳부·큐슈) pass through unchanged', () => {
-    const m = { variant: 'package', viewProduct: { title: '나트랑 푸켓 호치민 벳부 큐슈 마츠야마', schedule: [] }, seo: { productDescription: '타이페이', breadcrumbItems: [] } } as unknown as ProductPublicDetailRenderModel
+    const m = { variant: 'package', viewProduct: { title: '나트랑 푸켓 호치민 벳부 큐슈 마츠야마', schedule: [] }, seo: { productDescription: '비엔티엔 꾸따', breadcrumbItems: [] } } as unknown as ProductPublicDetailRenderModel
     expect(normalizeProductPublicDetailModelPlaceNames(m)).toBe(m)
   })
   it('returns same reference when nothing to fix', () => {
