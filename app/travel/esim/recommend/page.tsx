@@ -11,7 +11,7 @@ export const dynamic = "force-static";
 export const revalidate = 120;
 
 export const metadata: Metadata = {
-  title: "여행지별 eSIM 추천 | Bong투어 eSIM",
+  title: { absolute: "여행지별 eSIM 추천 | Bong투어 eSIM" },
   description: "여행 국가를 고르면 일수·용량에 맞는 해외 eSIM을 추천해 드립니다.",
   alternates: { canonical: "/travel/esim/recommend" },
   openGraph: {

@@ -6,7 +6,7 @@ import { bongsimCountryPickerHref, bongsimPath } from "@/lib/bongsim/constants";
 import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
 
 export const metadata: Metadata = {
-  title: "eSIM 지원 기기 확인 | Bong투어 eSIM",
+  title: { absolute: "eSIM 지원 기기 확인 | Bong투어 eSIM" },
   description:
     "여행자님, 구매 전 사용 중인 휴대폰이 eSIM을 지원하는지 확인해 보세요. 삼성·애플·픽셀 기준과 기종 확인 방법을 안내합니다.",
   alternates: { canonical: "/travel/esim/devices" },

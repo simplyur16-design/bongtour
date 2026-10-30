@@ -6,7 +6,7 @@ import { SITE_NAME } from '@/lib/site-metadata'
 export const revalidate = 300
 
 export const metadata: Metadata = {
-  title: `국외연수 프로그램 | ${SITE_NAME}`,
+  title: { absolute: `국외연수 프로그램 | ${SITE_NAME}` },
   description: '공무·기업 국외연수 프로그램 카탈로그. 가격은 상담 후 안내합니다.',
   alternates: { canonical: '/business/programs' },
 }

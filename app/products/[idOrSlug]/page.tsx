@@ -86,7 +86,7 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
   const ogImageAlt = ogCaption ? `${displayTitle} — ${ogCaption}` : displayTitle
   const isDraft = p.registrationStatus !== 'registered'
   return {
-    title: isDraft ? `${documentTitle} (관리자 미리보기)` : documentTitle,
+    title: { absolute: isDraft ? `${documentTitle} (관리자 미리보기)` : documentTitle },
     description: desc,
     alternates: { canonical: path },
     ...(isDraft ? { robots: { index: false, follow: false } } : {}),

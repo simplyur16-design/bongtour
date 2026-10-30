@@ -31,7 +31,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const rawLang = typeof sp.lang === 'string' ? sp.lang : undefined
   if (parseInquiryUiLang(rawLang) !== 'en') return KO_METADATA
   return {
-    title: 'Travel inquiry | Bong투어',
+    title: { absolute: 'Travel inquiry | Bong투어' },
     description:
       'Request a travel consultation. Submitting this form does not confirm a booking.',
     alternates: { canonical: '/inquiry' },

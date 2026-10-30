@@ -13,7 +13,7 @@ const EsimLandingBelowFold = nextDynamic(() => import('./EsimLandingBelowFold'),
 })
 
 export const metadata: Metadata = {
-  title: 'Bong투어 eSIM | 해외 여행 eSIM | Bong투어',
+  title: { absolute: 'Bong투어 eSIM | 해외 여행 eSIM' },
   description: '24시간 고객센터, 100% 환불 보장. 여행지에 맞는 최적의 eSIM을 찾아드립니다.',
   alternates: { canonical: '/travel/esim' },
   openGraph: {

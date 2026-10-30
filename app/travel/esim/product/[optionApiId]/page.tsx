@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const canonical = `/travel/esim/product/${encodeURIComponent(optionApiId)}`;
   if (!res.ok) {
     return {
-      title: "eSIM 상품 | Bong투어",
+      title: { absolute: "eSIM 상품 | Bong투어" },
       alternates: { canonical },
       robots: { index: false, follow: false },
     };
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = option ? `${plan} ${option} | Bong투어 eSIM` : `${plan} | Bong투어 eSIM`;
   const description = `${plan}${option ? ` · ${option}` : ""} — QR 설치·즉시 구매.`;
   return {
-    title,
+    title: { absolute: title },
     description,
     alternates: { canonical },
     openGraph: { title, description, url: canonical, type: "website" },

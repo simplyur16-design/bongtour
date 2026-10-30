@@ -8,7 +8,7 @@ import { loadCatalogPageBootstrapCached } from "@/lib/bongsim/data/load-catalog-
 // REGRESSION-FREEZE[build-ssg-skip-db]: catalog connection() — build SSG bongsim pool timeout 방지 — manifest
 
 export const metadata: Metadata = {
-  title: "eSIM 요금제 목록 | Bong투어 eSIM",
+  title: { absolute: "eSIM 요금제 목록 | Bong투어 eSIM" },
   description: "국가·일수·용량별 해외여행 eSIM 요금제를 비교하고 바로 구매하세요.",
   alternates: { canonical: "/travel/esim/catalog" },
   openGraph: {

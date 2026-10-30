@@ -4,7 +4,7 @@ import { EsimBenefitPageShell } from "@/components/bongsim/EsimBenefitPageShell"
 const TRAVELER_VERIFICATION_URL = "https://global.cmlink.com/en/real-name";
 
 export const metadata: Metadata = {
-  title: "여행자 인증(실명 인증) 안내 | Bong투어 eSIM",
+  title: { absolute: "여행자 인증(실명 인증) 안내 | Bong투어 eSIM" },
   description:
     "홍콩·마카오·대만 eSIM 사용 전 여행자 인증(실명 인증) 방법과 ICCID(8985234) 확인 기준을 안내합니다.",
   alternates: { canonical: "/travel/esim/benefits/traveler-verification" },

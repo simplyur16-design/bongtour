@@ -3,7 +3,7 @@ import { EsimBenefitPageShell } from "@/components/bongsim/EsimBenefitPageShell"
 import { EsimQualityGuaranteeSections } from "@/components/bongsim/EsimQualityGuaranteeSections";
 
 export const metadata: Metadata = {
-  title: "품질보장서비스 | Bong투어 eSIM",
+  title: { absolute: "품질보장서비스 | Bong투어 eSIM" },
   description:
     "제품 결함 시 전액 환불 등 Bong투어 eSIM 품질보장의 취지, 여행자 보호, 환불 기준 안내입니다.",
   alternates: { canonical: "/travel/esim/benefits/quality-guarantee" },

@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const program = await getPublishedTrainingProgramBySlugOrId(slug)
   if (!program) return { title: `프로그램 | ${SITE_NAME}` }
   return {
-    title: `${program.title} | 국외연수 | ${SITE_NAME}`,
+    title: { absolute: `${program.title} | 국외연수 | ${SITE_NAME}` },
     description: '국외연수 프로그램 상세. 단체 연수 상담 후 견적 안내.',
     alternates: {
       canonical: program.slug

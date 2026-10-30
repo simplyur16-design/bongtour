@@ -3,7 +3,7 @@ import { EsimBenefitPageShell } from "@/components/bongsim/EsimBenefitPageShell"
 import { ESIM_BENEFIT_ROAMING_COUNTRIES } from "@/lib/bongsim/esim-benefit-content";
 
 export const metadata: Metadata = {
-  title: "구글맵 데이터 무료 | Bong투어 eSIM",
+  title: { absolute: "구글맵 데이터 무료 | Bong투어 eSIM" },
   description:
     "여행 중 구글지도 길찾기·경로 탐색을 데이터 차감 없이 이용할 수 있는 Bong투어 eSIM 혜택을 안내합니다.",
   alternates: { canonical: "/travel/esim/benefits/google-maps" },

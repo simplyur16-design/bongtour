@@ -30096,6 +30096,43 @@
           ]
         }
       ]
+    },
+    {
+      "id": "site-title-no-double-suffix",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "탭 제목 'Bong투어 | Bong투어' 겹침 금지 — 사이트명이 이미 든 제목은 title.absolute (상품 상세·eSIM·국외연수·영문 문의)",
+      "checks": [
+        {
+          "file": "app/products/[idOrSlug]/page.tsx",
+          "mustInclude": [
+            "title: { absolute: isDraft ?"
+          ]
+        },
+        {
+          "file": "app/travel/esim/page.tsx",
+          "mustInclude": [
+            "title: { absolute:"
+          ],
+          "mustNotInclude": [
+            "해외 여행 eSIM | Bong투어'"
+          ]
+        },
+        {
+          "file": "app/travel/esim/product/[optionApiId]/page.tsx",
+          "mustInclude": [
+            "title: { absolute: title }"
+          ]
+        },
+        {
+          "file": "lib/site-title-no-double-suffix.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-title-no-double-suffix]"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -30618,6 +30655,16 @@
         "lib/fit-itinerary-prompt.test.ts",
         "lib/bongtour-free-day-postcheck.test.ts",
         "lib/itinerary-activity-duration-label.test.ts"
+      ]
+    },
+    {
+      "id": "site-title-no-double-suffix",
+      "tier": [
+        "ci"
+      ],
+      "summary": "app/ 페이지 제목 사이트명 겹침 정적 검사 (simplyur 제외)",
+      "files": [
+        "lib/site-title-no-double-suffix.test.ts"
       ]
     }
   ]
