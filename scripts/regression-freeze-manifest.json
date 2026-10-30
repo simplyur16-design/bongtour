@@ -28519,6 +28519,29 @@
           ]
         }
       ]
+    },
+    {
+      "id": "product-image-source-policy-1030",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 10/30: Pexels·Unsplash·CC0 출처 기록 불필요, 'attribution not required'≠CC BY, 기존 iStock은 허용 목록만, 가로폭 미상=확인 필요",
+      "checks": [
+        {
+          "file": "lib/product-image-source-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-source-policy-1030]",
+            "EXISTING_ISTOCK_IMAGE_KEYS",
+            "T1-RES-UNKNOWN",
+            "attribution-(is-)?not-(required|necessary|needed)",
+            "istock_existing"
+          ],
+          "mustNotInclude": [
+            "'L1-NO-RECORD'"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [

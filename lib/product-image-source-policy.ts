@@ -4,6 +4,13 @@
  * 금지: iStock, CC BY 계열(저작자 표시 의무 라이선스), 출처 불명. 크레딧은 의무일 때만 아주 작은 글씨.
  * 새 공개 이미지는 문과장 검수 통과 = 승인 전까지 공개 반영 금지(reviewApproved=false → 'awaiting_review').
  * REGRESSION-FREEZE[product-image-source-policy]: 출처 순서·iStock/CC BY 금지·생성 표시 — manifest
+ *
+ * 2026-10-30 사장님 지시("픽셀은 출처기록안해도 되는것으로 알고있다" / "출처를 따로쓰지 않아도 되는 사진은 괜찮다"):
+ * - Pexels·Unsplash·CC0는 출처 표시 의무 없음 → 출처 기록(ID·원본링크·작가) 빠져도 불합격 아님. 크레딧 기록을 새로 만들거나 채우지 않는다.
+ * - "attribution not required" 같은 문구는 CC BY로 읽지 않는다.
+ * - 이미 bongtour.com에 붙어 있는 iStock(사장님 구매분)은 허용 목록(EXISTING_ISTOCK_IMAGE_KEYS)으로만 예외 통과. 새 iStock·CC BY는 계속 금지.
+ * - 가로폭을 모르면 통과가 아니라 'T1-RES-UNKNOWN'(확인 필요).
+ * REGRESSION-FREEZE[product-image-source-policy-1030]: 출처 기록 불필요·기존 iStock 허용 목록·가로폭 미상=확인 필요 — manifest
  */
 import { inferSourceKeyFromImageUrl } from '@/lib/product-image-source-attribution'
 
@@ -26,16 +33,18 @@ export type ImageCandidate = {
 }
 
 export type ImagePolicyFailCode =
-  | 'L1-NO-RECORD'
   | 'L2-OTHER-SOURCE'
   | 'L2-ISTOCK'
   | 'L2-CC-BY'
   | 'L3-GEN-NO-RECORD'
   | 'T1-RES'
+  /** 가로폭을 모름 → 통과 아님, 측정(헤더/메타데이터) 후 재판정 */
+  | 'T1-RES-UNKNOWN'
   | 'T4-LINK'
 
 export type ImagePolicyResult = {
-  tier: ImageSourceTier | null
+  /** 'istock_existing' = 허용 목록에 있는 기존 iStock(유지만, 새 후보로 고르지 않음) */
+  tier: ImageSourceTier | 'istock_existing' | null
   pass: boolean
   fails: ImagePolicyFailCode[]
   /** 공개 화면 크레딧: 라이선스상 의무일 때만 true (Pexels·Unsplash·CC0는 의무 아님) */
@@ -44,7 +53,39 @@ export type ImagePolicyResult = {
   aiLabelRequired: boolean
 }
 
-const MIN_WIDTH = 1200
+export const IMAGE_MIN_WIDTH = 1200
+const MIN_WIDTH = IMAGE_MIN_WIDTH
+
+/**
+ * 기존 iStock 허용 목록 — 2026-10-30 KST 운영 DB(읽기 전용)에서 bgImageSource='istock'이고 대표 사진으로 이미 붙어 있던 10개 상품의 저장 파일 키.
+ * 날짜 기준 대신 파일 키 목록을 쓰는 이유: DB에 '사진이 붙은 날짜' 칸이 없어 날짜로는 기존/신규를 가를 수 없고,
+ * 파일 키는 새로 올린 iStock이 저절로 끼어들 수 없다. 목록에 추가하려면 사장님 확인 후 코드 변경으로만.
+ */
+export const EXISTING_ISTOCK_IMAGE_KEYS: readonly string[] = [
+  'places/unknown/unknown-pexels-30933135.webp', // pkg-yb-0004 (DB 출처 istock, 파일명은 pexels)
+  'photo-pool/primary_hero_manual-upload__2b934e365a608dd9.webp', // fit-mt-0008
+  'photo-pool/primary_hero_manual-upload__1c421c38e2d25e4f.webp', // pkg-yb-0006
+  'photo-pool/primary_hero_manual-upload__9c60bfcece736aeb.webp', // fit-mt-0004
+  'photo-pool/primary_hero_manual-upload__49f44f6216a8a9fd.webp', // pkg-yb-0012
+  'photo-pool/primary_hero_manual-upload__f2744a9e21d4e380.webp', // pkg-yb-0005
+  'photo-pool/primary_hero_manual-upload__fd98f0e963cdc4ff.webp', // pkg-yb-0013
+  'photo-pool/primary_hero_manual-upload__1b19b51bdbc61001.webp', // pkg-yb-0007
+  'photo-pool/primary_hero_manual-upload__aa70ae450fc1ba0a.webp', // pkg-mt-0004
+  'photo-pool/primary_hero_manual-upload__1f51d6ca2f3cf344.webp', // fit-mt-0018
+] as const
+
+/** 이미지 URL → 저장 파일 키(버킷 뒤 경로, 쿼리 제거) */
+export function imageStorageKeyFromUrl(url: string | null | undefined): string {
+  const raw = String(url ?? '').trim().split('?')[0]?.split('#')[0] ?? ''
+  if (!raw) return ''
+  const m = raw.match(/^https?:\/\/[^/]+\/(?:bongtour\/)?(.+)$/i)
+  return (m ? m[1] : raw).replace(/^\/+/, '')
+}
+
+export function isExistingIstockImage(url: string | null | undefined): boolean {
+  const key = imageStorageKeyFromUrl(url)
+  return !!key && EXISTING_ISTOCK_IMAGE_KEYS.includes(key)
+}
 
 function lower(s: string | null | undefined): string {
   return String(s ?? '').trim().toLowerCase()
@@ -55,6 +96,14 @@ export function isAttributionRequiredLicense(license: string | null | undefined)
   const l = lower(license).replace(/[\s_]+/g, '-')
   if (!l) return false
   if (/(^|-)cc0($|-)|public-?domain|pdm/.test(l)) return false
+  // Pexels·Unsplash 라이선스, "attribution not required"/"no attribution" 류는 표시 의무 없음
+  if (/(^|-)(pexels|unsplash)(-license)?($|-)/.test(l)) return false
+  if (
+    /attribution-(is-)?not-(required|necessary|needed)|no-attribution|without-attribution|attribution-optional|not-required-attribution|attribution-free/.test(
+      l
+    )
+  )
+    return false
   return /cc-?by|creative-?commons-?attribution|attribution/.test(l)
 }
 
@@ -74,21 +123,21 @@ export function resolveImageSourceTier(c: ImageCandidate): ImageSourceTier | 'is
 export function evaluateImageCandidatePolicy(c: ImageCandidate): ImagePolicyResult {
   const fails: ImagePolicyFailCode[] = []
   const tier = resolveImageSourceTier(c)
-  if (tier === 'istock') fails.push('L2-ISTOCK')
+  const istockExisting = tier === 'istock' && isExistingIstockImage(c.url)
+  if (tier === 'istock' && !istockExisting) fails.push('L2-ISTOCK')
   else if (tier === null) fails.push('L2-OTHER-SOURCE')
-  if (isAttributionRequiredLicense(c.license)) fails.push('L2-CC-BY')
-  if (tier === 'pexels' || tier === 'unsplash') {
-    if (!String(c.externalId ?? '').trim() || !String(c.originalLink ?? '').trim() || !String(c.photographer ?? '').trim()) {
-      fails.push('L1-NO-RECORD')
-    }
-  }
-  if (tier === 'cc0' && !String(c.originalLink ?? '').trim()) fails.push('L1-NO-RECORD')
+  if (!istockExisting && isAttributionRequiredLicense(c.license)) fails.push('L2-CC-BY')
+  // Pexels·Unsplash·CC0: 출처 기록(ID·원본링크·작가) 없어도 불합격 아님 (사장님 2026-10-30)
   if (tier === 'generated' && !String(c.prompt ?? '').trim()) fails.push('L3-GEN-NO-RECORD')
-  if (typeof c.width === 'number' && c.width > 0 && c.width < MIN_WIDTH) fails.push('T1-RES')
+  if (typeof c.width === 'number' && c.width > 0) {
+    if (c.width < MIN_WIDTH) fails.push('T1-RES')
+  } else {
+    fails.push('T1-RES-UNKNOWN')
+  }
   if (!String(c.url ?? '').trim()) fails.push('T4-LINK')
   const okTier = tier === 'pexels' || tier === 'unsplash' || tier === 'cc0' || tier === 'generated'
   return {
-    tier: okTier ? tier : null,
+    tier: istockExisting ? 'istock_existing' : okTier ? (tier as ImageSourceTier) : null,
     pass: fails.length === 0,
     fails,
     creditRequired: false,
@@ -100,7 +149,7 @@ export function evaluateImageCandidatePolicy(c: ImageCandidate): ImagePolicyResu
 export function orderImageCandidatesByPolicy<T extends ImageCandidate>(cands: readonly T[]): T[] {
   const rank = (c: T) => {
     const r = evaluateImageCandidatePolicy(c)
-    const t = r.tier ? IMAGE_SOURCE_TIER_ORDER.indexOf(r.tier) : 99
+    const t = r.tier && r.tier !== 'istock_existing' ? IMAGE_SOURCE_TIER_ORDER.indexOf(r.tier) : 99
     return (r.pass ? 0 : 1000) + t
   }
   return [...cands].map((c, i) => ({ c, i, k: rank(c) })).sort((a, b) => a.k - b.k || a.i - b.i).map((x) => x.c)
