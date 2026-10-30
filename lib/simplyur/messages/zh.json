@@ -1,10 +1,10 @@
 {
   "meta": {
     "title": "Simplyur eSIM | 韩国 eSIM",
-    "description": "simplyur — 韩国 eSIM。即时 QR。Bong Tour 品牌。"
+    "description": "Simplyur eSIM — 韩国 eSIM。即时 QR。Bong Tour 品牌。"
   },
   "affiliate": {
-    "fromTrip": "来自 simplyurtrip"
+    "fromTrip": "来自 Simplyur Trip"
   },
   "brand": {
     "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
@@ -28,7 +28,7 @@
     "myEsim": "我的 eSIM"
   },
   "hero": {
-    "eyebrow": "simplyur",
+    "eyebrow": "Simplyur eSIM",
     "headline": "全球连接，化繁为简",
     "titleLine1": "在",
     "titleHighlight": "韩国",
@@ -168,7 +168,7 @@
     "android": "Galaxy S20+、Pixel 3+ 等"
   },
   "footer": {
-    "brand": "simplyur",
+    "brand": "Simplyur eSIM",
     "tagline": "Bong Tour Co., Ltd. 旗下品牌，由 Bong Tour 运营销售。",
     "email": "bongtour24@naver.com",
     "phone": "+82-31-213-2558 (KST 09:00–18:00)",
@@ -199,8 +199,8 @@
     "passwordLabel": "密码",
     "signInSubmit": "登录",
     "audienceBadge": "赴韩国际访客专用",
-    "subtitle": "simplyur 仅供赴韩国际访客使用（非韩国居民）。网站仅支持邮箱登录；Google 与 Apple 请使用 simplyur 手机应用。",
-    "appSocialHint": "Google 与 Apple 登录仅在 simplyur 外国人专用应用中可用。网站请使用邮箱。",
+    "subtitle": "Simplyur eSIM 仅供赴韩国际访客使用（非韩国居民）。网站仅支持邮箱登录；Google 与 Apple 请使用 Simplyur 手机应用。",
+    "appSocialHint": "Google 与 Apple 登录仅在 Simplyur 外国人专用应用中可用。网站请使用邮箱。",
     "google": "使用 Google 继续",
     "googleSubtitle": "请使用 Google 账号登录。",
     "apple": "使用 Apple 继续",
@@ -211,13 +211,13 @@
     "invalidCredentials": "邮箱或密码不正确，或账号受限。",
     "or": "或",
     "backToMethods": "其他登录方式",
-    "domesticEsimLink": "韩国居民请使用 Bong Tour eSIM（봉심），非 simplyur",
+    "domesticEsimLink": "韩国居民请使用 Bong Tour eSIM（봉심），非 Simplyur eSIM",
     "domesticSignInLink": "韩国居民请前往 Bong Tour 使用 Kakao/Naver 登录",
     "googleNotConfigured": "此服务器尚未配置 Google 登录。",
     "errorGeneric": "登录失败，请重试或使用其他方式。",
     "oauthCompleteTitle": "登录成功",
-    "oauthCompleteBody": "返回 simplyur 应用管理您的 eSIM。",
-    "oauthCompleteOpenApp": "打开 simplyur 应用",
+    "oauthCompleteBody": "返回 Simplyur 应用管理您的 eSIM。",
+    "oauthCompleteOpenApp": "打开 Simplyur 应用",
     "backHome": "← 返回首页",
     "noAccount": "还没有账号？",
     "signUpLink": "创建账号",

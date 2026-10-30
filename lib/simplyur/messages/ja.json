@@ -1,10 +1,10 @@
 {
   "meta": {
     "title": "Simplyur eSIM | 韓国 eSIM",
-    "description": "simplyur — 韓国向けeSIM。QR即時配信。Bong Tourブランド。"
+    "description": "Simplyur eSIM — 韓国向けeSIM。QR即時配信。Bong Tourブランド。"
   },
   "affiliate": {
-    "fromTrip": "simplyurtrip から"
+    "fromTrip": "Simplyur Trip から"
   },
   "brand": {
     "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
@@ -28,7 +28,7 @@
     "myEsim": "マイeSIM"
   },
   "hero": {
-    "eyebrow": "simplyur",
+    "eyebrow": "Simplyur eSIM",
     "headline": "グローバル接続を、シンプルに",
     "titleLine1": "韓国で",
     "titleHighlight": "つながる",
@@ -168,7 +168,7 @@
     "android": "Galaxy S20+、Pixel 3+ など"
   },
   "footer": {
-    "brand": "simplyur",
+    "brand": "Simplyur eSIM",
     "tagline": "Bong Tour Co., Ltd.のブランド。Bong Tourが運営・販売。",
     "email": "bongtour24@naver.com",
     "phone": "+82-31-213-2558 (KST 09:00–18:00)",
@@ -199,8 +199,8 @@
     "passwordLabel": "パスワード",
     "signInSubmit": "サインイン",
     "audienceBadge": "韓国を訪れる海外のお客様向け",
-    "subtitle": "simplyurは韓国訪問の海外旅行者専用です（韓国在住者向けではありません）。ウェブではメールのみ。Google・Appleはsimplyurアプリでご利用ください。",
-    "appSocialHint": "Google・Appleログインは外国人向けsimplyurアプリ専用です。ウェブではメールでログインしてください。",
+    "subtitle": "Simplyur eSIMは韓国訪問の海外旅行者専用です（韓国在住者向けではありません）。ウェブではメールのみ。Google・AppleはSimplyurアプリでご利用ください。",
+    "appSocialHint": "Google・Appleログインは外国人向けSimplyurアプリ専用です。ウェブではメールでログインしてください。",
     "google": "Googleで続行",
     "googleSubtitle": "Googleアカウントでログインしてください。",
     "apple": "Appleで続行",
@@ -211,13 +211,13 @@
     "invalidCredentials": "メールまたはパスワードが正しくないか、アカウントが制限されています。",
     "or": "または",
     "backToMethods": "他のログイン方法",
-    "domesticEsimLink": "韓国在住の方はBong Tour eSIM（봉심）をご利用ください — simplyurではありません",
+    "domesticEsimLink": "韓国在住の方はBong Tour eSIM（봉심）をご利用ください — Simplyur eSIMではありません",
     "domesticSignInLink": "韓国在住の方はBong Tourでカカオ・ネイバーログイン",
     "googleNotConfigured": "このサーバーではGoogleログインがまだ設定されていません。",
     "errorGeneric": "ログインに失敗しました。もう一度お試しください。",
     "oauthCompleteTitle": "サインイン完了",
-    "oauthCompleteBody": "simplyurアプリに戻ってeSIMを管理してください。",
-    "oauthCompleteOpenApp": "simplyurアプリを開く",
+    "oauthCompleteBody": "Simplyurアプリに戻ってeSIMを管理してください。",
+    "oauthCompleteOpenApp": "Simplyurアプリを開く",
     "backHome": "← ホームに戻る",
     "noAccount": "初めての方は",
     "signUpLink": "アカウント作成",

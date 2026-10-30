@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = raw as SimplyurLocale;
   return {
     title: "Privacy Policy",
-    description: "How simplyur collects and uses personal information for Korea eSIM orders.",
+    description: "How Simplyur eSIM collects and uses personal information for Korea eSIM orders.",
     alternates: { canonical: simplyurLegalPath(locale, "privacy") },
   };
 }
@@ -29,7 +29,7 @@ export default async function SimplyurPrivacyPage({ params }: Props) {
     <SimplyurLegalDocumentShell
       locale={locale}
       title="Privacy Policy"
-      subtitle="How we collect, use, and protect your data for simplyur eSIM orders."
+      subtitle="How we collect, use, and protect your data for Simplyur eSIM orders."
     >
       <SimplyurPrivacyEnBody locale={locale} />
     </SimplyurLegalDocumentShell>

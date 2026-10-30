@@ -30,7 +30,7 @@ export default async function SimplyurAppPayResultPage({ params }: Props) {
         textAlign: "center",
       }}
     >
-      <p>Returning to simplyur…</p>
+      <p>Returning to Simplyur eSIM…</p>
     </main>
   );
 }

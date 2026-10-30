@@ -7,7 +7,7 @@ import type { SimplyurLocale } from "@/lib/simplyur/constants";
 /** PortOne·PG 심사용 사업자 정보 — 주소는 simplyur 표면 영문(addressEn) 우선 */
 export const SIMPLYUR_LEGAL_ENTITY = {
   legalName: LEGAL_ENTITY.legalName,
-  serviceName: "simplyur",
+  serviceName: "Simplyur eSIM",
   serviceDescription: "Korea eSIM for international visitors",
   policyEffectiveDateEn: "April 8, 2026",
   policyRevisedDateEn: "May 21, 2026",

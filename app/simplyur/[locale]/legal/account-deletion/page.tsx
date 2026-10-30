@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = raw as SimplyurLocale;
   return {
     title: "Delete account",
-    description: "Request deletion of your simplyur account and associated personal data.",
+    description: "Request deletion of your Simplyur account and associated personal data.",
     alternates: { canonical: simplyurLegalPath(locale, "account-deletion") },
   };
 }
@@ -28,7 +28,7 @@ export default async function SimplyurAccountDeletionPage({ params }: Props) {
   return (
     <SimplyurLegalDocumentShell
       locale={locale}
-      title="Delete your simplyur account"
+      title="Delete your Simplyur account"
       subtitle="Request deletion of your account and related personal data. You do not need the app to send this request."
     >
       <SimplyurAccountDeletionEnBody />

@@ -182,7 +182,7 @@ export function SimplyurPrivacyEnBody({ locale }: { locale: SimplyurLocale }) {
           <a href={e.emailHref} className="underline underline-offset-2">
             {e.email}
           </a>
-          . To delete your simplyur account and related data, use{" "}
+          . To delete your Simplyur account and related data, use{" "}
           <Link href={simplyurLegalPath(locale, "account-deletion")} className="font-semibold underline underline-offset-2">
             Account deletion
           </Link>
@@ -216,30 +216,30 @@ export function SimplyurPrivacyEnBody({ locale }: { locale: SimplyurLocale }) {
 // REGRESSION-FREEZE[simplyur-play-account-deletion-url]: Play 계정 삭제 안내 본문 — manifest
 export function SimplyurAccountDeletionEnBody() {
   const e = SIMPLYUR_LEGAL_ENTITY;
-  const mailHref = `${e.emailHref}?subject=${encodeURIComponent("Delete simplyur account")}`;
+  const mailHref = `${e.emailHref}?subject=${encodeURIComponent("Delete Simplyur account")}`;
   return (
     <>
       <p>
-        This page is for simplyur users who want to delete their account and associated personal data. You do not need
+        This page is for Simplyur users who want to delete their account and associated personal data. You do not need
         the mobile app to make this request.
       </p>
 
       <section className="space-y-3 pt-2">
         <h2 className="text-lg font-bold">Request deletion by email (no app required)</h2>
         <p>
-          Send an email from the address registered to your simplyur account to{" "}
+          Send an email from the address registered to your Simplyur account to{" "}
           <a href={mailHref} className="font-semibold underline underline-offset-2">
             {e.email}
           </a>{" "}
-          with the subject line <strong>Delete simplyur account</strong>. Include the registered email so we can identify
+          with the subject line <strong>Delete Simplyur account</strong>. Include the registered email so we can identify
           the account. We process email requests without undue delay and within 14 days.
         </p>
       </section>
 
       <section className="space-y-3 pt-2">
-        <h2 className="text-lg font-bold">Delete in the simplyur app</h2>
+        <h2 className="text-lg font-bold">Delete in the Simplyur app</h2>
         <p>
-          If you are signed in on the simplyur app: <strong>Settings → Delete account</strong>. This withdraws the
+          If you are signed in on the Simplyur app: <strong>Settings → Delete account</strong>. This withdraws the
           account immediately.
         </p>
       </section>

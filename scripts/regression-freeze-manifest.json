@@ -21997,7 +21997,7 @@
           "file": "app/simplyur/[locale]/app-pay-result/page.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-eximbay-payer-auth-pa]",
-            "Returning to simplyur"
+            "Returning to Simplyur eSIM"
           ]
         }
       ],
@@ -22945,7 +22945,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-play-account-deletion-url]",
             "SimplyurAccountDeletionEnBody",
-            "Delete simplyur account"
+            "Delete Simplyur account"
           ]
         }
       ],

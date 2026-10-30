@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = raw as SimplyurLocale;
   return {
     title: "Terms of Service",
-    description: "simplyur Korea eSIM service terms of use.",
+    description: "Simplyur Korea eSIM service terms of use.",
     alternates: { canonical: simplyurLegalPath(locale, "terms") },
   };
 }
@@ -29,7 +29,7 @@ export default async function SimplyurTermsPage({ params }: Props) {
     <SimplyurLegalDocumentShell
       locale={locale}
       title="Terms of Service"
-      subtitle="simplyur Korea eSIM for international visitors — operated by Bong Tour Co., Ltd."
+      subtitle="Simplyur Korea eSIM for international visitors — operated by Bong Tour Co., Ltd."
     >
       <SimplyurTermsEnBody locale={locale} />
     </SimplyurLegalDocumentShell>

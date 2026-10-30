@@ -24,7 +24,7 @@ export function SimplyurLegalDocumentShell({ locale, title, subtitle, children }
             className="text-[13px] font-semibold"
             style={{ color: D.coral }}
           >
-            ← simplyur
+            ← Simplyur eSIM
           </Link>
           <p className="mt-4 text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: D.faint }}>
             Legal

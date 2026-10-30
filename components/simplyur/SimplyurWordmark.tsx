@@ -38,7 +38,7 @@ export function SimplyurWordmark({
       <div className={`inline-flex flex-col ${className}`}>
         <Image
           src={SIMPLYUR_BRAND.wordmarkImage}
-          alt="simplyur"
+          alt="Simplyur eSIM"
           width={dim.w}
           height={dim.h}
           className="h-auto w-auto max-w-full"
@@ -61,7 +61,7 @@ export function SimplyurWordmark({
       <span
         className={`su-wordmark leading-none ${s.text}`}
         style={{ fontFamily: "var(--font-simplyur)" }}
-        aria-label="simplyur"
+        aria-label="Simplyur eSIM"
       >
         <span className="font-light text-[color:var(--su-brand-simply)]">simply</span>
         <span className="font-extrabold text-[color:var(--su-brand-ur)]">ur</span>

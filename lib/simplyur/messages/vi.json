@@ -1,10 +1,10 @@
 {
   "meta": {
     "title": "Simplyur eSIM | eSIM Hàn Quốc",
-    "description": "simplyur — eSIM Hàn Quốc. QR tức thì. Thương hiệu Bong Tour."
+    "description": "Simplyur eSIM — eSIM Hàn Quốc. QR tức thì. Thương hiệu Bong Tour."
   },
   "affiliate": {
-    "fromTrip": "từ simplyurtrip"
+    "fromTrip": "từ Simplyur Trip"
   },
   "brand": {
     "tagline": "ESSENTIAL SIMPLICITY FOR YOUR FOCUS"
@@ -28,7 +28,7 @@
     "myEsim": "eSIM của tôi"
   },
   "hero": {
-    "eyebrow": "simplyur",
+    "eyebrow": "Simplyur eSIM",
     "headline": "Kết nối toàn cầu, đơn giản hóa",
     "titleLine1": "Kết nối tại",
     "titleHighlight": "Hàn Quốc",
@@ -168,7 +168,7 @@
     "android": "Galaxy S20+, Pixel 3+…"
   },
   "footer": {
-    "brand": "simplyur",
+    "brand": "Simplyur eSIM",
     "tagline": "Thương hiệu của Bong Tour Co., Ltd. Vận hành bởi Bong Tour.",
     "email": "bongtour24@naver.com",
     "phone": "+82-31-213-2558 (KST 09:00–18:00)",
@@ -199,8 +199,8 @@
     "passwordLabel": "Mật khẩu",
     "signInSubmit": "Đăng nhập",
     "audienceBadge": "Dành cho khách quốc tế đến Hàn Quốc",
-    "subtitle": "simplyur chỉ dành cho du khách quốc tế đến Hàn Quốc — không dành cho cư dân Hàn. Trên web chỉ đăng nhập email; Google và Apple dùng ứng dụng simplyur.",
-    "appSocialHint": "Đăng nhập Google và Apple chỉ có trên ứng dụng simplyur (khách nước ngoài). Trên web hãy dùng email.",
+    "subtitle": "Simplyur eSIM chỉ dành cho du khách quốc tế đến Hàn Quốc — không dành cho cư dân Hàn. Trên web chỉ đăng nhập email; Google và Apple dùng ứng dụng simplyur.",
+    "appSocialHint": "Đăng nhập Google và Apple chỉ có trên ứng dụng Simplyur (khách nước ngoài). Trên web hãy dùng email.",
     "google": "Tiếp tục với Google",
     "googleSubtitle": "Dùng tài khoản Google của bạn.",
     "apple": "Tiếp tục với Apple",
@@ -211,13 +211,13 @@
     "invalidCredentials": "Email hoặc mật khẩu không đúng, hoặc tài khoản bị hạn chế.",
     "or": "hoặc",
     "backToMethods": "Cách đăng nhập khác",
-    "domesticEsimLink": "Cư dân Hàn Quốc? Dùng eSIM Bong Tour (bongsim) — không phải simplyur",
+    "domesticEsimLink": "Cư dân Hàn Quốc? Dùng eSIM Bong Tour (bongsim) — không phải Simplyur eSIM",
     "domesticSignInLink": "Cư dân Hàn Quốc? Đăng nhập Kakao/Naver tại Bong Tour",
     "googleNotConfigured": "Đăng nhập Google chưa được cấu hình trên máy chủ này.",
     "errorGeneric": "Đăng nhập thất bại. Vui lòng thử lại.",
     "oauthCompleteTitle": "Đăng nhập thành công",
-    "oauthCompleteBody": "Quay lại ứng dụng simplyur để quản lý eSIM.",
-    "oauthCompleteOpenApp": "Mở ứng dụng simplyur",
+    "oauthCompleteBody": "Quay lại ứng dụng Simplyur để quản lý eSIM.",
+    "oauthCompleteOpenApp": "Mở ứng dụng Simplyur",
     "backHome": "← Về trang chủ",
     "noAccount": "Chưa có tài khoản?",
     "signUpLink": "Tạo tài khoản",
