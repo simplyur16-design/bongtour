@@ -55,6 +55,19 @@ export async function GET() {
         },
       }),
     )
+    // 자동 등록 보류 사유(마이그레이션 20261031010000 적용 전이면 칸이 없으므로 실패해도 목록은 그대로)
+    const autoReasonById = new Map<string, string>()
+    try {
+      const ids = list.map((p) => p.id)
+      if (ids.length > 0) {
+        const r = await prisma.$queryRaw<{ id: string; reason: string | null }[]>`
+          SELECT id::text AS id, "autoRegisterBlockReason" AS reason FROM "Product"
+           WHERE id = ANY(${ids}) AND "autoRegisterBlockReason" IS NOT NULL`
+        for (const x of r) if (x.reason) autoReasonById.set(x.id, x.reason)
+      }
+    } catch {
+      /* column not migrated yet */
+    }
     const rows = list.map((p) => {
       const supplierDeriv = computeAdminProductSupplierDerivatives({
         brandKey: p.brand?.brandKey ?? null,
@@ -88,6 +101,8 @@ export async function GET() {
         prePhotoReadyForOperator: true,
         prePhotoParserFixRequired: false,
         prePhotoIssues: [] as string[],
+        // REGRESSION-FREEZE[register-auto-register-gate]: 자동 등록 보류 사유 표시 — manifest
+        autoRegisterBlockReason: autoReasonById.get(p.id) ?? null,
       }
     })
     return NextResponse.json(rows)

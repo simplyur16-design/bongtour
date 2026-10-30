@@ -36,6 +36,8 @@ type PendingItem = {
   prePhotoIssues?: string[]
   /** 비교 모자란 공급사 수집 — 목록 상단 우선 */
   compareClusterGapPriority?: boolean
+  /** 자동 등록 보류 사유(사진 필요·용량 초과 등) — 없으면 null */
+  autoRegisterBlockReason?: string | null
 }
 
 /** 목록 API 실패 UX용 (401/403은 API 문구 대신 전용 안내) */
@@ -402,6 +404,14 @@ export default function AdminPendingPage() {
                           variant={item.photosReady ? 'registered' : 'pending_image'}
                           label={item.photosReady ? '사진 완료' : '이미지 수급'}
                         />
+                        {item.autoRegisterBlockReason ? (
+                          <span
+                            className="rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800"
+                            title="자동 등록 보류 사유"
+                          >
+                            자동 등록 보류: {item.autoRegisterBlockReason}
+                          </span>
+                        ) : null}
                         <Link
                           href={`/admin/products/${item.id}`}
                           onClick={(e) => e.stopPropagation()}
