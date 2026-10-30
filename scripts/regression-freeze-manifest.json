@@ -29170,7 +29170,35 @@
             "REGRESSION-FREEZE[register-photo-source-chain]",
             "isPhotoChainV2Enabled(body)",
             "isUnsplashHotlinkUrl(photo.url)",
-            "gatedAutoCoverUpdateData"
+            "gatedAutoCoverUpdateData",
+            "REGRESSION-FREEZE[register-photo-score]",
+            "rankPhotosByScore(cands",
+            "rotatePoolWithinCity(poolListRaw, recentIndex)",
+            "dropDayPhotosDuplicatingMain(mainPhoto.url"
+          ]
+        },
+        {
+          "file": "lib/register-photo-score.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-score]",
+            "recentUsePenalty",
+            "rotatePoolWithinCity",
+            "dropDayPhotosDuplicatingMain",
+            "if (w < IMAGE_MIN_WIDTH) return -1000"
+          ]
+        },
+        {
+          "file": "lib/register-photo-recent-use.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-score]",
+            "assetUsageLog.findMany"
+          ],
+          "mustNotInclude": [
+            "minBookableAdultPrice",
+            "priceFrom",
+            ".create(",
+            ".update(",
+            "deleteMany"
           ]
         }
       ]
@@ -29234,7 +29262,8 @@
         "lib/unsplash-credit.test.ts",
         "lib/pexels-city-location-filter.test.ts",
         "lib/register-auto-register-gate.test.ts",
-        "lib/register-photo-source-chain.test.ts"
+        "lib/register-photo-source-chain.test.ts",
+        "lib/register-photo-score.test.ts"
       ]
     },
     {

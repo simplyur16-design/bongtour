@@ -49,6 +49,14 @@ import {
   type ChainCandidate,
 } from '@/lib/register-photo-source-chain'
 import { isUnsplashHotlinkUrl } from '@/lib/unsplash-service'
+// REGRESSION-FREEZE[register-photo-score]: v2 = 품질 점수 − 최근 사용 감점, 같은 도시 돌려쓰기, 대표≠일차 — manifest
+import {
+  dropDayPhotosDuplicatingMain,
+  rankPhotosByScore,
+  rotatePoolWithinCity,
+  type RecentUseIndex,
+} from '@/lib/register-photo-score'
+import { loadRecentUseIndex } from '@/lib/register-photo-recent-use'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -419,7 +427,12 @@ export async function POST(req: Request) {
     console.log(`[STEP 3] productId ${product.id} 기반 사진 수확/재사용 시작`)
     console.log(`${LOG_PREFIX} productId: ${product.id} 로딩 완료`)
 
-    const poolList = await getPoolPhotosForDestination(prisma, destination)
+    const recentIndex: RecentUseIndex | null = photoChainV2
+      ? await loadRecentUseIndex(prisma, { productId: String(product.id), destination })
+      : null
+    const poolListRaw = await getPoolPhotosForDestination(prisma, destination)
+    // v2: 같은 도시 상품끼리 같은 사진을 쓰지 않게 최근에 덜 쓴 풀 사진부터
+    const poolList = photoChainV2 ? rotatePoolWithinCity(poolListRaw, recentIndex) : poolListRaw
 
     /**
      * 풀 5장 이상: 메인 1 + 일정 4 일괄 배정.
@@ -581,7 +594,11 @@ export async function POST(req: Request) {
       label: string,
       extra?: (c: ChainCandidate) => boolean
     ): Promise<PhotoResult | null> => {
-      const r = await findStockPhotoByChain(query, { accept: chainAccept(extra) })
+      const r = await findStockPhotoByChain(query, {
+        accept: chainAccept(extra),
+        // 품질 점수 우선 − 최근 사용 감점 − 같은 도시 사용 감점
+        pick: (cands) => rankPhotosByScore(cands, { keywords: [query, mapDestination(destination)], recent: recentIndex })[0] ?? null,
+      })
       newFetchCount++
       const adopted = r.photo ? await adoptChainPhoto(r.photo, label) : null
       chainTrace.push({ slot, tried: r.tried, picked: adopted ? adopted.source : null })
@@ -673,6 +690,12 @@ export async function POST(req: Request) {
     const usedHeroPlaceKeys = new Set<string>()
 
     const schedulePhotos: { photo: PhotoResult; imageKeyword: string }[] = []
+    const manualSlotIdx = new Set<number>()
+    /** v2: 일차 칸 번호에 맞춰 넣는다(빈 일차가 있어도 뒤 일차 사진이 당겨지지 않게) */
+    const putSlot = (n: number, x: { photo: PhotoResult; imageKeyword: string }) => {
+      if (photoChainV2) schedulePhotos[n] = x
+      else schedulePhotos.push(x)
+    }
 
     for (let n = 0; n < workingSchedule.length; n++) {
       const sched = workingSchedule[n]
@@ -696,7 +719,8 @@ export async function POST(req: Request) {
           sched.imageKeyword || `day_${dayNum}`,
           sched.imageSource?.source || 'manual'
         )
-        schedulePhotos.push({
+        manualSlotIdx.add(n)
+        putSlot(n, {
           photo: manualPhoto,
           imageKeyword: sched.imageKeyword || `day_${dayNum}`,
         })
@@ -826,7 +850,10 @@ export async function POST(req: Request) {
             orderBy: { createdAt: 'desc' },
             take: 30,
           })
-          for (const rec of poolFallbackList) {
+          const poolFallbackOrdered = photoChainV2
+            ? rotatePoolWithinCity(poolFallbackList as PoolPhotoRecord[], recentIndex)
+            : poolFallbackList
+          for (const rec of poolFallbackOrdered) {
             const fromPool = toPoolResult(rec as PoolPhotoRecord)
             if (!usage.isUsed(fromPool) && normAssetUrl(fromPool.url) !== normAssetUrl(mainPhoto.url)) {
               photo = fromPool
@@ -865,7 +892,7 @@ export async function POST(req: Request) {
       }
 
       const sealedSlot = await sealProductCoverPhoto(prisma, destination, photo, keywordUsed, photo.source)
-      schedulePhotos.push({ photo: sealedSlot, imageKeyword: keywordUsed })
+      putSlot(n, { photo: sealedSlot, imageKeyword: keywordUsed })
       slotDebug.push({
         day: dayNum,
         imageUrl: photo.url,
@@ -874,6 +901,17 @@ export async function POST(req: Request) {
         semanticKey: selectedSemanticKey,
         fallbackUsed,
         fallbackReason,
+      })
+    }
+
+    if (photoChainV2) {
+      // 대표≠일차: 자동으로 고른 일차 사진이 대표 사진(또는 앞 일차)과 같으면 비운다(관리자 고정 사진은 유지)
+      const autoOnly = workingSchedule.map((_, i) =>
+        manualSlotIdx.has(i) || !schedulePhotos[i] ? null : { url: schedulePhotos[i]!.photo.url, i }
+      )
+      const kept = dropDayPhotosDuplicatingMain(mainPhoto.url, autoOnly)
+      autoOnly.forEach((a, i) => {
+        if (a && !kept[i]) delete schedulePhotos[i]
       })
     }
 
@@ -983,7 +1021,8 @@ export async function POST(req: Request) {
         return { meta, photo: sp.photo }
       })
       .filter((x): x is { meta: ScheduleImageLike; photo: PhotoResult } => x != null)
-    const bestCover = pickRepresentativeCoverScheduleDay(coverCandidates.map((c) => c.meta))
+    const bestCover = photoChainV2 ? null : pickRepresentativeCoverScheduleDay(coverCandidates.map((c) => c.meta))
+    // v2: 대표 사진은 메인 사진 그대로(일차 사진을 대표로 올리지 않음 → 대표≠일차)
     let bgPhoto =
       bestCover && bestCover.imageUrl
         ? coverCandidates.find((c) => c.meta === bestCover)?.photo ?? mainPhoto
