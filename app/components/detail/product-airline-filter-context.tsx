@@ -23,12 +23,9 @@ type Ctx = {
   data: ProductAirlineFilterData | null
   selected: AirlineDepartureOption | null
   select: (label: string | null) => void
-  /** A-5 두 버튼: 상세 본문이 알려주는 지금 선택 출발 회차 */
+  /** A-5 히어로 카드: 상세 본문이 알려주는 지금 선택 출발 회차 */
   currentDeparture: CurrentDepartureRef | null
   reportCurrentDeparture: (ref: CurrentDepartureRef | null) => void
-  /** A-5 두 버튼: '출발일 변경해서 보기' → 본문 출발일 달력 열기 요청(증가 카운터) */
-  departurePickerRequest: number
-  requestDeparturePicker: () => void
 }
 
 const ProductAirlineFilterContext = createContext<Ctx>({
@@ -37,8 +34,6 @@ const ProductAirlineFilterContext = createContext<Ctx>({
   select: () => {},
   currentDeparture: null,
   reportCurrentDeparture: () => {},
-  departurePickerRequest: 0,
-  requestDeparturePicker: () => {},
 })
 
 export function ProductAirlineFilterProvider({
@@ -85,8 +80,6 @@ export function ProductAirlineFilterProvider({
       prev?.rowId === ref?.rowId && prev?.ymd === ref?.ymd && prev?.factsAirline === ref?.factsAirline ? prev : ref,
     )
   }, [])
-  const [departurePickerRequest, setDeparturePickerRequest] = useState(0)
-  const requestDeparturePicker = useCallback(() => setDeparturePickerRequest((n) => n + 1), [])
 
   const value = useMemo(
     () => ({
@@ -95,10 +88,8 @@ export function ProductAirlineFilterProvider({
       select,
       currentDeparture,
       reportCurrentDeparture,
-      departurePickerRequest,
-      requestDeparturePicker,
     }),
-    [data, selected, select, currentDeparture, reportCurrentDeparture, departurePickerRequest, requestDeparturePicker],
+    [data, selected, select, currentDeparture, reportCurrentDeparture],
   )
   return <ProductAirlineFilterContext.Provider value={value}>{children}</ProductAirlineFilterContext.Provider>
 }
@@ -138,17 +129,16 @@ export function useSelectedAirlineFilter(): { label: string; param: string } | n
 }
 
 /**
- * A-5 두 버튼 연결 — 상세 본문(6개 변형 공통)에서 호출.
- * 지금 선택 출발 회차를 패널에 알리고, 패널의 '출발일 변경해서 보기' 요청이 오면 본문 출발일 달력을 연다.
- * REGRESSION-FREEZE[a5-two-buttons-1030]: 버튼 1은 같은 항공사 회차만 있는 본문 달력을 연다 — manifest
+ * A-5 히어로 카드 '다른 항공사' 연결 — 상세 본문(6개 변형 공통)에서 호출.
+ * 지금 선택 출발 회차(행 id·날짜·facts 항공사)를 컨텍스트에 알려, 카드가 '지금 항공사'와 나머지 항공사를 구분한다.
+ * REGRESSION-FREEZE[a5-two-buttons-1030]: 카드 '지금 항공사' = 선택 출발 회차 — manifest
  */
-export function useAirlineTwoButtonBridge(args: {
+export function useReportCurrentDepartureAirline(args: {
   rowId: string | null | undefined
   ymd: string | null | undefined
   factsAirline: string | null | undefined
-  openDeparturePicker: () => void
 }): void {
-  const { data, reportCurrentDeparture, departurePickerRequest } = useProductAirlineFilter()
+  const { data, reportCurrentDeparture } = useProductAirlineFilter()
   const rowId = args.rowId != null ? String(args.rowId) : null
   const ymd = args.ymd ? String(args.ymd).slice(0, 10) : null
   const factsAirline = args.factsAirline ? String(args.factsAirline) : null
@@ -156,12 +146,4 @@ export function useAirlineTwoButtonBridge(args: {
     if (!data) return
     reportCurrentDeparture({ rowId, ymd, factsAirline })
   }, [data, rowId, ymd, factsAirline, reportCurrentDeparture])
-  const open = args.openDeparturePicker
-  const [handled, setHandled] = useState(departurePickerRequest)
-  useEffect(() => {
-    if (departurePickerRequest !== handled) {
-      setHandled(departurePickerRequest)
-      open()
-    }
-  }, [departurePickerRequest, handled, open])
 }

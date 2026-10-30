@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
@@ -9,8 +9,6 @@ import {
 } from '@/lib/airline-variant-group'
 import {
   A5_HERO_CARD_AIRLINE_LABELS,
-  A5_TWO_BUTTON_LABELS,
-  isUnderPhotoAirlineBoxEnabled,
   shouldShowHeroCardAirlineSwitch,
   lowestPublicPriceFromRows,
   otherAirlineRows,
@@ -112,21 +110,36 @@ describe('A-5 두 버튼 — 다른 항공사 목록 가격은 기존 가격행�
     const fake: AirlineDepartureOption = { label: '가짜항공', param: 'fk', minPriceKrw: 1, rows: [['f1', '2026-12-01', 500000]] }
     expect(lowestPublicPriceFromRows(fake)).toBe(500000)
   })
-  it('문구(문과장 검토 반영 23:37)', () => {
-    expect(A5_TWO_BUTTON_LABELS.changeDeparture).toBe('출발일 변경해서 보기')
-    expect(A5_TWO_BUTTON_LABELS.otherAirline).toBe('다른 항공사 찾기')
-    expect(A5_TWO_BUTTON_LABELS.otherListTitle).toBe('같은 상품 · 다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)')
-    expect(A5_TWO_BUTTON_LABELS.unknownAirline).toBe('출발일을 선택하면 항공사가 표시돼요.')
-    for (const v of Object.values(A5_TWO_BUTTON_LABELS)) expect(v).not.toContain('최저가')
-  })
-  it('패널 소스 문구 — 도움말 한 줄·선택 안내 한 문장·최저가 없음·머리말 위/sticky 없음', () => {
-    const src = readFileSync(resolve(process.cwd(), 'app/components/detail/ProductAirlinePricePanelClient.tsx'), 'utf8')
-    expect(src).toContain('{current.label} 출발일만 보여 드려요.')
-    expect(src).toContain('아래 달력·가격·항공편·귀국일은 {selected.label} 출발일 기준이고, 가격은 성인 1인 기준입니다.')
-    expect(src).not.toContain('최저가')
-    expect(src).not.toMatch(/\bsticky\b|\bfixed\b/)
-    const page = readFileSync(resolve(process.cwd(), 'app/products/[idOrSlug]/product-detail-page-content.tsx'), 'utf8')
-    expect(page).not.toContain('<ProductAirlinePricePanelClient')
+  it('머리말 위 렌더 금지 — 항공사 UI는 히어로 카드 안에만, 사진 아래 상자 없음', () => {
+    const read = (f: string) => readFileSync(resolve(process.cwd(), f), 'utf8')
+    const page = read('app/products/[idOrSlug]/product-detail-page-content.tsx')
+    expect(page).not.toMatch(/HeroCardAirline|ProductAirlinePricePanelClient/)
+    const model = read('lib/product-public-detail/render-from-model.tsx')
+    expect(model).not.toMatch(/HeroCardAirline|ProductAirlinePricePanelClient/)
+    expect(model.indexOf('<Header />')).toBeGreaterThan(-1)
+    expect(model.indexOf('<Header />', model.indexOf('const detailMobile'))).toBeLessThan(model.indexOf('{detailMobile}'))
+    for (const f of [
+      'app/components/travel/TravelProductDetail.tsx',
+      'app/components/travel/ybtour/YbtourTravelProductDetail.tsx',
+      'app/components/travel/verygood/VerygoodTravelProductDetail.tsx',
+    ]) {
+      const src = read(f)
+      expect(src.indexOf('<Header />')).toBeGreaterThan(-1)
+      expect(src.indexOf('<Header />')).toBeLessThan(src.indexOf('<PackageProductHeroSection'))
+    }
+    for (const f of [
+      'app/components/travel/TravelProductDetail.tsx',
+      'app/components/travel/MobileProductDetail.tsx',
+      'app/components/travel/ybtour/YbtourTravelProductDetail.tsx',
+      'app/components/travel/ybtour/YbtourMobileProductDetail.tsx',
+      'app/components/travel/verygood/VerygoodTravelProductDetail.tsx',
+      'app/components/travel/verygood/VerygoodMobileProductDetail.tsx',
+    ]) {
+      const src = read(f)
+      expect(src).not.toContain('ProductAirlinePricePanelClient')
+      expect(src).toContain('useReportCurrentDepartureAirline({')
+    }
+    expect(existsSync(resolve(process.cwd(), 'app/components/detail/ProductAirlinePricePanelClient.tsx'))).toBe(false)
   })
 })
 
@@ -183,11 +196,28 @@ describe('A-5 히어로 가격카드 — 다른 항공사 선택기 (사장님 2
     expect(A5_HERO_CARD_AIRLINE_LABELS.listTitle).toBe('다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)')
     for (const v of Object.values(A5_HERO_CARD_AIRLINE_LABELS)) expect(v).not.toContain('최저가')
   })
-  it('히어로 아래 상자 스위치: off 면 숨김, 기본은 유지', () => {
-    expect(isUnderPhotoAirlineBoxEnabled(undefined)).toBe(true)
-    expect(isUnderPhotoAirlineBoxEnabled('')).toBe(true)
-    expect(isUnderPhotoAirlineBoxEnabled('off')).toBe(false)
-    expect(isUnderPhotoAirlineBoxEnabled(' OFF ')).toBe(false)
+  it('버튼 숫자 N = 목록에 실제로 나오는 항공사 수(지금/고른 항공사 제외)', () => {
+    const three: ProductAirlineFilterData = {
+      options: airlineOptionsFromPriceRows([
+        { row: row('k1', '2026-12-01', 900000), label: '대한항공' },
+        { row: row('j1', '2026-12-01', 610000), label: '제주항공' },
+        { row: row('b1', '2026-12-08', 700000), label: '에어부산' },
+      ]),
+    }
+    const empty: AirlineDepartureOption = { label: '빈항공', param: 'xx', minPriceKrw: null, rows: [] }
+    const data: ProductAirlineFilterData = { options: [...three.options, empty] }
+    // 고르기 전(지금 출발 = 대한항공)
+    const before = otherAirlineRows(data, resolveCurrentDepartureAirlineOption(data, null, { rowId: 'k1', ymd: '2026-12-01', factsAirline: '대한항공' })?.label ?? null)
+    expect(before.map((o) => o.label)).toEqual(['제주항공', '에어부산'])
+    // 제주항공 고른 뒤 — 버튼 N 은 같은 함수 결과 길이
+    const jeju = data.options.find((o) => o.label === '제주항공')!
+    const after = otherAirlineRows(data, resolveCurrentDepartureAirlineOption(data, jeju, { rowId: 'j1', ymd: '2026-12-01', factsAirline: '제주항공' })?.label ?? null)
+    expect(after.map((o) => o.label)).toEqual(['에어부산', '대한항공'])
+    expect(after.some((o) => o.label === '제주항공')).toBe(false)
+    expect(after.length).toBe(2)
+    const sw = readFileSync(resolve(process.cwd(), 'app/components/detail/HeroCardAirlineSwitcher.tsx'), 'utf8')
+    expect(sw).toContain('${L.openButton} (${others.length}곳)')
+    expect(sw).toContain('others.map((o) =>')
   })
   it('소스: 카드 안에서만 렌더(sticky/fixed/portal 없음), 선택은 기존 필터 select → ?airline=', () => {
     const sw = readFileSync(resolve(process.cwd(), 'app/components/detail/HeroCardAirlineSwitcher.tsx'), 'utf8')

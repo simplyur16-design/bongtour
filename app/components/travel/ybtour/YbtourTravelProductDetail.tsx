@@ -1,6 +1,5 @@
 'use client'
 
-import ProductAirlinePricePanelClient from '@/app/components/detail/ProductAirlinePricePanelClient'
 
 import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline } from '@/lib/detail-selected-departure-airline'
 import { useState, useMemo, useEffect, useCallback } from 'react'
@@ -94,7 +93,7 @@ import {
   useAirlineFilteredProduct,
   useAirlinePatchRowFilter,
   useSelectedAirlineFilter,
-  useAirlineTwoButtonBridge,
+  useReportCurrentDepartureAirline,
 } from '@/app/components/detail/product-airline-filter-context'
 
 /** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
@@ -613,13 +612,11 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
       }),
     [selectedDepartureFacts, selectedDate, packageTotalDays]
   )
-  // REGRESSION-FREEZE[a5-two-buttons-1030]: 상단 항공사 = 지금 출발 회차 · '출발일 변경해서 보기' → 같은 항공사 달력
-  const openDeparturePickerFromAirlinePanel = useCallback(() => setDeparturePickerOpen(true), [])
-  useAirlineTwoButtonBridge({
+  // REGRESSION-FREEZE[a5-two-buttons-1030]: 히어로 카드 '다른 항공사' — 지금 출발 회차(항공사)를 필터 컨텍스트에 알림
+  useReportCurrentDepartureAirline({
     rowId: selectedDepartureRowId,
     ymd: selectedDate,
     factsAirline: calendarAlignedDepartureFacts?.airline ?? null,
-    openDeparturePicker: openDeparturePickerFromAirlinePanel,
   })
 
   /** 꼭 알아야 할 사항: `mustKnowItems`만(공급사 공통). 비면 기본 안내 문구. */
@@ -796,8 +793,6 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
           inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
         }}
       />
-      {/* REGRESSION-FREEZE[a5-two-buttons-1030]: 항공사 영역은 사이트 머리말(로고·메뉴) 아래, 히어로 다음 상품 정보 영역 — manifest */}
-      <ProductAirlinePricePanelClient />
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         <Link
           href="/"

@@ -1,6 +1,5 @@
 'use client'
 
-import ProductAirlinePricePanelClient from '@/app/components/detail/ProductAirlinePricePanelClient'
 
 import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline } from '@/lib/detail-selected-departure-airline'
 import { useMemo, useState, useEffect, useCallback } from 'react'
@@ -90,7 +89,7 @@ import {
   useAirlineFilteredProduct,
   useAirlinePatchRowFilter,
   useSelectedAirlineFilter,
-  useAirlineTwoButtonBridge,
+  useReportCurrentDepartureAirline,
 } from '@/app/components/detail/product-airline-filter-context'
 
 type ScheduleDayWithMeta = TravelProduct['schedule'] extends (infer D)[] | null | undefined
@@ -467,13 +466,11 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
       }),
     [selectedDepartureFacts, selectedDate, packageTotalDays]
   )
-  // REGRESSION-FREEZE[a5-two-buttons-1030]: 상단 항공사 = 지금 출발 회차 · '출발일 변경해서 보기' → 같은 항공사 달력
-  const openDeparturePickerFromAirlinePanel = useCallback(() => setDeparturePickerOpen(true), [])
-  useAirlineTwoButtonBridge({
+  // REGRESSION-FREEZE[a5-two-buttons-1030]: 히어로 카드 '다른 항공사' — 지금 출발 회차(항공사)를 필터 컨텍스트에 알림
+  useReportCurrentDepartureAirline({
     rowId: selectedDepartureRowId,
     ymd: selectedDate,
     factsAirline: calendarAlignedDepartureFacts?.airline ?? null,
-    openDeparturePicker: openDeparturePickerFromAirlinePanel,
   })
 
   const productMetaChips = useMemo(() => {
@@ -630,8 +627,6 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
           inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
         }}
       />
-      {/* REGRESSION-FREEZE[a5-two-buttons-1030]: 항공사 영역은 사이트 머리말(로고·메뉴) 아래, 히어로 다음 상품 정보 영역 — manifest */}
-      <ProductAirlinePricePanelClient />
 
       {onDemandNotice ? (
         <p className="mx-4 mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-medium text-amber-950">

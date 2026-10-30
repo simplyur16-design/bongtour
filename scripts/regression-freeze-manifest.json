@@ -28096,7 +28096,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "완전 같은 상품만 카드 1장(공급사+마스터코드+# 태그 포함 전체 제목+박일+지방출발; 항공사·편명·[..출발]·앞머리 판매표식만 제거) + 카드 아래 항공사별 최저가(실제 예약가능 회차 carrierName/편명 → 공개 항공사 SSOT, 상위 3+외 N, 클릭 시 상세 ?airline=). 대표가 = 상한 없는 실제 예약가능 최저가. 허브 전체 카탈로그는 묶지 않음. 코드 접미·Product.airline·제목으로 항공사 추측 금지. 상세: ?airline= 또는 패널 선택 시 메인 달력·가격·선택 출발행이 그 항공사 예약가능 회차만(서버가 상한 없는 회차를 상세와 같은 공급사 가격행 변환 → 항공사별 날짜당 최저가 1행, 캐시 모델 행 우선), '전체'로 해제, 파라미터 없으면 항등, 항공사 데이터 없는 상품·에어텔은 필터 UI 없음.",
+      "summary": "완전 같은 상품만 카드 1장(공급사+마스터코드+# 태그 포함 전체 제목+박일+지방출발; 항공사·편명·[..출발]·앞머리 판매표식만 제거) + 카드 아래 항공사별 최저가(실제 예약가능 회차 carrierName/편명 → 공개 항공사 SSOT, 상위 3+외 N, 클릭 시 상세 ?airline=). 대표가 = 상한 없는 실제 예약가능 최저가. 허브 전체 카탈로그는 묶지 않음. 코드 접미·Product.airline·제목으로 항공사 추측 금지. 상세: ?airline= 또는 히어로 카드 '다른 항공사' 선택 시(A-5, 사진 아래 패널 삭제) 메인 달력·가격·선택 출발행이 그 항공사 예약가능 회차만(서버가 상한 없는 회차를 상세와 같은 공급사 가격행 변환 → 항공사별 날짜당 최저가 1행, 캐시 모델 행 우선), '전체'로 해제, 파라미터 없으면 항등, 항공사 데이터 없는 상품·에어텔은 필터 UI 없음.",
       "checks": [
         {
           "file": "lib/airline-variant-group.ts",
@@ -28167,12 +28167,12 @@
           ]
         },
         {
-          "file": "app/components/detail/ProductAirlinePricePanelClient.tsx",
+          "file": "app/components/detail/HeroCardAirlineSwitcher.tsx",
           "mustInclude": [
             "useProductAirlineFilter()",
-            "data-airline-price-panel",
-            "data-airline-filter-all",
-            "전체"
+            "data-hero-card-airline-all",
+            "L.showAll",
+            "select(label)"
           ]
         },
         {
@@ -28868,7 +28868,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "A-5 상세 항공사 영역 두 버튼 — 상단=선택 출발 회차 항공사, '출발일 변경해서 보기'=같은 항공사 달력, '다른 항공사 찾기'=기존 가격행 최저가만·항공사 1곳이면 숨김 · 항공사 영역은 사이트 머리말 아래(상세 본문 히어로 다음), 머리말 위 렌더·sticky/fixed 금지 · 히어로 가격카드 안 '다른 항공사' 선택기(항공사 2곳 이상만, 기존 가격행 성인 1인 가장 낮은 값, select→?airline=) · 히어로 아래 상자 스위치(NEXT_PUBLIC_A5_UNDER_PHOTO_AIRLINE_BOX=off)",
+      "summary": "A-5 상세 항공사 — 히어로 가격카드 안 '다른 항공사' 선택기만(항공사 2곳 이상, 기존 공개 가격행 성인 1인 가장 낮은 값, 고르면 기존 필터 select→?airline=, 카드 항공사=선택 출발 회차) · 사진 아래 항공사 상자 삭제(사장님 00:03) · 항공사 UI 머리말 위 렌더·고정 위치 금지",
       "checks": [
         {
           "file": "lib/detail-airline-two-buttons.ts",
@@ -28878,93 +28878,97 @@
             "export function shouldShowOtherAirlineButton",
             "export function lowestPublicPriceFromRows",
             "n > 0",
-            "'같은 상품 · 다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)'",
             "export function shouldShowHeroCardAirlineSwitch",
-            "export function isUnderPhotoAirlineBoxEnabled",
             "'다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)'"
           ],
           "mustNotInclude": [
-            "minPriceKrw:"
-          ]
-        },
-        {
-          "file": "app/components/detail/ProductAirlinePricePanelClient.tsx",
-          "mustInclude": [
-            "data-airline-two-buttons",
-            "data-airline-btn-change-departure",
-            "data-airline-btn-other-airline",
-            "shouldShowOtherAirlineButton(data)",
-            "requestDeparturePicker()",
-            "o.lowestPriceKrw != null",
-            "L.otherListTitle",
-            "L.unknownAirline",
-            "if (!isUnderPhotoAirlineBoxEnabled()) return null"
-          ],
-          "mustNotInclude": [
-            "sticky",
-            "fixed",
+            "NEXT_PUBLIC_A5_UNDER_PHOTO_AIRLINE_BOX",
+            "minPriceKrw:",
             "최저가"
           ]
         },
         {
           "file": "app/components/detail/product-airline-filter-context.tsx",
           "mustInclude": [
-            "export function useAirlineTwoButtonBridge",
-            "requestDeparturePicker"
+            "export function useReportCurrentDepartureAirline",
+            "reportCurrentDeparture({ rowId, ymd, factsAirline })"
+          ],
+          "mustNotInclude": [
+            "requestDeparturePicker",
+            "departurePickerRequest"
           ]
         },
         {
           "file": "app/components/travel/TravelProductDetail.tsx",
           "mustInclude": [
-            "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
-            "<ProductAirlinePricePanelClient />"
+            "useReportCurrentDepartureAirline({",
+            "<PackageProductHeroSection"
+          ],
+          "mustNotInclude": [
+            "ProductAirlinePricePanelClient",
+            "openDeparturePicker"
           ]
         },
         {
           "file": "app/components/travel/MobileProductDetail.tsx",
           "mustInclude": [
-            "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
-            "<ProductAirlinePricePanelClient />"
+            "useReportCurrentDepartureAirline({",
+            "<PackageProductHeroSection"
+          ],
+          "mustNotInclude": [
+            "ProductAirlinePricePanelClient",
+            "openDeparturePicker"
           ]
         },
         {
           "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
           "mustInclude": [
-            "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
-            "<ProductAirlinePricePanelClient />"
+            "useReportCurrentDepartureAirline({",
+            "<PackageProductHeroSection"
+          ],
+          "mustNotInclude": [
+            "ProductAirlinePricePanelClient",
+            "openDeparturePicker"
           ]
         },
         {
           "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
           "mustInclude": [
-            "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
-            "<ProductAirlinePricePanelClient />"
+            "useReportCurrentDepartureAirline({",
+            "<PackageProductHeroSection"
+          ],
+          "mustNotInclude": [
+            "ProductAirlinePricePanelClient",
+            "openDeparturePicker"
           ]
         },
         {
           "file": "app/components/travel/verygood/VerygoodTravelProductDetail.tsx",
           "mustInclude": [
-            "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
-            "<ProductAirlinePricePanelClient />"
+            "useReportCurrentDepartureAirline({",
+            "<PackageProductHeroSection"
+          ],
+          "mustNotInclude": [
+            "ProductAirlinePricePanelClient",
+            "openDeparturePicker"
           ]
         },
         {
           "file": "app/components/travel/verygood/VerygoodMobileProductDetail.tsx",
           "mustInclude": [
-            "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
-            "<ProductAirlinePricePanelClient />"
+            "useReportCurrentDepartureAirline({",
+            "<PackageProductHeroSection"
+          ],
+          "mustNotInclude": [
+            "ProductAirlinePricePanelClient",
+            "openDeparturePicker"
           ]
         },
         {
           "file": "app/products/[idOrSlug]/product-detail-page-content.tsx",
           "mustNotInclude": [
-            "<ProductAirlinePricePanelClient"
+            "ProductAirlinePricePanelClient",
+            "HeroCardAirline"
           ]
         },
         {
@@ -28988,6 +28992,13 @@
             "<HeroCardAirlineSwitchButton",
             "<HeroCardAirlineList",
             "{!airlineListOpen && showPriceBlock ? ("
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/render-from-model.tsx",
+          "mustNotInclude": [
+            "ProductAirlinePricePanelClient",
+            "HeroCardAirline"
           ]
         }
       ]
@@ -29446,7 +29457,7 @@
       "tier": [
         "ci"
       ],
-      "summary": "A-5 상세 두 버튼 — 단일 항공사 버튼 2 숨김·항공사 전환 정합·가격행 없으면 가격 없음 · 히어로 카드 다른 항공사 선택기·상자 스위치",
+      "summary": "A-5 상세 항공사 — 단일 항공사 선택기 없음·항공사 전환 정합·가격행 없으면 가격 없음·카드 문구·버튼 N=목록 수·머리말 위 렌더 금지·사진 아래 상자 삭제",
       "files": [
         "lib/a5-two-buttons-1030.test.ts"
       ]
