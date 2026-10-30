@@ -51,3 +51,52 @@ jobs:
           fi
 
           echo "::notice::register-pre-photo-self-heal accepted (HTTP $status)"
+
+  # REGRESSION-FREEZE[register-auto-photo-register-schedule]: 셀프힐 다음 단계로 사진 자동 채움 → 검사 → 등록 작업 호출.
+  # 서버 스위치(BONGTOUR_AUTO_PHOTO_FILL / BONGTOUR_AUTO_REGISTER_RECORD / BONGTOUR_AUTO_REGISTER_FLIP)가 모두 꺼져 있으면
+  # 서버가 scheduled=1 호출을 바로 건너뛴다(기본 꺼짐). 셀프힐(사진 생성 금지 freeze)과는 다른 엔드포인트.
+  register-auto-photo-register:
+    name: Auto photo fill, check and register (switches default off)
+    needs: register-pre-photo-self-heal
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Wait for the background self-heal to finish
+        run: sleep 900
+
+      - name: Ping register-auto-photo-register endpoint
+        env:
+          BONGTOUR_CRON_SECRET: ${{ secrets.BONGTOUR_CRON_SECRET }}
+        run: |
+          if [ -z "$BONGTOUR_CRON_SECRET" ]; then
+            echo "::error::GitHub secret BONGTOUR_CRON_SECRET is empty"
+            exit 1
+          fi
+
+          response=$(curl -sS \
+            -X POST \
+            -H "x-bongtour-cron-secret: $BONGTOUR_CRON_SECRET" \
+            -H "Content-Type: application/json" \
+            -w "\n%{http_code}" \
+            --max-time 60 \
+            "https://bongtour.com/api/cron/register-auto-photo-register?scheduled=1&limit=50")
+
+          status=$(echo "$response" | tail -n 1)
+          body=$(echo "$response" | head -n -1)
+
+          echo "HTTP Status: $status"
+          echo "Response Body: $body"
+
+          if [ "$status" = "401" ]; then
+            echo "::error::unauthorized — GitHub BONGTOUR_CRON_SECRET must match production BONGTOUR_CRON_SECRET"
+            exit 1
+          fi
+
+          # 202(ACK 또는 switches_off 건너뜀)만 성공
+          if [ "$status" != "202" ]; then
+            echo "::error::register-auto-photo-register failed with status $status"
+            exit 1
+          fi
+
+          echo "::notice::register-auto-photo-register accepted (HTTP $status)"

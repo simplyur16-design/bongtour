@@ -29233,6 +29233,22 @@
             "labeledAt",
             "DAY_PHOTO_AI_LABEL_KO = 'AI 생성 이미지'"
           ]
+        },
+        {
+          "file": "app/api/cron/register-auto-photo-register/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-auto-photo-register-schedule]",
+            "reason: 'switches_off'",
+            "!switches.fill && !switches.flip && !switches.record"
+          ]
+        },
+        {
+          "file": ".github/workflows/register-pre-photo-self-heal.yml",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-auto-photo-register-schedule]",
+            "needs: register-pre-photo-self-heal",
+            "register-auto-photo-register?scheduled=1&limit=50"
+          ]
         }
       ]
     }
@@ -29298,7 +29314,8 @@
         "lib/register-photo-source-chain.test.ts",
         "lib/register-photo-score.test.ts",
         "lib/register-day-photo-policy.test.ts",
-        "lib/register-day-photo-ai-label.test.ts"
+        "lib/register-day-photo-ai-label.test.ts",
+        "lib/register-auto-photo-register-schedule.test.ts"
       ]
     },
     {
