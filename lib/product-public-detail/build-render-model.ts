@@ -127,6 +127,7 @@ import type {
 } from '@/lib/product-public-detail/types'
 import { absoluteUrl, buildPublicProductDescription } from '@/lib/site-metadata'
 import { publicProductPath } from '@/lib/product-public-path'
+import { resolveProductAirlineFromDeparturesForDisplay } from '@/lib/departure-airline-display'
 import { homeDepartureAirportDisplayText } from '@/lib/infer-home-departure-airport'
 import {
   isProductAdultOnly2030,
@@ -538,6 +539,8 @@ export async function buildProductPublicDetailRenderModel(
     ? toPublicPersistedFlightStructured(modetourPersistedFlightStructured)
     : null
 
+  // REGRESSION-FREEZE[airline-code-follow-departure]: 대표 항공사 = 출발 회차 항공사 집계(표시 전용, Product.airline 원문 유지) — vitest
+  const productAirlineForDisplay = resolveProductAirlineFromDeparturesForDisplay(travelProduct.airline ?? null, departures)
   const baseFactsByDate = departures.length > 0 ? buildDepartureKeyFactsMap(departures) : {}
   const departureKeyFactsByDepartureId =
     departures.length > 0 ? buildDepartureKeyFactsByDepartureId(departures) : undefined
@@ -548,12 +551,12 @@ export async function buildProductPublicDetailRenderModel(
         : enrichDepartureKeyFactsMapForDisplay(
             baseFactsByDate,
             flightStructured,
-            travelProduct.airline ?? null
+            productAirlineForDisplay
           )
       : undefined
   const adminFactsTemplate =
     adminFlightProfile != null
-      ? buildKeyFactsFromAdminProfile(adminFlightProfile, travelProduct.airline ?? null)
+      ? buildKeyFactsFromAdminProfile(adminFlightProfile, productAirlineForDisplay)
       : null
   let departureKeyFactsByDate =
     departures.length === 0
@@ -583,7 +586,7 @@ export async function buildProductPublicDetailRenderModel(
                   airline:
                     adminFactsTemplate?.airline ??
                     baseFactsByDate[dateKey]?.airline ??
-                    travelProduct.airline ??
+                    productAirlineForDisplay ??
                     null,
                   outbound: null,
                   inbound: null,
@@ -775,9 +778,9 @@ export async function buildProductPublicDetailRenderModel(
         flightDisplayPolicy !== 'admin_only' &&
         flightDisplayPolicy !== 'suppress_no_parsed'
       const raw = (() => {
-        if (!vgPublic) return travelProduct.airline ?? null
+        if (!vgPublic) return productAirlineForDisplay
         if (verygoodPublicRepCarrier) return verygoodPublicRepCarrier
-        return travelProduct.airline ?? null
+        return productAirlineForDisplay
       })()
       return useModetourDirectedParse
         ? sanitizeModetourPublicProductAirlineLine(raw) ?? raw

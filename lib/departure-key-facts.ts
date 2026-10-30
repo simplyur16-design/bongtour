@@ -16,6 +16,7 @@ import {
   parseKoreanDateTimeLineToDate,
 } from '@/lib/flight-korean-datetime'
 import { legHasGarbageFlightFields } from '@/lib/flight-leg-garbage'
+import { resolveDepartureRowAirlineForDisplay } from '@/lib/departure-airline-display'
 import {
   tryModetourDepartureLegCardsFromFlightStructured,
   tryModetourDepartureLegCardsFromStructuredBody,
@@ -443,7 +444,8 @@ function productDepartureToKeyFacts(d: ProductDeparture): DepartureKeyFacts {
     d.inboundArrivalAt
   )
   return {
-    airline: d.carrierName?.trim() || null,
+    // REGRESSION-FREEZE[airline-code-follow-departure]: 회차 항공사 = 편명 IATA 우선(원문과 어긋날 때) — 표시 전용
+    airline: resolveDepartureRowAirlineForDisplay(d),
     outbound: buildLegDetail(
       d.outboundFlightNo,
       d.outboundDepartureAirport,

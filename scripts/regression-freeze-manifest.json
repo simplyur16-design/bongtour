@@ -29306,6 +29306,90 @@
           ]
         }
       ]
+    },
+    {
+      "id": "airline-code-follow-departure",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "대표·회차 항공사 표시 = 선택 출발 회차 항공사, 원문 이름과 편명 IATA 가 어긋나면 편명 항공사(표시 전용, 원문 저장값 유지) — 1031 사장님 승인",
+      "checks": [
+        {
+          "file": "lib/departure-airline-display.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-code-follow-departure]",
+            "export function resolveDepartureRowAirlineForDisplay",
+            "export function resolveProductAirlineFromDeparturesForDisplay",
+            "iataPrefixFromFlightNo"
+          ]
+        },
+        {
+          "file": "lib/departure-key-facts.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-code-follow-departure]",
+            "resolveDepartureRowAirlineForDisplay(d)"
+          ]
+        },
+        {
+          "file": "lib/airline-variant-group.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-code-follow-departure]",
+            "resolveDepartureRowAirlineForDisplay({"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-code-follow-departure]",
+            "resolveProductAirlineFromDeparturesForDisplay(",
+            "productAirlineForDisplay"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "airline-hx-hongkong-airlines",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "홍콩에어라인(HX) 공개 표시 = 홍콩항공 (표시 전용, 저장 경로 canonicalize 는 원문 유지) — 1031 사장님 승인",
+      "checks": [
+        {
+          "file": "lib/airline-iata-public-display-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-hx-hongkong-airlines]",
+            "HX: '홍콩항공'",
+            "HONGKONG_AIRLINES_PUBLIC_KO"
+          ]
+        },
+        {
+          "file": "lib/airline-variant-group.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-hx-hongkong-airlines]",
+            "홍콩에어라인: '홍콩항공'"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-airline-flight-region-iata",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 항공사 = 항공 구역(airline 블록·편명 주변)만 탐색 + 편명 IATA 접두 우선 — 상단 메뉴 '카타르' 오인 금지 (1031)",
+      "checks": [
+        {
+          "file": "lib/naeiltour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-airline-flight-region-iata]",
+            "iataPrefixFromFlightNo",
+            "scheduleEntries.map((e) => e.flightNo)"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -29370,7 +29454,9 @@
         "lib/register-photo-score.test.ts",
         "lib/register-day-photo-policy.test.ts",
         "lib/register-day-photo-ai-label.test.ts",
-        "lib/register-auto-photo-register-schedule.test.ts"
+        "lib/register-auto-photo-register-schedule.test.ts",
+        "lib/departure-airline-display.test.ts",
+        "lib/naeiltour-airline-flight-region.test.ts"
       ]
     },
     {

@@ -14,6 +14,7 @@ import {
   AIRLINE_LEGACY_KO_TO_PUBLIC,
   formatPublicAirlineDisplay,
 } from '@/lib/airline-iata-public-display-ssot'
+import { resolveDepartureRowAirlineForDisplay } from '@/lib/departure-airline-display'
 import { deriveTripNightsDays } from '@/lib/derive-trip-nights-days'
 import type { ProductPriceRow } from '@/app/components/travel/travel-product-detail-types'
 
@@ -117,6 +118,8 @@ const CARRIER_LABEL_ALIAS: Record<string, string> = {
   타이비엣젯: '비엣젯 타일랜드',
   타이비엣젯항공: '비엣젯 타일랜드',
   비엣젯타일랜드: '비엣젯 타일랜드',
+  // REGRESSION-FREEZE[airline-hx-hongkong-airlines]: 표시 전용 — 저장값은 그대로
+  홍콩에어라인: '홍콩항공',
   젯스타: '젯스타항공',
 }
 /** 항공사가 아닌 운송수단 */
@@ -142,12 +145,13 @@ export type BookableDepartureLike = {
 export function departureCarrierPublicLabel(
   d: Pick<BookableDepartureLike, 'carrierName' | 'outboundFlightNo'>,
 ): string | null {
-  const name = String(d.carrierName ?? '').trim()
+  // REGRESSION-FREEZE[airline-code-follow-departure]: 원문 이름과 편명 IATA 가 어긋나면 편명 항공사 — vitest
+  const resolved = resolveDepartureRowAirlineForDisplay({
+    carrierName: d.carrierName,
+    outboundFlightNo: d.outboundFlightNo,
+  })
+  const name = String(resolved ?? '').trim()
   if (name) return cleanCarrierLabel(formatPublicAirlineDisplay(name))
-  const fl = String(d.outboundFlightNo ?? '').trim().replace(/\s|-/g, '')
-  if (fl && /^(?:[A-Z]{2}|[A-Z]\d|\d[A-Z])\d{2,4}$/i.test(fl)) {
-    return cleanCarrierLabel(formatPublicAirlineDisplay(fl.toUpperCase()))
-  }
   return null
 }
 

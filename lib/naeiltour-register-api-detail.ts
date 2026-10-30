@@ -11,6 +11,11 @@ export function naeiltourDetailHtmlLooksUnsellable(html: string | null | undefin
   const t = String(html ?? '')
   return /판매가\s*되지\s*않는\s*상품|판매가\s*종료된\s*상품|존재하지\s*않는\s*상품/i.test(t)
 }
+import {
+  airlineKoFromIata,
+  iataFromSupplierAirlineName,
+  iataPrefixFromFlightNo,
+} from '@/lib/departure-airline-display'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { createEmptyFlightLeg } from '@/lib/flight-parser-generic'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
@@ -279,22 +284,50 @@ type NaeiltourFlightScheduleEntry = {
   mentionsKoreaAirport: boolean
 }
 
-function extractNaeiltourAirlineFromHtml(hay: string, flat: string): string | null {
-  const block = hay.match(/class=["']airline["'][^>]*>([\s\S]*?)<\/(?:div|section|article)>/i)?.[1]
-  if (block) {
-    let name = stripNaeiltourHtmlText(block).replace(/^항공사\s*/i, '').trim()
-    name = name.split(/항공\s*여정/i)[0]?.trim() ?? name
-    const short = name.match(/^([가-힣A-Za-z]+항공)/)?.[1] ?? name
-    if (short && short !== '항공사' && /항공/i.test(short)) return short.slice(0, 40)
+/**
+ * 내일투어 항공사명 — 항공 구역만 본다.
+ * 이전 버그(10/31): `class="airline"` 블록의 '에어프랑스'처럼 '항공'이 안 붙은 이름을 버리고 **페이지 전체**에서
+ * 처음 나온 항공사명을 잡아, 상단 메뉴의 '카타르'가 항공사로 저장됨(내일투어 68개 중 24개).
+ * 지금: ① airline 블록 이름(원문 그대로) ② 블록 아이콘(`images/AF.gif`)·편명 IATA 접두로 판별 —
+ * 이름의 코드가 편명 코드와 어긋나면 편명 코드 항공사 ③ 블록이 없으면 편명 앞뒤 구간에서만 이름 검색, 없으면 편명 코드 항공사.
+ * 페이지 전체 단어 매칭은 하지 않는다.
+ * REGRESSION-FREEZE[naeiltour-airline-flight-region-iata]: 항공 구역 한정 + IATA 접두 판별 — vitest
+ */
+function extractNaeiltourAirlineFromHtml(
+  hay: string,
+  flat: string,
+  flightNos: ReadonlyArray<string | null | undefined> = [],
+): string | null {
+  const prefixes = flightNos.map((f) => iataPrefixFromFlightNo(f)).filter((x): x is string => Boolean(x))
+  const flightCode = prefixes[0] ?? null
+  const blockMatch = hay.match(/class=["']airline["'][^>]*>([\s\S]*?)<\/(?:div|section|article)>/i)
+  const block = blockMatch?.[1] ?? null
+  const iconCode = block?.match(/images\/([A-Z0-9]{2})\.(?:gif|png|jpe?g|svg)/i)?.[1]?.toUpperCase() ?? null
+  const code = flightCode ?? iconCode
+  const byCode = (c: string | null): string | null => (c ? airlineKoFromIata(c) : null)
+  const reconcile = (name: string): string => {
+    const nameCode = iataFromSupplierAirlineName(name)
+    if (code && nameCode && nameCode !== code && !prefixes.includes(nameCode)) return byCode(code) ?? name
+    return name
   }
-  const known =
-    flat.match(
-      /(?:아시아나|대한항공|진에어|티웨이|에어부산|이스타|제주항공|싱가폴항공|카타르(?:항공)?|에미레이트(?:항공)?|루프트한자|에어프랑스|영국항공|델타(?:항공)?|유나이티드(?:항공)?|일본항공|ANA|JAL)/i,
-    )?.[0] ?? null
-  if (known) return known.replace(/\s+/g, '').slice(0, 40)
-  const line = flat.match(/(?:^|\s)([가-힣A-Za-z]{2,14}항공)(?:\s|$)/m)?.[1]
-  if (line && line !== '항공사') return line
-  return null
+  if (block) {
+    let name = stripNaeiltourHtmlText(block.replace(/<!--[\s\S]*?-->/g, ' ')).replace(/^항공사\s*/i, '').trim()
+    name = name.split(/항공\s*여정/i)[0]?.trim() ?? name
+    name = name.replace(/\s+/g, ' ').trim()
+    if (name && name !== '항공사' && /[가-힣]{2,}|^[A-Za-z][A-Za-z .'-]{2,}$/.test(name)) return reconcile(name).slice(0, 40)
+    const fromIcon = byCode(code)
+    if (fromIcon) return fromIcon
+  }
+  // 블록 없음: 편명이 나온 자리 앞뒤(±80자)에서만 항공사명 검색
+  const nameRe =
+    /(아시아나(?:항공)?|대한항공|진에어|티웨이(?:항공)?|에어부산|에어서울|이스타(?:항공)?|제주(?:항공|에어)|에어프레미아|싱가(?:폴|포르)항공|카타르(?:항공)?|에미레이트(?:항공)?|루프트한자|에어프랑스|영국항공|델타(?:항공)?|유나이티드(?:항공)?|일본항공|홍콩(?:항공|에어라인|익스프레스)|에어마카오|[가-힣]{2,10}항공)/
+  for (const m of flat.matchAll(/\b([A-Z]{2}|[A-Z]\d|\d[A-Z])\s?\d{3,4}\b/g)) {
+    const at = m.index ?? 0
+    const win = flat.slice(Math.max(0, at - 80), at + 80)
+    const hit = win.match(nameRe)?.[1]
+    if (hit && hit !== '항공사') return reconcile(hit.replace(/\s+/g, '')).slice(0, 40)
+  }
+  return byCode(code)
 }
 
 function pushUniqueFlightEntry(
@@ -409,9 +442,12 @@ export function buildNaeiltourFlightStructuredFromHtml(
 ): FlightStructured | null {
   const hay = [pageHtml, tab0Html, tab1Html].filter(Boolean).join('\n')
   const flat = stripNaeiltourHtmlText(hay)
-  const airline = extractNaeiltourAirlineFromHtml(hay, flat)
-
   const scheduleEntries = scanNaeiltourFlightScheduleEntries(hay, flat)
+  const airline = extractNaeiltourAirlineFromHtml(
+    hay,
+    flat,
+    scheduleEntries.map((e) => e.flightNo),
+  )
   const flightLines = scheduleEntries.map((e) => ({
     time: e.depTime ?? '',
     fn: e.flightNo,

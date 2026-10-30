@@ -27,6 +27,8 @@ export const AIRLINE_IATA_KO_PUBLIC: Readonly<Record<string, string>> = {
   VZ: '비엣젯 타일랜드',
   PR: '필리핀항공',
   CX: '캐세이퍼시픽',
+  // REGRESSION-FREEZE[airline-hx-hongkong-airlines]: HX = 홍콩항공 (사장님 10/31 07:25, 표시 전용) — ssot test
+  HX: '홍콩항공',
   KA: '캐세이드래곤',
   CI: '중화항공',
   BR: '에바항공',
@@ -100,8 +102,17 @@ export function canonicalizePublicAirlineKo(raw: string): string {
 const THAI_VIETJET_DISPLAY_RE = /타이\s*비엣젯(?:\s*항공)?/g
 export const VIETJET_THAILAND_PUBLIC_KO = '비엣젯 타일랜드'
 
+/**
+ * 내일투어 원문 '홍콩에어라인'(HX) → 공개 표기 '홍콩항공' (하나투어 표기와 통일). 표시 전용 — 원문 저장값 유지.
+ * REGRESSION-FREEZE[airline-hx-hongkong-airlines]: display-only alias — ssot test
+ */
+const HONGKONG_AIRLINES_DISPLAY_RE = /홍콩\s*에어\s*라인(?:즈|스)?/g
+export const HONGKONG_AIRLINES_PUBLIC_KO = '홍콩항공'
+
 export function applyDisplayOnlyAirlineAliases(label: string): string {
-  return String(label ?? '').replace(THAI_VIETJET_DISPLAY_RE, VIETJET_THAILAND_PUBLIC_KO)
+  return String(label ?? '')
+    .replace(THAI_VIETJET_DISPLAY_RE, VIETJET_THAILAND_PUBLIC_KO)
+    .replace(HONGKONG_AIRLINES_DISPLAY_RE, HONGKONG_AIRLINES_PUBLIC_KO)
 }
 
 /** 히어로 항공 줄 — `TW` → `트리니티항공` (구 티웨이명도 정규화) */
