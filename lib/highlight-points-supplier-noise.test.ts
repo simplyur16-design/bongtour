@@ -6,6 +6,7 @@ import {
   HIGHLIGHT_LINE_TEXT_CLASS,
   resolveHighlightPointsForDisplay,
   sanitizeHighlightPointsText,
+  sanitizeHighlightPointsIfNoisy,
 } from '@/lib/highlight-points-supplier-noise'
 
 // fit-hn-0048 라이브 '상품 핵심 포인트' 꼬리(하나투어 SAFETY&JOY 블록 + 프로모션 URL)
@@ -110,11 +111,20 @@ describe('highlight-points-supplier-noise', () => {
 
   it('register/heal path: shared self-heal (runs after every 7-supplier confirm + pending cron) sanitizes highlightPoints for non-registered; raw untouched', () => {
     const src = readFileSync('lib/register-pending-pre-photo-self-heal.ts', 'utf8')
-    expect(src).toContain("import { sanitizeHighlightPointsText } from '@/lib/highlight-points-supplier-noise'")
-    expect(src).toMatch(/currentStatus !== 'registered' && highlightBefore\?\.trim\(\)\s*\?\s*sanitizeHighlightPointsText\(highlightBefore\)/)
+    expect(src).toContain("import { sanitizeHighlightPointsIfNoisy } from '@/lib/highlight-points-supplier-noise'")
+    expect(src).toMatch(/currentStatus !== 'registered' && highlightBefore\?\.trim\(\)\s*\?\s*\(sanitizeHighlightPointsIfNoisy\(highlightBefore\) \?\? null\)/)
     expect(src).toContain("'highlight_supplier_noise'")
     expect(src).not.toMatch(/data\.highlightPointsRaw\s*=/)
     const after = readFileSync('lib/register-confirm-after-save.ts', 'utf8')
     expect(after).toContain('applyRegisterPrePhotoQueueGateAfterSave(id)')
+  })
+
+  it('sanitizeHighlightPointsIfNoisy: 노이즈 없으면 원문 그대로(CRLF·공백 보존), 있으면 정리본', () => {
+    const clean = '오사카성 관광\r\n\r\n\r\n유니버설 스튜디오 1일 자유'
+    expect(sanitizeHighlightPointsIfNoisy(clean)).toBe(clean)
+    expect(sanitizeHighlightPointsIfNoisy(null)).toBeNull()
+    expect(sanitizeHighlightPointsIfNoisy('')).toBe('')
+    expect(sanitizeHighlightPointsIfNoisy('오사카성 관광\n하나투어 고객만을 위한 특별 혜택')).toBe('오사카성 관광')
+    expect(sanitizeHighlightPointsIfNoisy('대표번호 1577-1233')).toBeNull()
   })
 })

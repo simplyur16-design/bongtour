@@ -27,7 +27,7 @@ import {
   truncateHealAuditValue,
   type HealWriteField,
 } from '@/lib/register-pending-heal-write-guard'
-import { sanitizeHighlightPointsText } from '@/lib/highlight-points-supplier-noise'
+import { sanitizeHighlightPointsIfNoisy } from '@/lib/highlight-points-supplier-noise'
 import { prisma } from '@/lib/prisma'
 import { syncScheduleImageKeywordsFromFitMasterDb } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import { isScheduleSupplierOriginalLocked } from '@/lib/schedule-supplier-original-lock'
@@ -636,7 +636,7 @@ export async function healPendingRegisterPrePhoto(
       const highlightBefore = typeof product.highlightPoints === 'string' ? product.highlightPoints : null
       const highlightAfter =
         currentStatus !== 'registered' && highlightBefore?.trim()
-          ? sanitizeHighlightPointsText(highlightBefore)
+          ? (sanitizeHighlightPointsIfNoisy(highlightBefore) ?? null)
           : highlightBefore
       const highlightChanged = (highlightAfter ?? null) !== (highlightBefore ?? null)
       const nextRawMeta = mergeRegisterPrePhotoStampIntoRawMeta(product.rawMeta, verify)

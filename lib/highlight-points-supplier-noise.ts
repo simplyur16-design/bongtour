@@ -111,7 +111,8 @@ export function filterHighlightPointsSupplierNoise(text: string | null | undefin
         continue
       }
       urlStripped += 1
-      line = stripped.replace(/\s+$/, '')
+      const indent = raw.match(/^\s*/)?.[0] ?? ''
+      line = indent + stripped.trim()
     }
     const reason = classifyHighlightNoiseLine(line)
     if (reason) {
@@ -129,6 +130,17 @@ export function filterHighlightPointsSupplierNoise(text: string | null | undefin
 /** 편의: 결과 텍스트만 */
 export function sanitizeHighlightPointsText(text: string | null | undefined): string | null {
   return filterHighlightPointsSupplierNoise(text).text
+}
+
+/**
+ * 노이즈(제거 줄·URL 조각)가 있을 때만 정리본, 없으면 원문 그대로(공백·줄바꿈만 다른 재저장 방지).
+ * 힐·일괄 정리 스크립트 공통. 반환 null = 전 줄 노이즈.
+ */
+export function sanitizeHighlightPointsIfNoisy(text: string | null | undefined): string | null | undefined {
+  if (typeof text !== 'string' || !text.trim()) return text
+  const r = filterHighlightPointsSupplierNoise(text)
+  if (r.removed.length === 0 && r.urlStripped === 0) return text
+  return r.text
 }
 
 /** 핵심 포인트 한 줄 텍스트 class — 긴 무공백 문자열(URL 등)도 줄바꿈(390px 폭 고정) */
