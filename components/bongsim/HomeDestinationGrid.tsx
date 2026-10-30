@@ -10,19 +10,28 @@ import {
   resolveDestinationFlagImageUrl,
 } from "@/lib/bongsim/recommend/destination-flag-image";
 import { isRegionPackCode, regionPackGridLabel } from "@/lib/bongsim/recommend/region-pack-plan";
+import { filterSellableDestinations } from "@/lib/bongsim/catalog/esim-sellable-visibility";
+import { useSellableDestinations } from "@/lib/bongsim/use-sellable-destinations";
 
 const FLAG_PX = 60;
 
 type Props = {
   items: CountryOption[];
   onBeforeNavigate?: (code: string) => void;
+  /** 판매 가능 필터 후 최대 개수(예: 홈 인기 12) — 빠진 자리는 다음 순위로 채움 */
+  limit?: number;
 };
 
 /** 홈·랜딩 목적지 국기 카드 — 추천 Step1과 동일 ISO/캐러셀 SSOT */
-export function HomeDestinationGrid({ items, onBeforeNavigate }: Props) {
+export function HomeDestinationGrid({ items, onBeforeNavigate, limit }: Props) {
+  // REGRESSION-FREEZE[bongsim-esim-hide-unavailable]: 판매 플랜 0건 국가·권역 타일은 링크째 숨김 — manifest
+  const sellable = useSellableDestinations();
+  const filtered = filterSellableDestinations(items, sellable);
+  const visible = limit != null ? filtered.slice(0, limit) : filtered;
+  if (visible.length === 0) return null;
   return (
     <ul className="grid grid-cols-4 gap-x-2 gap-y-5 sm:grid-cols-4 sm:gap-x-3 sm:gap-y-6 lg:grid-cols-6 lg:gap-x-4 lg:gap-y-7">
-      {items.map((c) => {
+      {visible.map((c) => {
         const showUnlimited = c.isUnlimited === true;
         const isRegion = isRegionPackCode(c.code);
         const label = isRegion ? regionPackGridLabel(c.code, c) : c.nameKr;

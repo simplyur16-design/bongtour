@@ -1,6 +1,10 @@
 "use client";
 
 import {
+  planGridColsClass,
+  planTabsWithSellablePlans,
+} from "@/lib/bongsim/catalog/esim-sellable-visibility";
+import {
   Fragment,
   useEffect,
   useMemo,
@@ -723,13 +727,19 @@ export function PlanSelectPopup({
     [groups, activeTab, activeRecommended],
   );
 
+  /** PC 탭·열 — 판매 플랜 0건 유형은 열째로 숨김 (「없음」 표기 금지) */
+  const desktopPlanTabs = useMemo(
+    () => planTabsWithSellablePlans(shownPlanTabs, tabCounts),
+    [shownPlanTabs, tabCounts],
+  );
+
   const gridColumns = useMemo(
     () =>
-      shownPlanTabs.map((tab) => ({
+      desktopPlanTabs.map((tab) => ({
         tab,
         cards: cardsForTab(tab, groups, activeRecommended),
       })),
-    [groups, activeRecommended, shownPlanTabs],
+    [groups, activeRecommended, desktopPlanTabs],
   );
 
   const allVisibleProducts = useMemo(() => tabCards.map((r) => r.product), [tabCards]);
@@ -910,7 +920,8 @@ export function PlanSelectPopup({
       {hasAnyPlansAtAll && !planTypesCollapsed ? (
         <div className="border-b border-slate-100 px-5 lg:hidden">
           <div className="flex gap-1 py-3" role="tablist" aria-label="플랜 유형">
-            {ALL_PLAN_TABS.map((tab) => {
+            {/* REGRESSION-FREEZE[bongsim-esim-hide-unavailable]: 0건 탭은 비활성 표시 없이 숨김 — manifest */}
+            {planTabsWithSellablePlans(ALL_PLAN_TABS, tabCounts).map((tab) => {
               const selected = activeTab === tab;
               const count = tabCounts[tab];
               const disabled = count === 0;
@@ -976,11 +987,7 @@ export function PlanSelectPopup({
 
         {/* 무제한만 먼저(접힘) — PC도 한 열. 더보기 후 모바일 탭·PC 3열 */}
         <div className={planTypesCollapsed ? "space-y-3" : "space-y-3 lg:hidden"}>
-          {!loading && !err && hasVisiblePlans && tabCards.length === 0 && (
-            <p className="py-8 text-center text-sm text-slate-600">
-              이 유형의 플랜이 없습니다.
-            </p>
-          )}
+          {/* 0건 유형은 탭째 숨김 + 자동 전환 — 빈 유형 안내 문구 없음 (bongsim-esim-hide-unavailable) */}
           {!loading &&
             !err &&
             tabCards.map(({ product, isPinned }) => {
@@ -1028,8 +1035,12 @@ export function PlanSelectPopup({
         {/* PC (lg+): 3-column grid with tab headers + column emphasis */}
         {!loading && !err && hasVisiblePlans && !planTypesCollapsed ? (
           <div className="hidden lg:block">
-            <div className="mb-[8px] grid grid-cols-3 gap-[8px]" role="tablist" aria-label="플랜 유형">
-              {ALL_PLAN_TABS.map((tab) => {
+            <div
+              className={`mb-[8px] grid ${planGridColsClass(desktopPlanTabs.length)} gap-[8px]`}
+              role="tablist"
+              aria-label="플랜 유형"
+            >
+              {desktopPlanTabs.map((tab) => {
                 const selected = activeTab === tab;
                 const count = tabCounts[tab];
                 const disabled = count === 0;
@@ -1058,7 +1069,7 @@ export function PlanSelectPopup({
                 );
               })}
             </div>
-            <div className="grid grid-cols-3 items-start gap-[8px]">
+            <div className={`grid ${planGridColsClass(desktopPlanTabs.length)} items-start gap-[8px]`}>
               {gridColumns.map(({ tab, cards }) => {
                 const isActiveColumn = activeTab === tab;
                 return (
@@ -1070,11 +1081,7 @@ export function PlanSelectPopup({
                         : "opacity-[0.35] transition-opacity duration-150 hover:opacity-70"
                     }`}
                   >
-                    {cards.length === 0 ? (
-                      <p className="py-6 text-center text-[11px] text-[#9CA3AF]">
-                        이 유형의 플랜이 없습니다.
-                      </p>
-                    ) : (
+                    {cards.length === 0 ? null : (
                       cards.map(({ product, isPinned }) => {
                         const isCardSelected = selectedId === product.option_api_id;
                         return (

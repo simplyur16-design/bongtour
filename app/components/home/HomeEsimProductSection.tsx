@@ -7,7 +7,9 @@ import { prefetchPropForHref } from '@/lib/route-prefetch-policy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import type { CountryOption } from '@/lib/bongsim/types'
 
-const HOME_ESIM_CODES = HOME_POPULAR_CODES.filter((code) => code !== 'kr').slice(0, 12)
+/** 인기 12 — 판매 불가 국가는 HomeDestinationGrid가 빼고 다음 순위로 채움(REGRESSION-FREEZE[bongsim-esim-hide-unavailable]) */
+const HOME_ESIM_LIMIT = 12
+const HOME_ESIM_CODES = HOME_POPULAR_CODES.filter((code) => code !== 'kr')
 
 function homeEsimCountries(): CountryOption[] {
   const byCode = new Map(COUNTRY_OPTIONS.map((c) => [c.code, c]))
@@ -39,7 +41,7 @@ export default function HomeEsimProductSection() {
           나라만 고르면 일수·용량에 맞는 요금제를 바로 비교할 수 있어요.
         </p>
         <div className="mt-6">
-          <HomeDestinationGrid items={items} />
+          <HomeDestinationGrid items={items} limit={HOME_ESIM_LIMIT} />
         </div>
         <div className="mt-6 flex justify-center">
           <Link

@@ -38,6 +38,7 @@ import {
   fetchProductPathStatus,
   parseProductDetailPathSegment,
 } from '@/lib/product-path-status'
+import { esimUnavailableNotFoundResponse } from '@/lib/bongsim/esim-unavailable-middleware'
 
 // REGRESSION-FREEZE[simplyur-surface-layout-p2]: simplyur surface 헤더 — manifest
 // REGRESSION-FREEZE[simplyur-oauth-home-bridge]: / → simplyur oauth-complete — manifest
@@ -322,6 +323,12 @@ export async function middleware(req: NextRequest) {
     }
   }
 
+  // REGRESSION-FREEZE[bongsim-esim-hide-unavailable]: 판매 불가 eSIM 상품·국가 → 진짜 404 (fail-open) — manifest
+  if (pathname === '/travel/esim/recommend' || pathname.startsWith('/travel/esim/product/')) {
+    const esimNotFound = await esimUnavailableNotFoundResponse(req)
+    if (esimNotFound) return esimNotFound
+  }
+
   // REGRESSION-FREEZE[bongsim-recommend-isr-cdn]: anonymous CDN hint (matcher always-on) — manifest
   if (pathname === '/travel/esim/recommend') {
     const res = forward()
@@ -358,6 +365,7 @@ export const config = {
     '/',
     '/m',
     '/travel/esim/recommend',
+    '/travel/esim/product/:path*',
     '/travel/overseas',
     '/travel/air-hotel',
     '/products/:idOrSlug',

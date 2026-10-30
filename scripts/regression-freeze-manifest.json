@@ -30415,6 +30415,85 @@
           ]
         }
       ]
+    },
+    {
+      "id": "bongsim-esim-hide-unavailable",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "판매 불가 eSIM(비활성·eSIM 아님·소비자가 없음·신규 컷오버 전)은 「없음/품절」 표기 없이 숨김 — 상품·국가 URL 진짜 404(middleware, fail-open), 0건 플랜 유형 탭 숨김, 0건 목적지 타일 숨김. 읽기 전용, DB 미기록",
+      "checks": [
+        {
+          "file": "lib/bongsim/catalog/esim-sellable-visibility.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hide-unavailable]",
+            "export function planTabsWithSellablePlans",
+            "export function filterSellableDestinations"
+          ]
+        },
+        {
+          "file": "lib/bongsim/esim-unavailable-middleware.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hide-unavailable]",
+            "'/_not-found'",
+            "status: 404",
+            "sellable === false"
+          ]
+        },
+        {
+          "file": "middleware.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hide-unavailable]",
+            "esimUnavailableNotFoundResponse",
+            "'/travel/esim/product/:path*'"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/sellable/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hide-unavailable]",
+            "checkOptionSellable",
+            "checkDestinationSellable"
+          ],
+          "mustNotInclude": [
+            "price_block",
+            "supply"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/sellable-destinations.ts",
+          "mustInclude": [
+            "getProductDetailByOptionApiIdCached",
+            "loadProductsByCountryCached"
+          ]
+        },
+        {
+          "file": "components/bongsim/recommend/PlanSelectPopup.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hide-unavailable]",
+            "planTabsWithSellablePlans(ALL_PLAN_TABS, tabCounts)",
+            "desktopPlanTabs"
+          ],
+          "mustNotInclude": [
+            "이 유형의 플랜이 없습니다"
+          ]
+        },
+        {
+          "file": "components/bongsim/HomeDestinationGrid.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-hide-unavailable]",
+            "useSellableDestinations",
+            "filterSellableDestinations"
+          ]
+        },
+        {
+          "file": "app/components/home/HomeEsimProductSection.tsx",
+          "mustInclude": [
+            "limit={HOME_ESIM_LIMIT}"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -30977,6 +31056,20 @@
       "summary": "원문 일자별 일정 유무로 패키지/자유여행 판정",
       "files": [
         "lib/register-kind-from-itinerary.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-esim-hide-unavailable",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "판매 불가 eSIM 숨김·404 판정 단위 테스트 + 소스 가드",
+      "files": [
+        "lib/bongsim/catalog/esim-sellable-visibility.test.ts",
+        "lib/bongsim/esim-unavailable-middleware.test.ts",
+        "lib/bongsim/data/sellable-destinations.test.ts",
+        "lib/bongsim/esim-hide-unavailable-guard.test.ts"
       ]
     }
   ]
