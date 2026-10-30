@@ -4,8 +4,9 @@
  * - 키는 절대 로그·응답·에러 문구에 넣지 않음.
  * - Unsplash API 가이드라인: (1) API가 준 photo.urls 주소를 그대로 씀(핫링크, 재호스팅 안 함)
  *   (2) 사진을 실제로 고를 때 photo.links.download_location 으로 요청(triggerUnsplashDownload).
- * - 출처 기록(작가·원본링크·ID)은 DB에 저장하지 않음(사장님 10/30 "출처를 따로쓰지 않아도 되는 사진은 괜찮다").
- *   ※ 가이드라인 3번(화면 표시 시 Unsplash·작가 표시+링크)은 사장님 결정 사항으로 보고됨 — 이 모듈은 저장하지 않음.
+ * - 가이드라인 3번(크레딧): 사장님 10/25 사진 원칙 + 10/30 ① 결정 — Unsplash 사진에만 아주 작은 'Photo: [작가] / Unsplash'
+ *   + 작가 프로필·Unsplash 링크(utm_source=bongtour&utm_medium=referral). 그래서 후보에 작가 이름(user.name)·프로필(user.links.html)을 담고,
+ *   고를 때 기존 칸 bgImagePhotographer(작가)·bgImageSourceUrl(프로필)·bgImageExternalId(사진 ID)에 저장(새 칸 없음, lib/unsplash-credit.ts).
  * 순서: Pexels → Unsplash → AI (IMAGE_SOURCE_TIER_ORDER).
  * REGRESSION-FREEZE[product-image-stage4-1030]: env 없으면 꺼짐·키 로그 금지·핫링크·download_location — manifest
  */
@@ -32,6 +33,10 @@ export type UnsplashHeroCandidate = {
   downloadLocation: string
   queryUsed: string
   altText?: string
+  /** 크레딧용 작가 이름(photo.user.name) */
+  authorName: string | null
+  /** 크레딧용 작가 프로필 주소(photo.user.links.html, utm 없이 저장 — 표시할 때 붙임) */
+  authorProfileUrl: string | null
 }
 
 type UnsplashApiPhoto = {
@@ -41,6 +46,7 @@ type UnsplashApiPhoto = {
   alt_description?: string | null
   urls?: { raw?: string; full?: string; regular?: string }
   links?: { download_location?: string }
+  user?: { name?: string | null; username?: string | null; links?: { html?: string | null } }
 }
 
 type FetchLike = typeof fetch
@@ -105,6 +111,10 @@ export async function searchUnsplashHeroCandidates(
         downloadLocation: dl,
         queryUsed,
         altText: p.alt_description ?? undefined,
+        authorName: (p.user?.name ?? '').trim() || null,
+        authorProfileUrl:
+          (p.user?.links?.html ?? '').trim() ||
+          ((p.user?.username ?? '').trim() ? `https://unsplash.com/@${(p.user?.username ?? '').trim()}` : null),
       })
     }
     return out

@@ -49,6 +49,7 @@ export type ProductPublicDetailAirHotelRenderModel = {
     originCode: string
     bgImageUrl: string | null
     bgImagePhotographer: string | null
+    bgImageSourceUrl?: string | null
     bgImagePlaceName: string | null
     bgImageRehostSearchLabel: string | null
     airtelHotelInfoJson: string | null

@@ -125,9 +125,13 @@ describe('backfill plan (dry-run classification)', () => {
     ).toBe('ok')
     expect(classifyBackfillRow({ ...row, bgImageSource: 'photopool', bgImageUrl: 'https://x/p.webp' }).action).toBe('replace_cover')
   })
-  it('writes only image fields, never credit fields', () => {
-    expect(BACKFILL_WRITABLE_FIELDS).not.toContain('bgImagePhotographer' as never)
-    expect(pickBackfillWritableData({ bgImageUrl: 'u', title: 'x', bgImagePhotographer: 'p', schedule: '[]' })).toEqual({ bgImageUrl: 'u' })
+  it('writes only image fields (+ Unsplash credit fields in existing columns), never title/schedule/price', () => {
+    // 사장님 10/30 ①: Unsplash 크레딧(작가·프로필·ID)만 기존 칸에 기록
+    expect(BACKFILL_WRITABLE_FIELDS).toContain('bgImagePhotographer' as never)
+    expect(pickBackfillWritableData({ bgImageUrl: 'u', title: 'x', bgImagePhotographer: 'p', schedule: '[]', priceFrom: 1 })).toEqual({
+      bgImageUrl: 'u',
+      bgImagePhotographer: 'p',
+    })
   })
   it('script is dry-run by default and backs up before writing', () => {
     const src = fs.readFileSync('scripts/image-policy-backfill.ts', 'utf8')

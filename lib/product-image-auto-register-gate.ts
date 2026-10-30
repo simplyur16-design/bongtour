@@ -3,7 +3,8 @@
  * - 기본 꺼짐: BONGTOUR_IMAGE_POLICY_AUTO_REGISTER=1 일 때만 동작(배포돼도 켜기 전에는 기존 동작 그대로).
  * - 기존 iStock(허용 목록) 대표 사진은 덮어쓰지 않음.
  * - 정책 불합격 후보는 대표 사진으로 쓰지 않고(기존 값 유지) needsImageReview=true 로 남김.
- * - Pexels·Unsplash·CC0 출처 기록(작가·원본링크·ID)은 새로 만들지 않음(의무 아님, 사장님 10/30).
+ * - Pexels·CC0 출처 기록(작가·원본링크·ID)은 새로 만들지 않음(의무 아님, 사장님 10/30).
+ * - Unsplash만 작가 이름(bgImagePhotographer)·작가 프로필(bgImageSourceUrl)·사진 ID(bgImageExternalId)를 기록 — 아주 작은 크레딧용(사장님 10/30 ①).
  * - 쓰는 칸: 대표 사진(bg*) 이미지 칸만.
  * REGRESSION-FREEZE[product-image-auto-register-gate]: 신규·등록대기만, 기본 꺼짐, 기존 iStock 유지, 불합격=보류 — manifest
  */
@@ -57,7 +58,8 @@ export function applyAutoCoverDecisionToUpdateData<T extends Record<string, unkn
   decision: AutoCoverDecision,
   measured: { width: number; height: number } | null,
   aiPrompt: string | null = null,
-  now: Date = new Date()
+  now: Date = new Date(),
+  credit: { authorName: string; authorProfileUrl: string; externalId: string | null } | null = null
 ): T {
   if (decision.action === 'legacy') return base
   const out: Record<string, unknown> = { ...base }
@@ -67,10 +69,15 @@ export function applyAutoCoverDecisionToUpdateData<T extends Record<string, unkn
     if (decision.action === 'hold') out.needsImageReview = true
     return out as T
   }
-  // write: 출처 기록 칸은 새로 만들지 않음(Pexels·Unsplash·CC0 표시 의무 없음)
+  // write: 출처 기록 칸은 새로 만들지 않음(Pexels·CC0 표시 의무 없음). Unsplash만 크레딧용으로 기록(정책 통과 = 작가+프로필 있음)
   delete out.bgImagePhotographer
   delete out.bgImageSourceUrl
   delete out.bgImageExternalId
+  if (decision.policy.tier === 'unsplash' && credit) {
+    out.bgImagePhotographer = credit.authorName
+    out.bgImageSourceUrl = credit.authorProfileUrl
+    out.bgImageExternalId = credit.externalId
+  }
   if (measured) {
     out.bgImageWidth = measured.width
     out.bgImageHeight = measured.height
@@ -92,6 +99,8 @@ export type AutoCoverPhotoLike = {
   source?: string | null
   photographer?: string | null
   originalLink?: string | null
+  /** Unsplash 작가 프로필 주소 */
+  authorProfileUrl?: string | null
   externalId?: string | number | null
 }
 
@@ -126,6 +135,7 @@ export async function gatedAutoCoverUpdateData<T extends Record<string, unknown>
       externalId: photo.externalId != null ? String(photo.externalId) : null,
       originalLink: photo.originalLink ?? null,
       photographer: photo.photographer ?? null,
+      authorProfileUrl: photo.authorProfileUrl ?? null,
       isGenerated: isGen,
       prompt: isGen ? prompt : null,
       width: measured?.width ?? null,
@@ -135,5 +145,11 @@ export async function gatedAutoCoverUpdateData<T extends Record<string, unknown>
   if (decision.action === 'hold') {
     console.warn(`[image-policy] 대표 사진 보류 ${decision.policy.fails.join(',')}`)
   }
-  return applyAutoCoverDecisionToUpdateData(data, decision, measured, isGen ? prompt : null)
+  const name = String(photo.photographer ?? '').trim()
+  const profile = String(photo.authorProfileUrl ?? photo.originalLink ?? '').trim()
+  const credit =
+    decision.action === 'write' && decision.policy.tier === 'unsplash' && name && profile
+      ? { authorName: name, authorProfileUrl: profile, externalId: photo.externalId != null ? String(photo.externalId) : null }
+      : null
+  return applyAutoCoverDecisionToUpdateData(data, decision, measured, isGen ? prompt : null, new Date(), credit)
 }

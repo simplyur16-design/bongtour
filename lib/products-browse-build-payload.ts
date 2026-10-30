@@ -1,3 +1,4 @@
+import { resolveUnsplashCredit } from '@/lib/unsplash-credit'
 import type { Prisma } from '@prisma/client'
 import { deriveTripNightsDays, resolvePublicTripDurationLabel } from '@/lib/derive-trip-nights-days'
 import { prisma } from '@/lib/prisma'
@@ -753,6 +754,14 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         dbIsGenerated: p.bgImageIsGenerated,
         imageUrl: coverUrl,
       })
+      // REGRESSION-FREEZE[unsplash-credit-1030]: 카드 대표 사진이 Unsplash일 때만 작은 크레딧(작가·프로필) — manifest
+      const coverImageUnsplashCredit = resolveUnsplashCredit({
+        source: p.bgImageSource,
+        photographer: p.bgImagePhotographer,
+        profileUrl: p.bgImageSourceUrl,
+        imageUrl: p.bgImageUrl,
+        displayedUrl: coverUrl ?? null,
+      })
       return {
       coverImageDisplayName:
         firstScheduleName ??
@@ -760,6 +769,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         displayNameFromImageUrl(coverUrl),
       coverImageSeoKeyword,
       coverImageSourceUserLabel,
+      ...(coverImageUnsplashCredit ? { coverImageUnsplashCredit } : {}),
       ...(() => {
         let hotelName: string | null = null
         let hotelGrade: string | null = null

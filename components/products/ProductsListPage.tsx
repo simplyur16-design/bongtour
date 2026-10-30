@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react'
 import type { BrowseSort } from '@/lib/products-browse-filter'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import SafeImage from '@/app/components/SafeImage'
+import UnsplashPhotoCredit from '@/app/components/ui/UnsplashPhotoCredit'
+import type { UnsplashCredit } from '@/lib/unsplash-credit'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 
 type BrowseItem = {
@@ -19,6 +21,8 @@ type BrowseItem = {
   coverImageDisplayName?: string | null
   coverImageSeoKeyword?: string | null
   coverImageSourceUserLabel?: string | null
+  /** 대표 사진이 Unsplash일 때만 — 작은 크레딧(REGRESSION-FREEZE[unsplash-credit-1030]) */
+  coverImageUnsplashCredit?: UnsplashCredit | null
   effectivePricePerPersonKrw: number | null
   earliestDeparture: string | null
 }
@@ -194,6 +198,7 @@ export default function ProductsListPage() {
                         leftLabel={item.coverImageSeoKeyword ?? null}
                         rightLabel={item.coverImageSourceUserLabel ?? null}
                       />
+                      <UnsplashPhotoCredit credit={item.coverImageUnsplashCredit} insideLink />
                     </>
                   ) : (
                     <div className="flex h-full items-center justify-center text-xs text-slate-400">이미지 없음</div>

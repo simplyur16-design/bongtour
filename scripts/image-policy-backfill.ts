@@ -44,6 +44,7 @@ import {
   type BatchReviewFile,
   type BatchReviewRow,
   type BatchTarget,
+  backfillCreditFieldsFor,
 } from '../lib/product-image-backfill-plan'
 import { publicProductWhereClause } from '../lib/product-sales-policy'
 import { OVERSEAS_TRAINING_LISTING_KIND } from '../lib/overseas-training-program-query'
@@ -61,6 +62,10 @@ type PlanCandidate = {
   query?: string
   /** Unsplash: 확정 시 호출(가이드라인), DB 저장 안 함 */
   downloadLocation?: string
+  /** Unsplash 크레딧(작가 이름·프로필·사진 ID) — 확정 시 기존 칸에 기록 */
+  unsplashId?: string
+  authorName?: string | null
+  authorProfileUrl?: string | null
 }
 type PlanItem = {
   id: string
@@ -98,6 +103,7 @@ async function dryRun() {
       bgImageUrl: true,
       bgImageSource: true,
       bgImageSourceUrl: true,
+      bgImagePhotographer: true,
       bgImageWidth: true,
       bgImageIsGenerated: true,
     },
@@ -152,8 +158,8 @@ async function dryRun() {
       if (q) {
         await polite()
         for (const g of await searchUnsplashHeroCandidates(`${q} landmark`, 5, q)) {
-          if (evaluateImageCandidatePolicy({ source: 'unsplash', url: g.imageUrl, width: g.width }).pass) {
-            item.candidates.push({ tier: 'unsplash', url: g.imageUrl, width: g.width, height: g.height, query: q, downloadLocation: g.downloadLocation })
+          if (evaluateImageCandidatePolicy({ source: 'unsplash', url: g.imageUrl, width: g.width, photographer: g.authorName, authorProfileUrl: g.authorProfileUrl }).pass) {
+            item.candidates.push({ tier: 'unsplash', url: g.imageUrl, width: g.width, height: g.height, query: q, downloadLocation: g.downloadLocation, unsplashId: g.unsplashId, authorName: g.authorName, authorProfileUrl: g.authorProfileUrl })
           }
         }
       }
@@ -210,6 +216,7 @@ async function apply() {
       bgImageWidth: dim?.width ?? cand.width,
       bgImageHeight: dim?.height ?? cand.height,
       bgImageIsGenerated: false,
+      ...backfillCreditFieldsFor({ source: cand.tier, unsplashId: cand.unsplashId, unsplashAuthorName: cand.authorName, unsplashAuthorProfileUrl: cand.authorProfileUrl }),
     })
     await prisma.product.update({ where: { id: it.id }, data })
     console.log(`썼음 ${it.slug}`)
@@ -268,6 +275,7 @@ async function loadLiveReplaceTargets(): Promise<Array<BatchTarget & { destinati
       bgImageUrl: true,
       bgImageSource: true,
       bgImageSourceUrl: true,
+      bgImagePhotographer: true,
       bgImageWidth: true,
       bgImageIsGenerated: true,
     },
@@ -309,9 +317,19 @@ async function proposeFor(
   if (isUnsplashConfigured()) {
     await polite()
     for (const g of await searchUnsplashHeroCandidates(`${q} landmark`, 5, q)) {
-      if (!used.has(g.imageUrl) && evaluateImageCandidatePolicy({ source: 'unsplash', url: g.imageUrl, width: g.width }).pass) {
+      if (!used.has(g.imageUrl) && evaluateImageCandidatePolicy({ source: 'unsplash', url: g.imageUrl, width: g.width, photographer: g.authorName, authorProfileUrl: g.authorProfileUrl }).pass) {
         used.add(g.imageUrl)
-        return { source: 'unsplash', url: g.imageUrl, width: g.width, height: g.height, unsplashDownloadLocation: g.downloadLocation, query: q }
+        return {
+          source: 'unsplash',
+          url: g.imageUrl,
+          width: g.width,
+          height: g.height,
+          unsplashDownloadLocation: g.downloadLocation,
+          unsplashId: g.unsplashId,
+          unsplashAuthorName: g.authorName,
+          unsplashAuthorProfileUrl: g.authorProfileUrl,
+          query: q,
+        }
       }
     }
   }
@@ -392,6 +410,7 @@ async function applyBatch(batch: number) {
       bgImageWidth: dim?.width ?? r.proposedWidth,
       bgImageHeight: dim?.height ?? r.proposedHeight,
       bgImageIsGenerated: false,
+      ...backfillCreditFieldsFor({ source: r.proposedSource, unsplashId: r.unsplashId, unsplashAuthorName: r.unsplashAuthorName, unsplashAuthorProfileUrl: r.unsplashAuthorProfileUrl }),
     })
     await prisma.product.update({ where: { id: r.productId }, data })
     wrote++

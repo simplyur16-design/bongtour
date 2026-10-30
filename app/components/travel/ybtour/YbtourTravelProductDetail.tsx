@@ -159,6 +159,8 @@ export type TravelProduct = {
   /** 대표 이미지 출처 타입(Product.bgImageSource) — 히어로 배지 */
   bgImageSource?: string | null
   bgImagePhotographer?: string | null
+  /** 원본 페이지 주소 — Unsplash 사진이면 작가 프로필(크레딧 링크) */
+  bgImageSourceUrl?: string | null
   /** AI 생성 표기(Product.bgImageIsGenerated) */
   bgImageIsGenerated?: boolean | null
   /** 일정 표시명 없을 때 image_assets 메타로 히어로 첫 슬라이드 캡션 보강 */
@@ -744,6 +746,7 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
         localDepartureTags={resolveDetailLocalDepartureTags(product)}
         heroImageSourceType={product.bgImageSource ?? null}
         heroImagePhotographer={product.bgImagePhotographer ?? null}
+        heroImageAuthorProfileUrl={product.bgImageSourceUrl ?? null}
         heroImageIsGenerated={product.bgImageIsGenerated ?? null}
         heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
         primaryDestination={product.primaryDestination ?? null}

@@ -10,7 +10,7 @@ import {
 } from '@/lib/product-image-source-policy'
 
 const pexels = { source: 'pexels', url: 'https://x/a-pexels-1.webp', externalId: '1', originalLink: 'https://www.pexels.com/photo/1', photographer: 'A', width: 1920 }
-const unsplash = { source: 'unsplash', url: 'https://x/u.webp', externalId: 'u1', originalLink: 'https://unsplash.com/photos/u1', photographer: 'B', width: 2000 }
+const unsplash = { source: 'unsplash', url: 'https://x/u.webp', externalId: 'u1', originalLink: 'https://unsplash.com/@bbb', photographer: 'B', width: 2000 }
 const gen = { source: 'gemini', url: 'https://x/g-gemini-1.webp', isGenerated: true, prompt: 'Da Nang beach, no landmark', width: 1536 }
 
 describe('image source policy (WORK-ORDER 8)', () => {
@@ -30,11 +30,14 @@ describe('image source policy (WORK-ORDER 8)', () => {
     expect(r.tier).toBe('cc0')
     expect(r.creditRequired).toBe(false)
   })
-  it('Pexels/Unsplash/CC0 pass without any source record (no attribution needed, 2026-10-30)', () => {
+  it('Pexels/CC0 pass without any source record; Unsplash needs author+profile (2026-10-30 ①)', () => {
     const p = evaluateImageCandidatePolicy({ source: 'pexels', url: 'https://x/a-pexels-1.webp', width: 1920 })
     expect(p.pass).toBe(true)
     expect(p.creditRequired).toBe(false)
-    expect(evaluateImageCandidatePolicy({ source: 'unsplash', url: 'https://x/u.webp', width: 2400 }).pass).toBe(true)
+    expect(evaluateImageCandidatePolicy({ source: 'unsplash', url: 'https://x/u.webp', width: 2400 }).fails).toEqual(['L1-UNSPLASH-NO-CREDIT'])
+    const u = evaluateImageCandidatePolicy({ source: 'unsplash', url: 'https://x/u.webp', width: 2400, photographer: 'B', authorProfileUrl: 'https://unsplash.com/@bbb' })
+    expect(u.pass).toBe(true)
+    expect(u.creditRequired).toBe(true)
     expect(evaluateImageCandidatePolicy({ source: 'wikimedia', license: 'CC0', url: 'https://x/c.jpg', width: 3000 }).pass).toBe(true)
     expect(evaluateImageCandidatePolicy({ ...pexels, photographer: '', externalId: '', originalLink: '' }).fails).toEqual([])
   })

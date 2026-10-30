@@ -84,6 +84,8 @@ export type TravelProduct = {
   bgImageSource?: string | null
   bgImageIsGenerated?: boolean | null
   bgImagePhotographer?: string | null
+  /** 원본 페이지 주소 — Unsplash 사진이면 작가 프로필(크레딧 링크) */
+  bgImageSourceUrl?: string | null
   heroCoverCaptionFromAsset?: string | null
   heroImageSeoKeywordOverlay?: string | null
   optionalTours?: Array<{ id: string; name: string; priceUsd: number; duration: string; waitPlaceIfNotJoined: string }>

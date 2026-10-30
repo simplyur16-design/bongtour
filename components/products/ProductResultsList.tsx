@@ -24,6 +24,8 @@ import {
 } from '@/lib/overseas-mega-region-city-group'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import SafeImage from '@/app/components/SafeImage'
+import UnsplashPhotoCredit from '@/app/components/ui/UnsplashPhotoCredit'
+import type { UnsplashCredit } from '@/lib/unsplash-credit'
 import { COVER_IMAGE_LIST_NEXT_QUALITY } from '@/lib/cover-image-quality'
 import { isSrcOptimizableByNextImage } from '@/lib/is-src-optimizable-by-next-image'
 import { PRODUCT_CARD_IMAGE_BLUR_DATA_URL } from '@/lib/product-card-image-blur'
@@ -71,6 +73,8 @@ export type ResultItem = {
   coverImageUrl?: string | null
   coverImageSeoKeyword?: string | null
   coverImageSourceUserLabel?: string | null
+  /** 대표 사진이 Unsplash일 때만 — 작은 크레딧(REGRESSION-FREEZE[unsplash-credit-1030]) */
+  coverImageUnsplashCredit?: UnsplashCredit | null
   effectivePricePerPersonKrw: number | null
   /** browse API — 출발일 정렬·필터용 */
   earliestDeparture?: string | null
@@ -804,6 +808,7 @@ export function ProductResultCard({
                 rightLabel={item.coverImageSourceUserLabel ?? null}
               />
             ) : null}
+            <UnsplashPhotoCredit credit={item.coverImageUnsplashCredit} insideLink />
           </>
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-slate-400">이미지 없음</div>

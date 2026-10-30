@@ -578,6 +578,7 @@ function VerygoodMobileProductDetailView({ product: productInput, showEsimCrossS
         localDepartureTags={resolveDetailLocalDepartureTags(product)}
         heroImageSourceType={product.bgImageSource ?? null}
         heroImagePhotographer={product.bgImagePhotographer ?? null}
+        heroImageAuthorProfileUrl={product.bgImageSourceUrl ?? null}
         heroImageIsGenerated={product.bgImageIsGenerated ?? null}
         heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
         primaryDestination={product.primaryDestination ?? null}

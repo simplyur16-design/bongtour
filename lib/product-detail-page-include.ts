@@ -102,6 +102,7 @@ export function buildProductDetailScalarsSelect() {
     bgImageSource: true,
     bgImageIsGenerated: true,
     bgImagePhotographer: true,
+    bgImageSourceUrl: true,
     bgImagePlaceName: true,
     bgImageRehostSearchLabel: true,
     publicImageHeroSeoKeywordsJson: true,

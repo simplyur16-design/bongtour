@@ -3,10 +3,13 @@
  * 순서: Pexels → Unsplash/CC0 → AI(생성 표시). 기존 iStock(허용 목록)은 유지(pkg-yb-0004 940px 포함, 사장님 10/30).
  * 자체 사진 7장(허용 목록)은 유지(사장님 10/30 19:34 "자체 사진 7장 허용해"). 생성 이미지는 생성 표시+prompt 둘 다 있어야 통과.
  * 공개 중 교체는 50개씩 배치 + 문과장 승인 파일이 있을 때만 씀(사장님 10/30 19:34 "배포 뒤 50개씩 문과장 검수 받고 바꿔").
- * Pexels·Unsplash·CC0 출처 기록은 만들지도 채우지도 않음(의무 아님, 사장님 10/30).
+ * Pexels·CC0 출처 기록은 만들지도 채우지도 않음(의무 아님, 사장님 10/30).
+ * Unsplash만 예외(사장님 10/30 ①): 작가 이름·작가 프로필·사진 ID를 기존 칸 bgImagePhotographer·bgImageSourceUrl·bgImageExternalId 에 기록
+ * (아주 작은 크레딧 표시용). Pexels로 바꿀 때는 이 세 칸을 비워 이전 사진의 작가가 남지 않게 함. 검수 파일에 크레딧 문구(creditText) 포함.
  * REGRESSION-FREEZE[product-image-backfill-plan]: 기본 dry-run·기존 iStock 유지·이미지 칸만·출처 기록 안 만듦 — manifest
  */
 import { createHash } from 'crypto'
+import { unsplashCreditReviewText } from '@/lib/unsplash-credit'
 import {
   IMAGE_SOURCE_TIER_ORDER,
   isOwnedBongtourImage,
@@ -19,7 +22,7 @@ import {
 /** 보충 때 쓸 출처 순서 (정책 SSOT 순서 그대로) */
 export const BACKFILL_SOURCE_ORDER = IMAGE_SOURCE_TIER_ORDER
 
-/** 백필이 쓸 수 있는 칸 — 이외 칸은 절대 쓰지 않음. 출처 기록 칸(작가·원본링크·ID)은 없음. */
+/** 백필이 쓸 수 있는 칸 — 이외 칸은 절대 쓰지 않음. 출처 기록 칸(작가·원본링크·ID)은 Unsplash 크레딧용(Pexels면 비움)으로만. */
 export const BACKFILL_WRITABLE_FIELDS = [
   'bgImageUrl',
   'bgImageSource',
@@ -29,6 +32,10 @@ export const BACKFILL_WRITABLE_FIELDS = [
   'bgImageIsGenerated',
   'bgImageAiPrompt',
   'bgImageAiLabeledAt',
+  // Unsplash 크레딧(작가 이름·작가 프로필·사진 ID) — 기존 칸, 새 칸 없음 (사장님 10/30 ①)
+  'bgImagePhotographer',
+  'bgImageSourceUrl',
+  'bgImageExternalId',
 ] as const
 
 /** 백업에 담는 칸(현재 값 전부) */
@@ -59,6 +66,8 @@ export type BackfillProductRow = {
   bgImageUrl: string | null
   bgImageSource: string | null
   bgImageSourceUrl?: string | null
+  /** Unsplash 크레딧 작가 이름 */
+  bgImagePhotographer?: string | null
   bgImageWidth: number | null
   bgImageIsGenerated: boolean | null
   /** 마이그레이션 20261030200000 적용 전에는 undefined */
@@ -94,6 +103,7 @@ export function classifyBackfillRow(row: BackfillProductRow, measuredWidth: numb
     source: row.bgImageSource,
     url,
     originalLink: row.bgImageSourceUrl ?? null,
+    photographer: row.bgImagePhotographer ?? null,
     isGenerated: row.bgImageIsGenerated === true,
     prompt: row.bgImageAiPrompt ?? null,
     width,
@@ -146,6 +156,10 @@ export type BatchProposal = {
   height: number | null
   /** Unsplash 가이드라인: 확정 시 호출할 주소(출처 기록 아님, DB 저장 안 함) */
   unsplashDownloadLocation?: string | null
+  /** Unsplash 크레딧: 사진 ID·작가 이름·작가 프로필 주소(확정 시 기존 칸에 기록) */
+  unsplashId?: string | null
+  unsplashAuthorName?: string | null
+  unsplashAuthorProfileUrl?: string | null
   query?: string | null
 }
 
@@ -160,6 +174,11 @@ export type BatchReviewRow = {
   proposedWidth: number | null
   proposedHeight: number | null
   unsplashDownloadLocation?: string | null
+  unsplashId?: string | null
+  unsplashAuthorName?: string | null
+  unsplashAuthorProfileUrl?: string | null
+  /** 화면에 붙을 크레딧 문구(Unsplash만, 나머지는 빈 값) — 문과장 검수용 */
+  creditText?: string
   query?: string | null
 }
 
@@ -218,6 +237,14 @@ export function buildBatchReviewRow(t: BatchTarget, p: BatchProposal): BatchRevi
     proposedWidth: p.width,
     proposedHeight: p.height,
     unsplashDownloadLocation: p.source === 'unsplash' ? p.unsplashDownloadLocation ?? null : undefined,
+    unsplashId: p.source === 'unsplash' ? p.unsplashId ?? null : undefined,
+    unsplashAuthorName: p.source === 'unsplash' ? p.unsplashAuthorName ?? null : undefined,
+    unsplashAuthorProfileUrl: p.source === 'unsplash' ? p.unsplashAuthorProfileUrl ?? null : undefined,
+    creditText: unsplashCreditReviewText({
+      source: p.source,
+      authorName: p.unsplashAuthorName,
+      authorProfileUrl: p.unsplashAuthorProfileUrl,
+    }),
     query: p.query ?? null,
   }
 }
@@ -242,6 +269,7 @@ export function batchReviewCsv(rows: readonly BatchReviewRow[]): string {
     'proposedSource',
     'proposedWidth',
     'proposedHeight',
+    'creditText',
   ] as const
   const lines = [head.join(',')]
   for (const r of rows) lines.push(head.map((k) => csvCell(r[k])).join(','))
@@ -275,8 +303,27 @@ export function checkApprovedBatch(
     const r = byId.get(it.productId)
     if (!r || !r.proposedImageUrl || r.proposedSource === 'none') continue
     if (r.proposedImageUrl !== it.proposedImageUrl) continue
+    // Unsplash 줄은 크레딧(작가 이름+프로필)이 있어야만 씀
+    if (r.proposedSource === 'unsplash' && (!r.creditText || r.creditText === 'MISSING_CREDIT')) continue
     approvedRows.push(r)
   }
   if (approvedRows.length === 0) return { ok: false, reason: 'no_approved_rows' }
   return { ok: true, approvedRows }
+}
+
+/** 확정 사진 → 크레딧 칸 쓰기 값. Unsplash = 작가·프로필·ID 기록, 그 밖(Pexels) = 비움(이전 사진 작가가 남지 않게). */
+export function backfillCreditFieldsFor(p: {
+  source: string
+  unsplashId?: string | null
+  unsplashAuthorName?: string | null
+  unsplashAuthorProfileUrl?: string | null
+}): { bgImagePhotographer: string | null; bgImageSourceUrl: string | null; bgImageExternalId: string | null } {
+  if (p.source === 'unsplash') {
+    return {
+      bgImagePhotographer: (p.unsplashAuthorName ?? '').trim() || null,
+      bgImageSourceUrl: (p.unsplashAuthorProfileUrl ?? '').trim() || null,
+      bgImageExternalId: (p.unsplashId ?? '').trim() || null,
+    }
+  }
+  return { bgImagePhotographer: null, bgImageSourceUrl: null, bgImageExternalId: null }
 }

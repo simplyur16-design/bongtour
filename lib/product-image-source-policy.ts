@@ -17,8 +17,15 @@
  * - 사장님이 유지하기로 한 사진(기존 iStock·자체 사진 7장)은 가로폭 검사 예외(ownerKeptLowRes 로만 표시, 교체 대상 아님).
  * - 생성 이미지는 생성 표시(bgImageIsGenerated=true) + prompt 기록(bgImageAiPrompt) 둘 다 있어야 통과.
  * REGRESSION-FREEZE[product-image-stage4-1030]: 자체 사진 7장 허용 목록·사장님 유지 사진 가로폭 예외·생성=표시+prompt — manifest
+ *
+ * 2026-10-30 Unsplash ① 결정(사장님 10/25 사진 원칙 "크레딧 필요한 사진은 최소로, 필요하면 아주 작은 글씨로만"):
+ * - Unsplash는 Pexels에 맞는 사진이 없을 때만. Unsplash 사진은 작가 이름 + 작가 프로필 주소(https://unsplash.com/@…)가 둘 다 있어야 통과
+ *   ('L1-UNSPLASH-NO-CREDIT'), 통과하면 creditRequired=true → 화면에 아주 작은 'Photo: [작가] / Unsplash'(lib/unsplash-credit.ts).
+ * - Pexels·자체 사진·CC0·기존 iStock은 크레딧 없음(creditRequired=false), 출처 기록 없어도 불합격 아님(위 10/30 지시 그대로).
+ * REGRESSION-FREEZE[unsplash-credit-1030]: Unsplash=작가+프로필 필수·creditRequired는 Unsplash만 — manifest
  */
 import { inferSourceKeyFromImageUrl } from '@/lib/product-image-source-attribution'
+import { isUnsplashProfileUrl } from '@/lib/unsplash-credit'
 
 export type ImageSourceTier = 'pexels' | 'unsplash' | 'cc0' | 'generated'
 
@@ -31,6 +38,8 @@ export type ImageCandidate = {
   externalId?: string | null
   originalLink?: string | null
   photographer?: string | null
+  /** Unsplash 작가 프로필 주소(없으면 originalLink 로 확인 — DB에서는 bgImageSourceUrl) */
+  authorProfileUrl?: string | null
   license?: string | null
   isGenerated?: boolean | null
   prompt?: string | null
@@ -49,6 +58,8 @@ export type ImagePolicyFailCode =
   /** 가로폭을 모름 → 통과 아님, 측정(헤더/메타데이터) 후 재판정 */
   | 'T1-RES-UNKNOWN'
   | 'T4-LINK'
+  /** Unsplash 사진인데 작가 이름 또는 작가 프로필 주소가 없음 → 크레딧을 못 달아 불합격 */
+  | 'L1-UNSPLASH-NO-CREDIT'
 
 export type ImagePolicyResult = {
   /** 'istock_existing' = 허용 목록에 있는 기존 iStock(유지만, 새 후보로 고르지 않음) */
@@ -57,7 +68,7 @@ export type ImagePolicyResult = {
   /** 사장님 유지 사진(기존 iStock·자체 사진)이 1200px 미만 — 예외 통과, 정보 표시만 */
   ownerKeptLowRes: boolean
   fails: ImagePolicyFailCode[]
-  /** 공개 화면 크레딧: 라이선스상 의무일 때만 true (Pexels·Unsplash·CC0는 의무 아님) */
+  /** 공개 화면 아주 작은 크레딧: Unsplash만 true (Pexels·자체·CC0·기존 iStock은 false) */
   creditRequired: boolean
   /** 생성 이미지는 공개 시 AI 안내 표시 */
   aiLabelRequired: boolean
@@ -164,7 +175,14 @@ export function evaluateImageCandidatePolicy(c: ImageCandidate): ImagePolicyResu
   if (tier === 'istock' && !istockExisting) fails.push('L2-ISTOCK')
   else if (tier === null && !owned) fails.push('L2-OTHER-SOURCE')
   if (!ownerKept && isAttributionRequiredLicense(c.license)) fails.push('L2-CC-BY')
-  // Pexels·Unsplash·CC0: 출처 기록(ID·원본링크·작가) 없어도 불합격 아님 (사장님 2026-10-30)
+  // Pexels·CC0: 출처 기록(ID·원본링크·작가) 없어도 불합격 아님 (사장님 2026-10-30)
+  // Unsplash: 작가 이름 + 작가 프로필 주소 둘 다 있어야 통과 (크레딧 표시용, 사장님 10/30 ①)
+  const isUnsplash = !ownerKept && tier === 'unsplash'
+  if (isUnsplash) {
+    const name = String(c.photographer ?? '').trim()
+    const profile = String(c.authorProfileUrl ?? c.originalLink ?? '').trim()
+    if (!name || !isUnsplashProfileUrl(profile)) fails.push('L1-UNSPLASH-NO-CREDIT')
+  }
   // 생성 이미지: 생성 표시 + prompt 기록 둘 다 있어야 통과 (사장님 2026-10-30 19:34 "AI 표시 칸 추가해")
   if (!owned && tier === 'generated') {
     if (!String(c.prompt ?? '').trim()) fails.push('L3-GEN-NO-RECORD')
@@ -186,7 +204,7 @@ export function evaluateImageCandidatePolicy(c: ImageCandidate): ImagePolicyResu
     pass: fails.length === 0,
     ownerKeptLowRes,
     fails,
-    creditRequired: false,
+    creditRequired: isUnsplash,
     aiLabelRequired: !owned && tier === 'generated',
   }
 }

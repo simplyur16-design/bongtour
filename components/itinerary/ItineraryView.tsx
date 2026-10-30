@@ -107,6 +107,7 @@ interface ItineraryViewProps {
     originCode: string
     bgImageUrl: string | null
     bgImagePhotographer: string | null
+    bgImageSourceUrl?: string | null
     primaryDestination?: string | null
     schedule?: ScheduleDay[] | null
     bgImageSource?: string | null
@@ -514,6 +515,7 @@ export function ItineraryView({
         localDepartureTags={resolveDetailLocalDepartureTags(product)}
         heroImageSourceType={product.bgImageSource ?? null}
         heroImagePhotographer={product.bgImagePhotographer ?? null}
+        heroImageAuthorProfileUrl={product.bgImageSourceUrl ?? null}
         heroImageIsGenerated={product.bgImageIsGenerated ?? null}
         heroImageSeoKeywordOverlay={product.heroImageSeoKeywordOverlay ?? null}
         primaryDestination={product.primaryDestination ?? null}

@@ -22,6 +22,7 @@ type CarouselProps = {
   productTitle: string
   heroImageSourceType?: string | null
   heroImagePhotographer?: string | null
+  heroImageAuthorProfileUrl?: string | null
   heroImageIsGenerated?: boolean | null
   heroImageSeoKeywordOverlay?: string | null
   primaryDestination?: string | null
@@ -42,6 +43,7 @@ export default function PackageProductHeroSection({
   productTitle,
   heroImageSourceType,
   heroImagePhotographer,
+  heroImageAuthorProfileUrl,
   heroImageIsGenerated,
   heroImageSeoKeywordOverlay,
   primaryDestination,
@@ -88,6 +90,7 @@ export default function PackageProductHeroSection({
             productTitle={heroTitles.heroTitle}
             heroImageSourceType={heroImageSourceType ?? null}
             heroImagePhotographer={heroImagePhotographer ?? null}
+            heroImageAuthorProfileUrl={heroImageAuthorProfileUrl ?? null}
             heroImageIsGenerated={heroImageIsGenerated ?? null}
             heroImageSeoKeywordOverlay={heroImageSeoKeywordOverlay ?? null}
             primaryDestination={primaryDestination ?? null}

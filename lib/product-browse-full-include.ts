@@ -31,6 +31,8 @@ export function buildProductBrowseListSelect() {
     bgImageUrl: true,
     bgImageSource: true,
     bgImageIsGenerated: true,
+    bgImagePhotographer: true,
+    bgImageSourceUrl: true,
     publicImageHeroSeoKeywordsJson: true,
     publicImageHeroSeoLine: true,
     productType: true,

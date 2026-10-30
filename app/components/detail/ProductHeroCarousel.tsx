@@ -6,6 +6,8 @@ import SafeImage from '@/app/components/SafeImage'
 import { warnLegacyGeminiUploadPath } from '@/lib/legacy-gemini-upload-path'
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
 import { resolveCarouselDaySlideLeftLabel } from '@/lib/public-product-carousel-day-slide-left-label'
+import UnsplashPhotoCredit from '@/app/components/ui/UnsplashPhotoCredit'
+import { resolveUnsplashCredit } from '@/lib/unsplash-credit'
 
 type DaySlide = {
   day: number
@@ -23,6 +25,8 @@ type Slide = {
   alt: string
   leftLabel: string | null
   rightLabel: string | null
+  /** 대표 사진 슬라이드만 */
+  isHero?: boolean
 }
 
 type Props = {
@@ -36,6 +40,8 @@ type Props = {
   heroImageSourceType?: string | null
   /** Product.bgImagePhotographer */
   heroImagePhotographer?: string | null
+  /** Product.bgImageSourceUrl — Unsplash 사진이면 작가 프로필 주소(크레딧 링크) */
+  heroImageAuthorProfileUrl?: string | null
   /** Product.bgImageIsGenerated */
   heroImageIsGenerated?: boolean | null
   /** 대표 슬라이드 전용: 상품 SEO 한 줄(등록 저장값·휴리스틱 resolve 결과) */
@@ -54,12 +60,24 @@ export default function ProductHeroCarousel({
   className = '',
   heroImageSourceType,
   heroImagePhotographer,
+  heroImageAuthorProfileUrl,
   heroImageIsGenerated,
   heroImageSeoKeywordOverlay,
   primaryDestination,
   destination,
   fillParent = false,
 }: Props) {
+  // REGRESSION-FREEZE[unsplash-credit-1030]: 대표 사진이 Unsplash일 때만 아주 작은 크레딧 — manifest
+  const heroUnsplashCredit = useMemo(
+    () =>
+      resolveUnsplashCredit({
+        source: heroImageSourceType,
+        photographer: heroImagePhotographer,
+        profileUrl: heroImageAuthorProfileUrl,
+        imageUrl: heroUrl,
+      }),
+    [heroImageSourceType, heroImagePhotographer, heroImageAuthorProfileUrl, heroUrl]
+  )
   const heroSeoLeft = (heroImageSeoKeywordOverlay ?? '').trim() || null
 
   const slides = useMemo((): Slide[] => {
@@ -91,6 +109,7 @@ export default function ProductHeroCarousel({
         alt: titleBase ? `${titleBase} 대표 이미지` : '여행 상품 대표 이미지',
         leftLabel: heroSeoLeft,
         rightLabel,
+        isHero: true,
       })
     }
     const seen = new Set<string>(heroTrim ? [heroTrim] : [])
@@ -190,6 +209,7 @@ export default function ProductHeroCarousel({
           rightLabel={current.rightLabel}
           className={fillParent ? 'z-[40] [&>div:last-child]:px-11 sm:[&>div:last-child]:px-12' : undefined}
         />
+        {current.isHero ? <UnsplashPhotoCredit credit={heroUnsplashCredit} /> : null}
       </div>
       {len > 1 && (
         <>

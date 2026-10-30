@@ -132,6 +132,7 @@ export function renderProductDetailFromModel(
               originCode: airModel.travelProductScalars.originCode,
               bgImageUrl: airModel.travelProductScalars.bgImageUrl,
               bgImagePhotographer: airModel.travelProductScalars.bgImagePhotographer,
+              bgImageSourceUrl: airModel.travelProductScalars.bgImageSourceUrl ?? null,
               primaryDestination: product.primaryDestination ?? null,
               schedule: product.schedule ?? null,
               bgImageSource: product.bgImageSource ?? null,

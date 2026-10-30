@@ -13,6 +13,7 @@ type CarouselProps = {
   primaryDestination?: string | null
   destination?: string | null
   bgImagePhotographer?: string | null
+  heroImageAuthorProfileUrl?: string | null
 }
 
 type Props = CarouselProps & {
@@ -29,7 +30,9 @@ export default function ProductDetailHeroOasis({
   bgImagePhotographer,
   ...carousel
 }: Props) {
-  const photographer = bgImagePhotographer?.trim() || null
+  // Unsplash 사진은 캐러셀 안 작은 크레딧(UnsplashPhotoCredit)만 — 'on Pexels' 오표기 방지
+  const photographer =
+    (carousel.heroImageSourceType ?? '').trim().toLowerCase() === 'unsplash' ? null : bgImagePhotographer?.trim() || null
 
   return (
     <section

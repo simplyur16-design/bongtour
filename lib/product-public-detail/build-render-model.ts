@@ -918,6 +918,7 @@ export async function buildProductPublicDetailRenderModel(
     bgImageSource: travelProduct.bgImageSource ?? null,
     bgImageIsGenerated: travelProduct.bgImageIsGenerated ?? false,
     bgImagePhotographer: travelProduct.bgImagePhotographer ?? null,
+    bgImageSourceUrl: travelProduct.bgImageSourceUrl ?? null,
     /** schedule 캡션 없을 때 image_assets(public_url 일치) seo_title/title/alt 로 히어로 보강 */
     heroCoverCaptionFromAsset,
     /** 히어로 이미지 내부 좌측 SEO 키워드 전용(캡션 파이프라인과 분리) */
@@ -1055,6 +1056,7 @@ export async function buildProductPublicDetailRenderModel(
         originCode: travelProduct.originCode ?? '',
         bgImageUrl: travelProduct.bgImageUrl ?? null,
         bgImagePhotographer: travelProduct.bgImagePhotographer ?? null,
+        bgImageSourceUrl: travelProduct.bgImageSourceUrl ?? null,
         bgImagePlaceName: travelProduct.bgImagePlaceName ?? null,
         bgImageRehostSearchLabel: travelProduct.bgImageRehostSearchLabel ?? null,
         airtelHotelInfoJson: travelProduct.airtelHotelInfoJson ?? null,
