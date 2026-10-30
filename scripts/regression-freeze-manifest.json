@@ -29177,7 +29177,10 @@
             "dropDayPhotosDuplicatingMain(mainPhoto.url",
             "REGRESSION-FREEZE[register-day-photo-policy]",
             "checkDayPhotoPolicy({",
-            "dayCityOk(c)"
+            "dayCityOk(c)",
+            "REGRESSION-FREEZE[register-day-photo-ai-label]",
+            "heroOut.bundle.heroGeneratedPrompt",
+            "...(photo.aiLabel ? photo.aiLabel : {})"
           ]
         },
         {
@@ -29220,6 +29223,15 @@
             "REGRESSION-FREEZE[register-day-photo-policy]",
             "day_photo_city_unverified",
             "dayPhotoCityVerified(d"
+          ]
+        },
+        {
+          "file": "lib/register-day-photo-ai-label.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-day-photo-ai-label]",
+            "isGenerated: true",
+            "labeledAt",
+            "DAY_PHOTO_AI_LABEL_KO = 'AI 생성 이미지'"
           ]
         }
       ]
@@ -29285,7 +29297,8 @@
         "lib/register-auto-register-gate.test.ts",
         "lib/register-photo-source-chain.test.ts",
         "lib/register-photo-score.test.ts",
-        "lib/register-day-photo-policy.test.ts"
+        "lib/register-day-photo-policy.test.ts",
+        "lib/register-day-photo-ai-label.test.ts"
       ]
     },
     {

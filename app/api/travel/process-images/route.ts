@@ -64,6 +64,8 @@ import {
   type DayCityMatch,
 } from '@/lib/register-day-photo-policy'
 import { probeStoredImage } from '@/lib/register-auto-photo-register-job'
+// REGRESSION-FREEZE[register-day-photo-ai-label]: v2 생성 일차 사진 AI 표시 기록 — manifest
+import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-ai-label'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -90,7 +92,7 @@ type ScheduleEntry = {
     externalId?: string
     /** v2: 도시 일치 근거 */
     cityMatch?: string
-  }
+  } & Partial<DayPhotoAiLabel>
   imageSource2?: { source: string; photographer: string; originalLink: string; externalId?: string }
   imagePhotographer?: string | null
   imageSourcePageUrl?: string | null
@@ -115,6 +117,8 @@ type PhotoResult = {
   externalId?: string
   /** v2: 일차 사진 도시 일치 근거 */
   cityMatch?: DayCityMatch
+  /** v2: 생성 이미지 AI 표시(생성 문장) */
+  aiLabel?: DayPhotoAiLabel | null
 }
 
 type ItineraryRowLite = {
@@ -799,7 +803,13 @@ export async function POST(req: Request) {
           usage
         )
         photo = heroOut.photo
-        if (photoChainV2 && photo) photo = { ...photo, cityMatch: 'keyword' }
+        if (photoChainV2 && photo) {
+          photo = {
+            ...photo,
+            cityMatch: 'keyword',
+            aiLabel: dayPhotoAiLabel(photo, heroOut.bundle.heroGeneratedPrompt ?? null, keywordUsed),
+          }
+        }
         keywordUsed = heroOut.bundle.heroPlaceQuery || heroOut.bundle.heroPlaceName
         selectedOrigin = `hero-${heroOut.bundle.heroImageSource}`
         selectedSemanticKey = heroOut.semanticKey
@@ -923,6 +933,10 @@ export async function POST(req: Request) {
         continue
       }
 
+      if (photoChainV2 && photo.aiLabel === undefined) {
+        // 풀에 있던 생성 이미지 재사용 등: 생성 문장을 모르면 키워드로 기록
+        photo = { ...photo, aiLabel: dayPhotoAiLabel(photo, null, keywordUsed) }
+      }
       let sealedSlot = await sealProductCoverPhoto(prisma, destination, photo, keywordUsed, photo.source)
       if (photoChainV2) {
         // 일차 사진 정책: 측정해서 1200px·출처·용량을 보고, 걸리면 다음 후보 한 번 → 그래도 안 되면 '사진 필요'
@@ -933,6 +947,8 @@ export async function POST(req: Request) {
             source: ph.source,
             photographer: ph.photographer,
             originalLink: ph.originalLink,
+            isGenerated: ph.aiLabel?.isGenerated === true,
+            prompt: ph.aiLabel?.prompt ?? null,
             width: pr.width,
             bytes: pr.bytes,
           })
@@ -1074,6 +1090,7 @@ export async function POST(req: Request) {
               originalLink: photo.originalLink,
               ...(photo.externalId ? { externalId: photo.externalId } : {}),
               ...(photo.cityMatch ? { cityMatch: photo.cityMatch } : {}),
+              ...(photo.aiLabel ? photo.aiLabel : {}),
             }
           : item.imageSource,
         imageSource2: photo2
