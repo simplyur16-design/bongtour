@@ -27,6 +27,7 @@ import {
   truncateHealAuditValue,
   type HealWriteField,
 } from '@/lib/register-pending-heal-write-guard'
+import { sanitizeHighlightPointsText } from '@/lib/highlight-points-supplier-noise'
 import { prisma } from '@/lib/prisma'
 import { syncScheduleImageKeywordsFromFitMasterDb } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import { isScheduleSupplierOriginalLocked } from '@/lib/schedule-supplier-original-lock'
@@ -170,6 +171,7 @@ export async function healPendingRegisterPrePhoto(
       rejectedAt: true,
       registerPrePhotoQueueReady: true,
       registerPhotosReady: true,
+      highlightPoints: true,
       brand: { select: { brandKey: true } },
       departures: { select: { outboundDepartureAirport: true }, take: 20 },
     },
@@ -629,6 +631,14 @@ export async function healPendingRegisterPrePhoto(
         promoted += 1
       }
       const nextJson = JSON.stringify(next)
+      // 상품 핵심 포인트: 공급사 URL·브랜드 프로그램·자사 홍보 줄 제거(등록·등록대기만; registered는 표시 필터로 처리, DB 무변경)
+      // highlightPointsRaw(공급사 원문)는 건드리지 않음. 남는 줄의 문구·숫자 무변경.
+      const highlightBefore = typeof product.highlightPoints === 'string' ? product.highlightPoints : null
+      const highlightAfter =
+        currentStatus !== 'registered' && highlightBefore?.trim()
+          ? sanitizeHighlightPointsText(highlightBefore)
+          : highlightBefore
+      const highlightChanged = (highlightAfter ?? null) !== (highlightBefore ?? null)
       const nextRawMeta = mergeRegisterPrePhotoStampIntoRawMeta(product.rawMeta, verify)
       const stampChanged = nextRawMeta !== String(product.rawMeta ?? '')
       if (
@@ -639,6 +649,7 @@ export async function healPendingRegisterPrePhoto(
         !departureChanged &&
         !themeChanged &&
         !geoRematerialized &&
+        !highlightChanged &&
         healNotes.length === 0
       ) {
         skippedUnchanged += 1
@@ -798,6 +809,18 @@ export async function healPendingRegisterPrePhoto(
             data.registerPrePhotoQueueReady = nextQueueReady
           },
         )
+        if (highlightChanged) {
+          consider(
+            'highlightPoints',
+            highlightBefore,
+            highlightAfter,
+            'highlight_supplier_noise',
+            'derived_ops',
+            () => {
+              data.highlightPoints = highlightAfter
+            },
+          )
+        }
         const nextPhotosReady = isRegisterPendingPhotosReady(product.bgImageUrl, scheduleForFlags)
         consider(
           'registerPhotosReady',

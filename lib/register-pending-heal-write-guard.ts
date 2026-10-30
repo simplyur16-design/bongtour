@@ -28,6 +28,7 @@ export type HealWriteField =
   | 'locationMatchConfidence'
   | 'locationMatchSource'
   | 'title'
+  | 'highlightPoints'
 
 export type HealFieldProvenance = 'supplier_direct' | 'inferred' | 'derived_ops'
 

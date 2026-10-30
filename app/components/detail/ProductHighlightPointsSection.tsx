@@ -1,17 +1,13 @@
 import { CircleCheck } from 'lucide-react'
 import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
+import { HIGHLIGHT_LINE_TEXT_CLASS, resolveHighlightPointsForDisplay } from '@/lib/highlight-points-supplier-noise'
 
 function resolveHighlightDisplayText(
   highlightPoints: string | null | undefined,
   highlightPointsRaw: string | null | undefined
 ): string | null {
-  if (typeof highlightPoints === 'string' && highlightPoints.trim()) {
-    return decodePublicHtmlEntities(highlightPoints.replace(/\r/g, '\n'))
-  }
-  if (typeof highlightPointsRaw === 'string' && highlightPointsRaw.trim()) {
-    return decodePublicHtmlEntities(highlightPointsRaw.replace(/\r/g, '\n'))
-  }
-  return null
+  // 공급사 URL·브랜드 프로그램·자사 홍보 줄은 표시하지 않음(저장값 무변경) — 기존 등록 상품도 즉시 적용
+  return resolveHighlightPointsForDisplay(highlightPoints, highlightPointsRaw, decodePublicHtmlEntities)
 }
 
 function stripLeadingBullet(line: string): string {
@@ -55,13 +51,14 @@ export default function ProductHighlightPointsSection({
       </h2>
       <ul className="space-y-3">
         {lines.map((line, i) => (
-          <li key={i} className="flex gap-3 text-sm leading-relaxed text-bt-body">
+          <li key={i} className="flex min-w-0 gap-3 text-sm leading-relaxed text-bt-body">
             <CircleCheck
               className="mt-0.5 h-5 w-5 shrink-0 text-bt-card-accent-strong"
               strokeWidth={2}
               aria-hidden
             />
-            <span className="min-w-0 whitespace-pre-wrap">{line}</span>
+            {/* 긴 무공백 문자열(URL 등)도 줄바꿈 — 390px에서 페이지 폭을 넓히지 않게 */}
+            <span className={HIGHLIGHT_LINE_TEXT_CLASS}>{line}</span>
           </li>
         ))}
       </ul>
