@@ -30306,6 +30306,54 @@
       "vitestSuites": [
         "lib/product-card-image-position.test.ts"
       ]
+    },
+    {
+      "id": "admin-register-kind-itinerary",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "관리자 등록 저장 kind = 공급사 원문 일자별 일정 유무만 (가이드·가이드비·쇼핑·코드 글자 미사용) — 사장님 규칙 2026-10-30",
+      "checks": [
+        {
+          "file": "lib/register-kind-from-itinerary.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-register-kind-itinerary]",
+            "export function inferProductKindFromOriginalItinerary",
+            "export function applyItineraryKindToTravelScope"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-register-kind-itinerary]",
+            "applyItineraryKindToTravelScope(travelScope, schedule)"
+          ],
+          "mustNotInclude": [
+            "applySupplierCodeKindToTravelScope"
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-register-kind-itinerary]",
+            "applyItineraryKindToTravelScope(travelScope, schedule)"
+          ],
+          "mustNotInclude": [
+            "applySupplierCodeKindToTravelScope"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-register-kind-itinerary]",
+            "applyItineraryKindToTravelScope(travelScope, schedule)"
+          ],
+          "mustNotInclude": [
+            "applySupplierCodeKindToTravelScope"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -30858,6 +30906,16 @@
       "summary": "같은 출발 주간 — 월요일 시작·주 안 성인가 낮은 출발·하한/마감/잔여0 제외·기본 가까운 주",
       "files": [
         "lib/similar-itinerary-compare-week.test.ts"
+      ]
+    },
+    {
+      "id": "admin-register-kind-itinerary",
+      "tier": [
+        "ci"
+      ],
+      "summary": "원문 일자별 일정 유무로 패키지/자유여행 판정",
+      "files": [
+        "lib/register-kind-from-itinerary.test.ts"
       ]
     }
   ]

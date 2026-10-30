@@ -1,5 +1,6 @@
 import { applyTitleRestoreLockToProductUpdate } from '@/lib/product-title-restore-lock'
 import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
+import { applyItineraryKindToTravelScope } from '@/lib/register-kind-from-itinerary'
 import { NextResponse } from 'next/server'
 import {
   assertRegisterRouteSupplierMatch,
@@ -1782,7 +1783,10 @@ export async function runModetourRegisterFlow(request: Request, flowOptions: Mod
       heroDepartureDateSource: heroAuditForMeta.departureSource,
       heroReturnDateSource: heroAuditForMeta.returnSource,
     })
-    const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
+    // REGRESSION-FREEZE[admin-register-kind-itinerary]: 저장 kind = 원문 일자별 일정 유무만 (코드 글자·가이드·가이드비 미사용) — manifest
+    const registerListingMeta = travelScopeAndListingKindFromAdminRegister(
+      applyItineraryKindToTravelScope(travelScope, schedule),
+    )
     const titlePair = productTitlePairForRegisterConfirm(
       body,
       {
