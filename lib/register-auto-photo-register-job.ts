@@ -114,15 +114,17 @@ export async function runAutoPhotoRegisterJob(opts?: {
 
   const ids = await prisma.product.findMany({
     where: REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE,
-    select: { id: true, registerPhotosReady: true },
+    select: { id: true, registerPhotosReady: true, bgImageUrl: true },
     orderBy: { updatedAt: 'asc' },
     take: limit,
   })
 
-  for (const { id, registerPhotosReady } of ids) {
+  for (const { id, registerPhotosReady, bgImageUrl } of ids) {
     result.scanned++
     // 03·04: 사진 채움(기존 process-images 재사용, 서비스 Bearer)
-    if (sw.fill && !registerPhotosReady) {
+    // 대표 사진이 이미 있는 상품은 자동 채움으로 덮어쓰지 않음(사장님 10/31: 기존 대표사진 보호)
+    const hasMainPhoto = String(bgImageUrl ?? '').trim() !== ''
+    if (sw.fill && !registerPhotosReady && !hasMainPhoto) {
       const secret = getAdminServiceBearerSecret()
       if (!secret) {
         result.fillFailed++
