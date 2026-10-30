@@ -123,6 +123,10 @@ model Product {
   autoUnpublishedAt        DateTime?
   autoUnpublishedReason    String?
   needsImageReview         Boolean               @default(false) // 이미지 보강 검수 대상 (legacy 등)
+  /// 자동 등록(사진 자동 채움 → 자동 검사) 보류 사유 — 관리자 등록대기 화면 표시용. 통과·등록 시 NULL
+  autoRegisterBlockReason  String?
+  /// 자동 등록 검사 마지막 시각
+  autoRegisterCheckedAt    DateTime?
   imageReviewRequestedAt   DateTime? // 보강 요청 시각
   // 2차 분류 (등록대기 검수 시 확정)
   primaryRegion            String? // 대표 지역 (예: 동남아, 유럽)
