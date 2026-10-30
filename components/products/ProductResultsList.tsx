@@ -41,6 +41,7 @@ import {
 import { koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
 import type { BrowseItemFilterMeta } from '@/lib/products-browse-client-sidebar'
 import WishlistToggleButton from '@/components/mypage/WishlistToggleButton'
+import { productCardImageObjectPositionStyle } from '@/lib/product-card-image-position'
 import { HUB_PRODUCT_SCROLL_LI_CLASS } from '@/components/products/hub-product-row-layout'
 import {
   MOBILE_HUB_OVERSEAS_SECTION_STACK_CLASS,
@@ -786,6 +787,8 @@ export function ProductResultCard({
               alt=""
               fill
               className="object-cover"
+              // REGRESSION-FREEZE[product-card-image-object-position]: slug별 카드 자르는 위치 (lib/product-card-image-position.ts)
+              style={productCardImageObjectPositionStyle(item.slug)}
               sizes={
                 hubSquareSmall
                   ? '(max-width:1280px) 22vw, 240px'

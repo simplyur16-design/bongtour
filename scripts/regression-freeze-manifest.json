@@ -30274,6 +30274,38 @@
           ]
         }
       ]
+    },
+    {
+      "id": "product-card-image-object-position",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "상품 카드 대표사진 slug별 object-position(표시 설정, DB 칸 없음) — flagged 6건 카드에서 피사체 잘림 방지",
+      "checks": [
+        {
+          "file": "lib/product-card-image-position.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-card-image-object-position]",
+            "PRODUCT_CARD_IMAGE_OBJECT_POSITION",
+            "'fit-mt-0028'",
+            "'fit-hn-0035'"
+          ],
+          "mustNotInclude": [
+            "prisma"
+          ]
+        },
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-card-image-object-position]",
+            "style={productCardImageObjectPositionStyle(item.slug)}"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/product-card-image-position.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
