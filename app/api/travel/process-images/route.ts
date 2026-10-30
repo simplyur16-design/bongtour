@@ -40,6 +40,8 @@ import {
 } from '@/lib/schedule-image-keyword-persist'
 import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-prompt'
 import { resolveProductBgImageFieldsFromPhoto } from '@/lib/product-image-source-attribution'
+// REGRESSION-FREEZE[product-image-auto-register-gate]: 신규·등록대기 대표 사진만 정책 적용(기본 꺼짐) — manifest
+import { gatedAutoCoverUpdateData } from '@/lib/product-image-auto-register-gate'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -359,6 +361,9 @@ export async function POST(req: Request) {
         title: true,
         schedule: true,
         bgImageRehostSearchLabel: true,
+        registrationStatus: true,
+        bgImageUrl: true,
+        bgImageSource: true,
       },
     })) as ProductRow | null
 
@@ -447,10 +452,10 @@ export async function POST(req: Request) {
       )
       await prisma.product.update({
         where: { id: product.id as string },
-        data: {
+        data: await gatedAutoCoverUpdateData(product, toPoolResult(mainRec), null, {
           bgImageUrl: mainUrl,
           schedule: scheduleStr,
-        },
+        }),
       })
       return jsonWithLeakGuard({ success: true, source: 'pool', cacheHit: 5, newFetch: 0 }, 'travel.process-images.pool')
     }
@@ -515,10 +520,10 @@ export async function POST(req: Request) {
       )
       await prisma.product.update({
         where: { id: product.id as string },
-        data: {
+        data: await gatedAutoCoverUpdateData(product, mainSealed, null, {
           bgImageUrl: mainSealed.url,
           schedule: scheduleStrPre,
-        },
+        }),
       })
       return jsonWithLeakGuard(
         {
@@ -914,12 +919,12 @@ export async function POST(req: Request) {
     const bgMeta = resolveProductBgImageFieldsFromPhoto(bgPhoto)
     await prisma.product.update({
       where: { id: product.id as string },
-      data: {
+      data: await gatedAutoCoverUpdateData(product, bgPhoto, mainQuery, {
         bgImageUrl: bgPhoto.url,
         bgImageRehostSearchLabel: mainQuery.slice(0, 120),
         schedule: scheduleStrFinal,
         ...bgMeta,
-      },
+      }),
     })
 
     for (const row of updatedSchedule) {

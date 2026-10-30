@@ -28542,6 +28542,73 @@
           ]
         }
       ]
+    },
+    {
+      "id": "product-image-auto-register-gate",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "WORK-ORDER 8 3단계 준비: 신규·등록대기 대표 사진만 정책 적용(기본 꺼짐), 기존 iStock 유지, 불합격=보류, 백필 기본 dry-run·백업 먼저·이미지 칸만·출처 기록 안 만듦",
+      "checks": [
+        {
+          "file": "lib/product-image-auto-register-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-auto-register-gate]",
+            "BONGTOUR_IMAGE_POLICY_AUTO_REGISTER",
+            "['pre_photo_blocked', 'pending']",
+            "keep_existing_istock",
+            "delete out.bgImagePhotographer"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-auto-register-gate]",
+            "data: await gatedAutoCoverUpdateData(product, bgPhoto, mainQuery, {",
+            "registrationStatus: true,"
+          ]
+        },
+        {
+          "file": "lib/image-dimension-probe.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-auto-register-gate]",
+            "Range: `bytes=0-"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "product-image-backfill-plan",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "WORK-ORDER 8 3단계 준비: 기존 상품 대표 사진 백필 — 기본 dry-run, 승인 줄만, 백업 먼저, 이미지 칸만, 기존 iStock 유지, 출처 기록 안 만듦",
+      "checks": [
+        {
+          "file": "lib/product-image-backfill-plan.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-backfill-plan]",
+            "keep_existing_istock",
+            "owner_decision_own_photo",
+            "BACKFILL_WRITABLE_FIELDS"
+          ],
+          "mustNotInclude": [
+            "'bgImagePhotographer',\n  'bgImageIsGenerated'"
+          ]
+        },
+        {
+          "file": "scripts/image-policy-backfill.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-image-backfill-plan]",
+            "(has('--apply') ? apply() : dryRun())",
+            "IMAGE_BACKFILL_CONFIRM",
+            "fs.writeFileSync(backupFile",
+            "pickBackfillWritableData("
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -28596,7 +28663,8 @@
         "tests/kyowontour-schedule-image-keyword.test.ts",
         "lib/public-title-meta-display-clean.test.ts",
         "lib/product-detail-cheapest-date-departures.test.ts",
-        "lib/product-image-source-policy.test.ts"
+        "lib/product-image-source-policy.test.ts",
+        "lib/product-image-auto-register-stage3.test.ts"
       ]
     },
     {
