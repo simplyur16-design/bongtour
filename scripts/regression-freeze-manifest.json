@@ -881,6 +881,48 @@
       ]
     },
     {
+      "id": "schedule-supplier-original-lock",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공급사 원문 일정 잠금(rawMeta.scheduleSupplierOriginalLock) — heal·FIT master sync·lane remat 이 일정 문장/ItineraryDay 덮어쓰기 금지",
+      "checks": [
+        {
+          "file": "lib/schedule-supplier-original-lock.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-supplier-original-lock]",
+            "scheduleSupplierOriginalLock"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-supplier-original-lock]",
+            "isScheduleSupplierOriginalLocked",
+            "schedule-supplier-original-locked"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-sync-schedule-image-keywords.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-supplier-original-lock]",
+            "isScheduleSupplierOriginalLocked"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-lane-rematerialize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-supplier-original-lock]",
+            "isScheduleSupplierOriginalLocked"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/schedule-supplier-original-lock.test.ts"
+      ]
+    },
+    {
       "id": "review-policy-shopping-unknown",
       "tier": [
         "prebuild",

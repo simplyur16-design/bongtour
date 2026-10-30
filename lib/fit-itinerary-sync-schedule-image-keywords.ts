@@ -10,6 +10,7 @@ import {
 } from '@/lib/schedule-image-keyword-persist'
 import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
 import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import { isScheduleSupplierOriginalLocked } from '@/lib/schedule-supplier-original-lock'
 import type {
   FitDayImageKeywordFallbackContext,
   FitItineraryDayForKeyword,
@@ -121,6 +122,7 @@ export async function syncScheduleImageKeywordsFromFitItinerary(
       productType: true,
       listingKind: true,
       schedule: true,
+      rawMeta: true,
       title: true,
       cityKey: true,
       primaryDestination: true,
@@ -129,6 +131,10 @@ export async function syncScheduleImageKeywordsFromFitItinerary(
   })
 
   if (!product || !isAirHotelFitItineraryProduct(product)) {
+    return { updated: false, dayKeywords: {} }
+  }
+  // REGRESSION-FREEZE[schedule-supplier-original-lock]: 원문 잠금 상품은 FIT master 로 일정 덮어쓰기 금지 — manifest
+  if (isScheduleSupplierOriginalLocked(product.rawMeta)) {
     return { updated: false, dayKeywords: {} }
   }
 

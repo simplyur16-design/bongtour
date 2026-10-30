@@ -9,6 +9,7 @@
  */
 import { isAirHotelFitItineraryProduct } from '@/lib/air-hotel-product-ssot'
 import { generateFitItineraryForProduct } from '@/lib/fit-itinerary-generate-for-product'
+import { isScheduleSupplierOriginalLocked } from '@/lib/schedule-supplier-original-lock'
 import {
   syncScheduleImageKeywordsFromFitMasterDb,
 } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
@@ -280,6 +281,19 @@ export async function rematerializeRegisterPrePhotoByLane(
   const beforeV = verifyRegisterPrePhotoForStoredProduct(product as never)
   const beforeIssues = beforeV.ok ? [] : beforeV.issues || []
   const lane = resolveRegisterAdminLane(product)
+
+  // REGRESSION-FREEZE[schedule-supplier-original-lock]: 원문 잠금 상품은 remat 로 일정 덮어쓰기 금지 — manifest
+  if (isScheduleSupplierOriginalLocked(product.rawMeta)) {
+    return {
+      productId,
+      lane,
+      path: 'skipped',
+      updated: false,
+      beforeIssues,
+      afterIssues: beforeIssues,
+      ok: beforeV.ok,
+    }
+  }
 
   if (lane === 'air_hotel_free' || isAirHotelFitItineraryProduct(product)) {
     return rematerializeFitLane(productId, beforeIssues)

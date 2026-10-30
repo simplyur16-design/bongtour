@@ -29,6 +29,7 @@ import {
 } from '@/lib/register-pending-heal-write-guard'
 import { prisma } from '@/lib/prisma'
 import { syncScheduleImageKeywordsFromFitMasterDb } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
+import { isScheduleSupplierOriginalLocked } from '@/lib/schedule-supplier-original-lock'
 import { withPrismaRetry } from '@/lib/prisma-retry'
 import {
   REGISTER_PRE_PHOTO_HEAL_ITINERARY_DAY_CAP,
@@ -199,7 +200,9 @@ export async function healPendingRegisterPrePhoto(
       })
       // REGRESSION-FREEZE[register-pre-photo-lane-rematerialize]: FIT 추천일정 master → schedule — manifest
       let scheduleRaw = product.schedule
-      if (lane === 'air_hotel_free') {
+      // REGRESSION-FREEZE[schedule-supplier-original-lock]: 원문 잠금 상품은 일정 문장·ItineraryDay 쓰기 금지 — manifest
+      const scheduleLocked = isScheduleSupplierOriginalLocked(product.rawMeta)
+      if (lane === 'air_hotel_free' && !scheduleLocked) {
         const synced = await syncScheduleImageKeywordsFromFitMasterDb(product.id)
         if (synced.updated) {
           const reloaded = await prisma.product.findUnique({
@@ -681,7 +684,17 @@ export async function healPendingRegisterPrePhoto(
           }
         }
 
-        if (scheduleChanged) {
+        if (scheduleChanged && scheduleLocked) {
+          logHealFieldAudit({
+            productId: product.id,
+            field: 'schedule',
+            before: truncateHealAuditValue(product.schedule),
+            after: truncateHealAuditValue(nextJson),
+            reason: 'schedule_heal',
+            action: 'skip',
+            logReason: 'schedule-supplier-original-locked',
+          })
+        } else if (scheduleChanged) {
           consider(
             'schedule',
             product.schedule,
@@ -805,7 +818,7 @@ export async function healPendingRegisterPrePhoto(
             }),
           )
         }
-        if (scheduleChanged && lane !== 'air_hotel_free') {
+        if (scheduleChanged && !scheduleLocked && data.schedule !== undefined && lane !== 'air_hotel_free') {
           try {
             // REGRESSION-FREEZE[register-pre-photo-ingest-db-budget]: itinerary sync 일 수 상한 — manifest
             let itinerarySynced = 0
