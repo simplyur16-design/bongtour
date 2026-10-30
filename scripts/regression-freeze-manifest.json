@@ -28620,6 +28620,29 @@
           ]
         }
       ]
+    },
+    {
+      "id": "build-next-font-retry",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "next build가 Google Fonts 응답 오류(next/font)로만 실패하면 최대 3회 재시도. 다른 빌드 오류는 바로 실패",
+      "checks": [
+        {
+          "file": "scripts/next-build-font-retry.cjs",
+          "mustInclude": [
+            "REGRESSION-FREEZE[build-next-font-retry]",
+            "function isNextFontFetchFlake"
+          ]
+        },
+        {
+          "file": "package.json",
+          "mustInclude": [
+            "node scripts/next-build-font-retry.cjs"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -29043,6 +29066,16 @@
       "files": [
         "lib/use-product-departure-url-param.test.ts",
         "lib/product-detail-flicker-guard.test.ts"
+      ]
+    },
+    {
+      "id": "build-next-font-retry",
+      "tier": [
+        "ci"
+      ],
+      "summary": "next/font 재시도 판별",
+      "files": [
+        "lib/build-next-font-retry.test.ts"
       ]
     }
   ]
