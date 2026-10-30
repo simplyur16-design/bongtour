@@ -143,6 +143,8 @@ export type ProductScheduleJsonRow = ScheduleImageFieldsInput & {
   dinnerText?: string | null
   mealSummaryText?: string | null
   meals?: string | null
+  /** 공급사 원문(일차) — lib/schedule-day-supplier-original (그대로 통과) */
+  supplierOriginal?: unknown
 }
 
 type ProductScheduleFinalizeInput = ScheduleImageFieldsInput & {
@@ -194,6 +196,7 @@ export function buildProductScheduleJsonForDb(
         dinnerText: src.dinnerText ?? null,
         mealSummaryText: src.mealSummaryText ?? null,
         meals: src.meals ?? null,
+        ...(src.supplierOriginal ? { supplierOriginal: src.supplierOriginal } : {}),
         ...extra,
       }
     }),

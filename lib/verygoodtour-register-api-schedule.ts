@@ -10,6 +10,7 @@ import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal
 import { expandRegisterScheduleRoutePlaceCandidates, isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
+import { attachScheduleDaySupplierOriginalFromFactDays } from '@/lib/schedule-day-supplier-original'
 
 export const VERYGOODTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -255,7 +256,7 @@ export function composeVerygoodtourScheduleDescription(opts: {
 
 export function verygoodtourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
   const maxDay = days.reduce((m, d) => Math.max(m, d.day), 0)
-  return days.map((d) => {
+  return attachScheduleDaySupplierOriginalFromFactDays(days, 'verygoodtour', days.map((d) => {
     const routePlaces = dedupeVerygoodtourScheduleRoutePlaces(d.places)
     const routeText = joinVerygoodtourScheduleRouteText(routePlaces)
     const joinedBlob = [d.transportNote, routeText, ...routePlaces, ...d.places].filter(Boolean).join(' ')
@@ -287,7 +288,7 @@ export function verygoodtourFactDaysToRegisterSchedule(days: RegisterFactSchedul
       dinnerText: meals.dinnerText ?? null,
       mealSummaryText: meals.mealSummaryText ?? null,
     }
-  })
+  }))
 }
 
 /** 등록 schedule[] — routeText·description 일괄 보정 (붙여넣기 병합 후) */

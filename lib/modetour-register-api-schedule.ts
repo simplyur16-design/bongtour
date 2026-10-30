@@ -22,6 +22,7 @@ import type { RegisterScheduleDay } from '@/lib/register-llm-schema-modetour'
 import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 import { sanitizeHongKongThemeParkDayRouteRows } from '@/lib/register-schedule-route-text-backfill'
+import { attachScheduleDaySupplierOriginalFromFactDays } from '@/lib/schedule-day-supplier-original'
 
 const MODETOUR_SCHEDULE_HIGHLIGHT_MAX = 7
 
@@ -382,7 +383,11 @@ export function modetourFactDaysToRegisterSchedule(
       mealSummaryText: meals.mealSummaryText ?? null,
     }
   })
-  return sanitizeHongKongThemeParkDayRouteRows(built, { productTitle: opts?.productTitle })
+  return attachScheduleDaySupplierOriginalFromFactDays(
+    days,
+    'modetour',
+    sanitizeHongKongThemeParkDayRouteRows(built, { productTitle: opts?.productTitle }),
+  )
 }
 
 /** 등록 schedule[] — routeText 행정·UI 세그먼트 제거 (기수집·붙여넣기 병합 후) */

@@ -12,6 +12,7 @@ import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal
 import { expandRegisterScheduleRoutePlaceCandidates, extractRegisterScheduleRoutePlaceLabel, isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
+import { attachScheduleDaySupplierOriginalFromFactDays } from '@/lib/schedule-day-supplier-original'
 
 export const YBTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -389,7 +390,7 @@ export function composeYbtourScheduleDescription(opts: {
 
 export function ybtourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
   const maxDay = days.reduce((m, d) => Math.max(m, d.day), 0)
-  return days.map((d) => {
+  return attachScheduleDaySupplierOriginalFromFactDays(days, 'ybtour', days.map((d) => {
     const routePlaces = dedupeYbtourScheduleRoutePlaces(d.places)
     const routeText = joinYbtourScheduleRouteText(routePlaces)
     const joinedBlob = [d.transportNote, routeText, ...routePlaces, ...d.places].filter(Boolean).join(' ')
@@ -421,7 +422,7 @@ export function ybtourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]
       dinnerText: meals.dinnerText ?? null,
       mealSummaryText: meals.mealSummaryText ?? null,
     }
-  })
+  }))
 }
 
 /** 등록 schedule[] — routeText·description 일괄 보정 (붙여넣기 병합 후) */

@@ -18,6 +18,7 @@ import {
 import { isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText, expandRegisterScheduleRoutePlaceCandidates } from '@/lib/register-schedule-route-place-noise'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 import { composeRegisterScheduleExtendedRegionVibeDescription } from '@/lib/register-schedule-region-vibe-extended'
+import { attachScheduleDaySupplierOriginalFromFactDays } from '@/lib/schedule-day-supplier-original'
 
 export const LOTTETOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -659,7 +660,7 @@ export function composeLottetourScheduleDescription(opts: {
 
 export function lottetourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
   const maxDay = days.reduce((m, d) => Math.max(m, d.day), 0)
-  return days.map((d) => {
+  return attachScheduleDaySupplierOriginalFromFactDays(days, 'lottetour', days.map((d) => {
     const fromNote = extractLottetourBracketPlacesFromText(d.transportNote)
     const routePlaces = dedupeLottetourScheduleRoutePlaces([...d.places, ...fromNote])
     const routeText = joinLottetourScheduleRouteText(routePlaces)
@@ -693,7 +694,7 @@ export function lottetourFactDaysToRegisterSchedule(days: RegisterFactScheduleDa
       dinnerText: meals.dinnerText ?? null,
       mealSummaryText: meals.mealSummaryText ?? null,
     }
-  })
+  }))
 }
 
 /** 등록 schedule[] — routeText 보정 · description은 항상 vibe 재작성 */

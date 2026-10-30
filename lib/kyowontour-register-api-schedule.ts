@@ -14,6 +14,7 @@ import {
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 import { isRegisterScheduleRoutePlaceNoise } from '@/lib/register-schedule-route-place-noise'
 import type { KyowontourScheduleRowParsed } from '@/lib/kyowontour-tour-event-tab-data'
+import { attachScheduleDaySupplierOriginalFromFactDays } from '@/lib/schedule-day-supplier-original'
 
 export const KYOWONTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -76,7 +77,7 @@ export function buildKyowontourScheduleRouteTextFromTabRows(rows: KyowontourSche
 
 export function kyowontourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
   const maxDay = days.reduce((m, d) => Math.max(m, d.day), 0)
-  return days.map((d) => {
+  return attachScheduleDaySupplierOriginalFromFactDays(days, 'kyowontour', days.map((d) => {
     const routePlaces = dedupeLottetourScheduleRoutePlaces(d.places)
     const routeText = joinLottetourScheduleRouteText(routePlaces)
     const joinedBlob = [d.transportNote, routeText, ...routePlaces, ...d.places].filter(Boolean).join(' ')
@@ -109,7 +110,7 @@ export function kyowontourFactDaysToRegisterSchedule(days: RegisterFactScheduleD
       dinnerText: meals.dinnerText ?? null,
       mealSummaryText: meals.mealSummaryText ?? null,
     }
-  })
+  }))
 }
 
 /** 등록 schedule[] — routeText·description 일괄 보정 (붙여넣기·collect 병합 후) */

@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[register-schedule-json-keep-hotel-meal]: hotel·식사 필드 유지 — manifest
  */
 import { buildProductScheduleJsonForDb } from '@/lib/schedule-image-keyword-persist'
+import type { ScheduleDaySupplierOriginal } from '@/lib/schedule-day-supplier-original'
 
 export type RegisterScheduleJsonInput = {
   day: number
@@ -19,6 +20,8 @@ export type RegisterScheduleJsonInput = {
   dinnerText?: string | null
   mealSummaryText?: string | null
   meals?: string | null
+  /** 공급사 원문(일차) — 요약과 별도 보존 */
+  supplierOriginal?: ScheduleDaySupplierOriginal | null
 }
 
 export function buildRegisterProductScheduleJson(
@@ -44,6 +47,7 @@ export function buildRegisterProductScheduleJson(
       dinnerText: day.dinnerText ?? null,
       mealSummaryText: day.mealSummaryText ?? null,
       meals: day.meals ?? null,
+      ...(day.supplierOriginal ? { supplierOriginal: day.supplierOriginal } : {}),
     })),
     mapExtra as Parameters<typeof buildProductScheduleJsonForDb>[1],
   )

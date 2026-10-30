@@ -29,6 +29,7 @@ import { shoppingStructuredRowToPersistStop } from '@/lib/shopping-structured-ro
 import { addDaysUtcYmd } from '@/lib/calendar-ymd'
 import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
+import { attachScheduleDaySupplierOriginalFromFactDays } from '@/lib/schedule-day-supplier-original'
 
 const HANATOUR_GW_BASE = process.env.HANATOUR_GW_BASE_URL ?? 'https://gw.hanatour.com'
 const HANATOUR_TRP_PRG_MID = 'CHPC0PKG0200M200'
@@ -468,7 +469,7 @@ function hanatourScheduleTitleFallback(
 
 export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]): RegisterScheduleDay[] {
   const maxDay = days.reduce((m, d) => Math.max(m, d.day), 0)
-  return days.map((d) => {
+  return attachScheduleDaySupplierOriginalFromFactDays(days, 'hanatour', days.map((d) => {
     const places = dedupeHanatourFactDayPlaces(d.places)
     const highlights = selectHanatourScheduleHighlights(places)
     const firstTransport = (d.transportNote ?? '').split(';').map((s) => s.trim()).find(Boolean) ?? ''
@@ -514,7 +515,7 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
       dinnerText: meals.dinnerText ?? null,
       mealSummaryText: meals.mealSummaryText ?? null,
     }
-  })
+  }))
 }
 
 function parseCardOptionalFields(card: HanatourItnrSchdMain): Partial<OptionalTourRowFields> {

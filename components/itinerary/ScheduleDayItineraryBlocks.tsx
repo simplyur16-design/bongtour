@@ -6,6 +6,8 @@ import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverl
 import { formatMealDisplay, formatScheduleDayHotelLine } from '@/lib/hotel-meal-display'
 import { resolvePublicScheduleDayDescription } from '@/lib/public-schedule-display'
 import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
+import type { ScheduleDaySupplierOriginal } from '@/lib/schedule-day-supplier-original'
+import { ScheduleDaySupplierOriginalToggle } from '@/components/itinerary/ScheduleDaySupplierOriginalToggle'
 import { Bed, UtensilsCrossed, X } from 'lucide-react'
 
 const CATEGORY = {
@@ -36,6 +38,9 @@ export type ScheduleDayItineraryBlocksDay = {
   dinnerText?: string | null
   mealSummaryText?: string | null
   meals?: string | null
+  routeText?: string | null
+  /** 공급사 원문(일차) — 있으면 '원문 보기' 토글 */
+  supplierOriginal?: ScheduleDaySupplierOriginal | null
 }
 
 type Props = {
@@ -207,6 +212,8 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
             </article>
           ) : null
         })()}
+
+        <ScheduleDaySupplierOriginalToggle day={day} />
 
         {(hotelLine || mealLine || thumbs.length > 0) && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">

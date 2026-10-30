@@ -1,3 +1,7 @@
+import {
+  parseScheduleDaySupplierOriginal,
+  type ScheduleDaySupplierOriginal,
+} from '@/lib/schedule-day-supplier-original'
 import { getFinalScheduleDayImageUrl } from '@/lib/final-image-selection'
 import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
 import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
@@ -48,6 +52,8 @@ export type ScheduleDayDisplay = {
   dinnerText?: string | null
   mealSummaryText?: string | null
   meals?: string | null
+  /** 공급사 원문(일차) — 공개 상세 '원문 보기' 토글 · lib/schedule-day-supplier-original */
+  supplierOriginal?: ScheduleDaySupplierOriginal | null
 }
 
 export type ScheduleDayInternalMeta = {
@@ -257,6 +263,9 @@ export function getScheduleFromProduct(
             dinnerText: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'dinnerText')) ?? undefined,
             mealSummaryText: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'mealSummaryText')) ?? undefined,
             meals: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'meals')) ?? undefined,
+            ...(parseScheduleDaySupplierOriginal(row?.supplierOriginal)
+              ? { supplierOriginal: parseScheduleDaySupplierOriginal(row?.supplierOriginal) }
+              : {}),
           }
           if (options?.includeInternalMeta === true) {
             const imageStoragePath =

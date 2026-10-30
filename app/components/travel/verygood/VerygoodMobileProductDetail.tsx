@@ -90,6 +90,7 @@ import {
   useSelectedAirlineFilter,
   useReportCurrentDepartureAirline,
 } from '@/app/components/detail/product-airline-filter-context'
+import { ScheduleDaySupplierOriginalToggle } from '@/components/itinerary/ScheduleDaySupplierOriginalToggle'
 
 type ScheduleDayWithMeta = TravelProduct['schedule'] extends (infer D)[] | null | undefined
   ? D & { title?: string; notice?: string }
@@ -739,6 +740,7 @@ function VerygoodMobileProductDetailView({ product: productInput, showEsimCrossS
                       </p>
                     )
                   })()}
+                  <ScheduleDaySupplierOriginalToggle day={sd} />
                   <ScheduleDayHotelMealCard hotelLine={hotelLine} mealLines={mealLines} labels={labels} />
                 </div>
               )

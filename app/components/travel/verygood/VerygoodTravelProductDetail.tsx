@@ -97,6 +97,7 @@ import {
   useSelectedAirlineFilter,
   useReportCurrentDepartureAirline,
 } from '@/app/components/detail/product-airline-filter-context'
+import { ScheduleDaySupplierOriginalToggle } from '@/components/itinerary/ScheduleDaySupplierOriginalToggle'
 
 /** Prisma ProductPrice + 견적용 price* (lib/price-utils PriceRowLike 호환) */
 export type ProductPriceRow = {
@@ -913,6 +914,7 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
                             </p>
                           )
                         })()}
+                        <ScheduleDaySupplierOriginalToggle day={sd} />
                         <ScheduleDayHotelMealCard hotelLine={hotelLine} mealLines={mealLines} labels={labels} />
                       </div>
                     )

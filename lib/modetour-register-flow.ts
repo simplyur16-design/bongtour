@@ -172,6 +172,10 @@ import {
   attachPreservedMeetingOperatorToStructuredSignals,
   stripBodyDerivedMeetingFromRegisterParsed,
 } from '@/lib/meeting-operator-ssot'
+import {
+  parseScheduleDaySupplierOriginal,
+  type ScheduleDaySupplierOriginal,
+} from '@/lib/schedule-day-supplier-original'
 
 function modetourLegCardHasContent(leg: DepartureKeyFacts['outbound']): boolean {
   if (!leg) return false
@@ -359,6 +363,12 @@ function assertJsonSerializable(ctx: ParseRegisterLogCtx, label: string, payload
   }
 }
 
+/** 공급사 원문(일차) 통과 — lib/schedule-day-supplier-original */
+function pickScheduleDaySupplierOriginal(s: unknown): { supplierOriginal?: ScheduleDaySupplierOriginal } {
+  const o = parseScheduleDaySupplierOriginal((s as { supplierOriginal?: unknown } | null | undefined)?.supplierOriginal)
+  return o ? { supplierOriginal: o } : {}
+}
+
 /** 일정 JSON(이미지·제목 등)만 — itineraryDayDrafts가 없을 때 */
 function buildScheduleJsonThin(
   parsedSchedule: Array<{
@@ -379,6 +389,7 @@ function buildScheduleJsonThin(
       imageKeyword2: day.imageKeyword2 ?? null,
       routeText: nullIfEmptyTrim(day.routeText),
       imageUrl: null,
+      ...pickScheduleDaySupplierOriginal(day),
     })),
   )
 }
@@ -417,6 +428,7 @@ function buildModetourProductScheduleJson(
       imageKeyword2: rawKw2,
       routeText,
       imageUrl: null as string | null,
+      ...pickScheduleDaySupplierOriginal(s),
     }
   })
   return buildRegisterProductScheduleJson(rows, (row) => {
