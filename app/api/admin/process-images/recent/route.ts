@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/require-admin'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalScheduleDayImageUrl } from '@/lib/final-image-selection'
+import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 
 const ONE_HOUR_MS = 60 * 60 * 1000
 const MAX_PER_RUN = 10
@@ -63,7 +64,11 @@ export async function GET(req: NextRequest) {
       try {
         const res = await fetch(`${origin}/api/travel/process-images`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          // 내부 호출도 process-images 의 requireAdmin 을 통과해야 함 → 서비스 Bearer(값은 로그에 남기지 않음)
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getAdminServiceBearerSecret() ? { Authorization: `Bearer ${getAdminServiceBearerSecret()}` } : {}),
+          },
           body: JSON.stringify({ productId: p.id }),
         })
         const text = await res.text()
