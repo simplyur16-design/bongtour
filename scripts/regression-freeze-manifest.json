@@ -26941,6 +26941,32 @@
       ]
     },
     {
+      "id": "airline-vz-vietjet-thailand",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "VZ·타이비엣젯(항공) → 공개 표시 '비엣젯 타일랜드' (사장님 10/31 00:17, 표시 전용 — 저장값·파싱 경로 무변경). VJ 는 비엣젯항공",
+      "checks": [
+        {
+          "file": "lib/airline-iata-public-display-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-vz-vietjet-thailand]",
+            "VZ: '비엣젯 타일랜드'",
+            "VJ: '비엣젯항공'",
+            "applyDisplayOnlyAirlineAliases"
+          ]
+        },
+        {
+          "file": "lib/airline-variant-group.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-vz-vietjet-thailand]",
+            "타이비엣젯항공: '비엣젯 타일랜드'"
+          ]
+        }
+      ]
+    },
+    {
       "id": "airline-tway-to-trinity",
       "tier": [
         "prebuild",

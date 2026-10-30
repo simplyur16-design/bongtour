@@ -177,7 +177,6 @@ export async function healPendingRegisterPrePhoto(
       rejectedAt: true,
       registerPrePhotoQueueReady: true,
       registerPhotosReady: true,
-      highlightPoints: true,
       brand: { select: { brandKey: true } },
       departures: { select: { outboundDepartureAirport: true }, take: 20 },
     },
