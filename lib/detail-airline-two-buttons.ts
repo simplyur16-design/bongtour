@@ -79,6 +79,11 @@ export function otherAirlineRows(
     })
 }
 
+/** 버튼 2 노출 — 이 상품에 출발 회차 있는 항공사가 2곳 이상일 때만 */
+export function shouldShowOtherAirlineButton(data: ProductAirlineFilterData | null | undefined): boolean {
+  return (data?.options ?? []).filter((o) => o.rows.length > 0).length >= 2
+}
+
 /**
  * A-5 히어로 가격카드 안 '다른 항공사' 선택기 문구 (문과장 규칙: 성인 1인 기준 · '가장 낮은 요금'은 여러 출발일 중일 때만 · '최저가' 금지).
  * REGRESSION-FREEZE[a5-two-buttons-1030]: 카드 선택기 문구 — manifest

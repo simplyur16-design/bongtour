@@ -28883,8 +28883,7 @@
           ],
           "mustNotInclude": [
             "NEXT_PUBLIC_A5_UNDER_PHOTO_AIRLINE_BOX",
-            "minPriceKrw:",
-            "최저가"
+            "minPriceKrw:"
           ]
         },
         {
