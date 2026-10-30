@@ -89,5 +89,7 @@ export const A5_TWO_BUTTON_LABELS = {
   changeDeparture: '출발일 변경해서 보기',
   otherAirline: '다른 항공사 찾기',
   noPrice: '요금 문의',
+  unknownAirline: '출발일을 선택하면 항공사가 표시돼요.',
+  otherListTitle: '같은 상품 · 다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)',
   showAll: '항공사 구분 없이 전체 출발일 보기',
 } as const

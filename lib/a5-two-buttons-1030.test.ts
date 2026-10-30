@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   airlineOptionsFromPriceRows,
@@ -107,9 +109,21 @@ describe('A-5 두 버튼 — 다른 항공사 목록 가격은 기존 가격행�
     const fake: AirlineDepartureOption = { label: '가짜항공', param: 'fk', minPriceKrw: 1, rows: [['f1', '2026-12-01', 500000]] }
     expect(lowestPublicPriceFromRows(fake)).toBe(500000)
   })
-  it('문구(문과장 검토용 초안)', () => {
+  it('문구(문과장 검토 반영 23:37)', () => {
     expect(A5_TWO_BUTTON_LABELS.changeDeparture).toBe('출발일 변경해서 보기')
     expect(A5_TWO_BUTTON_LABELS.otherAirline).toBe('다른 항공사 찾기')
+    expect(A5_TWO_BUTTON_LABELS.otherListTitle).toBe('같은 상품 · 다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)')
+    expect(A5_TWO_BUTTON_LABELS.unknownAirline).toBe('출발일을 선택하면 항공사가 표시돼요.')
+    for (const v of Object.values(A5_TWO_BUTTON_LABELS)) expect(v).not.toContain('최저가')
+  })
+  it('패널 소스 문구 — 도움말 한 줄·선택 안내 한 문장·최저가 없음·머리말 위/sticky 없음', () => {
+    const src = readFileSync(resolve(process.cwd(), 'app/components/detail/ProductAirlinePricePanelClient.tsx'), 'utf8')
+    expect(src).toContain('{current.label} 출발일만 보여 드려요.')
+    expect(src).toContain('아래 달력·가격·항공편·귀국일은 {selected.label} 출발일 기준이고, 가격은 성인 1인 기준입니다.')
+    expect(src).not.toContain('최저가')
+    expect(src).not.toMatch(/\bsticky\b|\bfixed\b/)
+    const page = readFileSync(resolve(process.cwd(), 'app/products/[idOrSlug]/product-detail-page-content.tsx'), 'utf8')
+    expect(page).not.toContain('<ProductAirlinePricePanelClient')
   })
 })
 

@@ -18,7 +18,6 @@ import {
 } from '@/lib/product-detail-perf'
 import ProductDetailServerReadySignal from '@/components/products/ProductDetailServerReadySignal'
 import { isAirHotelFitItineraryProduct, isAirHotelProduct } from '@/lib/air-hotel-product-ssot'
-import ProductAirlinePricePanelClient from '@/app/components/detail/ProductAirlinePricePanelClient'
 import { ProductAirlineFilterProvider } from '@/app/components/detail/product-airline-filter-context'
 import { fetchAirlineFilterDataForProduct } from '@/lib/airline-variant-departures'
 
@@ -108,8 +107,8 @@ async function productDetailPageInner(idOrSlug: string) {
   const view = (
     <>
       {/* REGRESSION-FREEZE[airline-variant-group]: 상세 항공사별 가격 · ?airline= → 메인 달력·가격 필터 — manifest */}
+      {/* REGRESSION-FREEZE[a5-two-buttons-1030]: 항공사 영역은 여기(머리말 위) 렌더 금지 — 상세 본문 안 히어로 다음 */}
       <ProductAirlineFilterProvider data={airlineFilterData}>
-        {airlineFilterData ? <ProductAirlinePricePanelClient /> : null}
         <ProductDetailView
           travelProduct={travelProduct}
           fitMaster={fitMaster}

@@ -22,7 +22,7 @@ const btnOutline = `${btnBase} border-teal-600 bg-white text-teal-700 hover:bg-t
  * 상세 항공사 영역 (A-5 두 버튼 설계 초안).
  * - 상단: 지금 선택된 출발일의 항공사만.
  * - 버튼 1 '출발일 변경해서 보기': 같은 항공사 회차만으로 좁힌 본문 출발일 달력을 연다.
- * - 버튼 2 '다른 항공사 찾기': 같은 상품의 다른 항공사별 최저 공개가(기존 가격행만) → 고르면 `?airline=`.
+ * - 버튼 2 '다른 항공사 찾기': 같은 상품의 다른 항공사별 가장 낮은 공개 요금(기존 가격행만) → 고르면 `?airline=`.
  *   항공사 1곳뿐이면 버튼 2 숨김. 가격행 없으면 가격 표시 안 함.
  * REGRESSION-FREEZE[airline-variant-group]: `?airline=` 선택 시 그 항공사 회차·가격만 — manifest
  * REGRESSION-FREEZE[a5-two-buttons-1030]: 상단 = 선택 출발 회차 항공사 · 버튼 2개 · 단일 항공사 버튼 2 숨김 — manifest
@@ -61,7 +61,7 @@ export default function ProductAirlinePricePanelClient() {
       <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
         <p className="text-sm text-slate-600" data-current-airline-line>
           {L.currentAirlinePrefix}{' '}
-          <strong className="text-base font-bold text-slate-900">{current ? current.label : '출발일을 선택해 주세요'}</strong>
+          <strong className="text-base font-bold text-slate-900">{current ? current.label : L.unknownAirline}</strong>
         </p>
         <div className={`mt-2.5 grid gap-2 ${showOthers ? 'grid-cols-2' : 'grid-cols-1'} sm:flex sm:flex-wrap`}>
           <button type="button" className={btnPrimary} onClick={onChangeDeparture} data-airline-btn-change-departure>
@@ -81,13 +81,13 @@ export default function ProductAirlinePricePanelClient() {
         </div>
         {current && showOthers ? (
           <p className="mt-1.5 text-[11px] text-slate-500">
-            &lsquo;{L.changeDeparture}&rsquo;는 {current.label} 출발일만 보여 드립니다.
+            {current.label} 출발일만 보여 드려요.
           </p>
         ) : null}
 
         {showOthers && othersOpen ? (
           <div className="mt-3 border-t border-slate-100 pt-3" data-airline-other-list>
-            <p className="text-xs font-semibold text-slate-600">같은 상품 · 다른 항공사 (성인 1인 최저가, 예약가능 출발일 기준)</p>
+            <p className="text-xs font-semibold text-slate-600">{L.otherListTitle}</p>
             <ul className="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200">
               {others.map((o) => (
                 <li key={o.param}>
@@ -130,7 +130,7 @@ export default function ProductAirlinePricePanelClient() {
 
         {selected ? (
           <p className="mt-2 text-[11px] text-slate-500">
-            아래 달력·가격·항공편·귀국일은 {selected.label} 출발일 기준입니다. 가격은 성인 1인 기준입니다.
+            아래 달력·가격·항공편·귀국일은 {selected.label} 출발일 기준이고, 가격은 성인 1인 기준입니다.
           </p>
         ) : null}
       </div>

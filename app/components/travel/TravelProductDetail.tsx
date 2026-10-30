@@ -1,5 +1,7 @@
 'use client'
 
+import ProductAirlinePricePanelClient from '@/app/components/detail/ProductAirlinePricePanelClient'
+
 import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline } from '@/lib/detail-selected-departure-airline'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -698,6 +700,8 @@ export default function TravelProductDetail({
             inboundFlight: formatFlightLegTwoLines(calendarAlignedDepartureFacts?.inbound ?? null),
           }}
         />
+        {/* REGRESSION-FREEZE[a5-two-buttons-1030]: 항공사 영역은 사이트 머리말(로고·메뉴) 아래, 히어로 다음 상품 정보 영역 — manifest */}
+        <ProductAirlinePricePanelClient />
 
         <div className={`${SITE_CONTENT_CLASS} bg-[#FAFAFC] pt-4 py-6 sm:py-8 lg:pt-8`}>
         <Link

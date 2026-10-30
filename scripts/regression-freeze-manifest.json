@@ -28868,7 +28868,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "A-5 상세 항공사 영역 두 버튼 — 상단=선택 출발 회차 항공사, '출발일 변경해서 보기'=같은 항공사 달력, '다른 항공사 찾기'=기존 가격행 최저가만·항공사 1곳이면 숨김",
+      "summary": "A-5 상세 항공사 영역 두 버튼 — 상단=선택 출발 회차 항공사, '출발일 변경해서 보기'=같은 항공사 달력, '다른 항공사 찾기'=기존 가격행 최저가만·항공사 1곳이면 숨김 · 항공사 영역은 사이트 머리말 아래(상세 본문 히어로 다음), 머리말 위 렌더·sticky/fixed 금지",
       "checks": [
         {
           "file": "lib/detail-airline-two-buttons.ts",
@@ -28877,7 +28877,8 @@
             "export function otherAirlineRows",
             "export function shouldShowOtherAirlineButton",
             "export function lowestPublicPriceFromRows",
-            "n > 0"
+            "n > 0",
+            "'같은 상품 · 다른 항공사 (성인 1인 기준, 예약 가능한 출발일 중 가장 낮은 요금)'"
           ],
           "mustNotInclude": [
             "minPriceKrw:"
@@ -28891,7 +28892,14 @@
             "data-airline-btn-other-airline",
             "shouldShowOtherAirlineButton(data)",
             "requestDeparturePicker()",
-            "o.lowestPriceKrw != null"
+            "o.lowestPriceKrw != null",
+            "L.otherListTitle",
+            "L.unknownAirline"
+          ],
+          "mustNotInclude": [
+            "sticky",
+            "fixed",
+            "최저가"
           ]
         },
         {
@@ -28905,42 +28913,54 @@
           "file": "app/components/travel/TravelProductDetail.tsx",
           "mustInclude": [
             "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
+            "<ProductAirlinePricePanelClient />"
           ]
         },
         {
           "file": "app/components/travel/MobileProductDetail.tsx",
           "mustInclude": [
             "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
+            "<ProductAirlinePricePanelClient />"
           ]
         },
         {
           "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
           "mustInclude": [
             "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
+            "<ProductAirlinePricePanelClient />"
           ]
         },
         {
           "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
           "mustInclude": [
             "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
+            "<ProductAirlinePricePanelClient />"
           ]
         },
         {
           "file": "app/components/travel/verygood/VerygoodTravelProductDetail.tsx",
           "mustInclude": [
             "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
+            "<ProductAirlinePricePanelClient />"
           ]
         },
         {
           "file": "app/components/travel/verygood/VerygoodMobileProductDetail.tsx",
           "mustInclude": [
             "useAirlineTwoButtonBridge({",
-            "openDeparturePicker: openDeparturePickerFromAirlinePanel"
+            "openDeparturePicker: openDeparturePickerFromAirlinePanel",
+            "<ProductAirlinePricePanelClient />"
+          ]
+        },
+        {
+          "file": "app/products/[idOrSlug]/product-detail-page-content.tsx",
+          "mustNotInclude": [
+            "<ProductAirlinePricePanelClient"
           ]
         }
       ]
