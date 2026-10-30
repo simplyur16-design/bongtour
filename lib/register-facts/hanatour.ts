@@ -122,13 +122,16 @@ export async function collectHanatourRegisterFacts(
   const prodInfo = info as HanatourProdInfoExtended
   const { includedItems, excludedItems } = extractHanatourIncludedExcluded(prodInfo)
   const shoppingExtract = extractHanatourShoppingFromProdInfo(prodInfo)
-  const productKind = resolveRegisterFactProductKindFromAdminTravelScope(
-    options?.adminTravelScope,
-    inferHanatourRegisterFactProductKind(prodInfo, originUrl),
-  )
-
   const meetRaw = itnr?.data?.meetInfoBcVo?.fstMeetCont ?? null
   const schdInfoList = itnr?.data?.schdInfoList ?? []
+  const factScheduleDays = applyHanatourProdInfoHotelsToFactDays(
+    hanatourItnrSchdToFactDays(schdInfoList),
+    info as HanatourProdInfoExtended,
+  )
+  const productKind = resolveRegisterFactProductKindFromAdminTravelScope(
+    options?.adminTravelScope,
+    inferHanatourRegisterFactProductKind(prodInfo, originUrl, factScheduleDays),
+  )
 
   return {
     supplier: 'hanatour',
@@ -148,10 +151,7 @@ export async function collectHanatourRegisterFacts(
     shoppingPlaces: shoppingExtract.rows
       .map((r) => String(r.shoppingPlace ?? r.shoppingItem ?? '').trim())
       .filter(Boolean),
-    scheduleDays: applyHanatourProdInfoHotelsToFactDays(
-      hanatourItnrSchdToFactDays(schdInfoList),
-      info as HanatourProdInfoExtended,
-    ),
+    scheduleDays: factScheduleDays,
     // REGRESSION-FREEZE[hanatour-register-detail-collect]: pkgAirSeqList → fact flights — manifest
     flights: (() => {
       const fromPkg = hanatourProdInfoToFactFlightLegs(info as HanatourProdInfoExtended)

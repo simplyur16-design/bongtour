@@ -1,5 +1,6 @@
 import { applyTitleRestoreLockToProductUpdate } from '@/lib/product-title-restore-lock'
 import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
+import { applyItineraryKindToTravelScope } from '@/lib/register-kind-from-itinerary'
 /**
  * 참좋은여행(verygoodtour) 등록 preview/confirm HTTP 흐름 — API SSOT (Gemini overlay 없음).
  * REGRESSION-FREEZE[verygoodtour-register-ssot-freeze]: manifest
@@ -1534,7 +1535,10 @@ export async function runVerygoodtourRegisterFlow(request: Request, flowOptions:
       heroDepartureDateSource: heroAuditForMeta.departureSource,
       heroReturnDateSource: heroAuditForMeta.returnSource,
     })
-    const registerListingMeta = travelScopeAndListingKindFromAdminRegister(travelScope)
+    // REGRESSION-FREEZE[admin-register-kind-itinerary]: 저장 kind = 원문 일자별 일정 유무만 (코드 글자·가이드·가이드비 미사용) — manifest
+    const registerListingMeta = travelScopeAndListingKindFromAdminRegister(
+      applyItineraryKindToTravelScope(travelScope, schedule),
+    )
     const titlePair = productTitlePairForRegisterConfirm(
       body,
       {

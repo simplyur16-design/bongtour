@@ -30313,14 +30313,15 @@
         "prebuild",
         "ci"
       ],
-      "summary": "관리자 등록 저장 kind = 공급사 원문 일자별 일정 유무만 (가이드·가이드비·쇼핑·코드 글자 미사용) — 사장님 규칙 2026-10-30",
+      "summary": "관리자 등록 저장 kind = 공급사 원문 일자별 일정 유무만 (가이드·가이드비·쇼핑·코드 글자 미사용) — 사장님 규칙 2026-10-30 · 자동 수집(ingest-confirm·하나투어 팩트 kind)·롯데/참좋은/내일/노랑 등록 포함 — 신규·등록대기·등록 공통",
       "checks": [
         {
           "file": "lib/register-kind-from-itinerary.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[admin-register-kind-itinerary]",
             "export function inferProductKindFromOriginalItinerary",
-            "export function applyItineraryKindToTravelScope"
+            "export function applyItineraryKindToTravelScope",
+            "export function inferProductKindFromFactScheduleDays"
           ]
         },
         {
@@ -30351,6 +30352,66 @@
           ],
           "mustNotInclude": [
             "applySupplierCodeKindToTravelScope"
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-register-kind-itinerary]",
+            "applyItineraryKindToTravelScope(travelScope, schedule)"
+          ],
+          "mustNotInclude": [
+            "applySupplierCodeKindToTravelScope"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-register-kind-itinerary]",
+            "applyItineraryKindToTravelScope(travelScope, schedule)"
+          ],
+          "mustNotInclude": [
+            "applySupplierCodeKindToTravelScope"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-register-kind-itinerary]",
+            "applyItineraryKindToTravelScope(travelScope, schedule)"
+          ],
+          "mustNotInclude": [
+            "applySupplierCodeKindToTravelScope"
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-register-kind-itinerary]",
+            "applyItineraryKindToTravelScope(travelScope, schedule)"
+          ],
+          "mustNotInclude": [
+            "applySupplierCodeKindToTravelScope"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-ingest-confirm.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-register-kind-itinerary]",
+            "inferProductKindFromFactScheduleDays(bundle.scheduleDays)"
+          ]
+        },
+        {
+          "file": "lib/register-facts/product-kind.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[admin-register-kind-itinerary]",
+            "inferProductKindFromFactScheduleDays(scheduleDays)"
+          ]
+        },
+        {
+          "file": "lib/register-facts/hanatour.ts",
+          "mustInclude": [
+            "inferHanatourRegisterFactProductKind(prodInfo, originUrl, factScheduleDays)"
           ]
         }
       ]

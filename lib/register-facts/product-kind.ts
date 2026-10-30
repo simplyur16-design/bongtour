@@ -2,6 +2,7 @@
  * register-facts — 패키지 vs 항공+호텔(자유여행) 구분 SSOT.
  * REGRESSION-FREEZE[register-facts-completeness]
  */
+import { inferProductKindFromFactScheduleDays, type FactScheduleDayLike } from '@/lib/register-kind-from-itinerary'
 import {
   hanatourSaleProdCdLooksAirtelExclusive,
   hanatourSaleProdCdLooksPackage,
@@ -120,7 +121,11 @@ export function inferHanatourListingProductKindFromOriginUrl(
 export function inferHanatourRegisterFactProductKind(
   info: HanatourPkgProdInfo | null | undefined,
   originUrl: string,
+  scheduleDays?: readonly FactScheduleDayLike[] | null,
 ): RegisterFactProductKind {
+  // REGRESSION-FREEZE[admin-register-kind-itinerary]: 원문 일자별 일정이 있으면 그것만으로 kind (코드 글자·가이드비 미사용) — manifest
+  const byItinerary = inferProductKindFromFactScheduleDays(scheduleDays)
+  if (byItinerary) return byItinerary
   // REGRESSION-FREEZE[register-kind-supplier-code]: saleProdCd 유형 글자 우선 — 「1일자유」 패키지(FS 플래그)를 에어텔로 오분류 금지
   const byCode = inferRegisterFactProductKindFromSupplierProductCode('hanatour', parseHanatourPkgCdFromUrl(originUrl))
   if (byCode) return byCode

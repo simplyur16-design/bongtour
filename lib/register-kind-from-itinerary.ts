@@ -49,3 +49,28 @@ export function applyItineraryKindToTravelScope(
 ): 'overseas' | 'air_hotel_free' {
   return inferProductKindFromOriginalItinerary(schedule) === 'package' ? 'overseas' : 'air_hotel_free'
 }
+
+/** 공급사 팩트 일정(places 목록) 일차 — RegisterFactScheduleDay 와 같은 모양 */
+export type FactScheduleDayLike = {
+  day?: number | string | null
+  places?: readonly string[] | null
+  transportNote?: string | null
+}
+
+/**
+ * 자동 수집·팩트 번들 경로용 — 원문 일자별 일정(places)으로 kind.
+ * 일정이 아예 비었으면 null(판단 보류: 기존 경로가 schedule_facts_empty 차단 등 처리).
+ * REGRESSION-FREEZE[admin-register-kind-itinerary]: 신규·등록대기·등록 모두 같은 규칙 — manifest
+ */
+export function inferProductKindFromFactScheduleDays(
+  days: readonly FactScheduleDayLike[] | null | undefined,
+): ItineraryProductKind | null {
+  if (!Array.isArray(days) || days.length === 0) return null
+  return inferProductKindFromOriginalItinerary(
+    days.map((d, i) => {
+      const text = (d.places ?? []).map((p: string) => String(p ?? '').trim()).filter(Boolean).join(' · ')
+      // 내용 없는 일차도 자리(일차 위치)는 유지 — 'N일차'는 내용 없음으로 본다
+      return { day: d.day ?? i + 1, description: text || `${d.day ?? i + 1}일차` }
+    }),
+  )
+}

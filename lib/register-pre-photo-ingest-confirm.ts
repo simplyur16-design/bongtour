@@ -15,6 +15,7 @@
  * REGRESSION-FREEZE[register-ingest-theme-category-slots]: 테마 시드 → sportsThemeTag — manifest
  * REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 국내여행 수집 금지 — manifest
  */
+import { inferProductKindFromFactScheduleDays } from '@/lib/register-kind-from-itinerary'
 import { collectSupplierRegisterFacts } from '@/lib/register-facts/collect'
 import { registerFactBundleToPasteText } from '@/lib/register-facts-to-paste-text'
 import { resolveRegisterTravelScopeFromRequest } from '@/lib/register-admin-travel-category'
@@ -72,7 +73,13 @@ export async function confirmRegisterPendingFromOriginUrl(args: {
     const factKind = codeKind ?? (bundle ? parseRegisterFactProductKind(bundle) : null)
     // 슬롯은 어떤 메뉴를 눌렀는지, 저장 kind는 상품 팩트. 내일투어처럼 목록에 자유여행이 섞이면 슬롯만 보면 패키지로 굳는다.
     // REGRESSION-FREEZE[register-pre-photo-ingest-pkg-fit-theme-kind]: 팩트 kind로 travelScope — manifest
-    const travelScope = codeKind
+    // REGRESSION-FREEZE[admin-register-kind-itinerary]: 원문 일자별 일정이 있으면 그것만으로 travelScope (신규·등록대기·등록 공통) — manifest
+    const itineraryKind = bundle ? inferProductKindFromFactScheduleDays(bundle.scheduleDays) : null
+    const travelScope = itineraryKind
+      ? itineraryKind === 'package'
+        ? 'overseas'
+        : 'air_hotel_free'
+      : codeKind
       ? codeKind === 'air_hotel_free'
         ? 'air_hotel_free'
         : 'overseas'
