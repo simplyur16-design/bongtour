@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!isSimplyurLocale(raw)) return {};
   const locale = raw as SimplyurLocale;
   return {
-    title: "Privacy Policy | simplyur",
+    title: "Privacy Policy",
     description: "How simplyur collects and uses personal information for Korea eSIM orders.",
     alternates: { canonical: simplyurLegalPath(locale, "privacy") },
   };

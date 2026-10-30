@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!isSimplyurLocale(raw)) return {};
   const locale = raw as SimplyurLocale;
   return {
-    title: "Terms of Service | simplyur",
+    title: "Terms of Service",
     description: "simplyur Korea eSIM service terms of use.",
     alternates: { canonical: simplyurLegalPath(locale, "terms") },
   };

@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!isSimplyurLocale(raw)) return {};
   const locale = raw as SimplyurLocale;
   return {
-    title: "Delete account | simplyur",
+    title: "Delete account",
     description: "Request deletion of your simplyur account and associated personal data.",
     alternates: { canonical: simplyurLegalPath(locale, "account-deletion") },
   };
