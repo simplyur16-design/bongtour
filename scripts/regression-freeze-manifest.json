@@ -30133,6 +30133,80 @@
           ]
         }
       ]
+    },
+    {
+      "id": "product-title-restore-lock",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "제목 복구 잠금(rawMeta.titleSupplierOriginalLock) — 재등록 existing update·travel/parse upsert 가 잠긴 상품 title·originalTitle 덮어쓰기 금지",
+      "checks": [
+        {
+          "file": "lib/product-title-restore-lock.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-title-restore-lock]",
+            "titleSupplierOriginalLock",
+            "export function stripLockedTitleFieldsFromProductWrite"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-title-restore-lock]",
+            "applyTitleRestoreLockToProductUpdate("
+          ]
+        },
+        {
+          "file": "lib/ybtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-title-restore-lock]",
+            "applyTitleRestoreLockToProductUpdate("
+          ]
+        },
+        {
+          "file": "lib/lottetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-title-restore-lock]",
+            "applyTitleRestoreLockToProductUpdate("
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-title-restore-lock]",
+            "applyTitleRestoreLockToProductUpdate("
+          ]
+        },
+        {
+          "file": "lib/modetour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-title-restore-lock]",
+            "applyTitleRestoreLockToProductUpdate("
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-title-restore-lock]",
+            "applyTitleRestoreLockToProductUpdate("
+          ]
+        },
+        {
+          "file": "lib/kyowontour-register-flow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-title-restore-lock]",
+            "applyTitleRestoreLockToProductUpdate("
+          ]
+        },
+        {
+          "file": "app/api/travel/parse/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[product-title-restore-lock]",
+            "update: stripLockedTitleFieldsFromProductWrite("
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -30665,6 +30739,16 @@
       "summary": "app/ 페이지 제목 사이트명 겹침 정적 검사 (simplyur 제외)",
       "files": [
         "lib/site-title-no-double-suffix.test.ts"
+      ]
+    },
+    {
+      "id": "product-title-restore-lock",
+      "tier": [
+        "ci"
+      ],
+      "summary": "제목 복구 잠금 strip·배선",
+      "files": [
+        "lib/product-title-restore-lock.test.ts"
       ]
     }
   ]

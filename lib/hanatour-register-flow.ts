@@ -1,3 +1,4 @@
+import { applyTitleRestoreLockToProductUpdate } from '@/lib/product-title-restore-lock'
 import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 import { NextResponse } from 'next/server'
 import {
@@ -1693,9 +1694,10 @@ export async function runHanatourRegisterFlow(request: Request, flowOptions: Par
       await prisma.$transaction(async (tx) => {
         await tx.productPrice.deleteMany({ where: { productId: existing.id } })
         await tx.itinerary.deleteMany({ where: { productId: existing.id } })
+        // REGRESSION-FREEZE[product-title-restore-lock]: 제목 복구 잠금 상품은 title·originalTitle 미덮어쓰기 — manifest
         await tx.product.update({
           where: { id: existing.id },
-          data: safeProductData,
+          data: await applyTitleRestoreLockToProductUpdate(tx, existing.id, safeProductData),
         })
       })
       productId = existing.id

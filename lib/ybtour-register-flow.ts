@@ -1,3 +1,4 @@
+import { applyTitleRestoreLockToProductUpdate } from '@/lib/product-title-restore-lock'
 import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 /**
  * 노랑풍선 등록 preview/confirm HTTP 흐름 — API SSOT (Gemini overlay 없음).
@@ -1624,9 +1625,10 @@ export async function runYbtourRegisterFlow(request: Request, flowOptions: Parse
       await prisma.$transaction(async (tx) => {
         await tx.productPrice.deleteMany({ where: { productId: existing.id } })
         await tx.itinerary.deleteMany({ where: { productId: existing.id } })
+        // REGRESSION-FREEZE[product-title-restore-lock]: 제목 복구 잠금 상품은 title·originalTitle 미덮어쓰기 — manifest
         await tx.product.update({
           where: { id: existing.id },
-          data: safeProductData,
+          data: await applyTitleRestoreLockToProductUpdate(tx, existing.id, safeProductData),
         })
       })
       productId = existing.id

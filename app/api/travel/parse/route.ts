@@ -1,3 +1,4 @@
+import { stripLockedTitleFieldsFromProductWrite } from '@/lib/product-title-restore-lock'
 import { prisma } from '@/lib/prisma'
 import { jsonWithLeakGuard } from '@/lib/public-response-guard'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
@@ -251,6 +252,11 @@ ${textInput}
         if (base > 0) priceFrom = base
       }
     }
+    // REGRESSION-FREEZE[product-title-restore-lock]: 제목 복구 잠금 상품은 update 에서 title 미덮어쓰기 — manifest
+    const lockProbe = await prisma.product.findUnique({
+      where: { originSource_originCode: { originSource: effectiveOriginSource, originCode } },
+      select: { rawMeta: true },
+    })
     const product = await prisma.product.upsert({
       where: {
         originSource_originCode: {
@@ -258,7 +264,7 @@ ${textInput}
           originCode,
         },
       },
-      update: {
+      update: stripLockedTitleFieldsFromProductWrite(lockProbe?.rawMeta ?? null, {
         originSource: effectiveOriginSource,
         title,
         destination,
@@ -275,7 +281,7 @@ ${textInput}
         bgImageUrl: null,
         counselingNotes: null,
         schedule: scheduleJson,
-      },
+      }),
       create: {
         originSource: effectiveOriginSource,
         originCode,

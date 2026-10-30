@@ -1,3 +1,4 @@
+import { applyTitleRestoreLockToProductUpdate } from '@/lib/product-title-restore-lock'
 import { coercePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
 /**
  * 내일투어 등록 preview/confirm HTTP 흐름 — API SSOT (Gemini overlay 없음).
@@ -1673,9 +1674,10 @@ export async function runNaeiltourRegisterFlow(request: Request, flowOptions: Pa
         await prisma.itinerary.deleteMany({ where: { productId: existing.id } })
         const updateData = { ...safeProductData } as Record<string, unknown>
         delete updateData.slug
+        // REGRESSION-FREEZE[product-title-restore-lock]: 제목 복구 잠금 상품은 title·originalTitle 미덮어쓰기 — manifest
         await prisma.product.update({
           where: { id: existing.id },
-          data: updateData,
+          data: await applyTitleRestoreLockToProductUpdate(prisma, existing.id, updateData),
         })
         return existing.id
       })
