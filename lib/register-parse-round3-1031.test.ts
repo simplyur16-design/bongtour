@@ -257,3 +257,29 @@ describe('round3 21:35 일정 조각 걸러내기', () => {
     for (const r of out) expect(`${r.title} ${r.routeText} ${r.description}`).not.toMatch(/참고사항|원\/인|미카즈키 ·/)
   })
 })
+
+import { finalizeRegisterAirtelScheduleRows } from '@/lib/register-schedule-day-summary-finalize'
+
+describe('round3 21:35 에어텔 일정 손질 (new-ky-2 모양)', () => {
+  const rows = [
+    row({ day: 1, title: '미카즈키', routeText: '미카즈키', hotelText: '미카즈키', description: '인천에서 출발해 미카즈키에서 도착합니다. 미카즈키에서 첫날 일정을 이어갑니다. 첫날 리듬을 맞추며 일정을 이어갑니다.' }),
+    row({ day: 2, title: '다낭 대성당 · 다낭 빈원더스&사파리', routeText: '다낭 대성당 - 마블마운틴 - 다낭 빈원더스&사파리', hotelText: '미카즈키', description: '다낭 대성당과 마블마운틴을 둘러봅니다. 다낭 빈원더스&사파리를 이어서 방문합니다.' }),
+    row({ day: 3, title: '미카즈키', routeText: '미카즈키', hotelText: '미카즈키', description: '미카즈키를 둘러봅니다. 미카즈키에서 주변을 이어서 둘러봅니다.' }),
+    row({ day: 4, title: '4일차', routeText: null, hotelText: null, description: '4일차 구간을 이어서 둘러봅니다. 4일차 동선을 천천히 이어 갑니다.' }),
+    row({ day: 5, title: '귀국', routeText: null, hotelText: null, description: '체크아웃 후 인천으로 귀국합니다. 별도의 관광보다 이동 중심으로 여행을 마무리합니다.' }),
+  ]
+  const out = finalizeRegisterAirtelScheduleRows(rows, { destination: '다낭', departureText: '' })
+  it('숙소명·N일차·귀국 제목은 도시로', () => {
+    expect(out.map((r) => r.title)).toEqual(['다낭', '다낭 대성당 · 다낭 빈원더스&사파리', '다낭', '다낭', '다낭 출발 · 귀국'])
+  })
+  it('원문에 출발지가 없으면 틀 문장·빈 문구 없이 (지어내지 않음)', () => {
+    const all = out.map((r) => String(r.description ?? '')).join(' ')
+    expect(all).not.toMatch(/인천에서 출발해|일차 구간|리듬을 맞추며|미카즈키를 둘러봅니다|인천으로 귀국/)
+    expect(out[1].description).toBe('다낭 대성당과 마블마운틴을 둘러봅니다. 다낭 빈원더스&사파리를 이어서 방문합니다.')
+    expect(out[4].description).toBe('체크아웃 후 귀국합니다.')
+  })
+  it('원문 출발지(김해)가 있으면 그 도시로', () => {
+    const o2 = finalizeRegisterAirtelScheduleRows(rows, { destination: '다낭', departureText: '김해국제공항 출발' })
+    expect(o2[4].description).toBe('체크아웃 후 김해로 귀국합니다.')
+  })
+})

@@ -29985,7 +29985,15 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-row-fragment-filter]",
             "stripRegisterScheduleRowFragments(next)",
-            "stripRegisterScheduleFragmentSentences(srcRaw)"
+            "stripRegisterScheduleFragmentSentences(srcRaw)",
+            "export function finalizeRegisterAirtelScheduleRows"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-row-fragment-filter]",
+            "finalizeRegisterAirtelParsed(await enrichRegisterParsedWithAirtelFit("
           ]
         }
       ]

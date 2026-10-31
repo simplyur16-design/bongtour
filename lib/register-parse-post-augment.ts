@@ -30,7 +30,7 @@ import {
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { healRegisterPrePhotoSchedule } from '@/lib/register-pre-photo-self-heal'
-import { finalizeRegisterPackageScheduleRows } from '@/lib/register-schedule-day-summary-finalize'
+import { finalizeRegisterAirtelScheduleRows, finalizeRegisterPackageScheduleRows } from '@/lib/register-schedule-day-summary-finalize'
 import {
   hasRegisterFreeDayRecommendedItinerary,
   isRegisterPendingFreeItineraryDay,
@@ -263,14 +263,14 @@ export async function applyRegisterPostAugmentSchedulePipeline(
   parsed = stampRegisterAirtelProductTypeOnParsed(parsed, opts.travelScope)
   if (isRegisterAirtelListing(opts.travelScope, parsed.productType)) {
     return trimRegisterParsedScheduleToSupplierDays(
-      await enrichRegisterParsedWithAirtelFit(parsed, {
+      finalizeRegisterAirtelParsed(await enrichRegisterParsedWithAirtelFit(parsed, {
       travelScope: opts.travelScope,
       logLabel: opts.logPrefix ?? 'register-airtel-fit',
       reuseStoredGeminiJson:
         opts.mode === 'confirm' &&
         Boolean(opts.hasPersistedParsed) &&
         Boolean(parsed.registerFitItineraryGeminiJson?.trim()),
-    }),
+    })),
       opts.logPrefix,
     )
   }
@@ -287,6 +287,18 @@ export async function applyRegisterPostAugmentSchedulePipeline(
   }
 
   return trimRegisterParsedScheduleToSupplierDays(parsed, opts.logPrefix)
+}
+
+/** REGRESSION-FREEZE[register-schedule-row-fragment-filter]: 에어텔 일정도 조각·빈 문구·틀 문장 빼기 (문장 생성 없음) — manifest */
+function finalizeRegisterAirtelParsed(parsed: RegisterParsed): RegisterParsed {
+  if (!Array.isArray(parsed.schedule) || !parsed.schedule.length) return parsed
+  return {
+    ...parsed,
+    schedule: finalizeRegisterAirtelScheduleRows(parsed.schedule, {
+      destination: parsed.primaryDestination ?? parsed.destination ?? null,
+      departureText: registerParsedDepartureText(parsed),
+    }),
+  }
 }
 
 /** REGRESSION-FREEZE[register-schedule-supplier-day-count]: 원문 여행기간 일수보다 많은 일차는 만들지 않는다 — manifest */

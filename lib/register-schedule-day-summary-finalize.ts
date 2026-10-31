@@ -897,3 +897,41 @@ export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFi
     return description === String(row.description ?? '') ? row : { ...row, description }
   })
 }
+
+/**
+ * REGRESSION-FREEZE[register-schedule-row-fragment-filter]: 에어텔(자유여행) 일정 마지막 손질 — manifest
+ * 패키지 요약을 다시 만들지 않고 빼기만 한다: 안내문·요금 조각·숙소명 제목, 기계적 빈 문구, 원문에 없는 출발지 틀 문장,
+ * 숙소명을 '둘러봅니다' 목적어로 쓴 합성문. 빈 제목·'N일차'·'귀국'은 도시(없으면 목적지 도시) 제목으로. 새 문장은 만들지 않는다.
+ */
+export function finalizeRegisterAirtelScheduleRows<T extends RegisterScheduleFinalizeRow>(
+  rows: T[],
+  opts: { destination?: string | null; departureText?: string | null } = {},
+): T[] {
+  const days = rows.filter((r) => Number(r.day) > 0)
+  if (!days.length) return rows
+  const maxDay = Math.max(...days.map((r) => Number(r.day)))
+  const destinationCity = registerScheduleDestinationCityLabel(opts.destination)
+  const stripped = rows.map((row) => (Number(row.day) > 0 ? stripRegisterScheduleRowFragments({ ...row }) : row))
+  const lastCity = maxDay >= 2 ? returnDayCity(stripped, maxDay, destinationCity) : null
+  const day1 = stripped.find((r) => Number(r.day) === 1)
+  const hub = registerScheduleDepartureHub(String(opts.departureText ?? ''), String(day1?.routeText ?? ''))
+  const known = destinationCity ? [destinationCity] : []
+  return stripped.map((row) => {
+    if (Number(row.day) <= 0) return row
+    const title = fillPlaceholderDayTitle(row, { isLast: maxDay >= 2 && Number(row.day) === maxDay, destinationCity, lastCity })
+    const desc = String(row.description ?? '').trim()
+    let description = row.description
+    if (desc) {
+      const kept: string[] = []
+      for (const s0 of desc.split(/(?<=[.!?。])\s+/u).map((x) => x.trim()).filter(Boolean)) {
+        const s1 = fixDepartureTemplateSentence(s0, hub, known)
+        if (!s1) continue
+        const s2 = cleanSightseeingSentence(s1, row.hotelText)
+        if (!s2 || isRegisterScheduleFillerSentence(s2) || kept.includes(s2)) continue
+        kept.push(s2)
+      }
+      description = kept.join(' ')
+    }
+    return title === row.title && description === row.description ? row : { ...row, title: title ?? row.title, description }
+  })
+}
