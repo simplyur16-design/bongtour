@@ -190,3 +190,31 @@ describe('4) 일차 요약·이미지 키워드', () => {
     expect(restrictRegisterScheduleImageKeywordsToSameDay([{ day: 1, routeText: '', imageKeyword: '' }])[0]!.imageKeyword).toBe('')
   })
 })
+
+describe('4b) 요약 — 불포함 식사·이름 없는 예정 호텔·자리표시 제목', () => {
+  it('불포함/유료 식사는 쓰지 않고, 이름 없는 예정 호텔 문장은 만들지 않는다', () => {
+    const d = finalizeRegisterScheduleDaySummary(
+      {
+        day: 2,
+        routeText: '마나도 - 부나켄 해양공원',
+        description: '',
+        hotelText: '예정 호텔 또는 동급',
+        breakfastText: '호텔식',
+        lunchText: '불포함',
+        dinnerText: '자유식(불포함)',
+      },
+      { maxDay: 5 },
+    )
+    expect(d).not.toMatch(/불포함|예정 호텔/)
+    expect(d).toContain('조식 호텔식')
+  })
+  it('N일차 제목은 그날 route 의 한글 장소로 채운다', () => {
+    const rows = finalizeRegisterPackageScheduleRows([
+      { day: 1, title: '1일차', routeText: 'Cebu', description: '', imageKeyword: 'Cebu' },
+      { day: 2, title: '세부 · 호핑', routeText: '세부 - 아일랜드 호핑', description: '', imageKeyword: '' },
+      { day: 3, title: '귀국', routeText: '세부', description: '', imageKeyword: '' },
+    ])
+    expect(rows[0]!.title).toBe('세부')
+    expect(rows[0]!.routeText).toBe('세부')
+  })
+})

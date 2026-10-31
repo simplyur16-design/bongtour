@@ -177,7 +177,7 @@ const MOVE_SEG_RE = /(?:이동|향발|출발|도착|탑승|경유|입국|출국|
 const PRODUCT_TITLE_LIKE_RE = /[★☆『』【】「」]|\d+\s*(?:일|박)(?=\s|$)|\d+\s*박\s*\d+\s*일/u
 /** 이동수단·일반 활동 — 장소 아님 */
 const GENERIC_NON_PLACE_RE =
-  /^(?:도보|도보\s*관광|전용\s*차량|차량|버스|열차|기차|페리|자유\s*(?:시간|일정)|휴식|미팅|가이드\s*미팅|조식|중식|석식|쇼핑)$/u
+  /(?:^|\s)(?:스페셜\s*)?(?:불)?포함$|^(?:도보|도보\s*관광|전용\s*차량|차량|버스|열차|기차|페리|자유\s*(?:시간|일정)|휴식|미팅|가이드\s*미팅|조식|중식|석식|쇼핑)$/u
 
 export function isRegisterScheduleNonPlaceRouteLabel(seg: string): boolean {
   const t = String(seg ?? '').replace(/\s+/g, ' ').trim()
@@ -217,7 +217,12 @@ function mentioned(desc: string, place: string): boolean {
 }
 
 function cleanMeal(v: string | null | undefined): string | null {
-  const t = String(v ?? '').replace(/\s+/g, ' ').trim()
+  const t = String(v ?? '')
+    .replace(/\s*\((?:불포함|유료[^)]*|자유식)\)\s*/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  // 불포함·유료 식사는 '제공 식사'가 아님 — 요약에 쓰지 않음
+  if (/불포함|유료|미포함|불가/u.test(t)) return null
   if (!t || t.length > 16) return null
   if (/추천|제공으로|준비|안내|참고|null|undefined/u.test(t)) return null
   if (/^(?:조식|중식|석식)$/u.test(t)) return null
@@ -245,7 +250,17 @@ function hotelSentence(row: RegisterScheduleFinalizeRow, isLast: boolean): strin
   if (/[가-힣]/u.test(name)) name = stripParens(name)
   if (!name || name.length > 40) return null
   if (/이면|이라면|조건|추후|미정|문의|안내|상세\s*보기|자세히|호텔\s*소개|^보기$/u.test(name)) return null
-  if (/예정|확정|동급/u.test(name)) return `숙소는 ${name.replace(/\s*\(.*$/u, '')} 또는 동급 호텔입니다.`
+  if (/예정|확정|동급/u.test(name)) {
+    const core = name
+      .replace(/\s*\(.*$/u, '')
+      .replace(/\s*(?:혹은|또는)?\s*동급(?:\s*호텔)?\s*$/u, '')
+      .replace(/\s*(?:예정|확정)\s*(?:호텔|숙소)?\s*$/u, '')
+      .replace(/\s*[-–]\s*$/u, '')
+      .trim()
+    // 이름 없는 '예정 호텔'·지역명만 남으면 문장을 만들지 않음 (지어내지 않음)
+    if (!core || core.length < 2 || !/호텔|리조트|hotel|resort|inn|레지던스|[A-Z][a-z]+\s+[A-Z]/iu.test(core)) return null
+    return `숙소는 ${core} 또는 동급 호텔입니다.`
+  }
   return `숙소는 ${name}입니다.`
 }
 
@@ -486,6 +501,14 @@ export function restrictRegisterScheduleImageKeywordsToSameDay<T extends Registe
 
 // ───────────────────────── 최종 패스 ─────────────────────────
 
+/** 'N일차' 자리표시 제목 → 그날 route 의 첫 한글 장소 (없으면 그대로) */
+function fillPlaceholderDayTitle(row: RegisterScheduleFinalizeRow): string | null | undefined {
+  const t = String(row.title ?? '').trim()
+  if (!/^\d+\s*일차$/u.test(t)) return row.title
+  const { places } = dayRouteParts(String(row.routeText ?? ''))
+  return places[0] ?? row.title
+}
+
 export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFinalizeRow>(rows: T[]): T[] {
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) return rows
@@ -499,6 +522,8 @@ export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFi
     if (row.routeText && /[A-Za-z]/.test(row.routeText)) {
       next.routeText = koreanizeRegisterSchedulePlaceNames(row.routeText)
     }
+    const title = fillPlaceholderDayTitle(next)
+    if (title !== next.title) next.title = title
     return next
   })
   const keyed = restrictRegisterScheduleImageKeywordsToSameDay(prepared)
