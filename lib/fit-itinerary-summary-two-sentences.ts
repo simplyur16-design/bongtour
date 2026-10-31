@@ -60,7 +60,8 @@ function buildFitDaySecondSentence(opts?: FitSummarySentenceOpts): string {
   return FIT_DAY_SECOND_SENTENCE_DEFAULT
 }
 
-/** day.summary — 정확히 2문장(마침표 구분). 1문장이면 2문장째를 규칙으로 붙임 */
+/** day.summary — 정확히 2문장(마침표 구분). 1문장이면 2문장째를 규칙으로 붙임.
+ * 톤 1031 이후 저장·표시 경로에서는 쓰지 않음(preserveFitDaySummary). 옛 호출·테스트 호환용으로만 남김. */
 export function ensureFitDaySummaryTwoSentences(
   summary: string,
   opts?: FitSummarySentenceOpts,
@@ -81,6 +82,19 @@ export function ensureFitDaySummaryTwoSentences(
   const first = ensureSentenceTerminal(firstRaw)
   const second = ensureSentenceTerminal(buildFitDaySecondSentence(opts))
   return `${first} ${second}`.trim()
+}
+
+/**
+ * day.summary — 제미나이 원문 보존(톤 1031: 실장님 말투 3~4문장, 동선 순서).
+ * 문장을 2개로 자르거나 규칙 문장(“…일대는 이동 전에 대기 시간을…”)을 덧붙이지 않음. 공백만 정리.
+ * 저장(fit-itinerary-gemini-parse)과 공개 표시(build-render-model) 둘 다 이 함수 — 저장값 = 표시값.
+ * 빈 값일 때만 짧은 기본 문장 1개.
+ */
+export function preserveFitDaySummary(summary: string, opts?: FitSummarySentenceOpts): string {
+  const t = normalizeSummaryWhitespace(summary)
+  if (t) return t
+  const hint = String(opts?.landmarkHint ?? opts?.title ?? '오늘 일정').trim() || '오늘 일정'
+  return `${hint}을(를) 여유 있게 둘러보시기 좋은 날이에요.`
 }
 
 /** master.summary — 상품 최상위 2문장 */

@@ -36,8 +36,8 @@ import {
   resolveOperationalMeetingDisplay,
 } from '@/lib/meeting-airline-operational-ssot'
 import {
-  ensureFitDaySummaryTwoSentences,
   ensureFitMasterSummaryTwoSentences,
+  preserveFitDaySummary,
   extractFitLandmarkHintKoFromActivities,
 } from '@/lib/fit-itinerary-summary-two-sentences'
 import * as publicConsumptionHanatour from '@/lib/public-consumption-hanatour'
@@ -166,7 +166,7 @@ export function mapFitMasterForItinerary(fitMaster: FitMasterWithDays) {
       id: d.id,
       dayNumber: d.dayNumber,
       title: d.title,
-      summary: ensureFitDaySummaryTwoSentences(d.summary ?? '', {
+      summary: preserveFitDaySummary(d.summary ?? '', {
         title: d.title,
         landmarkHint: extractFitLandmarkHintKoFromActivities(d.activities),
       }),

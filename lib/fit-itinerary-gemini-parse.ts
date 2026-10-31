@@ -4,8 +4,8 @@
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import type { FitItineraryDayForKeyword } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import {
-  ensureFitDaySummaryTwoSentences,
   ensureFitMasterSummaryTwoSentences,
+  preserveFitDaySummary,
   extractFitLandmarkHintKoFromActivities,
 } from '@/lib/fit-itinerary-summary-two-sentences'
 
@@ -18,10 +18,11 @@ type GeminiActivity = {
   title: string
   description: string
   location: string
-  startTime: string
-  durationMinutes: number
-  estimatedCostKrw: number
-  estimatedCostNote: string
+  /** 톤 1031: 프롬프트가 숫자 필드를 null 로 요구 — 지어낸 시간·요금 금지 */
+  startTime: string | null
+  durationMinutes: number | null
+  estimatedCostKrw: number | null
+  estimatedCostNote: string | null
   transportMode: string | null
   transportDuration: string | null
 }
@@ -61,7 +62,7 @@ function parseGeminiJson(text: string, logLabel: string): FitItineraryGeminiResp
     summary: ensureFitMasterSummaryTwoSentences(parsed.summary ?? ''),
     days: (parsed.days ?? []).map((day) => ({
       ...day,
-      summary: ensureFitDaySummaryTwoSentences(day.summary ?? '', {
+      summary: preserveFitDaySummary(day.summary ?? '', {
         title: day.title,
         landmarkHint: extractFitLandmarkHintKoFromActivities(day.activities ?? []),
       }),
