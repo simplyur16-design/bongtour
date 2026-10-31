@@ -336,6 +336,14 @@ describe('round3 22:16 전일·반나절 자유시간도 제미나이 추천일�
       ),
     ).toBe(true)
   })
+  it("'오사카 - 오사카 추천 1일 자유일정' (mt-0240 D2 모양)도 대상", () => {
+    expect(
+      isRegisterPendingFreeItineraryDay(
+        { day: 2, title: '오사카 추천 1일 자유일정', routeText: '오사카 - 오사카 추천 1일 자유일정', description: '', hotelText: 'H' } as any,
+        { productTitle: '[청주출발] 오사카/교토/나라 3일 (1일자유)' },
+      ),
+    ).toBe(true)
+  })
   it('관광지가 있는 날의 짧은 자유시간은 추천일정 대상 아님', () => {
     expect(
       isRegisterPendingFreeItineraryDay(

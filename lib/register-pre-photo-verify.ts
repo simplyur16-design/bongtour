@@ -416,6 +416,8 @@ export function isRegisterPendingFreeItineraryDay(
     .map((s) => s.trim())
     .filter((s) => s.length >= 2)
     .filter((s) => !isHotelLodgingImageKeyword(s) && !NO_ITINERARY_ROUTE_NOISE_RE.test(s))
+    // round3(사장님 10/30): '오사카 - 오사카 추천 1일 자유일정' — 자유일정 조각 자체는 관광 동선이 아님
+    .filter((s) => !REGISTER_FREE_ITINERARY_TITLE_RE.test(s) && !REGISTER_DAY_FREE_TIME_TITLE_RE.test(s))
   return tourismSegs.length <= 1
 }
 
