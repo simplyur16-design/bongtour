@@ -33,6 +33,7 @@ function earliestFutureDeparture(departures: { departureDate: Date }[], nowFloor
 
 function toResultItem(p: {
   id: string
+  slug?: string | null
   title: string
   originSource: string
   productType: string | null
@@ -73,6 +74,7 @@ function toResultItem(p: {
   )
   return {
     id: p.id,
+    slug: p.slug ?? null,
     // REGRESSION-FREEZE[local-departure-display-prefix]: 지방출발 머리말(태그 SSOT, 제목 추론 금지) — manifest
     title: applyLocalDepartureDisplayPrefix(card.cardTitle, resolveDisplayLocalDepartureTags(p)),
     heroSubtitle: card.heroSubtitle,
@@ -91,6 +93,7 @@ function toResultItem(p: {
 
 const productSelect = {
   id: true,
+  slug: true,
   title: true,
   originSource: true,
   productType: true,

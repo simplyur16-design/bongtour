@@ -2,6 +2,7 @@ import { toSafePublicUrlOrPath } from '@/lib/cms-source-attribution'
 import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { buildPublicUrlForObjectKey, isObjectStorageConfigured } from '@/lib/object-storage'
 import { prisma } from '@/lib/prisma'
+import { publicProductPath } from '@/lib/product-public-path'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { excerptBody, stripSupabaseStorageForHomeSeasonImage } from '@/lib/home-season-pick-shared'
@@ -30,7 +31,11 @@ type MonthlyRow = {
   regionKey: string | null
 }
 
-export function monthlyCurationRowToHomeSeasonPickDTO(row: MonthlyRow): HomeSeasonPickDTO {
+export function monthlyCurationRowToHomeSeasonPickDTO(
+  row: MonthlyRow,
+  /** 연결 상품 id → 공개 slug. 있으면 CTA `/products/{slug}` (옛 cuid 308 우회 방지) */
+  linkedSlugById?: ReadonlyMap<string, string | null>,
+): HomeSeasonPickDTO {
   const bodyFull = (row.bodyKr ?? '').trim()
   let imageUrl = toSafePublicUrlOrPath(row.imageUrl)
   const key = (row.imageStorageKey ?? '').trim()
@@ -43,8 +48,9 @@ export function monthlyCurationRowToHomeSeasonPickDTO(row: MonthlyRow): HomeSeas
   }
   imageUrl = stripSupabaseStorageForHomeSeasonImage(imageUrl)
 
-  const productHref = row.linkedProductId?.trim()
-    ? `/products/${row.linkedProductId!.trim()}`
+  const linkedPid = row.linkedProductId?.trim() ?? ''
+  const productHref = linkedPid
+    ? publicProductPath({ id: linkedPid, slug: linkedSlugById?.get(linkedPid) ?? null })
     : null
   const rawHref = (row.linkedHref ?? '').trim()
   let ctaHref = productHref
@@ -138,6 +144,18 @@ export async function resolveValidMonthlyCurationLinkedProductIds(
   return new Set(validProducts.map((p) => p.id))
 }
 
+/** 연결 상품 id → slug (읽기 전용). 실패 시 빈 Map — 링크는 id 폴백 */
+async function loadLinkedProductSlugs(ids: Iterable<string>): Promise<Map<string, string | null>> {
+  const list = [...new Set([...ids].map((id) => id.trim()).filter(Boolean))]
+  if (list.length === 0) return new Map()
+  try {
+    const rows = await prisma.product.findMany({ where: { id: { in: list } }, select: { id: true, slug: true } })
+    return new Map(rows.map((r) => [r.id, r.slug?.trim() || null]))
+  } catch {
+    return new Map()
+  }
+}
+
 /** 해외 허브 상단 — 서울 기준 `monthKey` 월의 발행 큐레이션만 */
 export async function getPublishedOverseasMonthlyCurationsForMonth(monthKey: string): Promise<HomeSeasonPickDTO[]> {
   if (shouldSkipDbAtBuild()) return []
@@ -151,6 +169,7 @@ export async function getPublishedOverseasMonthlyCurationsForMonth(monthKey: str
     const validLinkedProductIds = await resolveValidMonthlyCurationLinkedProductIds(
       rows.map((r) => r.linkedProductId ?? '')
     )
+    const linkedSlugById = await loadLinkedProductSlugs(validLinkedProductIds)
 
     // REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: scrub bad product link, keep card — manifest
     // auto_unpublished 등으로 연결 상품이 빠져도 시즌 카드 자체를 숨기지 않는다 (CTA는 /travel/overseas 등 폴백).
@@ -166,7 +185,7 @@ export async function getPublishedOverseasMonthlyCurationsForMonth(monthKey: str
           linkedHref: scrubHref,
         } as MonthlyRow)
       }
-      return monthlyCurationRowToHomeSeasonPickDTO(r as MonthlyRow)
+      return monthlyCurationRowToHomeSeasonPickDTO(r as MonthlyRow, linkedSlugById)
     })
   } catch {
     return []
@@ -193,7 +212,8 @@ export async function getHomeSeasonPickFromMonthlyContent(): Promise<HomeSeasonP
       }))
 
     if (!row) return null
-    return monthlyCurationRowToHomeSeasonPickDTO(row as MonthlyRow)
+    const linkedSlugById = await loadLinkedProductSlugs([row.linkedProductId ?? ''])
+    return monthlyCurationRowToHomeSeasonPickDTO(row as MonthlyRow, linkedSlugById)
   } catch {
     return null
   }

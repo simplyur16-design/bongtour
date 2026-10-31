@@ -2,6 +2,7 @@
  * /travel/air-hotel 시즌 큐레이션 read layer — 6h 캐시.
  */
 import { unstable_cache } from 'next/cache'
+import { publicProductPath } from '@/lib/product-public-path'
 import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
@@ -29,6 +30,7 @@ export type AirHotelSeasonCurationDTO = {
 
 const productSelect = {
   id: true,
+  slug: true,
   title: true,
   bgImageUrl: true,
   // REGRESSION-FREEZE[home-season-grid-no-itinerary-join]: air-hotel 시즌도 schedule JSON만 — manifest
@@ -114,7 +116,7 @@ async function loadAirHotelSeasonCurationUncached(): Promise<AirHotelSeasonCurat
       productId: p.id,
       productTitle: p.title,
       productImageUrl: cover,
-      productHref: `/products/${p.id}`,
+      productHref: publicProductPath(p),
     })
   }
 

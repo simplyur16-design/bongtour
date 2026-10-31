@@ -6,11 +6,11 @@ import { publicProductPath } from '@/lib/product-public-path'
 export function productDetailCardPreviewFromGalleryProduct(
   product: Pick<
     GalleryProduct,
-    'id' | 'title' | 'originSource' | 'primaryDestination' | 'duration' | 'coverImageUrl' | 'priceKrw'
+    'id' | 'slug' | 'title' | 'originSource' | 'primaryDestination' | 'duration' | 'coverImageUrl' | 'priceKrw'
   >,
   formatPrice: (krw: number | null) => string,
 ): ProductDetailCardPreview {
-  const href = publicProductPath({ id: product.id, slug: null })
+  const href = publicProductPath({ id: product.id, slug: product.slug ?? null })
   const priceKrw = product.priceKrw
   return {
     id: product.id,

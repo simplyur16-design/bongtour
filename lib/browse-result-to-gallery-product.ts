@@ -6,6 +6,7 @@ export function browseResultToGalleryProduct(item: ResultItem): GalleryProduct {
   const cover = (item.coverImageUrl ?? item.bgImageUrl ?? '').trim()
   return {
     id: item.id,
+    slug: item.slug ?? null,
     title: item.title,
     originSource: item.originSource,
     bgImageSource: item.bgImageUrl,

@@ -775,7 +775,7 @@ export function ProductResultCard({
             kind="product"
             id={item.id}
             title={item.title}
-            slug={null}
+            slug={item.slug ?? null}
             destination={item.primaryDestination ?? null}
           />
         </div>

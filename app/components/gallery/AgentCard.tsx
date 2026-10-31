@@ -5,6 +5,7 @@ import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
 import { motion } from 'framer-motion'
 import type { GalleryProduct } from '@/app/api/gallery/route'
+import { publicProductPath } from '@/lib/product-public-path'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArrows'
 
@@ -73,7 +74,7 @@ export default function AgentCard({
       transition={{ duration: 0.35 }}
       className={`group overflow-hidden ${shell}`}
     >
-      <Link href={`/products/${product.id}`} prefetch={false} className="block">
+      <Link href={publicProductPath(product)} prefetch={false} className="block">
         <div className="relative overflow-hidden bg-bt-surface-alt">
           <HorizontalScrollWithArrows
             as="ul"

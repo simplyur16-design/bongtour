@@ -14,6 +14,7 @@ const GALLERY_PEXELS_MAX_FETCHES = 12
 
 const galleryProductDbSelect = {
   id: true,
+  slug: true,
   title: true,
   localDepartureTag: true,
   departureAirportLabel: true,
@@ -47,6 +48,8 @@ export const dynamic = 'force-dynamic'
 
 export type GalleryProduct = {
   id: string
+  /** 공개 URL slug — 있으면 카드 링크 `/products/{slug}` */
+  slug?: string | null
   title: string
   originSource: string
   bgImageSource: string | null
@@ -163,6 +166,7 @@ export async function GET(request: Request) {
 
       return {
         id: p.id,
+        slug: p.slug ?? null,
         // REGRESSION-FREEZE[local-departure-display-prefix]: 공개 상품명은 지방출발 표시 함수 경유 — manifest
         title: applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p)),
         originSource: p.originSource,

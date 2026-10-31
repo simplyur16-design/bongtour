@@ -8,6 +8,7 @@ import { scoreAndFilterProducts } from '@/lib/products-browse-filter'
 import { prisma } from '@/lib/prisma'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
+import { publicProductPath } from '@/lib/product-public-path'
 
 function formatWon(n: number | null) {
   if (n == null) return '문의'
@@ -70,7 +71,7 @@ export default async function OverseasRegisteredProductsSection() {
                       className="w-[90%] max-w-sm shrink-0 snap-center md:w-[min(22rem,calc(100vw-2.75rem))] md:max-w-none lg:w-[calc((min(72rem,100vw)-4.5rem)/3)]"
                     >
                       <Link
-                        href={`/products/${item.id}`}
+                        href={publicProductPath(item)}
                         prefetch={false}
                         className="group flex h-full flex-col overflow-hidden rounded-xl border border-bt-border bg-white shadow-sm transition hover:border-bt-accent/40 hover:shadow-md"
                       >

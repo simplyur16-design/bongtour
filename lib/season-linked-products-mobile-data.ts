@@ -29,6 +29,7 @@ function earliestFutureDeparture(departures: { departureDate: Date }[], nowFloor
 
 function toResultItem(p: {
   id: string
+  slug?: string | null
   title: string
   localDepartureTag?: readonly string[] | null
   departureAirportLabel?: string | null
@@ -53,6 +54,7 @@ function toResultItem(p: {
   })
   return {
     id: p.id,
+    slug: p.slug ?? null,
     // REGRESSION-FREEZE[local-departure-display-prefix]: 공개 상품명은 지방출발 표시 함수 경유 — manifest
     title: applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p)),
     originSource: p.originSource,
@@ -70,6 +72,7 @@ function toResultItem(p: {
 
 const productSelect = {
   id: true,
+  slug: true,
   title: true,
   localDepartureTag: true,
   departureAirportLabel: true,

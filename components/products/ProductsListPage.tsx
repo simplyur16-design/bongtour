@@ -9,9 +9,11 @@ import SafeImage from '@/app/components/SafeImage'
 import UnsplashPhotoCredit from '@/app/components/ui/UnsplashPhotoCredit'
 import type { UnsplashCredit } from '@/lib/unsplash-credit'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
+import { publicProductPath } from '@/lib/product-public-path'
 
 type BrowseItem = {
   id: string
+  slug?: string | null
   title: string
   originSource: string
   primaryDestination: string | null
@@ -179,7 +181,7 @@ export default function ProductsListPage() {
           {data.items.map((item) => (
             <li key={item.id}>
               <Link
-                href={`/products/${item.id}`}
+                href={publicProductPath(item)}
                 prefetch={false}
                 className="group flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-slate-300 hover:shadow-md"
               >
