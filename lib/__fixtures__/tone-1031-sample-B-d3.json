@@ -1,0 +1,33 @@
+{
+  "_source": "봉투어 톤 1031 샘플 B D3 최종(regen3, 미나미 고정) 응답 원문 — run-gemini-regen3.mjs, gemini-3-flash-preview, 23:31:13 KST. 저장 경로 증명용.",
+  "schedule": [
+    {
+      "day": 3,
+      "zone": "오사카 미나미(난바)",
+      "stayCity": "Osaka",
+      "duration": "1day",
+      "title": "추천일정 1day · 호젠지 요코초·도톤보리",
+      "recommendedRoute": "호젠지 요코초 - 도톤보리 - 아메리카무라",
+      "summary": "저라면 아침에 이끼 낀 불상이 있는 호젠지 요코초 골목부터 조용히 걸어봅니다. 화려한 간판이 가득한 도톤보리 강가 산책로를 따라 걸으며 오사카 특유의 활기찬 분위기를 느껴보세요. 오후에는 아메리카무라로 넘어가서 개성 넘치는 옷 가게와 소품점들을 구경하며 시간을 보내면 즐거워요. 골목마다 볼거리가 많으니 편한 신발을 신고 천천히 동네를 한 바퀴 둘러보시면 좋습니다.",
+      "places": [
+        {
+          "ko": "호젠지 요코초",
+          "en": "Hozenji Yokocho",
+          "city": "Osaka"
+        },
+        {
+          "ko": "도톤보리",
+          "en": "Dotonbori",
+          "city": "Osaka"
+        },
+        {
+          "ko": "아메리카무라",
+          "en": "Amerikamura",
+          "city": "Osaka"
+        }
+      ],
+      "imageKeyword": "Hozenji Yokocho",
+      "imageKeyword2": "Dotonbori"
+    }
+  ]
+}

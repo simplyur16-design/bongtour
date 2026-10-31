@@ -4,7 +4,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import sampleA from '@/lib/__fixtures__/tone-1031-sample-A.json'
-import sampleB from '@/lib/__fixtures__/tone-1031-sample-B-d3-regen2.json'
+import sampleB from '@/lib/__fixtures__/tone-1031-sample-B-d3.json'
 
 const created = { master: [] as any[], day: [] as any[], activity: [] as any[] }
 const masterFindUnique = vi.fn()
@@ -134,7 +134,8 @@ describe('톤 1031 B — 자유일정 날 저장값 = 제미나이 문장, 제�
   const b = sampleB.schedule[0]!
 
   it.each([
-    ['제미나이 제목에 장소가 붙은 경우(띄어쓰기 섞임)', b.title],
+    ['제미나이 제목에 장소가 붙은 경우(샘플 B D3 최종)', b.title],
+    ['제미나이 제목에 장소가 붙은 경우(가운데 점 띄어쓰기 섞임)', '추천일정 1day · 호젠지 요코초 · 도톤보리'],
     ["제미나이가 '추천일정 1day'만 준 경우(round3 남은 문제)", '추천일정 1day'],
   ])('%s → 추천일정 1day · 장소·장소, 설명=요약 그대로, 추천일정 검사 통과, finalize 후에도 유지', (_label, geminiTitle) => {
     const byDay = parseGeminiFreeLeisureRows([{ ...b, day: 2, title: geminiTitle }])
@@ -152,8 +153,11 @@ describe('톤 1031 B — 자유일정 날 저장값 = 제미나이 문장, 제�
 
   it('제목 만들기: 장소 붙은 제목은 가운데 점 띄어쓰기만 정리', () => {
     expect(buildRegisterFreeDayRecommendedTitle({ duration: '1day', geminiTitle: b.title, route: b.recommendedRoute, city: 'Osaka', productTitle })).toBe(
-      '추천일정 1day · 나카자키초·우메다 스카이빌딩',
+      '추천일정 1day · 호젠지 요코초·도톤보리',
     )
+    expect(
+      buildRegisterFreeDayRecommendedTitle({ duration: '1day', geminiTitle: '추천일정 1day · 나카자키초 · 우메다 스카이빌딩', route: '나카자키초 카페거리 - 우메다 스카이빌딩', city: 'Osaka', productTitle }),
+    ).toBe('추천일정 1day · 나카자키초·우메다 스카이빌딩')
     expect(buildRegisterFreeDayRecommendedTitle({ duration: '1day', geminiTitle: '추천일정 1day', route: '호젠지 요코초 - 도톤보리 - 아메리카무라', city: 'Osaka', productTitle })).toBe(
       '추천일정 1day · 호젠지 요코초·도톤보리',
     )
