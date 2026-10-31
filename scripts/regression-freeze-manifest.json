@@ -29708,6 +29708,90 @@
           ]
         }
       ]
+    },
+    {
+      "id": "register-schedule-hotel-inflight",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "기내박(기내 1박)은 숙소명이 아니라 숙박 없음(기내박) — 호텔로 저장·표시 금지 (round2-1031)",
+      "checks": [
+        {
+          "file": "lib/register-schedule-hotel-inflight.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-hotel-inflight]",
+            "REGISTER_SCHEDULE_INFLIGHT_NO_HOTEL_TEXT",
+            "isRegisterScheduleInFlightNightLabel",
+            "normalizeRegisterScheduleDayHotelText"
+          ]
+        },
+        {
+          "file": "lib/modetour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-hotel-inflight]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-schedule-day-summary-ko-place",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일정 요약 영문 지명 → 한글 지명 역매핑 SSOT (round2-1031)",
+      "checks": [
+        {
+          "file": "lib/pexels-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-day-summary-ko-place]",
+            "koreanPlaceNameFromEnglish"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-schedule-day-summary-finalize",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "패키지 일정 마무리 — 요약 3~4문장·한글 지명·빈말 금지, 이미지 키워드는 그날 장소만 (round2-1031)",
+      "checks": [
+        {
+          "file": "lib/register-schedule-day-summary-finalize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-day-summary-finalize]",
+            "REGISTER_SCHEDULE_DAY_SUMMARY_MIN_SENTENCES",
+            "REGISTER_SCHEDULE_DAY_SUMMARY_MAX_SENTENCES",
+            "finalizeRegisterPackageScheduleRows"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-day-summary-finalize]",
+            "finalizeRegisterPackageScheduleRows("
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-parse-round2-1031",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "round2-1031 파서 4건(1일차 제목·기내박·나라 일반 규칙·요약/키워드) 테스트 파일 고정",
+      "checks": [
+        {
+          "file": "lib/register-parse-round2-1031.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-parse-round2-1031]"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -30197,6 +30281,16 @@
       "summary": "일정 표시 텍스트 noise·로 절단·KL 하드코딩·dest 오탐",
       "files": [
         "lib/register-display-text-fix-1031.test.ts"
+      ]
+    },
+    {
+      "id": "register-parse-round2-1031-suite",
+      "tier": [
+        "ci"
+      ],
+      "summary": "round2-1031 파서 4건 단위 테스트",
+      "files": [
+        "lib/register-parse-round2-1031.test.ts"
       ]
     }
   ]
