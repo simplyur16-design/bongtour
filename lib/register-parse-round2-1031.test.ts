@@ -220,9 +220,37 @@ describe('4b) 요약 — 불포함 식사·이름 없는 예정 호텔·자리�
     expect(rows[0]!.title).toBe('세부')
     expect(rows[0]!.routeText).toBe('세부')
   })
+  it('빈 제목·상세보기·그날 숙소명 제목도 route 의 한글 장소로 채운다 (hn-0130·lt-0085)', () => {
+    const rows = finalizeRegisterPackageScheduleRows([
+      { day: 1, title: 'Fairmont Nile City, Cairo', routeText: '카이로', hotelText: 'Fairmont Nile City, Cairo / FAIRMONT NILE CITY', description: '' },
+      { day: 2, title: '', routeText: '두바이', description: '' },
+      { day: 3, title: '상세보기', routeText: '리마', description: '' },
+      { day: 4, title: '쿠스코 · 마추픽추', routeText: '쿠스코 - 마추픽추', hotelText: '쿠스코 호텔', description: '' },
+    ])
+    expect(rows.map((r) => r.title)).toEqual(['카이로', '두바이', '리마', '쿠스코 · 마추픽추'])
+  })
 })
 
 import { adjacentDayVisitCityForEdgeRoute } from '@/lib/register-pre-photo-self-heal'
+
+describe('round2-1031 same-day image keyword — keep/replace, never blank the main keyword', () => {
+  it('one shared word with another day (Dragon) is not another-day place (ky-0036 D4)', () => {
+    const rows = restrictRegisterScheduleImageKeywordsToSameDay([
+      { day: 3, title: '흑룡담 공원', routeText: '흑룡담 공원 - 여강', imageKeyword: 'Black Dragon Pool' },
+      { day: 4, title: '옥룡설산', routeText: '옥룡설산,운삼평(케이블카 탑승) - 람월곡', imageKeyword: 'Jade Dragon Snow Mountain' },
+    ])
+    expect(rows[1]!.imageKeyword).toBe('Jade Dragon Snow Mountain')
+  })
+  it('another-city keyword becomes the day city even if used elsewhere (yb-0088 D2)', () => {
+    const rows = restrictRegisterScheduleImageKeywordsToSameDay([
+      { day: 1, title: '연태', routeText: '연태 - 빈해광장', imageKeyword: 'Yantai' },
+      { day: 2, title: '연태', routeText: '연태', imageKeyword: 'Qingdao' },
+      { day: 3, title: '칭다오', routeText: '칭다오 - 잔교', imageKeyword: 'Qingdao' },
+    ])
+    expect(rows[1]!.imageKeyword).not.toBe('Qingdao')
+    expect(String(rows[1]!.imageKeyword)).toMatch(/Yantai/)
+  })
+})
 
 describe('round2-1031 edge route restore prefers adjacent-day city over title hashtag city', () => {
   const days = [
@@ -236,6 +264,10 @@ describe('round2-1031 edge route restore prefers adjacent-day city over title ha
   })
   it('return day takes the last city segment of the previous day', () => {
     expect(adjacentDayVisitCityForEdgeRoute(days, 4, 4)).toBe('로마')
+  })
+  it('does not move a sight (beach/cave) from the neighbour day onto the edge route (new-mt-3·ky-0036)', () => {
+    expect(adjacentDayVisitCityForEdgeRoute([{ day: 1, routeText: '' }, { day: 2, routeText: '이파오비치' }], 1, 2)).toBeNull()
+    expect(adjacentDayVisitCityForEdgeRoute([{ day: 1, routeText: '석림' }, { day: 2, routeText: '구향동굴' }, { day: 3, routeText: '' }], 3, 3)).toBeNull()
   })
   it('returns null when the neighbour has no city (falls back to destination)', () => {
     expect(adjacentDayVisitCityForEdgeRoute([{ day: 1, routeText: '' }, { day: 2, routeText: '자유시간' }], 1, 2)).toBeNull()

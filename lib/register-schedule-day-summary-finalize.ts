@@ -415,7 +415,8 @@ function dayPlaces(row: RegisterScheduleFinalizeRow, productTextKo: string): Day
   return { text, en }
 }
 
-function keywordInDay(kw: string, dp: DayPlaces): boolean {
+/** 키워드 전체가 그날 장소와 같은 말(포함 관계)인가 — 단어 하나 겹침(Dragon·Mountain)은 제외 */
+function keywordStrongInDay(kw: string, dp: DayPlaces): boolean {
   const k = normalizeSemanticPoiKey(kw)
   if (!k) return false
   for (const e of dp.en) {
@@ -423,6 +424,12 @@ function keywordInDay(kw: string, dp: DayPlaces): boolean {
     if (!n) continue
     if (n === k || (n.length >= 4 && k.includes(n)) || (k.length >= 4 && n.includes(k))) return true
   }
+  const ko = registerScheduleKoreanPlaceName(kw)
+  return Boolean(ko && ko.length >= 2 && dp.text.includes(ko))
+}
+
+function keywordInDay(kw: string, dp: DayPlaces): boolean {
+  if (keywordStrongInDay(kw, dp)) return true
   const kws = kwWords(kw)
   const dayWords = new Set(dp.en.flatMap(kwWords))
   if (kws.some((w) => dayWords.has(w))) return true
@@ -438,7 +445,7 @@ function keywordInDay(kw: string, dp: DayPlaces): boolean {
 
 /** 키워드가 일정상 특정 장소(다른 날 또는 SSOT 지명)로 식별되는가 — 모르는 서술형 키워드는 false */
 function keywordIsIdentifiablePlace(kw: string, others: DayPlaces[]): boolean {
-  if (others.some((o) => keywordInDay(kw, o))) return true
+  if (others.some((o) => keywordStrongInDay(kw, o))) return true
   if (registerScheduleKoreanPlaceName(kw)) return true
   return kw.split(/\s+/).some((w) => w.length >= 4 && registerScheduleKoreanPlaceName(w))
 }
@@ -482,14 +489,19 @@ export function restrictRegisterScheduleImageKeywordsToSameDay<T extends Registe
       if (keywordInDay(t, dp)) return t
       if (edge && routeEmptyOrHub && t.split(/\s+/).length <= 2) return t
       if (!keywordIsIdentifiablePlace(t, others)) return t
-      const cand = dp.en.find((e) => !used.has(normalizeSemanticPoiKey(e)))
+      // 그날 후보 — 공항보다 명소·도시 우선
+      const ordered = [...dp.en.filter((e) => !/\bairport\b/i.test(e)), ...dp.en.filter((e) => /\bairport\b/i.test(e))]
+      const cand = ordered.find((e) => !used.has(normalizeSemanticPoiKey(e)))
       if (cand) {
         used.add(normalizeSemanticPoiKey(cand))
         return cand
       }
-      return ''
+      // 대표 키워드는 비우지 않는다 — 다른 날과 겹쳐도 그날 장소(예: 연태 일정의 Qingdao → 연태)
+      return primarySlot ? (ordered[0] ?? '') : ''
     }
+    let primarySlot = true
     const kw1 = pick(String(row.imageKeyword ?? ''))
+    primarySlot = !kw1
     let kw2 = pick(String(row.imageKeyword2 ?? ''))
     if (kw2 && normalizeSemanticPoiKey(kw2) === normalizeSemanticPoiKey(kw1)) kw2 = ''
     const primary = kw1 || kw2
@@ -501,10 +513,30 @@ export function restrictRegisterScheduleImageKeywordsToSameDay<T extends Registe
 
 // ───────────────────────── 최종 패스 ─────────────────────────
 
-/** 'N일차' 자리표시 제목 → 그날 route 의 첫 한글 장소 (없으면 그대로) */
+/** 제목이 그날 숙소명과 같은지 — `Fairmont Nile City, Cairo` 처럼 호텔 단어가 없는 숙소명 제목 */
+function titleIsDayHotelName(title: string, hotelText: string | null | undefined): boolean {
+  const key = (s: string) => s.replace(/[\s·,，()（）\[\]_]/gu, '').toLowerCase()
+  const t = key(title)
+  if (!t) return false
+  return String(hotelText ?? '')
+    .split(/\s*\/\s*/u)
+    .map(key)
+    .some((h) => h.length >= 4 && h === t)
+}
+
+/**
+ * 자리표시·빈 제목·UI 문구·숙소명 제목 → 그날 route 의 첫 한글 장소 (없으면 그대로).
+ * 'N일차', '', '상세보기', 숙소명(그날 hotelText 와 같은 말) 모두 제목으로 남기지 않는다.
+ */
 function fillPlaceholderDayTitle(row: RegisterScheduleFinalizeRow): string | null | undefined {
   const t = String(row.title ?? '').trim()
-  if (!/^\d+\s*일차$/u.test(t)) return row.title
+  const placeholder =
+    !t ||
+    /^\d+\s*일차$/u.test(t) ||
+    /^(?:상세\s*보기|자세히\s*보기|더\s*보기)$/u.test(t) ||
+    isRegisterScheduleLodgingLikeTitleLabel(t) ||
+    titleIsDayHotelName(t, row.hotelText)
+  if (!placeholder) return row.title
   const { places } = dayRouteParts(String(row.routeText ?? ''))
   return places[0] ?? row.title
 }

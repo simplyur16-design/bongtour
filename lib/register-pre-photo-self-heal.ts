@@ -2503,10 +2503,15 @@ export function adjacentDayVisitCityForEdgeRoute(
     if (seg.length < 2 || seg.length > 12) continue
     if (!/^[가-힣]+$/u.test(seg)) continue
     if (isScheduleDomesticHubToken(seg)) continue
+    // 도시만 — 명소(이파오비치·구향동굴 등)는 출발·귀국일 route 로 옮기지 않는다 (그날 간 곳이 아님)
+    if (EDGE_ROUTE_SPOT_SUFFIX_RE.test(seg)) continue
     if (firstMatchingScheduleCityEn(seg)) return seg
   }
   return null
 }
+
+const EDGE_ROUTE_SPOT_SUFFIX_RE =
+  /(?:비치|해변|해수욕장|동굴|사원|신전|공원|호수|폭포|섬|궁|성당|박물관|시장|거리|타워|광장|온천|케이블카|계곡|마을|협곡|국립공원)$/u
 
 function stripInventedContentOnEmptyRoutes<T extends RegisterPrePhotoHealRow>(
   rows: T[],
