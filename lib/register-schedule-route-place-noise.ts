@@ -298,6 +298,23 @@ export function stripRegisterScheduleRouteSegmentLodgingSuffix(seg: string): str
     .trim()
 }
 
+/**
+ * `<도시> (국제)공항 도착` → `<도시>` — 해외 도착 도시만. 출발·경유·공항 단독(기존 edge 설계 유지)·국내 허브·안내문은 null.
+ */
+export function recoverRegisterScheduleForeignAirportCityStem(raw: string): string | null {
+  const t = String(raw ?? '').replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim()
+  const m = t.match(
+    /^([가-힣A-Za-z][가-힣A-Za-z ]{0,18}?)\s*(?:국제\s*)?공항\s*(?:도착|입국)\s*$/u,
+  )
+  const stem = m?.[1]?.trim() ?? ''
+  if (stem.length < 2) return null
+  if (/공항|인솔|미팅|가이드|수속|탑승|국제$/u.test(stem)) return null
+  if (isRegisterScheduleDomesticHubRouteSegment(stem)) return null
+  if (/^(?:인천|김포|부산|김해|대구|청주|제주|무안|양양|ICN|GMP|PUS|TAE|CJJ|CJU)$/iu.test(stem)) return null
+  if (isRegisterScheduleRoutePlaceNoise(stem)) return null
+  return stem
+}
+
 /** 마케팅 카드명·cms 라벨 → 순수 장소명 (없으면 null) */
 export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | null {
   const t0 = cleanRegisterScheduleRoutePlaceLabel(raw)
@@ -309,6 +326,10 @@ export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | nu
   }
   // 산문 덤프 전체가 noise여도 「…이라 불리는 쉔부른궁전」꼬리는 살린다
   if (isRegisterScheduleRoutePlaceNoise(t0)) {
+    // `파리 공항 도착` → `파리` (해외 도착/출발 도시는 일정 지명). 국내 허브(인천 공항 등)는 그대로 제외.
+    // REGRESSION-FREEZE[register-schedule-route-place-noise]: foreign airport city stem — manifest
+    const airportCity = recoverRegisterScheduleForeignAirportCityStem(t0)
+    if (airportCity) return airportCity
     const fromProseDespiteNoise = extractRegisterScheduleProseRoutePlaceTail(t0)
     if (
       fromProseDespiteNoise &&

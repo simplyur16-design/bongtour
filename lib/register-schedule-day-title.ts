@@ -8,6 +8,10 @@ import {
   isRegisterScheduleDomesticHubRouteSegment,
   isRegisterScheduleRoutePlaceNoise,
 } from '@/lib/register-schedule-route-place-noise'
+import {
+  isRegisterScheduleInFlightNightLabel,
+  registerScheduleTextMentionsInFlightNight,
+} from '@/lib/register-schedule-hotel-inflight'
 
 const TITLE_MAX_CHARS = 48
 
@@ -39,9 +43,62 @@ function isRegisterScheduleDayTitleNoise(text: string): boolean {
   )
 }
 
-/** 자유일·리조트·무숙박 라벨 — 지명 noise여도 title로 유지 (기존 동작) */
+/**
+ * 자유일·리조트 휴양·무숙박 라벨 — 지명 noise여도 title로 유지 (기존 동작).
+ * 리조트 **이름**(`두짓타니 막탄 세부 리조트`)은 숙소이므로 유지 대상이 아니다 — `리조트 자유/휴양/휴식`만.
+ */
 function isRegisterScheduleDayTitleKeepLabel(seg: string): boolean {
-  return /자유\s*(?:시간|일정|휴양)|리조트|체크\s*아웃|숙박\s*없음/u.test(seg)
+  return /자유\s*(?:시간|일정|휴양)|^리조트$|리조트\s*(?:내\s*|에서\s*)?(?:자유|휴양|휴식)|체크\s*아웃|숙박\s*없음/u.test(
+    seg,
+  )
+}
+
+/**
+ * 숙소명·주소·기내박 — 일차 title 폴백으로 쓰지 않는다 (title=호텔 주소/리조트명 회귀 차단).
+ * 루트가 전부 noise로 걸러진 출발일에 `fallbacks: [..., d.hotels[0]]` 가 그대로 제목이 되던 문제의 공통 차단점.
+ * REGRESSION-FREEZE[register-schedule-day-title-ssot]: no lodging title fallback — manifest
+ */
+export function isRegisterScheduleLodgingLikeTitleLabel(text: string | null | undefined): boolean {
+  const t = String(text ?? '').replace(/\s+/g, ' ').trim()
+  if (!t) return false
+  if (/자유\s*(?:시간|일정|휴양)|체크\s*아웃|^숙박\s*없음|리조트\s*(?:내\s*|에서\s*)?(?:자유|휴양|휴식)/u.test(t)) {
+    return false
+  }
+  if (isRegisterScheduleInFlightNightLabel(t) || registerScheduleTextMentionsInFlightNight(t)) return true
+  if (/\b(?:ADD|ADDRESS|TEL|PHONE|FAX)\s*[:：]|\/\/|\+\d{1,3}\s*\(?\d/iu.test(t)) return true
+  if (/\b(?:hotel|hotels|resort|resorts|inn|hostel|suites?|residences?|lodge|ryokan|motel|guest\s*house)\b/iu.test(t)) {
+    return true
+  }
+  if (/호텔|리조트|호스텔|레지던스|게스트\s*하우스|료칸|모텔|숙소|숙박|투숙|동급/u.test(t)) return true
+  return false
+}
+
+/** 정규화 키 — 공백·구두점 제거 */
+function titlePairKey(s: string): string {
+  return s.replace(/[\s·,，()（）\[\]]/gu, '').toLowerCase()
+}
+
+/**
+ * `A · B` 결합 — 같은 말이거나 한쪽이 다른 쪽을 포함하면 긴 쪽 하나만 (제목 중복 회귀 차단).
+ * 예: `앙코르와트 국제 하프 마라톤 입국 · 앙코르와트 국제 하프 마라톤 입국` → 한 번만.
+ * REGRESSION-FREEZE[register-schedule-day-title-ssot]: no duplicated title pair — manifest
+ */
+export function joinRegisterScheduleDayTitlePair(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): string {
+  const x = String(a ?? '').replace(/\s+/g, ' ').trim()
+  const y = String(b ?? '').replace(/\s+/g, ' ').trim()
+  if (!x) return y
+  if (!y) return x
+  const kx = titlePairKey(x)
+  const ky = titlePairKey(y)
+  if (!kx) return y
+  if (!ky) return x
+  if (kx === ky) return x
+  if (kx.includes(ky)) return x
+  if (ky.includes(kx)) return y
+  return `${x} · ${y}`
 }
 
 /** 폴백 title — 공지·요금·기내박 문구 금지 (짧은 일반 문구 폴백은 유지) */
@@ -84,14 +141,18 @@ export function composeRegisterScheduleDayTitleFromRoute(opts: {
   if (segs.length >= 2) {
     const head = segs[0]!
     const tail = segs[segs.length - 1]!
-    if (head === tail) return clipRegisterScheduleDayTitle(head)
-    return clipRegisterScheduleDayTitle(`${head} · ${tail}`)
+    return clipRegisterScheduleDayTitle(joinRegisterScheduleDayTitlePair(head, tail))
   }
   if (segs.length === 1) return clipRegisterScheduleDayTitle(segs[0]!)
 
   for (const f of opts.fallbacks ?? []) {
     const t = String(f ?? '').trim()
-    if (t && !isRegisterScheduleDayTitleNoise(t) && !isRegisterScheduleNoticeTitleFallback(t)) {
+    if (
+      t &&
+      !isRegisterScheduleDayTitleNoise(t) &&
+      !isRegisterScheduleNoticeTitleFallback(t) &&
+      !isRegisterScheduleLodgingLikeTitleLabel(t)
+    ) {
       return clipRegisterScheduleDayTitle(t)
     }
   }

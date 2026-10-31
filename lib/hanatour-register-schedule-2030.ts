@@ -2,6 +2,7 @@
  * 하나투어 2030(구 밍글링) TRP 패키지 — 일정·제목 정제 SSOT.
  * REGRESSION-FREEZE[hanatour-register-schedule-2030]: 2030 routeText POI·vibe·제목·confirm 가드 — manifest
  */
+import { joinRegisterScheduleDayTitlePair } from '@/lib/register-schedule-day-title'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-hanatour'
 import { classifyHanatourScheduleCardDayKind } from '@/lib/hanatour-schedule-card-day-kind'
@@ -319,10 +320,15 @@ function composeHanatour2030DayTitle(args: {
   const city = extractHanatour2030CityFromTitle(productTitle)
 
   if (day === 1) {
-    if (routePlaces.length >= 2) return `${routePlaces[0]} · ${routePlaces[1]}`
+    if (routePlaces.length >= 2) return joinRegisterScheduleDayTitlePair(routePlaces[0], routePlaces[1])
     const place = routePlaces[0] ?? city
-    if (place && city && place !== city) return `${city} 입국 · ${place}`
-    if (place) return `${place} 입국`
+    // REGRESSION-FREEZE[register-schedule-day-title-ssot]: no duplicated title pair — manifest
+    // place 가 이미 `… 입국`(buildHanatour2030RouteText) 이거나 city 를 포함하면 접두 생략
+    if (place && city && place !== city) {
+      if (/입국$/u.test(place)) return joinRegisterScheduleDayTitlePair(place, null)
+      return joinRegisterScheduleDayTitlePair(`${city} 입국`, place)
+    }
+    if (place) return /입국$/u.test(place) ? place : `${place} 입국`
     return city ? `${city} 입국` : `${day}일차`
   }
   if (
@@ -344,7 +350,7 @@ function composeHanatour2030DayTitle(args: {
   if (routePlaces.some((p) => HANATOUR_2030_FREE_DAY_RE.test(p)) || /자유\s*일정/u.test(transportNote ?? '')) {
     return `자유 일정 · ${city ?? routePlaces[0] ?? '현지'}`
   }
-  if (routePlaces.length >= 2) return `${routePlaces[0]} · ${routePlaces[1]}`
+  if (routePlaces.length >= 2) return joinRegisterScheduleDayTitlePair(routePlaces[0], routePlaces[1])
   if (routePlaces.length === 1) {
     const p = routePlaces[0]!
     return p.length < 4 ? `${p} 시내` : p
