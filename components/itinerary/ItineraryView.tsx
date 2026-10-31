@@ -40,6 +40,7 @@ import { computeKRWQuotation } from '@/lib/price-utils'
 import { buildPriceDisplaySsot } from '@/lib/price-display-ssot'
 import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
 import type { ProductMetaChip } from '@/lib/product-meta-chips'
+import { formatItineraryActivityDurationLabel } from '@/lib/itinerary-activity-duration-label'
 
 type Persona = 'mixed' | 'couple' | 'with-parents' | 'with-kids'
 type ItineraryCategory = 'transport' | 'hotel' | 'meal' | 'attraction' | 'shopping' | 'tip' | 'leisure'
@@ -761,7 +762,9 @@ export function ItineraryView({
                             <h3 className="text-base md:text-lg font-semibold fit-tx-primary mb-1.5">{act.title}</h3>
                             <p className="text-sm md:text-base fit-tx-primary leading-relaxed mb-2">{act.description}</p>
                             <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center text-xs md:text-sm fit-tx-meta">
-                              <span className="inline-flex items-center gap-1"><Clock size={14} /> {act.durationMinutes}분</span>
+                              {formatItineraryActivityDurationLabel(act.durationMinutes) && (
+                                <span className="inline-flex items-center gap-1"><Clock size={14} /> {formatItineraryActivityDurationLabel(act.durationMinutes)}</span>
+                              )}
                               {act.location && <span className="inline-flex items-center gap-1"><MapPin size={14} /> {act.location}</span>}
                               {act.transportMode && act.transportDuration && (
                                 <span className="inline-flex items-center gap-1"><Route size={14} /> {act.transportMode} {act.transportDuration}</span>
