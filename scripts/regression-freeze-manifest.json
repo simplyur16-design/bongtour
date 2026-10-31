@@ -29490,6 +29490,36 @@
       ]
     },
     {
+      "id": "register-photo-match-gate",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "v2 자동 사진 최종 관문: 슬롯 장소명(일차 장소·목적지 도시) 일치 필수 + 사람·인물·의료·차량·사물·실내·침실·홍보(eSIM)·타국 명소 탈락, 1200px 이상·대표 가로, ID·작가 기록, AI 는 표시 있을 때만. 풀·히어로·캐시 경로도 적용, 설명 없는 대체 검색은 v2에서 안 씀 (문과장 batch-01 검수·사장님 10/31 16:11)",
+      "checks": [
+        {
+          "file": "lib/register-photo-match-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-match-gate]",
+            "other_place_landmark",
+            "no_place_match",
+            "person",
+            "promo",
+            "missing_attribution",
+            "ai_unlabeled"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-match-gate]",
+            "photoMatchGate(",
+            "v2-no-verified-candidate"
+          ]
+        }
+      ]
+    },
+    {
       "id": "auto-register-review-pass",
       "tier": [
         "prebuild",

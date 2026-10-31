@@ -21,6 +21,8 @@ export type PhotoChainStockTier = (typeof PHOTO_CHAIN_STOCK_ORDER)[number]
 /** Unsplash 핫링크 가로폭 — 1200px 이상을 지키면서 상세 400,000B 안쪽을 노린다 */
 export const PHOTO_CHAIN_UNSPLASH_WIDTH = 1600
 export const PHOTO_CHAIN_UNSPLASH_QUALITY = 72
+/** Pexels 검색 1회 후보 수 — searchPexelsHeroCandidates 상한 15 */
+export const PHOTO_CHAIN_PEXELS_PER_QUERY = 15
 
 export type ChainCandidate = {
   tier: 'pexels' | 'unsplash'
@@ -114,7 +116,8 @@ export async function collectChainCandidates(
   if (!q) return []
   if (tier === 'pexels') {
     const search = deps.searchPexels ?? searchPexelsHeroCandidates
-    return (await search(q, 10, q)).map(fromPexels)
+    // 장소 일치 관문(register-photo-match-gate)이 엄격해져 한 번에 받을 수 있는 최대(15장)를 본다
+    return (await search(q, PHOTO_CHAIN_PEXELS_PER_QUERY, q)).map(fromPexels)
   }
   const search =
     deps.searchUnsplash ?? ((k: string, n: number, used: string) => searchUnsplashHeroCandidates(k, n, used, { env: deps.env }))

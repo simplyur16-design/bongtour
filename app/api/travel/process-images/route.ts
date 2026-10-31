@@ -19,6 +19,7 @@ import {
   type PoolPhotoRecord,
 } from '@/lib/photo-pool'
 import { photoCandidateText, photoSubjectBlockReason } from '@/lib/register-photo-subject-filter'
+import { photoMatchGate, sortByMatchGateScore, type MatchGateContext } from '@/lib/register-photo-match-gate'
 import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-preserve'
 import { resolveDayHeroWithFallback, saveDayHeroResult } from '@/lib/itinerary-day-hero-image'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
@@ -461,7 +462,28 @@ export async function POST(req: Request) {
     const poolListRaw = (await getPoolPhotosForDestination(prisma, destination)).filter((rec) => {
       const why = photoSubjectBlockReason(photoCandidateText([rec.attractionName, rec.filePath]), subjectCtx)
       if (why) console.log(`[FILTER] 풀 사진 제외 ${why}`)
-      return !why
+      if (why) return false
+      if (!photoChainV2) return true
+      // REGRESSION-FREEZE[register-photo-match-gate]: v2 풀 사진도 장소 일치·출처·AI 표시 확인 — manifest
+      const g = photoMatchGate(
+        {
+          label: `${rec.attractionName ?? ''} ${rec.cityName ?? ''}`,
+          pageUrl: rec.sourceUrl,
+          photographer: rec.photographer,
+          originalLink: rec.sourceUrl,
+          externalId: rec.sourcePhotoId,
+          isGenerated: /gemini|generated|\bai\b/i.test(rec.source ?? ''),
+          aiLabel: null,
+        },
+        {
+          placeTerms: [rec.cityName, mapDestination(rec.cityName ?? null)],
+          destinationTerms: [destination, subjectCtx.destinationEn],
+          slotText: subjectCtx.productText,
+          slot: 'day',
+        }
+      )
+      if (!g.ok) console.log(`[GATE] 풀 사진 제외 ${g.reason}`)
+      return g.ok
     })
     // v2: 같은 도시 상품끼리 같은 사진을 쓰지 않게 최근에 덜 쓴 풀 사진부터
     const poolList = photoChainV2 ? rotatePoolWithinCity(poolListRaw, recentIndex) : poolListRaw
@@ -618,17 +640,37 @@ export async function POST(req: Request) {
       })
       return photoFromPoolSave(saved)
     }
-    const chainAccept = (extra?: (c: ChainCandidate) => boolean) => (c: ChainCandidate) => {
+    const chainAccept = (extra?: (c: ChainCandidate) => boolean, gateCtx?: MatchGateContext) => (c: ChainCandidate) => {
       if (usage.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId })) return false
       // REGRESSION-FREEZE[register-photo-subject-filter]: 약한 일치·얼굴·간판·무관 사물·다른 도시 후보 탈락 — manifest
       const why = photoSubjectBlockReason(
         photoCandidateText([c.altText, c.pageUrl ?? c.originalLink]),
         { ...subjectCtx, query: c.queryUsed },
-        { requirePlaceMatch: true },
+        // v2 관문이 있으면 장소 일치는 관문(한글 목적지 → 영문 확장)이 본다
+        { requirePlaceMatch: !gateCtx },
       )
       if (why) {
         console.log(`[FILTER] 후보 제외 ${why}`)
         return false
+      }
+      if (gateCtx) {
+        // REGRESSION-FREEZE[register-photo-match-gate]: 장소 일치 + 인물·사물·차량·홍보·타국 명소 탈락 — manifest
+        const g = photoMatchGate(
+          {
+            altText: c.altText,
+            pageUrl: c.pageUrl ?? c.originalLink,
+            width: c.width,
+            height: c.height,
+            photographer: c.photographer,
+            originalLink: c.originalLink,
+            externalId: c.externalId,
+          },
+          gateCtx
+        )
+        if (!g.ok) {
+          console.log(`[GATE] 후보 제외 ${g.reason}`)
+          return false
+        }
       }
       return extra ? extra(c) : true
     }
@@ -637,12 +679,17 @@ export async function POST(req: Request) {
       query: string,
       label: string,
       extra?: (c: ChainCandidate) => boolean,
-      cityMatch?: DayCityMatch
+      cityMatch?: DayCityMatch,
+      gateCtx?: MatchGateContext
     ): Promise<PhotoResult | null> => {
       const r = await findStockPhotoByChain(query, {
-        accept: chainAccept(extra),
+        accept: chainAccept(extra, gateCtx),
         // 품질 점수 우선 − 최근 사용 감점 − 같은 도시 사용 감점
-        pick: (cands) => rankPhotosByScore(cands, { keywords: [query, mapDestination(destination)], recent: recentIndex })[0] ?? null,
+        pick: (cands) => {
+          const ranked = rankPhotosByScore(cands, { keywords: [query, mapDestination(destination)], recent: recentIndex })
+          // v2 관문: 일차 장소명 일치·풍경/명소 사진을 먼저
+          return (gateCtx ? sortByMatchGateScore(ranked, gateCtx) : ranked)[0] ?? null
+        },
       })
       newFetchCount++
       const adoptedRaw = r.photo ? await adoptChainPhoto(r.photo, label) : null
@@ -681,12 +728,20 @@ export async function POST(req: Request) {
       cacheHitCount++
       console.log(`[POOL] 메인 사진 사용`)
     } else {
-      const cachedMain = await getCachedPhoto(cache, destination, mainQuery, true)
+      // v2: 캐시 사진은 설명·출처를 확인할 수 없어 쓰지 않는다(장소 일치 관문 통과분만)
+      const cachedMain = photoChainV2 ? null : await getCachedPhoto(cache, destination, mainQuery, true)
       if (cachedMain) {
         mainPhoto = cachedToResult(cachedMain)
         cacheHitCount++
       } else {
-        const chainMain = photoChainV2 ? await runChain('main', mainQuery, mainQuery) : null
+        const chainMain = photoChainV2
+          ? await runChain('main', mainQuery, mainQuery, undefined, undefined, {
+              placeTerms: [mainQuery, heroPick.keyword],
+              destinationTerms: [destination, subjectCtx.destinationEn],
+              slotText: subjectCtx.productText,
+              slot: 'main',
+            })
+          : null
         // v2: 재고 사진이 없을 때만 AI 생성(아래 Gemini 분기)으로 간다
         const pexelsMain = photoChainV2 ? null : await fetchPexelsPhotoObject(mainQuery)
         if (!photoChainV2) newFetchCount++
@@ -783,9 +838,22 @@ export async function POST(req: Request) {
       const itRow = itineraryRows.find((r) => r.day === dayNum) ?? itineraryRows[n] ?? null
 
       const poolRec = poolBySlot.get(n)
+      /** v2 관문: 이 일차 장소(키워드·도시) 또는 상품 목적지 도시가 설명에 있어야 하고, 다른 도시 판정은 이 일차 글 기준 */
+      const dayGateCtx: MatchGateContext = {
+        placeTerms: [sched?.imageKeyword ?? null, itRow?.city ?? null, mapDestination(itRow?.city ?? null)],
+        destinationTerms: [destination, subjectCtx.destinationEn],
+        slotText: [sched?.title, sched?.routeText, sched?.description, itRow?.city, itRow?.poiNamesRaw, destination]
+          .map((x) => String(x ?? ''))
+          .join(' '),
+        slot: 'day',
+      }
       /** v2: 후보 설명·주소가 이 일차 도시 또는 명소를 가리키는지 */
       const dayCityOk = (c: ChainCandidate) =>
-        dayCandidateCityMatch(c, [itRow?.city ?? null, destination], [sched?.imageKeyword ?? null, c.queryUsed]) != null
+        dayCandidateCityMatch(c, [itRow?.city ?? null, destination], [sched?.imageKeyword ?? null, c.queryUsed]) != null ||
+        photoMatchGate(
+          { altText: c.altText, pageUrl: c.pageUrl ?? c.originalLink, width: c.width, height: c.height, photographer: c.photographer, originalLink: c.originalLink, externalId: c.externalId },
+          dayGateCtx
+        ).ok
       let photo: PhotoResult | null = null
       let keywordUsed = `day ${dayNum}`
       let selectedOrigin = 'itinerary_hero'
@@ -827,6 +895,22 @@ export async function POST(req: Request) {
           usage
         )
         photo = heroOut.photo
+        if (photoChainV2 && photo && heroOut.bundle.heroImageSource !== 'gemini') {
+          const g = photoMatchGate(
+            {
+              pageUrl: photo.originalLink,
+              photographer: photo.photographer,
+              originalLink: photo.originalLink,
+              externalId: photo.externalId,
+            },
+            dayGateCtx
+          )
+          if (!g.ok) {
+            console.log(`[GATE] day ${dayNum} hero 제외 ${g.reason}`)
+            photo = null
+          }
+        }
+        if (photo) {
         if (photoChainV2 && photo) {
           photo = {
             ...photo,
@@ -852,13 +936,15 @@ export async function POST(req: Request) {
             keywordUsed,
             `${destination}_${dayNum}`,
             (c) => normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url) && dayCityOk(c),
-            'meta'
+            'meta',
+            dayGateCtx
           )
           if (stock) {
             photo = stock
             selectedOrigin = `chain-${stock.source.toLowerCase()}`
             usage.mark(stock)
           }
+        }
         }
       }
 
@@ -870,7 +956,8 @@ export async function POST(req: Request) {
           chainKw,
           `${destination}_${dayNum}`,
           (c) => normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url) && dayCityOk(c),
-          'meta'
+          'meta',
+          dayGateCtx
         )
         if (stock) {
           photo = stock
@@ -878,9 +965,30 @@ export async function POST(req: Request) {
           selectedOrigin = `chain-${stock.source.toLowerCase()}`
           usage.mark(stock)
         }
+        if (!stock && chainKw !== mainQuery) {
+          // 일차 키워드로 장소 일치 사진이 없으면 상품 대표 장소(목적지) 검색어로 한 번 더 — 관문은 그대로
+          const destStock = await runChain(
+            `day${dayNum}-dest`,
+            mainQuery,
+            `${destination}_${dayNum}`,
+            (c) => normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url) && dayCityOk(c),
+            'meta',
+            dayGateCtx
+          )
+          if (destStock) {
+            photo = destStock
+            fallbackUsed = true
+            selectedOrigin = `chain-dest-${destStock.source.toLowerCase()}`
+            usage.mark(destStock)
+          }
+        }
       }
 
-      if (!photo) {
+      if (!photo && photoChainV2) {
+        // v2: 설명 없는 대체 검색·풀 재사용(장소 확인 불가)은 쓰지 않는다 → '사진 필요'로 비워 둔다
+        fallbackReason = 'v2-no-verified-candidate'
+      }
+      if (!photo && !photoChainV2) {
         const fallbackKw =
           normalizeToPlaceName(keywordUsed) ||
           normalizeToPlaceName(sched?.imageKeyword ?? '') ||
