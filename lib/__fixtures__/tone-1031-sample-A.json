@@ -1,0 +1,226 @@
+{
+  "_source": "봉투어 톤 1031 샘플 A (fit-hn-0061 모양): master=after-gemini.json A, D2=after-gemini-regen.json(22:40:27 KST), D1·D3·D4=after-gemini-regen2.json(23:00:09 KST). gemini-3-flash-preview 응답 그대로(zone 필드는 샘플 검수용 메모).",
+  "title": "오사카 4일 자유여행 코코호텔 난바 에비스초 숙박",
+  "summary": "에비스초역 바로 앞 호텔을 거점으로 오사카 시내와 교토까지 알차게 둘러보는 코스예요. 아래 일정은 참고용 예시이니 원하시는 대로 순서를 바꿔서 즐겨보세요.",
+  "persona": "couple",
+  "days": [
+    {
+      "dayNumber": 1,
+      "title": "신세카이 골목 산책과 쿠시카츠 저녁",
+      "summary": "공항에서 숙소로 오셔서 짐을 가볍게 풀고 바로 신세카이로 나가 보세요. 호텔에서 가까운 신세카이 거리는 해 질 무렵 간판에 불이 들어올 때 걸어야 분위기가 더 살아요. 저녁은 골목 안 쿠시카츠집에서 튀김을 드시며 첫날 일정을 마무리하시면 편해요.",
+      "dayCityKey": "osaka",
+      "zone": "오사카 텐노지",
+      "activities": [
+        {
+          "order": 1,
+          "category": "transport",
+          "title": "공항에서 시내 이동",
+          "description": "공항에서 열차를 타고 숙소 근처 역으로 오시면 돼요.",
+          "location": "간사이 국제공항",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "지하철",
+          "transportDuration": null
+        },
+        {
+          "order": 2,
+          "category": "hotel",
+          "title": "호텔 체크인",
+          "description": "역 바로 앞이라 무거운 짐을 금방 맡길 수 있어 편해요.",
+          "location": "코코호텔 난바 에비스초",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": null,
+          "transportDuration": null
+        },
+        {
+          "order": 3,
+          "category": "attraction",
+          "title": "신세카이 골목 구경",
+          "description": "화려한 간판들 사이를 천천히 걸으며 동네 풍경을 구경해 보세요.",
+          "location": "신세카이 (Shinsekai)",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "도보",
+          "transportDuration": null
+        },
+        {
+          "order": 4,
+          "category": "meal",
+          "title": "쿠시카츠 저녁 식사",
+          "description": "바삭한 튀김에 시원한 음료를 곁들이며 첫날 저녁을 즐기시면 좋아요.",
+          "location": "신세카이 골목 쿠시카츠집",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "도보",
+          "transportDuration": null
+        }
+      ]
+    },
+    {
+      "dayNumber": 2,
+      "title": "고즈넉한 청수사와 기온 거리 산책",
+      "summary": "교토에 도착하시면 먼저 청수사로 올라가 탁 트인 풍경을 마주해 보세요. 내려오는 길에는 산넨자카와 니넨자카 골목을 천천히 걸으며 옛 정취를 구경하시는 게 좋아요. 저녁에는 은은한 조명이 켜진 기온 거리를 산책하며 교토만의 분위기 속에 머물러 보시면 참 편안해요. 하루를 교토의 동쪽 동네에서만 보내면 동선이 복잡하지 않아 여유로워요.",
+      "dayCityKey": "osaka",
+      "zone": "교토 히가시야마(동쪽)",
+      "activities": [
+        {
+          "order": 1,
+          "category": "attraction",
+          "title": "청수사 풍경 감상",
+          "description": "본당 무대에서 내려다보는 풍경이 시원해서 가보시길 권해요.",
+          "location": "청수사 (Kiyomizu-dera Temple)",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "지하철",
+          "transportDuration": null
+        },
+        {
+          "order": 2,
+          "category": "attraction",
+          "title": "산넨자카 골목 산책",
+          "description": "아기자기한 소품점과 찻집이 모여 있어 구경하며 걷기 좋아요.",
+          "location": "산넨자카 (Sannenzaka)",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "도보",
+          "transportDuration": null
+        },
+        {
+          "order": 3,
+          "category": "attraction",
+          "title": "기온 거리 탐방",
+          "description": "해 질 무렵 붉은 등이 켜진 골목의 분위기가 무척 고즈넉해요.",
+          "location": "기온 (Gion District)",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "도보",
+          "transportDuration": null
+        },
+        {
+          "order": 4,
+          "category": "meal",
+          "title": "골목 안 식당 저녁",
+          "description": "기온 거리 근처 조용한 식당에서 정갈한 식사를 드셔보세요.",
+          "location": "기온 근처 식당",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "도보",
+          "transportDuration": null
+        }
+      ]
+    },
+    {
+      "dayNumber": 3,
+      "title": "유니버설 스튜디오 재팬과 도톤보리 저녁",
+      "summary": "오늘은 하루를 온전히 테마파크에서 보낼 거라 아침부터 서둘러 움직이시는 게 좋아요. 영화 속 세트장 같은 풍경을 구경하며 즐거운 시간을 보내신 뒤에 다시 시내로 넘어오세요. 돌아오는 길에 도톤보리에 들러 오코노미야키를 드시며 하루를 마무리하시면 든든해요.",
+      "dayCityKey": "osaka",
+      "zone": "오사카 베이",
+      "activities": [
+        {
+          "order": 1,
+          "category": "transport",
+          "title": "테마파크 이동",
+          "description": "아침 일찍 서둘러 열차를 타고 이동하시면 돼요.",
+          "location": "숙소",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "지하철",
+          "transportDuration": null
+        },
+        {
+          "order": 2,
+          "category": "attraction",
+          "title": "유니버설 스튜디오 재팬 즐기기",
+          "description": "영화 속으로 들어온 듯한 풍경을 천천히 둘러보며 시간을 보내 보세요.",
+          "location": "유니버설 스튜디오 재팬 (Universal Studios Japan)",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "도보",
+          "transportDuration": null
+        },
+        {
+          "order": 3,
+          "category": "meal",
+          "title": "도톤보리 오코노미야키 저녁",
+          "description": "돌아오는 길에 들러 따뜻한 철판 요리를 드시며 하루를 마무리해 보세요.",
+          "location": "도톤보리 오코노미야키집",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "지하철",
+          "transportDuration": null
+        }
+      ]
+    },
+    {
+      "dayNumber": 4,
+      "title": "덴덴타운 구경과 라멘으로 마무리하는 일정",
+      "summary": "마지막 날은 호텔 체크아웃을 하고 바로 옆에 있는 덴덴타운부터 가볍게 둘러보세요. 아기자기한 소품이나 피규어가 많아서 구경만 해도 시간 가는 줄 모르는 곳이에요. 공항으로 가기 전 근처 라멘집에서 든든하게 식사를 하시면 마지막까지 기분 좋게 움직이실 수 있어요.",
+      "dayCityKey": "osaka",
+      "zone": "오사카 미나미(난바)",
+      "activities": [
+        {
+          "order": 1,
+          "category": "attraction",
+          "title": "덴덴타운 산책",
+          "description": "호텔 바로 옆이라 체크아웃 후에 산책하듯 가볍게 구경하기 좋아요.",
+          "location": "덴덴타운 (Nipponbashi Den Den Town)",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "도보",
+          "transportDuration": null
+        },
+        {
+          "order": 2,
+          "category": "meal",
+          "title": "마지막 라멘 식사",
+          "description": "진한 국물 요리로 든든하게 배를 채우고 공항으로 가시면 돼요.",
+          "location": "근처 라멘집",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "도보",
+          "transportDuration": null
+        },
+        {
+          "order": 3,
+          "category": "transport",
+          "title": "공항으로 이동",
+          "description": "열차를 타고 공항으로 가셔서 출국을 준비하시면 돼요.",
+          "location": "간사이 국제공항",
+          "startTime": null,
+          "durationMinutes": null,
+          "estimatedCostKrw": null,
+          "estimatedCostNote": null,
+          "transportMode": "지하철",
+          "transportDuration": null
+        }
+      ]
+    }
+  ]
+}

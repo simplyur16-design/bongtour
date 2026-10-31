@@ -30008,6 +30008,75 @@
           ]
         }
       ]
+    },
+    {
+      "id": "fit-free-day-tone-1031",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "톤 1031(사장님 지시·문과장 검수): 자유여행 추천일정·패키지 자유일정 날 — 실장 말투 3~4문장, 금지어·숙소 위치 규칙, 요약 2문장 자르기·'…를 둘러봅니다' 템플릿 덮어쓰기 금지, dayCityKey 코드 권역 표, 사진 키워드 식당 제외, 제목 '추천일정 1day · 장소·장소'",
+      "checks": [
+        {
+          "file": "lib/bongtour-free-day-voice-block.ts",
+          "mustInclude": [
+            "export const BONGTOUR_FREE_DAY_VOICE_BLOCK",
+            "숙소 위치를 모르면 숙소 근처라고 말하지 않습니다",
+            "빠질 수 없는, 피로가 싹"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-generate-for-product.ts",
+          "mustInclude": [
+            "${BONGTOUR_FREE_DAY_VOICE_BLOCK}",
+            "일차 summary: 3~4문장",
+            "withCodeResolvedDayCityKeys(parsed, product.cityKey)"
+          ],
+          "mustNotInclude": [
+            "summary(정확히 2문장 한국어)",
+            "day.dayCityKey || product.cityKey"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-gemini-parse.ts",
+          "mustInclude": [
+            "preserveFitDaySummary(day.summary"
+          ],
+          "mustNotInclude": [
+            "ensureFitDaySummaryTwoSentences("
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "preserveFitDaySummary("
+          ],
+          "mustNotInclude": [
+            "ensureFitDaySummaryTwoSentences("
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-day-city-key.ts",
+          "mustInclude": [
+            "export function resolveFitDayCityKey",
+            "cityKey: 'kyoto'"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-pick-day-image-keyword.ts",
+          "mustNotInclude": [
+            "act.category !== 'meal' && act.category !== 'shopping'"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-image-keyword-gemini-fill.ts",
+          "mustInclude": [
+            "export function buildRegisterFreeDayRecommendedTitle",
+            "${BONGTOUR_FREE_DAY_VOICE_BLOCK}",
+            "const description = geminiSummary"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -30517,6 +30586,17 @@
       "summary": "round3-1031 제목·요약·키워드·사진 제외·사람 필터 단위 테스트",
       "files": [
         "lib/register-parse-round3-1031.test.ts"
+      ]
+    },
+    {
+      "id": "fit-free-day-tone-1031-suite",
+      "tier": [
+        "ci"
+      ],
+      "summary": "톤 1031 저장 경로 증명(샘플 문장 그대로 저장·D2 kyoto·mt-0240 D2 제목 새 형식·추천일정 검사 통과)",
+      "files": [
+        "lib/tone-1031-save-path.test.ts",
+        "lib/fit-itinerary-prompt.test.ts"
       ]
     }
   ]
