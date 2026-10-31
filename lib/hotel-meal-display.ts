@@ -129,6 +129,20 @@ export function isExplicitNoHotelDayText(raw: string | null | undefined): boolea
 }
 
 /**
+ * no-hotel-day-render-model-1031 (fix A): 상품 상세 렌더 모델의 일차 hotelText.
+ * 무숙박 판단은 scrub **전** 원문으로 한다. 기내박·숙박 없음(귀국) 등은 scrub 이 null 로 지워
+ * formatScheduleDayHotelLine 의 무숙박 검사가 못 보고 상품 대표 호텔로 폴백했으므로,
+ * 무숙박 명시 원문은 그대로 남긴다(화면에는 formatScheduleDayHotelLine 이 null → 숙소 줄 숨김).
+ * 그 밖의 문구는 기존 그대로 scrubPublicHotelDisplayLine 결과.
+ */
+export function resolvePublicScheduleDayHotelText(raw: string | null | undefined): string | null {
+  const t = String(raw ?? '').trim()
+  if (!t) return null
+  if (isExplicitNoHotelDayText(t)) return t
+  return scrubPublicHotelDisplayLine(t) ?? null
+}
+
+/**
  * 일정 day 카드용: dayHotelText 우선, 없으면 상품 호텔만 formatHotelDisplay(day 제외).
  * 마지막 일차가 귀국 도착인데 dayHotelText가 비었으면 상품 hotelNames 폴백을 쓰지 않는다.
  */

@@ -26657,14 +26657,16 @@
             "REGRESSION-FREEZE[public-hotel-display-scrub]",
             "scrubPublicHotelDisplayLine",
             "no-hotel-day-display-1031",
-            "isExplicitNoHotelDayText"
+            "isExplicitNoHotelDayText",
+            "resolvePublicScheduleDayHotelText"
           ]
         },
         {
           "file": "lib/product-public-detail/build-render-model.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[public-hotel-display-scrub]",
-            "scrubPublicHotelDisplayLine"
+            "scrubPublicHotelDisplayLine",
+            "resolvePublicScheduleDayHotelText"
           ]
         },
         {
@@ -26677,6 +26679,7 @@
       ],
       "vitestSuites": [
         "lib/hotel-meal-display-no-hotel-day.test.ts",
+        "lib/hotel-meal-display-render-model-no-hotel-day.test.ts",
         "lib/public-hotel-display-ssot.test.ts"
       ]
     },

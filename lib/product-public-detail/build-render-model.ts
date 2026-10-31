@@ -7,6 +7,7 @@ import { scrubKrDepartureFromPlaceLabel } from '@/lib/bongtour-product-display-t
 import { resolveDisplayLocalDepartureTags } from '@/lib/local-departure-display-prefix'
 import { scrubPublicHotelDisplayLine, scrubPublicHotelNameList } from '@/lib/public-hotel-display-ssot'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
+import { resolvePublicScheduleDayHotelText } from '@/lib/hotel-meal-display'
 import { assertNoInternalMetaLeak } from '@/lib/public-response-guard'
 import {
   sanitizeFlightStructuredBodyForPublic,
@@ -328,10 +329,10 @@ export async function buildProductPublicDetailRenderModel(
             ...s,
             city: iday?.city?.trim() || null,
             // REGRESSION-FREEZE[public-hotel-display-scrub]: schedule hotelText scrub — manifest
-            hotelText:
-              scrubPublicHotelDisplayLine(
-                coalesceItineraryOrScheduleText(iday?.hotelText, s.hotelText),
-              ) ?? null,
+            // no-hotel-day-render-model-1031: 무숙박(기내박·숙박 없음) 판단은 scrub 전 원문, 그 외는 scrubPublicHotelDisplayLine
+            hotelText: resolvePublicScheduleDayHotelText(
+              coalesceItineraryOrScheduleText(iday?.hotelText, s.hotelText),
+            ),
             breakfastText: coalesceItineraryOrScheduleText(iday?.breakfastText, s.breakfastText),
             lunchText: coalesceItineraryOrScheduleText(iday?.lunchText, s.lunchText),
             dinnerText: coalesceItineraryOrScheduleText(iday?.dinnerText, s.dinnerText),
