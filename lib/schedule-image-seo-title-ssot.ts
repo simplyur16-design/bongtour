@@ -54,7 +54,10 @@ function pickKoreanRoutePlace(routeText: string | null | undefined): string | nu
     .map((s) => stripPlaceParens(s))
     .filter((s) => s.length >= 2 && /[가-힣]{2,}/.test(s) && !isPollutedScheduleImageSeoTitle(s))
   if (ko.length === 0) return null
-  const specific = ko.find((s) => s.length >= 3)
+  // display-text-fix-1031: route 정리가 이제 「삿포로·카이로」 끝 로를 자르지 않음 — 캡션 선택(길이 판정)은
+  // 예전 절단 길이 기준 그대로 유지해 day-label-keep-selection-1031 선택을 바꾸지 않는다.
+  const legacySelectLen = (s: string) => (s.length >= 3 && s.endsWith('로') ? s.length - 1 : s.length)
+  const specific = ko.find((s) => legacySelectLen(s) >= 3)
   const picked = specific || ko[0]!
   // day-label-keep-selection-1031: 선택(인덱스)은 기존 그대로, 표시만 잘린 「로」 끝 지명을 원래 이름으로 복원
   return restoreRoEndingPlaceName(picked, routeText).slice(0, SCHEDULE_IMAGE_SEO_TITLE_MAX)
@@ -76,7 +79,9 @@ export function restoreRoEndingPlaceName(picked: string, routeText: string | nul
   const sources = new Set<string>()
   for (const raw of rawSegs) {
     const labels = filterRegisterScheduleRoutePlaceSegments([raw]).map((s) => stripPlaceParens(s))
-    if (labels.includes(picked)) sources.add(String(raw).replace(/\s+/g, ' ').trim())
+    // display-text-fix-1031: 정리 단계가 이미 원래 이름(카이로)을 남긴 구간도 같은 원래 구간으로 본다
+    const pickedOrUncut = labels.includes(picked) || labels.includes(`${picked}로`)
+    if (pickedOrUncut) sources.add(String(raw).replace(/\s+/g, ' ').trim())
   }
   if (sources.size !== 1) return picked
   const original = [...sources][0]!
