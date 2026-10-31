@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { TravelProduct, ScheduleDay } from '@/app/components/travel/TravelProductDetail'
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
@@ -88,6 +88,10 @@ export function ItineraryViewPackageMain({
   const totalDays = schedule.length
   const pageCount = totalDays > 0 ? Math.ceil(totalDays / pageSize) : 0
   const [activePage, setActivePage] = useState<number | 'all'>(1)
+  /** '일정 상세보기' — 펼친 뒤 1일차로 부드럽게 이동 */
+  const [pendingDetailScroll, setPendingDetailScroll] = useState(false)
+  const dayTabsBarRef = useRef<HTMLDivElement | null>(null)
+  const firstDaySectionRef = useRef<HTMLElement | null>(null)
 
   const mustKnowFiltered = useMemo(
     () =>
@@ -153,6 +157,27 @@ export function ItineraryViewPackageMain({
     return max
   }, [schedule])
 
+  useEffect(() => {
+    if (!pendingDetailScroll) return
+    const raf = window.requestAnimationFrame(() => {
+      setPendingDetailScroll(false)
+      const target = firstDaySectionRef.current
+      if (!target) return
+      const bar = dayTabsBarRef.current
+      const barBottom = bar ? bar.getBoundingClientRect().bottom : 0
+      const offset = Math.max(barBottom, 0) + 12
+      const top = target.getBoundingClientRect().top + window.scrollY - offset
+      window.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' })
+    })
+    return () => window.cancelAnimationFrame(raf)
+  }, [pendingDetailScroll, visibleSchedule])
+
+  const openDetailFromDayOne = () => {
+    // 접혀 있으면(페이지 보기) 전체 펼친 뒤 1일차로 이동
+    if (activePage !== 'all') setActivePage('all')
+    setPendingDetailScroll(true)
+  }
+
   return (
     <div className="space-y-10 min-w-0">
       <ProductHighlightPointsSection
@@ -163,7 +188,7 @@ export function ItineraryViewPackageMain({
       <ItineraryExtraInfoBoxes product={extraProduct} section="top" />
 
       {totalDays > 0 ? (
-        <div className="sticky top-[72px] sm:top-20 z-10 -mx-1 bg-[#FAFAFC]/95 backdrop-blur-sm border-b border-[#DAD4EE] py-3">
+        <div ref={dayTabsBarRef} className="sticky top-[72px] sm:top-20 z-10 -mx-1 bg-[#FAFAFC]/95 backdrop-blur-sm border-b border-[#DAD4EE] py-3">
           <div className="flex items-center gap-2 overflow-x-auto">
             <span className="text-sm text-[#888780] font-medium whitespace-nowrap mr-2">전체 {totalDays}일</span>
             {Array.from({ length: pageCount }, (_, i) => {
@@ -196,6 +221,13 @@ export function ItineraryViewPackageMain({
             >
               전체 일정 펼치기
             </button>
+            <button
+              type="button"
+              onClick={openDetailFromDayOne}
+              className="px-5 py-2 rounded-full text-sm whitespace-nowrap transition bg-[#FAEED4] fit-tx-price hover:bg-[#F5E5B8] font-semibold"
+            >
+              일정 상세보기
+            </button>
           </div>
         </div>
       ) : null}
@@ -215,7 +247,11 @@ export function ItineraryViewPackageMain({
             const dayNum = Math.floor(Number(sd.day))
 
             return (
-              <section key={`${day.day}-${idx}`} className="space-y-4 scroll-mt-28">
+              <section
+                key={`${day.day}-${idx}`}
+                ref={idx === 0 ? firstDaySectionRef : undefined}
+                className="space-y-4 scroll-mt-28"
+              >
                 <div className="border-b border-[#DAD4EE] pb-4">
                   <p className="text-xs font-bold tracking-widest fit-tx-gold mb-1">DAY {day.day}</p>
                   <h3 className="text-2xl md:text-3xl font-black fit-tx-primary mb-2">
