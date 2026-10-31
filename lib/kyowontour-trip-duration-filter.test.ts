@@ -118,6 +118,17 @@ describe('collectKyowontourCalendarRange — CTP221 실제 응답', () => {
     warn.mockRestore()
   })
 
+  it('상품 기간이 응답 어디에도 없음(5박6일): 0건 + durationAllMismatch — 판매종료로 보지 않게', async () => {
+    const r = await collectKyowontourCalendarRange('CTP221', {
+      ...OPTS,
+      expectedTripDuration: { nights: 5, days: 6 },
+    })
+    expect(r.rows).toHaveLength(0)
+    expect(r.meta.durationAllMismatch).toBe(true)
+    expect(r.meta.e2eAttempted).toBe(false)
+    expect(r.warnings.some((w) => w.includes('상품 기간값 의심'))).toBe(true)
+  })
+
   it('가격을 만들지 않음: 남은 행 가격은 모두 응답 adultPrice 그대로', async () => {
     const r = await collectKyowontourCalendarRange('CTP221', {
       ...OPTS,

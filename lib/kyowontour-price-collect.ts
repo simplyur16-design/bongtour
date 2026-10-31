@@ -196,7 +196,8 @@ export async function collectKyowontourPriceInputsWithE2eFallback(
     meta,
     warnings,
   )
-  const horizonSoldOut = mappedResult.inputs.length === 0 && meta.e2eAttempted
+  // 전부 다른 기간이라 0건이면 판매종료가 아님(상품 기간값 의심) — 지우지 않음
+  const horizonSoldOut = mappedResult.inputs.length === 0 && meta.e2eAttempted && !meta.durationAllMismatch
 
   return {
     ...mappedResult,

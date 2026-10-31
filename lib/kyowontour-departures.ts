@@ -28,6 +28,8 @@ const execFileAsync = promisify(execFile)
 const KYOWONTOUR_CALENDAR_PY_MODULE = 'scripts.calendar_e2e_scraper_kyowontour.calendar_price_scraper'
 
 export type KyowontourCalendarCollectMeta = {
+  /** 상품 기간을 아는데 응답 출발이 전부 다른 기간(dN)이라 0건 — 상품 기간값 의심. 판매종료로 보지 말 것 */
+  durationAllMismatch?: boolean
   e2eAttempted: boolean
   collectSource: 'ajax' | 'e2e' | null
 }
@@ -579,8 +581,16 @@ export async function collectKyowontourCalendarRange(
   let e2eAttempted = false
 
   const e2eTour = (options?.tourCodeForE2EFallback ?? '').trim()
+  // 응답 출발이 전부 상품 기간과 다름(dN 불일치) — E2E 도 같은 masterCode 라 결과가 같으므로 생략
+  const ajaxAllMismatch = !!expected && rows.length === 0 && droppedOtherDuration > 0
+  if (ajaxAllMismatch) {
+    warnings.push(
+      `상품 기간값 의심: masterCode=${code} 응답 출발이 전부 상품 기간 ${formatKyowontourTripDuration(expected)} 과 다름 — E2E 폴백 생략(판매종료로 보지 않음)`,
+    )
+  }
   if (
     rows.length === 0 &&
+    !ajaxAllMismatch &&
     e2eTour &&
     !options?.disableE2EFallback &&
     kyowontourE2eFallbackEnabled()
@@ -625,7 +635,15 @@ export async function collectKyowontourCalendarRange(
   }
 
   durationNote()
-  return { rows, warnings, meta: { e2eAttempted, collectSource: rows.length > 0 ? collectSource : null } }
+  return {
+    rows,
+    warnings,
+    meta: {
+      e2eAttempted,
+      collectSource: rows.length > 0 ? collectSource : null,
+      durationAllMismatch: !!expected && rows.length === 0 && droppedOtherDuration > 0,
+    },
+  }
 }
 
 function titleLayersFromTourCode(tourCode: string): DepartureTitleLayers {
