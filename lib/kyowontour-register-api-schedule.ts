@@ -2,6 +2,7 @@
  * 교원이지(kyowontour) 등록 일정 표현 SSOT — routeText(a–g ` - `) · description(공급사 문장 우선, 없으면 route 명소 2~3문장).
  * REGRESSION-FREEZE[kyowontour-schedule-expression]: routeText·description vibe — manifest
  */
+import { registerScheduleHotelTextFromFactHotels } from '@/lib/register-schedule-hotel-inflight'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-kyowontour'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
@@ -102,7 +103,7 @@ export function kyowontourFactDaysToRegisterSchedule(days: RegisterFactScheduleD
       routeText,
       imageKeyword: '',
       imageKeyword2: null,
-      hotelText: d.hotels.length > 0 ? d.hotels.join(' / ') : null,
+      hotelText: registerScheduleHotelTextFromFactHotels(d.hotels),
       breakfastText: meals.breakfastText ?? null,
       lunchText: meals.lunchText ?? null,
       dinnerText: meals.dinnerText ?? null,

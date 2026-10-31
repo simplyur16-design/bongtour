@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[hanatour-register-detail-collect]: getPkgProdInfo·getPkgProdItnrInfo·getPkgProdChcStsngInfo 매핑 — manifest
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: description vibe-only — manifest
  */
+import { registerScheduleHotelTextFromFactHotels } from '@/lib/register-schedule-hotel-inflight'
 import {
   fetchHanatourPkgProdInfo,
   hanatourDepartureAirportLabelFromCodes,
@@ -499,7 +500,7 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
     const description =
       composeHanatourScheduleVibeDescription(d, maxDay, highlights) ||
       `${d.day}일차`
-    const hotelText = d.hotels.length > 0 ? d.hotels.join(' / ') : null
+    const hotelText = registerScheduleHotelTextFromFactHotels(d.hotels)
     const meals = parseFactMealsListToScheduleFields(d.meals)
     return {
       day: d.day,

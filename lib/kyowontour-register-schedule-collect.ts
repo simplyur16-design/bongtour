@@ -4,6 +4,7 @@
  *
  * REGRESSION-FREEZE[kyowontour-tour-event-tab-opt-shop]: schedule collect mapping — manifest
  */
+import { registerScheduleHotelTextFromFactHotels } from '@/lib/register-schedule-hotel-inflight'
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-kyowontour'
 import type { KyowontourScheduleRowParsed, KyowontourScheduleTabParsed } from '@/lib/kyowontour-tour-event-tab-data'
 import { applyKyowontourScheduleImageKeywordsToRows } from '@/lib/kyowontour-schedule-image-keyword'
@@ -49,7 +50,7 @@ function buildHotelText(rows: KyowontourScheduleRowParsed[]): string | null {
     .filter((r) => r.type === '호텔' && stripScheduleNameKo(r.nameKo))
     .map((r) => stripScheduleNameKo(r.nameKo))
   if (hotels.length === 0) return null
-  return hotels.join(' / ')
+  return registerScheduleHotelTextFromFactHotels(hotels)
 }
 
 function scheduleRowsToFactDays(days: RegisterScheduleDay[]): RegisterFactScheduleDay[] {

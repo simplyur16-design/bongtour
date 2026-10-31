@@ -6,6 +6,7 @@
  * REGRESSION-FREEZE[lottetour-register-detail-collect]: parseLottetourScheduleDaysFromScheduleAjax — manifest
  * REGRESSION-FREEZE[register-schedule-terms-penalty-not-place]: 위약금·특약 절 ≠ day 지명 — manifest
  */
+import { registerScheduleHotelTextFromFactHotels } from '@/lib/register-schedule-hotel-inflight'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-lottetour'
 import { stripCounselingTermsFromScheduleRow } from '@/lib/itinerary-counseling-terms-strip'
@@ -686,7 +687,7 @@ export function lottetourFactDaysToRegisterSchedule(days: RegisterFactScheduleDa
       routeText,
       imageKeyword: '',
       imageKeyword2: null,
-      hotelText: d.hotels.length > 0 ? d.hotels.join(' / ') : null,
+      hotelText: registerScheduleHotelTextFromFactHotels(d.hotels),
       breakfastText: meals.breakfastText ?? null,
       lunchText: meals.lunchText ?? null,
       dinnerText: meals.dinnerText ?? null,

@@ -5,6 +5,10 @@
  * REGRESSION-FREEZE[modetour-register-api-schedule]: modetourFactDaysToRegisterSchedule — manifest
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: description vibe-only — manifest
  */
+import {
+  REGISTER_SCHEDULE_INFLIGHT_NO_HOTEL_TEXT,
+  registerScheduleTextMentionsInFlightNight,
+} from '@/lib/register-schedule-hotel-inflight'
 import { classifyModetourScheduleCardDayKind } from '@/lib/modetour-schedule-image-keyword'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 import {
@@ -303,7 +307,10 @@ export function normalizeModetourScheduleHotelText(
 ): string | null {
   const t = stripScheduleLabel(stripModetourInlineHtml(String(raw ?? '')))
   if (!t) return null
-  if (/기내박/.test(t)) return '기내박'
+  // REGRESSION-FREEZE[register-schedule-hotel-inflight]: 기내박 → 숙박 없음(기내박) — manifest
+  if (registerScheduleTextMentionsInFlightNight(t) && !/호텔|hotel|resort|리조트|투숙/iu.test(t)) {
+    return REGISTER_SCHEDULE_INFLIGHT_NO_HOTEL_TEXT
+  }
   if (MODETOUR_PLACEHOLDER_HOTEL_RE.test(t)) {
     const hint = extractModetourResortHintFromProductTitle(opts?.productTitle)
     return hint ? `${hint}(출발 전 확정)` : '예정 호텔(출발 전 확정)'

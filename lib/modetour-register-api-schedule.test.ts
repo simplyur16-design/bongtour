@@ -39,7 +39,7 @@ describe('modetour register api schedule', () => {
     expect(days[0]?.title).toMatch(/인천/)
     expect(days[0]?.title).not.toMatch(/준비사항|수하물/)
     expect(days[0]?.description).not.toMatch(/출발 3시간|탑승권/)
-    expect(days[0]?.hotelText).toBe('기내박')
+    expect(days[0]?.hotelText).toBe('숙박 없음(기내박)')
     expect(days[1]?.title).toMatch(/스피드\s*보트|몰디브/)
     expect(days[1]?.description).not.toMatch(/▶|홈페이지/)
     expect(days[1]?.description).not.toBe(days[1]?.routeText)

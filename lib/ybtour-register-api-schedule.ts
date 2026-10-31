@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[ybtour-register-api-schedule-tm-html-strip]: papi tmContent HTML strip — manifest
  * REGRESSION-FREEZE[register-schedule-description-vibe-ssot]: description vibe-only — manifest
  */
+import { registerScheduleHotelTextFromFactHotels } from '@/lib/register-schedule-hotel-inflight'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-ybtour'
 import { classifyYbtourScheduleCardDayKind } from '@/lib/ybtour-schedule-image-keyword'
@@ -414,7 +415,7 @@ export function ybtourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]
       routeText,
       imageKeyword: '',
       imageKeyword2: null,
-      hotelText: d.hotels.length > 0 ? d.hotels.join(' / ') : null,
+      hotelText: registerScheduleHotelTextFromFactHotels(d.hotels),
       breakfastText: meals.breakfastText ?? null,
       lunchText: meals.lunchText ?? null,
       dinnerText: meals.dinnerText ?? null,
