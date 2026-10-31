@@ -127,3 +127,16 @@ describe('photoMatchGate — 사람이 주인공인 사진만 탈락 (사장님 
     expect(g('Close up of a woman face Macau', mo)).toBe('person')
   })
 })
+
+describe('dayPlaceTerms — 한글 지명 낱말 일치', () => {
+  it("'사파리'의 '파리', 귀국 일차 '부산'은 장소로 보지 않는다", async () => {
+    const { dayPlaceTerms } = await import('@/lib/register-photo-match-gate')
+    const t = dayPlaceTerms({ placeTerms: [], destinationTerms: ['다낭', 'Da Nang'], slotText: '', slot: 'day', daySummary: '빈원더스 남호이안에서 사파리 투어를 즐기며' })
+    expect(t).not.toContain('paris')
+    const r = dayPlaceTerms({ placeTerms: [], destinationTerms: ['발리', 'Bali'], slotText: '', slot: 'day', daySummary: '추억을 안고 부산으로 귀국' })
+    expect(r).not.toContain('busan')
+    const o = dayPlaceTerms({ placeTerms: [], destinationTerms: ['삿포로'], slotText: '', slot: 'day', daySummary: '오타루와 오타루운하를 둘러봅니다' })
+    expect(o).toContain('otaru')
+    expect(o).not.toContain('sapporo')
+  })
+})

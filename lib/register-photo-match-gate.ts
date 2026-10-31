@@ -252,20 +252,41 @@ export function placeHit(text: string, label: string, valuesIn: Array<string | n
  *  - 일차 키워드·목적지는 그 안의 도시명이 요약에 있을 때만(도시명이 없는 명소 키워드 'Grand World' 는 그대로)
  *  - 예: 오타루 일차(삿포로 상품) → otaru 만, 'Sapporo brewery' 는 no_place_match
  */
+const KO_PARTICLE_RE = /^(와|과|의|에|를|을|은|는|이|가|로|으로|에서|까지|도|만|및|행|발|시내|항|역|공항)?$/
+/** 한글 지명이 낱말로 있나 — '사파리'의 '파리', '세부 일정'의 '세부' 같은 속 글자 일치는 제외 */
+export function koreanPlaceInText(text: string, name: string): boolean {
+  const n = name.replace(/\s+/g, '')
+  if (!n) return false
+  for (const tok of text.split(/[^가-힣a-z0-9]+/)) {
+    if (!tok.startsWith(n)) continue
+    const rest = tok.slice(n.length)
+    if (KO_PARTICLE_RE.test(rest)) return true
+    // 3자 이상 지명은 뒤에 명소 이름이 붙어도 인정('오타루운하'·'오사카성')
+    if (n.length >= 3) return true
+  }
+  return false
+}
+/** 귀국·출발 일차에 나오는 한국 도시는 해외 상품 일차 장소로 보지 않음 */
+const HOME_KEYS = new Set(['seoul', 'busan'])
+
 export function dayPlaceTerms(ctx: MatchGateContext): string[] {
   const summary = low(ctx.daySummary).trim()
   if (!summary) return []
-  const compact = summary.replace(/\s+/g, '')
   const out = new Set<string>()
-  for (const v of expandPlaceValues([summary])) if (v !== summary) out.add(v)
+  const destHay = low(ctx.destinationTerms.join(' '))
+  const homeOk = (key: string) => !HOME_KEYS.has(key) || (PLACE_NAMES[key] ?? []).some((n) => destHay.includes(n))
+  for (const [key, names] of Object.entries(PLACE_NAMES)) {
+    if (!homeOk(key)) continue
+    const hit = names.some((n) => (/[가-힣]/.test(n) ? koreanPlaceInText(summary, n) : padded(summary).includes(` ${n} `)))
+    if (hit) { out.add(key); for (const n of names) if (!/[가-힣]/.test(n)) out.add(n) }
+  }
   const cityKeysIn = (v: string) => Object.entries(PLACE_NAMES).filter(([, names]) => names.some((n) => !/[가-힣]/.test(n) && padded(v).includes(` ${n} `))).map(([k]) => k)
-  const inSummary = (key: string) => out.has(key) || (PLACE_NAMES[key] ?? []).some((n) => /[가-힣]/.test(n) && compact.includes(n.replace(/\s+/g, '')))
+  const inSummary = (key: string) => out.has(key)
   for (const raw of [...ctx.placeTerms, ...ctx.destinationTerms]) {
     const v = low(raw).trim()
     if (!v) continue
     if (/[가-힣]/.test(v)) {
-      const k = v.replace(/\s+/g, '')
-      if (k.length >= 2 && compact.includes(k)) out.add(v)
+      if (v.replace(/\s+/g, '').length >= 2 && koreanPlaceInText(summary, v)) out.add(v)
       continue
     }
     const keys = cityKeysIn(v)
