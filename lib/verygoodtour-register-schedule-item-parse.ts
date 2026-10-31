@@ -117,8 +117,11 @@ export function parseVerygoodScheduleRowsFromDetailHtml(html: string): RegisterS
     rawRows.push({
       day: tripDays,
       title: '인천',
-      description: returnHead ?? '쿠알라룸푸르 - 인천',
-      routeText: joinVerygoodtourScheduleRouteText(['쿠알라룸푸르', '인천']),
+      // REGRESSION-FREEZE[display-text-fix-1031]: 귀국일 패널 없음 — 원문에 없는 쿠알라룸푸르 하드코딩 금지 — manifest
+      description: returnHead ?? '',
+      routeText: returnHead
+        ? joinVerygoodtourScheduleRouteText(returnHead.split(/\s*-\s*/).filter(Boolean))
+        : joinVerygoodtourScheduleRouteText(['인천']),
       dateText: null,
       hotelText: null,
       imageKeyword: '',

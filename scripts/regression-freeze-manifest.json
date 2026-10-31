@@ -29652,6 +29652,62 @@
           ]
         }
       ]
+    },
+    {
+      "id": "display-text-fix-1031",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일정 title·routeText — 공지·요금·객실·문장조각 noise, 로 끝 지명(삿포로·카이로) 절단 금지, verygoodtour 귀국일 쿠알라룸푸르 하드코딩 금지, 스위스벨·이태리풍경구 dest/country 오탐 금지",
+      "checks": [
+        {
+          "file": "lib/register-schedule-route-place-noise.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[display-text-fix-1031]",
+            "isRegisterScheduleNoticeOrFragmentRouteLabel",
+            "ROUTE_RO_ENDING_PLACE_RE",
+            "삿포로|카이로|상파울로"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-day-title.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[display-text-fix-1031]",
+            "isRegisterScheduleRoutePlaceNoise",
+            "isRegisterScheduleDomesticHubRouteSegment"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-register-schedule-item-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[display-text-fix-1031]"
+          ],
+          "mustNotInclude": [
+            "'쿠알라룸푸르 - 인천'"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[display-text-fix-1031]",
+            "스위스(?!\\s*벨)"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-product-country-schedule-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[display-text-fix-1031]",
+            "톈진|천진"
+          ]
+        },
+        {
+          "file": "lib/register-display-text-fix-1031.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[display-text-fix-1031]"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -30131,6 +30187,16 @@
         "lib/register-schedule-route-text-preserve.test.ts",
         "lib/register-photo-subject-filter.test.ts",
         "lib/register-auto-register-review-pass.test.ts"
+      ]
+    },
+    {
+      "id": "display-text-fix-1031",
+      "tier": [
+        "ci"
+      ],
+      "summary": "일정 표시 텍스트 noise·로 절단·KL 하드코딩·dest 오탐",
+      "files": [
+        "lib/register-display-text-fix-1031.test.ts"
       ]
     }
   ]

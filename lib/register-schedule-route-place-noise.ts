@@ -42,9 +42,39 @@ const ROUTE_AIRLINE_SEGMENT_RE =
   /^에어[\uAC00-\uD7AF]{1,12}(?:\s*항공)?$|^대한\s*항공$|^아시아나(?:\s*항공)?$|^제주\s*항공$|^진\s*에어$|^티\s*웨이(?:\s*항공)?$|^이스타(?:\s*항공)?$|^에어부산$|^에어\s*프(?:레미아|리미아)(?:\s*항공)?$|^air\s*premia(?:\s*air)?$/iu
 
 const ROUTE_PLACE_LABEL_TRIM_SUFFIX_RE =
-  /(?:으로\s*이동|으로?\s*출발|으로?\s*귀국|방문|관광|투어|탐방|체험|승차|하차|탑승|도착|출발|미팅|피켓|조식\s*후|중식\s*후|석식\s*후|시내\s*관광|이동\s*후\s*호텔\s*투숙|호텔\s*투숙|및\s*항구)$/u
+  /(?:으로\s*이동|으로?\s*출발|으로?\s*귀국|(?:으로|로)\s*복귀|방문|관광|투어|탐방|체험|승차|하차|탑승|도착|출발|미팅|피켓|조식\s*후|중식\s*후|석식\s*후|시내\s*관광|이동\s*후\s*호텔\s*투숙|호텔\s*투숙|및\s*항구)$/u
 
 const ROUTE_CMS_ASSET_SUFFIX_RE = /-\d{5,}$/i
+
+// REGRESSION-FREEZE[display-text-fix-1031]: 끝 글자가 「로」인 지명 — 조사 로 strip 금지 — manifest
+const ROUTE_RO_ENDING_PLACE_RE = /(?:삿포로|카이로|상파울로|몬테네그로|파로)$/u
+
+/** bare `…로`(이동 없음)는 앞말이 장소 접미사일 때만 조사로 본다 (옛도시로 → 옛도시, 삿포로 유지) */
+const ROUTE_RO_PARTICLE_STEM_HINT_RE =
+  /(?:도시|시내|지역|호텔|숙소|공항|역|항|궁|성|광장|교회|성당|해변|거리|요새|박물관|수도원|사원|탑|다리|폭포|공원|왕궁|시청|온천|항구|섬|호수|마을|절|야시장)$/u
+
+/** 문장 조각 머리(…위한 / …지어진) — 꼬리 명소 단어만 남김 */
+const ROUTE_FRAGMENT_HEAD_RE = /^(?:위한|지어진|거주한|있는|의|된)\s/u
+const ROUTE_FRAGMENT_POI_END_RE =
+  /(?:궁전|궁|성당|대성당|교회|광장|요새|해변|거리|박물관|수도원|국립공원|야시장|사원|성|다리|호수|탑|공원|왕궁|시청|폭포|전망대|시장)$/u
+const ROUTE_FRAGMENT_MODIFIER_WORD_RE = /(?:는|은|던|한|된|진|낸|인|의|난|운|친|이며|있는)$/u
+
+/** `위한 꺼지지 않는 불꽃이 있는 판필로프 28인 공원` → `판필로프 28인 공원` (문자열에 있는 단어만) */
+function extractRegisterScheduleFragmentPoiTail(t: string): string | null {
+  const words = t.split(/\s+/).filter(Boolean)
+  if (words.length < 2) return null
+  const last = words[words.length - 1]!.replace(/\([^)]*\)$/u, '')
+  if (!ROUTE_FRAGMENT_POI_END_RE.test(last)) return null
+  const keep: string[] = []
+  for (let i = words.length - 1; i >= 0; i--) {
+    const w = words[i]!
+    if (keep.length > 0 && !/\d/.test(w) && ROUTE_FRAGMENT_MODIFIER_WORD_RE.test(w)) break
+    keep.unshift(w)
+    if (keep.length >= 4) break
+  }
+  const out = keep.join(' ').trim()
+  return out.length >= 2 && out !== t ? out : null
+}
 
 const ROUTE_MARKETING_EPITHET_RE =
   /(?:땅이\s*끝나고|살고싶어|최고의|휴양지|휴양도시|동화속\s*마을|발현의\s*도시|기도의\s*도시|낭만을|건국의\s*도시|아름다운|천국의|에메랄드|대항해\s*시대|세상의\s*끝|땅끝마을|의\s*도시)/u
@@ -116,6 +146,11 @@ export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
     .replace(/&aelig;|&#230;|&#xE6;/gi, 'æ')
     .replace(/&AElig;|&#198;|&#xC6;/g, 'Æ')
     .replace(/^[\s·▪▶●▷\-–—'"]+/, '')
+    // REGRESSION-FREEZE[display-text-fix-1031]: 목록 머리 `* `·`＊ ` 제거 (＊ 구채구 → 구채구) — manifest
+    .replace(/^[*＊]+\s*/u, '')
+    .replace(/[*＊]+$/u, '')
+    // 택1) 옌뜨 — 선택 관광 번호 머리만 제거
+    .replace(/^택\s*\d\s*\)\s*/u, '')
     .replace(/[''"]+$/g, '')
     .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, ' ')
     .replace(/▷|■|⭐|🌅|🚙|🚤|🔥/g, ' ')
@@ -124,6 +159,9 @@ export function cleanRegisterScheduleRoutePlaceLabel(raw: string): string {
     .replace(/\s*\/\/\s*.*$/u, ' ')
     .replace(ROUTE_CMS_ASSET_SUFFIX_RE, '')
     .replace(/\s*\(NEW\)\s*/gi, ' ')
+    // REGRESSION-FREEZE[display-text-fix-1031]: 빈 괄호 `( )` 제거 — manifest
+    .replace(/\s*\(\s*\)\s*/g, ' ')
+    .trim()
     .replace(/\s*\([A-Z]{2}\d{2,4}\)\s*/g, ' ')
     .replace(ROUTE_DURATION_INLINE_RE, '')
     .replace(ROUTE_MARKETING_PREFIX_STRIP_RE, '')
@@ -264,6 +302,11 @@ export function stripRegisterScheduleRouteSegmentLodgingSuffix(seg: string): str
 export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | null {
   const t0 = cleanRegisterScheduleRoutePlaceLabel(raw)
   if (!t0) return null
+  // REGRESSION-FREEZE[display-text-fix-1031]: 문장 조각(위한·지어진·의 …) → 꼬리 명소만, 없으면 거부 — manifest
+  if (ROUTE_FRAGMENT_HEAD_RE.test(t0)) {
+    const tail = extractRegisterScheduleFragmentPoiTail(t0)
+    return tail && !isRegisterScheduleRoutePlaceNoise(tail) ? tail.slice(0, 48) : null
+  }
   // 산문 덤프 전체가 noise여도 「…이라 불리는 쉔부른궁전」꼬리는 살린다
   if (isRegisterScheduleRoutePlaceNoise(t0)) {
     const fromProseDespiteNoise = extractRegisterScheduleProseRoutePlaceTail(t0)
@@ -317,9 +360,18 @@ export function extractRegisterScheduleRoutePlaceLabel(raw: string): string | nu
   }
 
   // `호이안 옛도시로 이동` / `호이안 옛도시로` — 조사 로/으로 (도시로 오절단 방지: 캡처 후 재귀)
-  const moveParticle = t0.match(/^(.{2,40}?)(?:으로|로)(?:\s*이동)?$/u)
+  // REGRESSION-FREEZE[display-text-fix-1031]: 삿포로·카이로·상파울로 끝 글자 「로」는 조사가 아님 — manifest
+  const moveParticle = t0.match(/^(.{2,40}?)(으로|로)(\s*이동)?$/u)
   if (moveParticle?.[1]) {
-    return extractRegisterScheduleRoutePlaceLabel(moveParticle[1].trim())
+    const stem = moveParticle[1].trim()
+    const particle = moveParticle[2]
+    const explicitMove = Boolean(moveParticle[3])
+    if (particle === '로' && ROUTE_RO_ENDING_PLACE_RE.test(`${stem}로`)) {
+      // `삿포로 이동` → 삿포로 · `삿포로` / `올드 카이로` → 그대로 (아래 계속)
+      if (explicitMove) return extractRegisterScheduleRoutePlaceLabel(`${stem}로`)
+    } else if (particle === '으로' || explicitMove || ROUTE_RO_PARTICLE_STEM_HINT_RE.test(stem)) {
+      return extractRegisterScheduleRoutePlaceLabel(stem)
+    }
   }
 
   const fairyVillage = t0.match(/동화속\s*마을\s+(.+)$/u)
@@ -558,6 +610,31 @@ export function isRegisterScheduleRoutePlaceNoise(label: string): boolean {
     return true
   }
   if (/^전문\s*대가$|^전문대가$/u.test(t)) return true
+  // REGRESSION-FREEZE[display-text-fix-1031]: 공지·요금·객실·세관·문장 조각 ≠ 지명 — manifest
+  if (isRegisterScheduleNoticeOrFragmentRouteLabel(t)) return true
+  return false
+}
+
+/**
+ * 공급사 일정 카드에 섞인 공지(전자담배·보호자 입국)·요금(000원/인)·객실(3인/1실)·세관(재 반출)·
+ * 안내 문장(…니다.)·목록 조각(`* 12시경`, `( 간혹`, `1. 외국`) — 지명 슬롯 아님.
+ * REGRESSION-FREEZE[display-text-fix-1031]: notice/price/room/fragment route noise — manifest
+ */
+export function isRegisterScheduleNoticeOrFragmentRouteLabel(label: string): boolean {
+  const t = String(label ?? '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[*＊]+\s*/u, '')
+    .trim()
+  if (!t) return false
+  if (/전자\s*담배|보호자로\s*입국|할\s*경우$|관련\s*공지|결제\s*취소\s*문자|안전\s*수칙|(?:어플|앱)\s*다운로드|환승\s*방법|입국\s*수속\s*절차|^Customs\b/iu.test(t)) {
+    return true
+  }
+  if (/\d*,?0{3}\s*원\s*\/\s*인|^0{3}\s*원|\d\s*인\s*\/?\s*\d\s*실|^참고\s*사항$|간이\s*침대|또는\s*동급/u.test(t)) return true
+  if (/(?:니다|세요)[.!]?$/u.test(t)) return true
+  if (/^\(|^\d+\.\s/u.test(t)) return true
+  if (/^\d{1,2}\s*시\s*경|인솔자|가\s*이\s*드\s*[:：]|열차\s*편수|화장실|선택하여|^추천$|증정|전\s*객실/u.test(t)) return true
+  if (/^(?:SNS|외국|향수|세계|헬스장)$/iu.test(t)) return true
+  if (/연중\s*무휴|24\s*시간\s*이용|간식을\s*챙겨|즐거운\s*여행|재\s*반출|기내박|호스트$|밍글링/u.test(t)) return true
   return false
 }
 

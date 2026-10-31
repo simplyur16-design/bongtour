@@ -25,7 +25,8 @@ export const PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE: Readonly<Record<string, RegEx
   philippines:
     /필리핀|philippines|보라카이|boracay|(?<![가-힣])세부(?!\s*(?:일정|안내|사항|내용|정보|규정|확인|내역|설명))(?![가-힣])|cebu|칼리보|마닐라|보홀|bohol/iu,
   china:
-    /중국|china|장가계|태항|제남|보천|서안|내몽골|오르도스|청도|qingdao|베이징|상해|상하이|항주|구이린|황산|대련|연태|yantai|위해|weihai/i,
+    // REGRESSION-FREEZE[display-text-fix-1031]: 톈진(천진) = china evidence (이태리풍경구≠italy) — manifest
+    /중국|china|장가계|태항|제남|보천|서안|내몽골|오르도스|청도|qingdao|베이징|북경|톈진|천진|tianjin|상해|상하이|항주|구이린|황산|대련|연태|yantai|위해|weihai/i,
   canada:
     /캐나다|canada|나이아가라|niagara|토론토|toronto|퀘벡|quebec|몬트리올|montreal|밴쿠버|vancouver|옐로나이프|yellowknife|오로라\s*빌리지/i,
   'united-states':
@@ -39,7 +40,7 @@ export const PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE: Readonly<Record<string, RegEx
   austria: /오스트리아|austria|비엔나|vienna|잘츠|할슈타트|hallstatt|쇤브룬/i,
   hungary: /헝가리|hungary|부다페스트|budapest/i,
   turkey: /터키|튀르키예|turkey|이스탄불|istanbul|카파도키아|파묵칼레|에페소|안탈리아|에게/i,
-  italy: /이탈리아|이태리|italy|로마|\brome\b|베니스|피렌체|시칠리아|밀라노|콜로세움|colosseum|카타니아|팔레르모|타오르미나|아그리젠토|시라쿠사|몰타|\bmalta\b/i,
+  italy: /이탈리아(?!\s*풍)|이태리(?!\s*풍)|italy|로마|\brome\b|베니스|피렌체|시칠리아|밀라노|콜로세움|colosseum|카타니아|팔레르모|타오르미나|아그리젠토|시라쿠사|몰타|\bmalta\b/i,
   spain: /스페인|spain|마드리드|madrid|바르셀로나|barcelona|세비야|그라나다|톨레도|알람브라/i,
   portugal: /포르투갈|portugal|리스본|lisbon|파티마|fatima|포르투(?!\s*유럽)/i,
   japan:
@@ -57,7 +58,7 @@ export const PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE: Readonly<Record<string, RegEx
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 사파리·마이파리≠파리 country evidence — manifest
   france: /프랑스|france|(?<![가-힣])파리(?![가-힣])|paris|(?<![가-힣])니스(?![가-힣])|프로방스|마르세유|몽생미셸|보르도|bordeaux/iu,
   germany: /독일|germany|프랑크푸르트|뮌헨|베를린|쾰른|하이델베르크/i,
-  switzerland: /스위스|switzerland|인터라켄|루체른|취리히|체르마트|융프라우/i,
+  switzerland: /스위스(?!\s*벨)|switzerland|인터라켄|루체른|취리히|체르마트|융프라우/i,
   'united-kingdom': /영국|britain|\buk\b|런던|london|에딘버러|스톤헨지/i,
   greece: /그리스|greece|아테네|athens|산토리니|미코노스|에게/i,
   iceland: /아이슬란드|iceland|레이캬비크|블루라군|요쿨살론/i,
@@ -98,7 +99,7 @@ const STRONG_OTHER_COUNTRY_HINTS: ReadonlyArray<{ key: string; re: RegExp }> = [
     key: 'philippines',
     re: /필리핀|보라카이|(?<![가-힣])세부(?!\s*(?:일정|안내|사항|내용|정보|규정|확인|내역|설명))(?![가-힣])|보홀|boracay|cebu/iu,
   },
-  { key: 'china', re: /장가계|태항|제남|보천|서안|내몽골|오르도스|청도|베이징|상해|연태|yantai|위해/i },
+  { key: 'china', re: /장가계|태항|제남|보천|서안|내몽골|오르도스|청도|베이징|북경|톈진|천진|상해|연태|yantai|위해/i },
   { key: 'canada', re: /캐나다|나이아가라|토론토|퀘벡|몬트리올|옐로나이프|yellowknife/i },
   { key: 'united-states', re: /미동부|뉴욕|워싱턴|하와이|센트럴\s*파크|백악관/i },
   { key: 'lithuania', re: /빌니우스|트라카이|리투아니아/i },
@@ -109,14 +110,15 @@ const STRONG_OTHER_COUNTRY_HINTS: ReadonlyArray<{ key: string; re: RegExp }> = [
   { key: 'hungary', re: /부다페스트|헝가리/i },
   { key: 'turkey', re: /이스탄불|카파도키아|파묵칼레|에페소|안탈리아|튀르키예|튀르키|터키|istanbul|cappadocia|pamukkale/i },
   { key: 'greece', re: /그리스|greece|아테네|athens|(?<!작은\s)산토리니|미코노스|메테오라|meteora|(?<![가-힣])에게(?![가-힣])/i },
-  { key: 'italy', re: /로마|베니스|피렌체|시칠리아|이탈리아|이태리|콜로세움/i },
+  // REGRESSION-FREEZE[display-text-fix-1031]: 톈진 이태리풍경구(이탈리아 풍정구) ≠ italy — manifest
+  { key: 'italy', re: /로마|베니스|피렌체|시칠리아|이탈리아(?!\s*풍)|이태리(?!\s*풍)|콜로세움/i },
   { key: 'spain', re: /마드리드|바르셀로나|세비야|그라나다|스페인/i },
   { key: 'portugal', re: /리스본|파티마|포르투갈/i },
   { key: 'japan', re: /오사카|도쿄|후쿠오카|유후인|오키나와|교토|일본|홋카이도|북해도|삿포로/i },
   { key: 'malaysia', re: /코타키나발루|쿠알라룸푸르|랑카위|말레이시아/i },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: 사파리·마이파리≠파리 country hint — manifest
   { key: 'france', re: /(?<![가-힣])파리(?![가-힣])|프로방스|(?<![가-힣])니스(?![가-힣])|마르세유|프랑스/iu },
-  { key: 'switzerland', re: /인터라켄|루체른|취리히|체르마트|스위스/i },
+  { key: 'switzerland', re: /인터라켄|루체른|취리히|체르마트|스위스(?!\s*벨)/i },
   { key: 'germany', re: /프랑크푸르트|뮌헨|독일|쾰른/i },
   { key: 'egypt', re: /이집트|카이로(?!우)|룩소르|피라미드/i },
   { key: 'iceland', re: /아이슬란드|레이캬비크|요쿨살론/i },

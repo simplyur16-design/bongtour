@@ -4,6 +4,11 @@
  * REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
  */
 
+import {
+  isRegisterScheduleDomesticHubRouteSegment,
+  isRegisterScheduleRoutePlaceNoise,
+} from '@/lib/register-schedule-route-place-noise'
+
 const TITLE_MAX_CHARS = 48
 
 function clipRegisterScheduleDayTitle(s: string, max = TITLE_MAX_CHARS): string {
@@ -34,6 +39,18 @@ function isRegisterScheduleDayTitleNoise(text: string): boolean {
   )
 }
 
+/** 자유일·리조트·무숙박 라벨 — 지명 noise여도 title로 유지 (기존 동작) */
+function isRegisterScheduleDayTitleKeepLabel(seg: string): boolean {
+  return /자유\s*(?:시간|일정|휴양)|리조트|체크\s*아웃|숙박\s*없음/u.test(seg)
+}
+
+/** 폴백 title — 공지·요금·기내박 문구 금지 (짧은 일반 문구 폴백은 유지) */
+function isRegisterScheduleNoticeTitleFallback(text: string): boolean {
+  const t = text.replace(/\s+/g, ' ').trim()
+  if (isRegisterScheduleDayTitleKeepLabel(t)) return false
+  return t.length <= 96 && isRegisterScheduleRoutePlaceNoise(t) && /전자\s*담배|보호자로|공지|원\s*\/\s*인|\d\s*인\s*\/?\s*\d\s*실|참고\s*사항|기내박|니다[.!]?$|위약금|특약|수칙|다운로드/u.test(t)
+}
+
 /**
  * routeText → 짧은 title. 세그먼트가 2개 이상이면 `첫 · 끝`.
  * 귀국일·빈 route는 returnTitle / fallbacks / `N일차`.
@@ -47,7 +64,13 @@ export function composeRegisterScheduleDayTitleFromRoute(opts: {
   returnTitle?: string
 }): string {
   const { day, maxDay } = opts
-  const segs = splitRouteTitleSegments(opts.routeText).filter((s) => !isRegisterScheduleDayTitleNoise(s))
+  const ownSegs = splitRouteTitleSegments(opts.routeText).filter((s) => !isRegisterScheduleDayTitleNoise(s))
+  // REGRESSION-FREEZE[display-text-fix-1031]: title도 routeText 지명 noise·국내 허브 제외 (공지·000원/인 제목 금지) — manifest
+  const placeSegs = ownSegs.filter(
+    (s) => isRegisterScheduleDayTitleKeepLabel(s) || !isRegisterScheduleRoutePlaceNoise(s),
+  )
+  const nonHubSegs = placeSegs.filter((s) => !isRegisterScheduleDomesticHubRouteSegment(s))
+  const segs = nonHubSegs.length > 0 ? nonHubSegs : placeSegs
 
   const returnish =
     day === maxDay &&
@@ -68,7 +91,9 @@ export function composeRegisterScheduleDayTitleFromRoute(opts: {
 
   for (const f of opts.fallbacks ?? []) {
     const t = String(f ?? '').trim()
-    if (t && !isRegisterScheduleDayTitleNoise(t)) return clipRegisterScheduleDayTitle(t)
+    if (t && !isRegisterScheduleDayTitleNoise(t) && !isRegisterScheduleNoticeTitleFallback(t)) {
+      return clipRegisterScheduleDayTitle(t)
+    }
   }
   return `${day}일차`
 }
