@@ -10552,7 +10552,9 @@
             "REGRESSION-FREEZE[schedule-image-seo-title-ssot]",
             "composeScheduleImageSeoTitleKr",
             "isPollutedScheduleImageSeoTitle",
-            "3문장 vibe·DAYN·허브공항 금지"
+            "3문장 vibe·DAYN·허브공항 금지",
+            "day-label-keep-selection-1031",
+            "restoreRoEndingPlaceName"
           ]
         },
         {
@@ -10596,7 +10598,8 @@
         }
       ],
       "vitestSuites": [
-        "lib/schedule-image-seo-title-ssot.test.ts"
+        "lib/schedule-image-seo-title-ssot.test.ts",
+        "lib/schedule-image-seo-title-keep-selection.test.ts"
       ]
     },
     {

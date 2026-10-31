@@ -55,7 +55,25 @@ function pickKoreanRoutePlace(routeText: string | null | undefined): string | nu
     .filter((s) => s.length >= 2 && /[가-힣]{2,}/.test(s) && !isPollutedScheduleImageSeoTitle(s))
   if (ko.length === 0) return null
   const specific = ko.find((s) => s.length >= 3)
-  return (specific || ko[0]!).slice(0, SCHEDULE_IMAGE_SEO_TITLE_MAX)
+  const picked = specific || ko[0]!
+  // day-label-keep-selection-1031: 선택(인덱스)은 기존 그대로, 표시만 잘린 「로」 끝 지명을 원래 이름으로 복원
+  return restoreRoEndingPlaceName(picked, routeText).slice(0, SCHEDULE_IMAGE_SEO_TITLE_MAX)
+}
+
+/** 끝 「로」가 지명 일부인 이름 (조사 아님) — day-label-keep-selection-1031 */
+const RO_ENDING_PLACE_NAME_RE =
+  /^(?:카이로|올드\s*카이로|오슬로|몬테네그로|구시로|리우\s*데\s*자네이로|자네이로|비스트로|레트로|모지코\s*레트로|해변\s*도로|도로)$/u
+
+/**
+ * route 장소 정리 단계에서 조사로 오인해 잘린 이름(`카이로`→`카이`)을 표시용으로만 되돌린다.
+ * `picked + 로` 가 allowlist 지명이고 원래 routeText 에 그 이름이 실제로 있을 때만. 그 외는 picked 그대로.
+ */
+export function restoreRoEndingPlaceName(picked: string, routeText: string | null | undefined): string {
+  const full = `${picked}로`
+  if (!RO_ENDING_PLACE_NAME_RE.test(full.replace(/\s+/g, ' ').trim())) return picked
+  const key = (v: string) => v.replace(/\s+/g, '')
+  if (!key(String(routeText ?? '')).includes(key(full))) return picked
+  return full
 }
 
 /**
