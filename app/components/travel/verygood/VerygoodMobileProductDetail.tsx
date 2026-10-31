@@ -607,7 +607,7 @@ function VerygoodMobileProductDetailView({ product: productInput, showEsimCrossS
         infoPanel={{
           dataSourceLabel: formatOriginSourceForDisplay(product.originSource),
           title: product.title,
-          originCode: product.originCode,
+          originCode: product.heroOriginCodeDisplay || product.originCode,
           destination: product.destination,
           durationLabel: rowDurationLabel?.trim() || product.duration || '',
           airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),

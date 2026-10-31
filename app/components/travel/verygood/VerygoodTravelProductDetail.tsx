@@ -148,6 +148,8 @@ export type TravelProduct = {
   id: number | string
   originSource: string
   originCode: string
+  /** REGRESSION-FREEZE[hero-departure-code-1031]: 히어로 표시 코드(가장 가까운 판매 중 출발 회차) — 없으면 originCode */
+  heroOriginCodeDisplay?: string | null
   title: string
   destination: string
   duration: string
@@ -770,7 +772,7 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
         infoPanel={{
           dataSourceLabel: formatOriginSourceForDisplay(product.originSource),
           title: product.title,
-          originCode: product.originCode,
+          originCode: product.heroOriginCodeDisplay || product.originCode,
           destination: product.destination,
           durationLabel: rowDurationLabel?.trim() || product.duration || '',
           airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),

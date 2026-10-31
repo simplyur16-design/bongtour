@@ -38,6 +38,8 @@ export function buildProductDetailDepartureSelect() {
     inboundDepartureAt: true,
     inboundArrivalAirport: true,
     inboundArrivalAt: true,
+    /** REGRESSION-FREEZE[hero-departure-code-1031]: 히어로 상품코드 = 가장 가까운 판매 중 출발 회차 코드(표시 전용) */
+    supplierDepartureCodeCandidate: true,
   } satisfies Prisma.ProductDepartureSelect
 }
 

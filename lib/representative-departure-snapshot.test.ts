@@ -7,6 +7,8 @@ import {
   kstTodayYmdForRepresentative,
   pickNearestOnSaleDepartureOnOrAfter,
   planRepresentativeRecollect,
+  resolveHeroDepartureCodeForDisplay,
+  stripSupplierPrefixFromDepartureCode,
   resolveRepresentativeFlightSnapshot,
   snapshotAppliesToDeparture,
   ymdFromEvCdShapedOriginCode,
@@ -110,6 +112,23 @@ describe('REGRESSION-FREEZE[rep-departure-future-1031] 대표 출발 스냅샷',
     expect(planRepresentativeRecollect({ snapshot: { ...snap, ymd: '2026-11-19' }, departures: deps, todayYmd: '2026-10-31' }).needed).toBe(false)
     expect(planRepresentativeRecollect({ snapshot: snap, departures: [], todayYmd: '2026-10-31' }).reason).toBe('no_future_on_sale')
     expect(planRepresentativeRecollect({ snapshot: { ...snap, ymd: null }, departures: deps, todayYmd: '2026-10-31' }).reason).toBe('snapshot_unknown')
+  })
+
+  it('히어로 코드: 지난 seed evCd 대신 오늘 이후 가장 가까운 판매 중 같은 상품 회차 코드(없으면 originCode)', () => {
+    const deps = [
+      { ymd: '2026-10-29', code: 'ybtour:FEP1009-261029TK00' },
+      { ymd: '2026-11-05', code: 'ybtour:XXX9999-261105TK00' },
+      { ymd: '2026-11-08', code: null },
+      { ymd: '2026-11-12', code: 'ybtour:FEP1009-261112TK00', statusRaw: '마감' },
+      { ymd: '2026-11-19', code: 'ybtour:FEP1009-261119TK00', statusRaw: '예약가능' },
+    ]
+    const origin = 'FEP1009-260902EK00'
+    expect(resolveHeroDepartureCodeForDisplay({ originCode: origin, departures: deps, todayYmd: '2026-10-31' })).toBe('FEP1009-261119TK00')
+    expect(resolveHeroDepartureCodeForDisplay({ originCode: origin, departures: [], todayYmd: '2026-10-31' })).toBe(origin)
+    expect(resolveHeroDepartureCodeForDisplay({ originCode: 'HN-ABC123', departures: deps, todayYmd: '2026-10-31' })).toBe('HN-ABC123')
+    expect(resolveHeroDepartureCodeForDisplay({ originCode: null, departures: deps, todayYmd: '2026-10-31' })).toBe('')
+    expect(stripSupplierPrefixFromDepartureCode('ybtour:FEP1009-261112TK00')).toBe('FEP1009-261112TK00')
+    expect(stripSupplierPrefixFromDepartureCode('  ')).toBeNull()
   })
 
   it('KST 오늘', () => {

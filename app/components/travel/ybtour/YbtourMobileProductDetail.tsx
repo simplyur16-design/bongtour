@@ -609,7 +609,7 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
         infoPanel={{
           dataSourceLabel: formatOriginSourceForDisplay(product.originSource),
           title: product.title,
-          originCode: product.originCode,
+          originCode: product.heroOriginCodeDisplay || product.originCode,
           destination: product.destination,
           durationLabel: product.duration ?? '',
           airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),

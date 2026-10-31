@@ -185,3 +185,30 @@ export function planRepresentativeRecollect(args: {
 export function kstTodayYmdForRepresentative(now: Date = new Date()): string {
   return new Date(now.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10)
 }
+
+/** 출발 회차 코드 후보에서 공급사 접두(`ybtour:` 등) 제거 */
+export function stripSupplierPrefixFromDepartureCode(v: string | null | undefined): string | null {
+  const s = String(v ?? '').trim().replace(/^[a-z][a-z0-9_-]*:/i, '').trim()
+  return s ? s : null
+}
+
+/**
+ * REGRESSION-FREEZE[hero-departure-code-1031]: 히어로 상품코드 표시 — 상품 originCode가 출발일을 품은
+ * evCd형(노랑풍선 goods-YYMMDDCC00)이면 오늘(KST) 이후 가장 가까운 판매 중 출발 회차의 공급사 코드
+ * (같은 상품 goods 코드)로 표시한다. 그런 회차가 없거나 형태가 다르면 originCode 그대로(추정 금지).
+ * 표시 전용 — Product.originCode·예약 접수 코드·DB 값은 건드리지 않는다.
+ */
+export function resolveHeroDepartureCodeForDisplay(args: {
+  originCode: string | null | undefined
+  departures: readonly RepresentativeRecollectDeparture[]
+  todayYmd: string
+}): string {
+  const origin = String(args.originCode ?? '').trim()
+  if (!ymdFromEvCdShapedOriginCode(origin)) return origin
+  const goods = origin.split('-')[0]!
+  const candidates = args.departures
+    .map((d) => ({ ...d, code: stripSupplierPrefixFromDepartureCode(d.code) }))
+    .filter((d) => d.code && ymdFromEvCdShapedOriginCode(d.code) && d.code.split('-')[0] === goods)
+  const pick = pickNearestOnSaleDepartureOnOrAfter(candidates, args.todayYmd)
+  return pick?.code ?? origin
+}

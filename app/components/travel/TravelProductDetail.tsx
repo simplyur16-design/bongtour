@@ -674,7 +674,7 @@ export default function TravelProductDetail({
           infoPanel={{
             dataSourceLabel: formatOriginSourceForDisplay(product.originSource),
             title: product.title,
-            originCode: product.originCode,
+            originCode: product.heroOriginCodeDisplay || product.originCode,
             destination: product.destination,
             primaryDestination: product.primaryDestination ?? null,
             durationLabel: product.duration ?? '',

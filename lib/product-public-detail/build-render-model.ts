@@ -61,6 +61,8 @@ import {
 import {
   resolveRepresentativeFlightSnapshot,
   snapshotAppliesToDeparture,
+  kstTodayYmdForRepresentative,
+  resolveHeroDepartureCodeForDisplay,
 } from '@/lib/representative-departure-snapshot'
 import {
   buildKeyFactsFromAdminProfile,
@@ -816,8 +818,22 @@ export async function buildProductPublicDetailRenderModel(
 
   const routeMap = buildPublicRouteMapView(travelProduct.rawMeta ?? null)
 
+  // REGRESSION-FREEZE[hero-departure-code-1031]: 히어로 코드 = 가장 가까운 판매 중 같은 상품 출발 회차 코드(표시 전용)
+  const heroOriginCodeDisplay = resolveHeroDepartureCodeForDisplay({
+    originCode: travelProduct.originCode ?? null,
+    departures: departures.map((d) => ({
+      ymd:
+        d.departureDate instanceof Date
+          ? d.departureDate.toISOString().slice(0, 10)
+          : String(d.departureDate ?? '').slice(0, 10),
+      code: (d as { supplierDepartureCodeCandidate?: string | null }).supplierDepartureCodeCandidate ?? null,
+      statusRaw: d.statusRaw ?? null,
+    })),
+    todayYmd: kstTodayYmdForRepresentative(),
+  })
   const viewProduct: TravelProduct = {
     ...productForDetail,
+    heroOriginCodeDisplay,
     routeMap,
     includedText: finalIncludedText,
     excludedText: finalExcludedText,

@@ -29584,6 +29584,71 @@
           ]
         }
       ]
+    },
+    {
+      "id": "hero-departure-code-1031",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "히어로 상품코드: evCd형 originCode면 오늘 이후 가장 가까운 판매 중 같은 상품 출발 회차 코드로 표시(표시 전용, 없으면 originCode)",
+      "checks": [
+        {
+          "file": "lib/representative-departure-snapshot.ts",
+          "mustInclude": [
+            "export function resolveHeroDepartureCodeForDisplay"
+          ]
+        },
+        {
+          "file": "lib/product-detail-page-include.ts",
+          "mustInclude": [
+            "supplierDepartureCodeCandidate: true"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "resolveHeroDepartureCodeForDisplay({",
+            "heroOriginCodeDisplay,"
+          ]
+        },
+        {
+          "file": "app/components/travel/TravelProductDetail.tsx",
+          "mustInclude": [
+            "product.heroOriginCodeDisplay || product.originCode"
+          ]
+        },
+        {
+          "file": "app/components/travel/MobileProductDetail.tsx",
+          "mustInclude": [
+            "product.heroOriginCodeDisplay || product.originCode"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
+          "mustInclude": [
+            "product.heroOriginCodeDisplay || product.originCode"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
+          "mustInclude": [
+            "product.heroOriginCodeDisplay || product.originCode"
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodTravelProductDetail.tsx",
+          "mustInclude": [
+            "product.heroOriginCodeDisplay || product.originCode"
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodMobileProductDetail.tsx",
+          "mustInclude": [
+            "product.heroOriginCodeDisplay || product.originCode"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
