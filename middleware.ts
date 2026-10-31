@@ -33,6 +33,11 @@ import {
   clearSimplyurOAuthReturnCookie,
   readSimplyurOAuthReturnPath,
 } from '@/lib/auth/simplyur-oauth-return-cookie'
+import {
+  buildProductSlugRedirectLocation,
+  fetchProductPathStatus,
+  parseProductDetailPathSegment,
+} from '@/lib/product-path-status'
 
 // REGRESSION-FREEZE[simplyur-surface-layout-p2]: simplyur surface 헤더 — manifest
 // REGRESSION-FREEZE[simplyur-oauth-home-bridge]: / → simplyur oauth-complete — manifest
@@ -294,6 +299,29 @@ export async function middleware(req: NextRequest) {
     return homeRes
   }
 
+  // REGRESSION-FREEZE[product-detail-real-http-status]: 상세 cuid→slug 실제 308, 없는·비공개 상품 실제 404
+  // (상세는 Suspense 스트리밍이라 페이지 안 redirect/notFound 는 HTTP 200). 조회 실패 시 기존 동작 그대로.
+  const productSegment = req.method === 'GET' || req.method === 'HEAD' ? parseProductDetailPathSegment(pathname) : null
+  if (productSegment) {
+    const status = await fetchProductPathStatus(productSegment)
+    if (status?.kind === 'redirect') {
+      return new NextResponse(null, {
+        status: 308,
+        headers: {
+          Location: buildProductSlugRedirectLocation(status.slug, req.nextUrl.search, req.headers),
+        },
+      })
+    }
+    // 로그인 세션·서비스 bearer 는 관리자 미리보기(draft) 가능성 — 페이지 판정에 맡김
+    const maybeAdminPreview = Boolean(token) || Boolean(req.headers.get('authorization'))
+    if (status?.kind === 'not_found' && !maybeAdminPreview) {
+      const nf = req.nextUrl.clone()
+      nf.pathname = '/products/__not-found__/404'
+      nf.search = ''
+      return NextResponse.rewrite(nf, { request: { headers: requestHeaders } })
+    }
+  }
+
   // REGRESSION-FREEZE[bongsim-recommend-isr-cdn]: anonymous CDN hint (matcher always-on) — manifest
   if (pathname === '/travel/esim/recommend') {
     const res = forward()
@@ -332,6 +360,7 @@ export const config = {
     '/travel/esim/recommend',
     '/travel/overseas',
     '/travel/air-hotel',
+    '/products/:idOrSlug',
     '/simplyur',
     '/simplyur/:path*',
     '/admin',
