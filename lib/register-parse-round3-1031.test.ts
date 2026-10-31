@@ -283,3 +283,49 @@ describe('round3 21:35 에어텔 일정 손질 (new-ky-2 모양)', () => {
     expect(o2[4].description).toBe('체크아웃 후 김해로 귀국합니다.')
   })
 })
+
+import {
+  cleanRegisterScheduleUnderscoreAlias,
+  dedupeRegisterScheduleLabelParts,
+  isRegisterScheduleAiTipSentence,
+} from '@/lib/register-schedule-row-fragment-filter'
+
+describe('round3 22:03 제목·경로: 밑줄 별칭·중복 문구·AI 팁', () => {
+  it('밑줄 별칭은 빼고, 한자 원어·사진 출처 꼬리는 떼어 앞 이름만', () => {
+    expect(cleanRegisterScheduleUnderscoreAlias('이색체험_전통객잔숙박')).toBe('')
+    expect(cleanRegisterScheduleUnderscoreAlias('육합야시장_六合夜市')).toBe('육합야시장')
+    expect(cleanRegisterScheduleUnderscoreAlias('버즈칼리파_관광청제공')).toBe('버즈칼리파')
+    expect(cleanRegisterScheduleUnderscoreAlias('용호탑')).toBe('용호탑')
+  })
+  it('중복 문구: 두가 · 두가 유적지 관람 → 하나, 오사카 · 오사카성은 그대로', () => {
+    expect(dedupeRegisterScheduleLabelParts(['두가', '두가 유적지 관람'])).toEqual(['두가 유적지 관람'])
+    expect(dedupeRegisterScheduleLabelParts(['오사카', '오사카성'])).toEqual(['오사카', '오사카성'])
+    expect(dedupeRegisterScheduleLabelParts(['연태', '연태'])).toEqual(['연태'])
+  })
+  it('행 손질: 제목·경로 모두 같은 기준', () => {
+    const r = stripRegisterScheduleRowFragments({
+      title: '이색체험_전통객잔숙박 · 두가 · 두가 유적지 관람',
+      routeText: '두가 - 두가 유적지 관람 - 이색체험_전통객잔숙박 - 참고사항',
+      description: null,
+    })
+    expect(r.title).toBe('두가 유적지 관람')
+    expect(r.routeText).toBe('두가 유적지 관람')
+    const r2 = stripRegisterScheduleRowFragments({ title: '가오슝 · 육합야시장_六合夜市', routeText: '가오슝 - 육합야시장_六合夜市', description: null })
+    expect(r2.title).toBe('가오슝 · 육합야시장')
+    expect(r2.routeText).toBe('가오슝 - 육합야시장')
+  })
+  it('AI 팁 문장 판별', () => {
+    expect(isRegisterScheduleAiTipSentence('도나우강이 내려다보이는 파노라마 뷰를 감상해 보세요.')).toBe(true)
+    expect(isRegisterScheduleAiTipSentence('공식 택시 승강장을 이용하면 바가지 요금 걱정 없이 안전하게 시내로 이동할 수 있어요.')).toBe(true)
+    expect(isRegisterScheduleAiTipSentence('다낭 대성당과 마블마운틴을 둘러봅니다.')).toBe(false)
+  })
+  it('에어텔: 원문에 없는 AI 팁 문장은 빼고, 원문에 있는 문장은 남김', () => {
+    const rows = [
+      row({ day: 1, title: '부다페스트', routeText: '부다페스트', description: '부다페스트 공항에 도착해 첫날을 준비해 보세요. 공항 택시를 이용하면 시내로 이동할 수 있어요.' }),
+      row({ day: 2, title: '부다 성', routeText: '부다 성 - 어부의 요새', description: '자유롭게 시내를 즐기세요.' }),
+    ]
+    const out = finalizeRegisterAirtelScheduleRows(rows, { destination: '부다페스트', sourceRows: [{ day: 2, description: '자유롭게 시내를 즐기세요.' }] })
+    expect(out[0].description).toBe('')
+    expect(out[1].description).toBe('자유롭게 시내를 즐기세요.')
+  })
+})

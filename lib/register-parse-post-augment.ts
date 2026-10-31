@@ -263,7 +263,7 @@ export async function applyRegisterPostAugmentSchedulePipeline(
   parsed = stampRegisterAirtelProductTypeOnParsed(parsed, opts.travelScope)
   if (isRegisterAirtelListing(opts.travelScope, parsed.productType)) {
     return trimRegisterParsedScheduleToSupplierDays(
-      finalizeRegisterAirtelParsed(await enrichRegisterParsedWithAirtelFit(parsed, {
+      finalizeRegisterAirtelParsed(parsed.schedule ?? null, await enrichRegisterParsedWithAirtelFit(parsed, {
       travelScope: opts.travelScope,
       logLabel: opts.logPrefix ?? 'register-airtel-fit',
       reuseStoredGeminiJson:
@@ -290,13 +290,14 @@ export async function applyRegisterPostAugmentSchedulePipeline(
 }
 
 /** REGRESSION-FREEZE[register-schedule-row-fragment-filter]: 에어텔 일정도 조각·빈 문구·틀 문장 빼기 (문장 생성 없음) — manifest */
-function finalizeRegisterAirtelParsed(parsed: RegisterParsed): RegisterParsed {
+function finalizeRegisterAirtelParsed(sourceRows: RegisterParsed['schedule'] | null, parsed: RegisterParsed): RegisterParsed {
   if (!Array.isArray(parsed.schedule) || !parsed.schedule.length) return parsed
   return {
     ...parsed,
     schedule: finalizeRegisterAirtelScheduleRows(parsed.schedule, {
       destination: parsed.primaryDestination ?? parsed.destination ?? null,
       departureText: registerParsedDepartureText(parsed),
+      sourceRows: sourceRows ?? null,
     }),
   }
 }

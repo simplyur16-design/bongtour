@@ -48,6 +48,43 @@ export function repairRegisterScheduleBrokenTitlePart(part: string): string {
   return t
 }
 
+/** 밑줄 별칭: '이색체험_전통객잔숙박' 같은 내부 코드·별칭 (round3 22:03) */
+export function isRegisterScheduleUnderscoreAliasLabel(label: string | null | undefined): boolean {
+  return /[가-힣A-Za-z0-9]_+[가-힣A-Za-z0-9\p{Script=Han}]/u.test(String(label ?? ''))
+}
+
+/**
+ * 밑줄 뒤가 한자 원어·사진 출처('六合夜市', '관광청제공')면 앞 이름만 남기고, 그 밖의 밑줄 별칭은 통째로 뺀다('' 반환).
+ * 밑줄이 없으면 그대로.
+ */
+export function cleanRegisterScheduleUnderscoreAlias(label: string): string {
+  const t = String(label ?? '').trim()
+  if (!isRegisterScheduleUnderscoreAliasLabel(t)) return t
+  const m = /^(.+?)_+(.+)$/u.exec(t)
+  if (!m) return ''
+  const [, head, tail] = m
+  if (/^[\p{Script=Han}\s]+$/u.test(tail!) || /제공|출처|사진|photo|credit/iu.test(tail!)) return head!.trim()
+  return ''
+}
+
+/**
+ * 중복 문구 빼기: 같은 말이 두 번이면 하나만, 짧은 쪽이 긴 쪽의 첫 낱말(띄어쓰기 경계)이면 긴 쪽만
+ * ('두가 · 두가 유적지 관람' → '두가 유적지 관람'). '오사카 · 오사카성' 처럼 붙은 말은 그대로.
+ */
+export function dedupeRegisterScheduleLabelParts(parts: string[]): string[] {
+  const key = (x: string) => x.replace(/\s+/g, ' ').trim().toLowerCase()
+  const out: string[] = []
+  for (const p of parts) {
+    const k = key(p)
+    if (!k || out.some((o) => key(o) === k)) continue
+    out.push(p)
+  }
+  return out.filter((p) => {
+    const k = key(p)
+    return !out.some((o) => o !== p && key(o).startsWith(`${k} `))
+  })
+}
+
 const ROUTE_SPLIT_RE = /\s+-\s+/u
 const TITLE_SPLIT_RE = /\s+·\s+/u
 
@@ -75,15 +112,22 @@ export function stripRegisterScheduleRowFragments<T extends RegisterScheduleFrag
   const hotel = row.hotelText ?? null
   const routeIn = String(row.routeText ?? '')
   const routeSegs = routeIn.split(ROUTE_SPLIT_RE).map((s) => s.trim()).filter(Boolean)
-  const routeKept = routeSegs.filter((s) => !isRegisterScheduleNoticeOrFareFragment(s) && !isRegisterScheduleDayHotelNameLabel(s, hotel))
+  const routeKept = dedupeRegisterScheduleLabelParts(
+    routeSegs
+      .map(cleanRegisterScheduleUnderscoreAlias)
+      .filter((s) => s && !isRegisterScheduleNoticeOrFareFragment(s) && !isRegisterScheduleDayHotelNameLabel(s, hotel)),
+  )
   const titleIn = String(row.title ?? '')
   const titleParts = titleIn.split(TITLE_SPLIT_RE).map((s) => s.trim()).filter(Boolean)
-  const titleKept = titleParts
-    .filter((s) => !isRegisterScheduleNoticeOrFareFragment(s) && !isRegisterScheduleDayHotelNameLabel(s, hotel))
-    .map(repairRegisterScheduleBrokenTitlePart)
-    .filter(Boolean)
+  const titleKept = dedupeRegisterScheduleLabelParts(
+    titleParts
+      .map(cleanRegisterScheduleUnderscoreAlias)
+      .filter((s) => s && !isRegisterScheduleNoticeOrFareFragment(s) && !isRegisterScheduleDayHotelNameLabel(s, hotel))
+      .map(repairRegisterScheduleBrokenTitlePart)
+      .filter(Boolean),
+  )
   const next: T = { ...row }
-  if (routeKept.length !== routeSegs.length) next.routeText = routeKept.join(' - ')
+  if (routeKept.join(' - ') !== routeSegs.join(' - ')) next.routeText = routeKept.join(' - ')
   const titleOut = titleKept.join(' · ')
   if (titleOut !== titleIn.trim()) next.title = titleOut
   if (row.description != null) {
@@ -91,4 +135,15 @@ export function stripRegisterScheduleRowFragments<T extends RegisterScheduleFrag
     if (d !== String(row.description).trim()) next.description = d
   }
   return next
+}
+
+/**
+ * AI 팁 문장 (원문에 없는 권유·당부): '~해 보세요', '~챙기세요', '~수 있어요', '~좋아요' 등 (round3 22:03).
+ * 원문 문장인지는 부르는 쪽이 확인한다 — 이 판별은 원문에 없는 문장에만 쓴다.
+ */
+const AI_TIP_SENTENCE_RE =
+  /(?:보세요|하세요|마세요|즐기세요|챙기세요|드세요|가세요|맞이하세요|마무리하세요|느껴\s*보세요|추천(?:해요|합니다|드려요|드립니다)|수\s*있어요|좋아요|좋습니다|좋겠어요|있으니|바랍니다|잊지\s*마|참고하세요|주의하세요)[.!]?$/u
+
+export function isRegisterScheduleAiTipSentence(sentence: string | null | undefined): boolean {
+  return AI_TIP_SENTENCE_RE.test(String(sentence ?? '').trim())
 }

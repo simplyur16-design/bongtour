@@ -7,7 +7,7 @@
  * 가격·상품 제목은 다루지 않는다.
  * REGRESSION-FREEZE[register-schedule-day-summary-finalize]: 3–4 sentences·KO place·same-day keywords — manifest
  */
-import { stripRegisterScheduleFragmentSentences, stripRegisterScheduleRowFragments } from '@/lib/register-schedule-row-fragment-filter'
+import { isRegisterScheduleAiTipSentence, stripRegisterScheduleFragmentSentences, stripRegisterScheduleRowFragments } from '@/lib/register-schedule-row-fragment-filter'
 import {
   destinationEnKeysInKoreanText,
   koreanCityNameFromEnglish,
@@ -905,7 +905,7 @@ export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFi
  */
 export function finalizeRegisterAirtelScheduleRows<T extends RegisterScheduleFinalizeRow>(
   rows: T[],
-  opts: { destination?: string | null; departureText?: string | null } = {},
+  opts: { destination?: string | null; departureText?: string | null; sourceRows?: Array<{ day?: unknown; description?: string | null }> | null } = {},
 ): T[] {
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) return rows
@@ -916,6 +916,8 @@ export function finalizeRegisterAirtelScheduleRows<T extends RegisterScheduleFin
   const day1 = stripped.find((r) => Number(r.day) === 1)
   const hub = registerScheduleDepartureHub(String(opts.departureText ?? ''), String(day1?.routeText ?? ''))
   const known = destinationCity ? [destinationCity] : []
+  const srcText = (day: unknown) =>
+    String(opts.sourceRows?.find((r) => Number(r.day) === Number(day))?.description ?? '').replace(/\s+/g, ' ')
   return stripped.map((row) => {
     if (Number(row.day) <= 0) return row
     const title = fillPlaceholderDayTitle(row, { isLast: maxDay >= 2 && Number(row.day) === maxDay, destinationCity, lastCity })
@@ -928,6 +930,8 @@ export function finalizeRegisterAirtelScheduleRows<T extends RegisterScheduleFin
         if (!s1) continue
         const s2 = cleanSightseeingSentence(s1, row.hotelText)
         if (!s2 || isRegisterScheduleFillerSentence(s2) || kept.includes(s2)) continue
+        // REGRESSION-FREEZE[register-schedule-row-fragment-filter]: 원문에 없는 AI 팁 문장 금지 (round3 22:03) — manifest
+        if (isRegisterScheduleAiTipSentence(s2) && !srcText(row.day).includes(s2.replace(/\s+/g, ' '))) continue
         kept.push(s2)
       }
       description = kept.join(' ')

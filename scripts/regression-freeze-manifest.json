@@ -29970,14 +29970,17 @@
         "prebuild",
         "ci"
       ],
-      "summary": "일정 제목·경로·설명: 안내문·요금 조각·숙소명 제목·깨진 제목 제거, 조각만 빼고 문장 생성 없음 (round3 21:35)",
+      "summary": "일정 제목·경로·설명: 안내문·요금 조각·숙소명 제목·깨진 제목 제거, 조각만 빼고 문장 생성 없음 (round3 21:35) · 밑줄 별칭·중복 문구·원문에 없는 AI 팁 문장 금지 (22:03)",
       "checks": [
         {
           "file": "lib/register-schedule-row-fragment-filter.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-row-fragment-filter]",
             "export function stripRegisterScheduleRowFragments",
-            "export function stripRegisterScheduleFragmentSentences"
+            "export function stripRegisterScheduleFragmentSentences",
+            "export function cleanRegisterScheduleUnderscoreAlias",
+            "export function dedupeRegisterScheduleLabelParts",
+            "export function isRegisterScheduleAiTipSentence"
           ]
         },
         {
@@ -29986,14 +29989,15 @@
             "REGRESSION-FREEZE[register-schedule-row-fragment-filter]",
             "stripRegisterScheduleRowFragments(next)",
             "stripRegisterScheduleFragmentSentences(srcRaw)",
-            "export function finalizeRegisterAirtelScheduleRows"
+            "export function finalizeRegisterAirtelScheduleRows",
+            "isRegisterScheduleAiTipSentence(s2)"
           ]
         },
         {
           "file": "lib/register-parse-post-augment.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-row-fragment-filter]",
-            "finalizeRegisterAirtelParsed(await enrichRegisterParsedWithAirtelFit("
+            "finalizeRegisterAirtelParsed(parsed.schedule ?? null, await enrichRegisterParsedWithAirtelFit("
           ]
         }
       ]
