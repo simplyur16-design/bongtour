@@ -22,7 +22,7 @@ describe('ensureFitDaySummaryTwoSentences', () => {
 })
 
 describe('parseFitItineraryGeminiJson', () => {
-  it('Gemini 1문장 day.summary를 파싱 시 2문장으로 보정', () => {
+  it('Gemini day.summary는 파싱 시 그대로 보존(톤 1031 — 2문장 보정·자르기 없음), master summary만 2문장 보정', () => {
     const json = JSON.stringify({
       title: '오사카',
       summary: '오사카 자유여행 매력.',
@@ -53,7 +53,7 @@ describe('parseFitItineraryGeminiJson', () => {
     })
     const parsed = parseFitItineraryGeminiJson(json, 'test')
     expect(countFitSummarySentences(parsed.summary)).toBeGreaterThanOrEqual(2)
-    expect(countFitSummarySentences(parsed.days[0]!.summary)).toBeGreaterThanOrEqual(2)
+    expect(parsed.days[0]!.summary).toBe('공항 도착 후 호텔 체크인.')
   })
 })
 

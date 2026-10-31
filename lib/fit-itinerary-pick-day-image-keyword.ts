@@ -118,6 +118,16 @@ function keywordFromActivity(
   return null
 }
 
+/** meal 은 location 괄호 영문 랜드마크(지역명)만 — 한글 식당명·제목·설명은 보지 않음(톤 1031) */
+function keywordFromMealLandmarkLocation(act: FitItineraryActivityForKeyword): string | null {
+  const loc = String(act.location ?? '')
+  if (!/\(\s*[A-Za-z]/.test(loc)) return null
+  const phrase = extractEnglishPlacePhrase(loc)
+  if (!phrase) return null
+  const kw = tryPersistFitImageKeyword(phrase)
+  return kw && acceptFitImageKeyword(kw, { fromAttraction: false }) ? kw : null
+}
+
 /** 예시 일정 그날 activities → 동선. 한글 지명을 ` - ` 로 잇는다. */
 export function buildFitDayRouteText(day: FitItineraryDayForKeyword): string {
   const activities = [...(day.activities ?? [])].sort((a, b) => a.order - b.order)
@@ -213,7 +223,7 @@ function isWeakFitDayImageKeyword(kw: string): boolean {
   return isBareCityOrCountryKeyword(t)
 }
 
-/** 예시 일정 일차별 후보 — attraction → hotel → (랜드마크인) shopping → 일차 메타 → 도시. meal(식당)은 후보 아님(톤 1031) */
+/** 예시 일정 일차별 후보 — attraction → hotel → (랜드마크인) shopping·meal 괄호 영문 지역명 → 일차 메타 → 도시. 한글 식당명은 후보 아님(톤 1031) */
 export function collectFitDayImageKeywordCandidates(
   day: FitItineraryDayForKeyword,
   fallbackCtx: FitDayImageKeywordFallbackContext,
@@ -236,11 +246,16 @@ export function collectFitDayImageKeywordCandidates(
       push(keywordFromActivity(act, { fromAttraction: cat === 'attraction' }))
     }
   }
-  // 톤 1031: 사진 키워드는 그날 관광지(attraction)에서 — 식당(meal)은 후보에서 뺀다(지역명이 붙은 식당도).
+  // 톤 1031: 사진 키워드는 그날 관광지(attraction)에서. 식당(meal)은 한글 식당 이름·설명에서 키워드를 만들지 않는다
+  // ('도톤보리 오코노미야키집'·'기온 근처 식당' → 사진 키워드 아님). 옛 응답의 meal location 에 괄호 영문 랜드마크 지역명
+  // (예: '도톤보리 (Dotonbori)', fit-yb-0002 1일차)이 적혀 있을 때만 — 식당·상호 검사를 통과하면 — 보조 후보.
   // 쇼핑 거리(shopping)는 랜드마크 검사를 통과할 때만 보조 후보.
   for (const act of activities) {
-    if (act.category !== 'shopping') continue
-    push(keywordFromActivity(act, { fromAttraction: false }))
+    if (act.category === 'shopping') {
+      push(keywordFromActivity(act, { fromAttraction: false }))
+    } else if (act.category === 'meal') {
+      push(keywordFromMealLandmarkLocation(act))
+    }
   }
   push(keywordFromDayMeta(day))
   push(buildFitDayImageKeywordFallback(fallbackCtx, day))

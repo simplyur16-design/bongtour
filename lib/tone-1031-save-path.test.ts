@@ -106,6 +106,8 @@ describe('톤 1031 — 요약 보존·권역 표·사진 키워드', () => {
       activities: [{ order: 1, category: 'meal', title: '식사', description: '', location: '이치란 라멘 (Ichiran Ramen)' }],
     }
     expect(pickFitDayImageKeyword(mealOnly as any, { cityNameKo: '오사카', cityKey: 'osaka', productTitle: 't' })).not.toMatch(/Ichiran/i)
+    const koMeal = { ...mealOnly, activities: [{ order: 1, category: 'meal', title: '오코노미야키 저녁', description: '', location: '도톤보리 오코노미야키집' }] }
+    expect(pickFitDayImageKeyword(koMeal as any, { cityNameKo: '오사카', cityKey: 'osaka', productTitle: 't' })).not.toMatch(/Dotonbori/i)
   })
   it('A 프롬프트: 3~4문장·금지어·숙소 규칙·숫자 null·상품 제목 그대로 쓰지 않기', () => {
     const p = buildAirtelPrompt({
