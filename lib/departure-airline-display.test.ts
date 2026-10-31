@@ -4,6 +4,7 @@ import {
   iataPrefixFromFlightNo,
   resolveDepartureRowAirlineForDisplay,
   resolveProductAirlineFromDeparturesForDisplay,
+  sameAirlineAlliance,
 } from '@/lib/departure-airline-display'
 import { departureCarrierPublicLabel } from '@/lib/airline-variant-group'
 import { formatPublicAirlineDisplay, canonicalizePublicAirlineKo } from '@/lib/airline-iata-public-display-ssot'
@@ -79,5 +80,44 @@ describe('HX 홍콩항공 (사장님 10/31 07:25, 표시 전용)', () => {
   })
   it('저장 경로(canonicalizePublicAirlineKo)는 원문 유지', () => {
     expect(canonicalizePublicAirlineKo('홍콩에어라인')).toBe('홍콩에어라인')
+  })
+})
+
+describe('공동운항(같은 동맹) 표기 — mt-0264', () => {
+  it('아에로멕시코 원문 + KE017/KE7290 → 대한항공(공동운항)', () => {
+    const row = { carrierName: '아에로멕시코', outboundFlightNo: 'KE017', inboundFlightNo: 'KE7290' }
+    expect(resolveDepartureRowAirlineForDisplay(row)).toBe('대한항공(공동운항)')
+    expect(departureCarrierPublicLabel(row)).toBe('대한항공(공동운항)')
+    expect(formatPublicAirlineDisplay('대한항공(공동운항)')).toBe('대한항공(공동운항)')
+  })
+  it('상품 대표 항공사도 공동운항 표기', () => {
+    const deps = Array.from({ length: 3 }, () => ({ carrierName: '아에로멕시코', outboundFlightNo: 'KE017', inboundFlightNo: 'KE7290' }))
+    expect(resolveProductAirlineFromDeparturesForDisplay('아에로멕시코', deps)).toBe('대한항공(공동운항)')
+  })
+  it('다른 동맹·비동맹 오기는 공동운항 아님', () => {
+    expect(resolveDepartureRowAirlineForDisplay({ carrierName: '카타르', outboundFlightNo: 'AF267', inboundFlightNo: 'AF264' })).toBe('에어프랑스')
+    expect(resolveDepartureRowAirlineForDisplay({ carrierName: '에어부산', outboundFlightNo: 'YP151', inboundFlightNo: 'YP152' })).toBe('에어프레미아')
+  })
+  it('sameAirlineAlliance', () => {
+    expect(sameAirlineAlliance('AM', 'KE')).toBe(true)
+    expect(sameAirlineAlliance('QR', 'AF')).toBe(false)
+    expect(sameAirlineAlliance('KE', 'KE')).toBe(false)
+    expect(sameAirlineAlliance('BX', 'YP')).toBe(false)
+  })
+})
+
+describe('트리니티항공(구)티웨이항공 원문 유지 — fit-hn-0045', () => {
+  it('표시가 (구)트리니티항공으로 바뀌지 않음', () => {
+    expect(formatPublicAirlineDisplay('트리니티항공(구)티웨이항공')).toBe('트리니티항공(구)티웨이항공')
+    expect(formatPublicAirlineDisplay('트리니티항공 (구)티웨이항공')).toBe('트리니티항공 (구)티웨이항공')
+    expect(canonicalizePublicAirlineKo('트리니티항공(구)티웨이')).toBe('트리니티항공(구)티웨이')
+  })
+  it('단독 티웨이 원문은 기존대로 트리니티항공', () => {
+    expect(formatPublicAirlineDisplay('티웨이항공')).toBe('트리니티항공')
+    expect(formatPublicAirlineDisplay('TW')).toBe('트리니티항공')
+  })
+  it('상품 대표: 원문 병기 유지', () => {
+    const deps = [{ carrierName: null, outboundFlightNo: 'TW0643', inboundFlightNo: 'TW0644' }]
+    expect(resolveProductAirlineFromDeparturesForDisplay('트리니티항공(구)티웨이항공', [...deps, ...deps])).toBe('트리니티항공(구)티웨이항공')
   })
 })

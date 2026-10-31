@@ -87,12 +87,22 @@ export function canonicalizePublicAirlineKo(raw: string): string {
   if (!s) return s
   const direct = AIRLINE_LEGACY_KO_TO_PUBLIC[s]
   if (direct) return direct
+  // REGRESSION-FREEZE[airline-trinity-former-tway-verbatim]: '트리니티항공(구)티웨이항공' 은 원문 그대로 (사장님 10/31 09:02) — ssot test
+  const formerTway: string[] = []
+  const guarded = s.replace(TRINITY_FORMER_TWAY_RE, (m) => {
+    formerTway.push(m)
+    return `\u0000${formerTway.length - 1}\u0000`
+  })
   // REGRESSION-FREEZE[airline-tway-to-trinity]: legacy brand scrub — manifest
-  return s
+  return guarded
     .replace(/티웨이\s*항공/gi, '트리니티항공')
     .replace(/(?<![가-힣])티웨이(?![가-힣])/gi, '트리니티')
     .replace(/T['’]?\s*way(?:\s*Air)?/gi, '트리니티항공')
+    .replace(/\u0000(\d+)\u0000/g, (_, i) => formerTway[Number(i)] ?? '')
 }
+
+/** '(구)티웨이항공' 병기 — 리브랜딩 안내 문구라 치환하지 않음 */
+const TRINITY_FORMER_TWAY_RE = /\(\s*구\s*\)\s*티웨이(?:\s*항공)?/g
 
 /**
  * 표시 전용 별칭 — 공급사 파싱·저장 경로(canonicalizePublicAirlineKo)에는 쓰지 않음.

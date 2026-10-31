@@ -29390,6 +29390,42 @@
           ]
         }
       ]
+    },
+    {
+      "id": "airline-trinity-former-tway-verbatim",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "'트리니티항공(구)티웨이항공' 표시 원문 유지 — (구)트리니티항공 치환 금지 (1031 사장님 승인)",
+      "checks": [
+        {
+          "file": "lib/airline-iata-public-display-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-trinity-former-tway-verbatim]",
+            "TRINITY_FORMER_TWAY_RE",
+            "REGRESSION-FREEZE[airline-tway-to-trinity]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "airline-codeshare-same-alliance",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "원문 항공사·편명 항공사 같은 동맹 → '<편명 항공사>(공동운항)' 표시 (mt-0264 대한항공(공동운항), 1031 사장님 승인)",
+      "checks": [
+        {
+          "file": "lib/departure-airline-display.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-codeshare-same-alliance]",
+            "sameAirlineAlliance",
+            "CODESHARE_SUFFIX_KO"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [

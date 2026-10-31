@@ -125,7 +125,33 @@ export function resolveDepartureRowAirlineForDisplay(row: DepartureAirlineRowLik
   const nameCode = iataFromSupplierAirlineName(name)
   if (!nameCode || (!ob && !ib)) return name
   if (nameCode === ob || nameCode === ib) return name
-  return airlineKoFromIata(ob) ?? name
+  const flightKo = airlineKoFromIata(ob)
+  if (!flightKo) return name
+  // REGRESSION-FREEZE[airline-codeshare-same-alliance]: 원문 항공사와 편명 항공사가 같은 동맹이면 공동운항 표기 (사장님 10/31 08:59 mt-0264) — vitest
+  const flightCode = ob ?? ib
+  if (flightCode && sameAirlineAlliance(nameCode, flightCode)) return `${flightKo}${CODESHARE_SUFFIX_KO}`
+  return flightKo
+}
+
+export const CODESHARE_SUFFIX_KO = '(공동운항)'
+
+/** 항공 동맹(공동운항 판정용). 동맹이 다르거나 없는 조합(카타르+AF, 에어부산+YP)은 단순 오기로 보고 편명 항공사. */
+const AIRLINE_ALLIANCE: Readonly<Record<string, 'skyteam' | 'star' | 'oneworld'>> = {
+  KE: 'skyteam', AF: 'skyteam', KL: 'skyteam', DL: 'skyteam', AM: 'skyteam', CI: 'skyteam', MU: 'skyteam',
+  MF: 'skyteam', GA: 'skyteam', VN: 'skyteam', SV: 'skyteam', ME: 'skyteam', KQ: 'skyteam', AR: 'skyteam',
+  RO: 'skyteam', UX: 'skyteam', SK: 'skyteam', VS: 'skyteam', AZ: 'skyteam',
+  OZ: 'star', NH: 'star', UA: 'star', LH: 'star', LX: 'star', OS: 'star', LO: 'star', TK: 'star', SQ: 'star',
+  TG: 'star', AI: 'star', CA: 'star', NZ: 'star', AC: 'star', ET: 'star', MS: 'star', TP: 'star', SA: 'star',
+  ZH: 'star', BR: 'star', A3: 'star', CM: 'star', AV: 'star', OU: 'star', SN: 'star',
+  AA: 'oneworld', BA: 'oneworld', CX: 'oneworld', JL: 'oneworld', QF: 'oneworld', QR: 'oneworld', MH: 'oneworld',
+  AY: 'oneworld', IB: 'oneworld', RJ: 'oneworld', UL: 'oneworld', AS: 'oneworld', AT: 'oneworld', WY: 'oneworld',
+  FJ: 'oneworld',
+}
+
+export function sameAirlineAlliance(a: string | null | undefined, b: string | null | undefined): boolean {
+  const x = AIRLINE_ALLIANCE[String(a ?? '').toUpperCase()]
+  const y = AIRLINE_ALLIANCE[String(b ?? '').toUpperCase()]
+  return Boolean(x && y && x === y && String(a).toUpperCase() !== String(b).toUpperCase())
 }
 
 function displayKey(label: string): string {
@@ -136,6 +162,7 @@ function displayKey(label: string): string {
 /**
  * 상품 대표 항공사(표시 전용) — 출발 회차 항공사 집계.
  * - 회차 항공사가 없으면 Product.airline 그대로.
+ * - Product.airline 이 최다(또는 유일) 회차 항공사와 같으면 원문 그대로(예: 트리니티항공(구)티웨이항공).
  * - 1개면 그 항공사.
  * - 2개 이상: Product.airline 이 최다 회차 항공사면 그대로, 아니면 "최다 항공사 외 N개 항공사".
  * 원문 Product.airline 은 바꾸지 않는다.
@@ -158,7 +185,7 @@ export function resolveProductAirlineFromDeparturesForDisplay(
   if (counts.size === 0) return pa
   const sorted = [...counts.values()].sort((a, b) => b.n - a.n)
   const top = sorted[0]!
-  if (sorted.length === 1) return top.label
   if (pa && displayKey(pa) === displayKey(top.label)) return pa
+  if (sorted.length === 1) return top.label
   return `${top.label} 외 ${sorted.length - 1}개 항공사`
 }
