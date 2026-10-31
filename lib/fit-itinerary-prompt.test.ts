@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildAirtelPrompt } from '@/lib/fit-itinerary-generate-for-product'
 
 describe('buildAirtelPrompt', () => {
-  it('요청 day·상품 summary 를 2문장 브리프로 명시한다', () => {
+  it('톤 1031: 일차 summary 3~4문장 실장 말투·금지어·숙소 규칙·숫자 필드 null', () => {
     const prompt = buildAirtelPrompt({
       title: '오사카 3박4일',
       cityNameKo: '오사카',
@@ -15,11 +15,13 @@ describe('buildAirtelPrompt', () => {
       airtelHotelInfoJson: null,
       schedule: null,
     })
-    expect(prompt).toContain('summary(정확히 2문장 한국어)')
-    expect(prompt).toContain('반드시 정확히 2문장')
-    expect(prompt).toContain('한 문장만 출력 금지')
-    expect(prompt).toContain('구체 지명·랜드마크 한글 고유명사')
-    expect(prompt).toContain('합계 50~90자')
+    expect(prompt).toContain('봉투어 실장')
+    expect(prompt).toContain('일차 summary: 3~4문장')
+    expect(prompt).toContain('숫자를 쓰지 않습니다')
+    expect(prompt).toContain('숙소 근처')
+    expect(prompt).toContain('하루 한 권역')
+    expect(prompt).toContain('"startTime": null')
+    expect(prompt).not.toContain('정확히 2문장 한국어')
     expect(prompt).not.toContain('summary(1문장 한국어)')
   })
 

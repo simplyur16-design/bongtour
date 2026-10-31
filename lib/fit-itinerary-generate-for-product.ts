@@ -24,6 +24,8 @@ import {
 } from '@/lib/place-name-spelling'
 import type { FitItineraryDayForKeyword } from '@/lib/fit-itinerary-pick-day-image-keyword'
 import { logLlmJsonRawDebug } from '@/lib/llm-json-extract'
+import { BONGTOUR_FREE_DAY_VOICE_BLOCK } from '@/lib/bongtour-free-day-voice-block'
+import { resolveFitDayCityKey } from '@/lib/fit-itinerary-day-city-key'
 import { buildProductScheduleJsonForDb } from '@/lib/schedule-image-keyword-persist'
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 
@@ -89,62 +91,64 @@ function schedulePreview(schedule: string | null, maxLen = 4000): string {
 }
 
 export function buildAirtelPrompt(p: PromptProduct): string {
-  const activityRule =
-    p.totalDays >= 5
-      ? 'activities **정확히 3개** (출력 길이·JSON 잘림 방지 — 4개 이상 금지)'
-      : 'activities 3~4개'
-  return `당신은 가오슝 v3 패턴 그대로 자유여행 예시 일정을 만드는 봉투어 큐레이터입니다.
+  const activityRule = p.totalDays >= 5 ? '정확히 3개(JSON 잘림 방지 — 4개 이상 금지)' : '3~4개'
+  const hotelLine = p.hotelSummaryText ?? p.airtelHotelInfoJson ?? '에어텔 포함(호텔 주소 정보 없음)'
+  return `당신은 봉투어 자유여행 상품의 '추천 예시 일정'을 짜는 봉투어 실장입니다. 이 일정은 고객이 참고하는 예시이고, 실제 예약 조건은 아닙니다.
 
-[상품 정보]
-- 제목: ${p.title}
+[상품 정보 — 이 안의 사실만 씁니다]
+- 제목(참고용 — 상품 제목 문구를 일정 제목·요약에 그대로 옮겨 쓰지 않습니다): ${p.title}
 - 도시: ${p.cityNameKo} (cityKey: ${p.cityKey}, 국가: ${p.countryCode})
 - 일정: ${p.duration} (총 ${p.totalDays}일)
 - 항공사: ${p.airline ?? '미지정'}
-- 호텔: ${p.hotelSummaryText ?? p.airtelHotelInfoJson ?? '에어텔 포함'}
-- 기존 스케줄: ${schedulePreview(p.schedule)}
+- 호텔: ${hotelLine}
+- 기존 스케줄(참고): ${schedulePreview(p.schedule)}
 
-[작성 규칙 — 가오슝 v3 활동 패턴 + 봉투어 2문장 브리프]
-- persona 자동 결정: '${p.cityNameKo}' 도시의 일반 자유여행객 페르소나 (mixed / couple / with-parents / with-kids 중 1)
-- 각 day = title(시적 한국어), summary(정확히 2문장 한국어), ${activityRule}
-- day.summary **반드시 정확히 2문장**(한 문장만 출력 금지). 마침표(.)로 끝나는 완결 문장 두 개를 한 줄에 이어 쓴다. ① 오늘 동선·핵심 체험(친근한 권유형, 「~해 보세요」「~즐기기 좋은 날」) — **구체 지명·랜드마크 한글 고유명사 1개 이상** 필수(예: 도톤보리, 청수사). ② 이동·시간·비용·준비물 중 실용 팁 1가지. 줄바꿈 없음, 합계 50~90자.
-- 상품 최상위 summary: 정확히 2문장 — ① 이 여행의 매력·동선 요약 ② 아래는 참고용 예시 일정이며 순서·시간은 자유롭게 조정 가능함을 짧게 안내
-- 카테고리 5개만 사용: transport(공항·이동) / hotel(체크인) / meal(식사·야시장 미식) / attraction(관광·전망대·사찰) / shopping(쇼핑·기념품)
-- Day 1 첫 활동 = 공항 도착(transport), 호텔 체크인(hotel), 야시장/저녁(meal)
-- Day 마지막 = 공항 출국(transport)
-- startTime = "HH:MM" 24시간 (예: "10:00", "15:55")
-- durationMinutes = 30 ~ 180
-- estimatedCostKrw = 정수 (0 = 무료/포함)
-- estimatedCostNote = "현지 통화 약 $XX 기준, 현지 실제 가격은 다를 수 있음"
-- transportMode = "도보" / "MRT" / "택시" / "버스" / "페리" 또는 null (hotel/meal일 때 null 가능)
-- transportDuration = "10분" 등 한국어 + 숫자
-- 모든 텍스트 한국어
-- **location 필수 형식:** attraction은 한글명 (English landmark name) — 괄호 안 **영문 랜드마크** 필수 (예: "청수사 (Kiyomizu-dera Temple)", "바나힐 (Ba Na Hills)", "미케 비치 (My Khe Beach)"). shopping·meal도 한글 (English) 형식은 유지하되 **식당·약국·면세점 상호는 랜드마크가 아님**. transport·hotel은 공항·호텔명 한글만 가능
-- **동선·imageKeyword(시스템 자동):** 예시 일정 각 일차 activities가 그날 **동선**이다. 등록 후 시스템은 그날 **attraction location의 괄호 영문 랜드마크**로 imageKeyword를 만든다(일차마다 다른 명소). 식사·쇼핑 상호명(식당·약국·면세점)은 예시 일정에 넣어도 되지만 imageKeyword로 쓰지 않는다. 도시명·공항명만 쓰지 말 것.
-- 음식점은 추천 메뉴 1~2개 포함
-- 가족·연인·부모 등 페르소나 언급 활동 1~2개 포함
-- 야경/포토존 1개 포함
+${BONGTOUR_FREE_DAY_VOICE_BLOCK}
+
+[일정 짜는 규칙]
+- persona: '${p.cityNameKo}' 일반 자유여행객 기준으로 mixed / couple / with-parents / with-kids 중 하나를 고릅니다.
+- 1일차: 공항 도착 → 호텔 체크인 → 저녁·산책 정도로 가볍게. 먼 근교로 보내지 않습니다.
+- 마지막 날: 호텔 체크아웃 → 공항 가는 길 한두 곳 → 공항. 공항과 반대 방향 명소를 넣지 않습니다.
+- 하루 동선은 한 권역 안에서 짭니다(하루 한 권역). 근교(예: 오사카 상품의 교토·나라)는 하루를 통째로 쓸 때만 넣고, 같은 날 두 권역을 오가지 않습니다.
+  · 예외 1: 호텔 주소가 상품 정보에 있을 때, 그 주소에서 걸어서 갈 수 있는 곳은 숙소와 같은 권역으로 봅니다.
+  · 예외 2: 테마파크처럼 하루를 다 쓰는 날은 돌아오는 길에 저녁을 먹는 것까지 됩니다. 이때도 "숙소 근처"라고 쓰지 않고 "돌아오는 길"로만 씁니다.
+- 숙소 위치: 위 [호텔]에 주소·위치가 없으면 "숙소 근처", "숙소와 가까운", "호텔 바로 옆"처럼 숙소와의 거리를 말하지 않습니다.
+- 교통(transport) 칸 설명도 같은 말투로 씁니다("~하시면 돼요"). "~를 시작합니다", "~를 준비합니다" 같은 설명체는 쓰지 않습니다.
+- 같은 명소를 두 날 이상 넣지 않습니다.
+- 일차 title: 그날 대표 장소가 들어간 짧은 한국어 제목(8~24자). 시적 수식(설레는, 꿈과 환상의…)은 쓰지 않습니다.
+- 일차 summary: 3~4문장, 동선 순서대로. summary에 나온 장소와 activities.location이 같아야 합니다.
+- activities: ${activityRule}, 동선 순서대로. 카테고리는 transport / hotel / meal / attraction / shopping 다섯 개만 씁니다.
+- **location 필수 형식:** attraction은 한글명 (English landmark name) — 괄호 안 **영문 랜드마크** 필수 (예: "청수사 (Kiyomizu-dera Temple)", "바나힐 (Ba Na Hills)"). meal은 상호를 지어내지 않고 "근처 라멘집", "시장 안 노점"처럼 일반 명사로만 쓰고 영문 괄호를 붙이지 않습니다. transport·hotel은 공항·호텔명 한글만.
+- **동선·imageKeyword(시스템 자동):** 예시 일정 각 일차 activities가 그날 **동선**이다. 등록 후 시스템은 그날 **attraction location의 괄호 영문 랜드마크**로 imageKeyword를 만든다(일차마다 다른 명소). 식사·쇼핑 상호명(식당·약국·면세점)은 imageKeyword로 쓰지 않는다. 도시명·공항명만 쓰지 말 것.
+- dayCityKey는 시스템이 그날 장소로 다시 정합니다. 그날 실제로 머무는 도시를 영문 소문자로 적습니다(예: 교토 하루면 "kyoto").
+- 숫자 필드는 비웁니다: startTime, durationMinutes, estimatedCostKrw, estimatedCostNote, transportDuration 은 모두 null. transportMode는 "도보"/"지하철"/"버스"/"택시"/"페리" 중 하나 또는 null.
 - days 배열 길이 = ${p.totalDays}일 (dayNumber 1부터 연속)
+- 모든 텍스트는 한국어입니다.
 
 ${PLACE_NAME_SPELLING_PROMPT_RULE}
 
-[출력] 아래 JSON만, 다른 설명 없이:
-- 응답은 반드시 유효한 JSON 객체 하나만. markdown 코드블록(\`\`\`json), 설명 문장, 주석 절대 금지.
+[출력] 유효한 JSON 객체 하나만. markdown 코드블록(\`\`\`json)·설명·주석 금지.
 {
-  "title": "도시 X일 페르소나에 맞는 한국어 제목 (호텔명 포함)",
-  "summary": "상품 2문장 요약(매력+예시일정 참고·자유 조정 안내)",
+  "title": "도시 X일 한국어 제목(호텔명 포함, 상품 정보의 사실만)",
+  "summary": "상품 요약 2문장: 이 여행 동선의 결 한 문장 + '아래는 참고용 예시 일정이라 순서는 편하게 바꾸셔도 돼요' 취지 한 문장. 숫자 없음.",
   "persona": "mixed|couple|with-parents|with-kids",
   "days": [
     {
       "dayNumber": 1,
-      "title": "Day 시적 한국어 제목",
-      "summary": "Day 2문장(동선+실용팁). 예: 오후엔 ○○을 걸으며 ○○을 즐겨 보세요. 저녁엔 ○○을 챙기시면 이동이 수월해요.",
+      "title": "그날 대표 장소가 들어간 짧은 제목",
+      "summary": "3~4문장, 동선 순서, 장소마다 이유 한두 마디, 숫자·단정어 없음",
       "dayCityKey": "${p.cityKey}",
       "activities": [
-        { "order": 1, "category": "transport", "title": "...", "description": "...", "location": "...", "startTime": "HH:MM", "durationMinutes": 60, "estimatedCostKrw": 15000, "estimatedCostNote": "...", "transportMode": "택시", "transportDuration": "35분" }
+        { "order": 1, "category": "attraction", "title": "...", "description": "한 문장, 숫자 없음", "location": "한글명 (English name)", "startTime": null, "durationMinutes": null, "estimatedCostKrw": null, "estimatedCostNote": null, "transportMode": "지하철", "transportDuration": null }
       ]
     }
   ]
-}`
+}
+
+[좋은 예 — 형식 참고용, 그대로 베끼지 말 것]
+"첫날은 짐만 풀고 바로 신세카이로 나가 보세요. 츠텐카쿠 아래 골목은 해가 진 뒤에 간판 불이 들어와야 제맛이에요. 저녁은 그 골목 쿠시카츠집에서 가볍게 드시면 첫날 일정이 편해요."
+[나쁜 예 — 이렇게 쓰지 않음]
+"신세카이 · 츠텐카쿠 · 쿠시카츠. 공항에서 시내까지 약 35분 만에 이동할 수 있습니다. 최고의 야경을 만끽하세요."`
 }
 
 async function generateGeminiText(opts: {
@@ -366,6 +370,8 @@ export async function persistFitItineraryFromGeminiJson(
   }
   // REGRESSION-FREEZE[place-name-spelling-n1]: Gemini 추천일정 사후 검사 — certain 사전만 교정(비용 필드 불변)
   parsed = applyPlaceNameSpellingToFitGemini(parsed)
+  // 톤 1031: dayCityKey 는 모델 값이 아니라 그날 장소(권역 표)로 — 교토 하루는 kyoto
+  parsed = withCodeResolvedDayCityKeys(parsed, product.cityKey)
 
   const cityNameKo =
     product.primaryDestination?.trim() || product.destination?.trim() || product.cityKey || ''
@@ -400,7 +406,7 @@ export async function persistFitItineraryFromGeminiJson(
             dayNumber: day.dayNumber,
             title: day.title,
             summary: day.summary,
-            dayCityKey: day.dayCityKey || product.cityKey || '',
+            dayCityKey: day.dayCityKey,
           },
         })
         const activities = [...(day.activities ?? [])].sort((a, b) => a.order - b.order)
@@ -520,6 +526,24 @@ export function applyPlaceNameSpellingToFitGemini(parsed: FitItineraryGeminiResp
         description: t(a.description),
         location: t(a.location),
       })),
+    })),
+  }
+}
+
+/** 톤 1031: 일차 dayCityKey 를 코드 권역 표로 다시 정한다(모델 값은 상품 cityKey 가 비었을 때만). */
+export function withCodeResolvedDayCityKeys(
+  parsed: FitItineraryGeminiResponse,
+  productCityKey: string | null | undefined,
+): FitItineraryGeminiResponse {
+  return {
+    ...parsed,
+    days: parsed.days.map((d) => ({
+      ...d,
+      dayCityKey: resolveFitDayCityKey({
+        activities: d.activities ?? [],
+        productCityKey,
+        modelDayCityKey: d.dayCityKey,
+      }),
     })),
   }
 }
