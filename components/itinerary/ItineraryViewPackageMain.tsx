@@ -164,8 +164,9 @@ export function ItineraryViewPackageMain({
       const target = firstDaySectionRef.current
       if (!target) return
       const bar = dayTabsBarRef.current
-      const barBottom = bar ? bar.getBoundingClientRect().bottom : 0
-      const offset = Math.max(barBottom, 0) + 12
+      // sticky 바가 아직 붙기 전이어도 '붙은 뒤' 기준(sticky top + 바 높이)으로 1일차 위치 계산
+      const stickyTop = bar ? parseFloat(window.getComputedStyle(bar).top) || 0 : 0
+      const offset = stickyTop + (bar ? bar.offsetHeight : 0) + 12
       const top = target.getBoundingClientRect().top + window.scrollY - offset
       window.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' })
     })
