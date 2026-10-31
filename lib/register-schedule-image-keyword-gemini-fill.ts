@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[register-schedule-image-keyword-gemini-fill]: manifest
  * REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: 제목 자유일정만 추천일정 — FIT·환승 제외 — manifest
  */
+import { BONGTOUR_FREE_DAY_VOICE_BLOCK } from '@/lib/bongtour-free-day-voice-block'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import { classifyModetourScheduleCardDayKind, isModetourDomesticHubToken } from '@/lib/modetour-schedule-image-keyword'
@@ -14,6 +15,8 @@ import {
   hasRegisterFreeDayRecommendedItinerary,
   inferRegisterPendingDestinationFromTitle,
   isRegisterPendingFreeItineraryDay,
+  REGISTER_DAY_FREE_TIME_TITLE_RE,
+  REGISTER_FREE_ITINERARY_TITLE_RE,
 } from '@/lib/register-pre-photo-verify'
 import { collectRouteTextOrderedLandmarkKeywords } from '@/lib/register-schedule-route-text-image-keyword-ssot'
 import {
@@ -124,6 +127,58 @@ export function inferRegisterFreeDayDurationLabel(
 
 export function registerFreeDayRecommendedTitle(duration: RegisterFreeDayDurationLabel): string {
   return duration === '반나절' ? '추천일정 반나절' : '추천일정 1day'
+}
+
+const FREE_DAY_TITLE_PREFIX_RE = /^추천일정\s*(?:1\s*day|반나절)?\s*(?:·\s*)?/iu
+
+function freeDayTitlePlaceOk(seg: string, city: string, titleTokens?: ReadonlySet<string>): boolean {
+  const t = seg.trim()
+  if (t.length < 2) return false
+  if (city && t === city.trim()) return false
+  // 상품 제목에 낱말로 들어 있는 도시명(예: '오사카/교토/나라 3일'의 오사카)은 장소로 치지 않는다
+  if (titleTokens?.has(t)) return false
+  if (REGISTER_FREE_ITINERARY_TITLE_RE.test(t) || REGISTER_DAY_FREE_TIME_TITLE_RE.test(t)) return false
+  if (/^추천일정/u.test(t)) return false
+  return true
+}
+
+/**
+ * 톤 1031: 자유일정 추천 제목 — '추천일정 1day · 장소·장소' (앞머리는 코드가 추천일정 여부를 판단하는 고정 문구).
+ * 제미나이 제목에 장소가 붙어 있으면 그 장소를 쓰고('·' 앞뒤 띄어쓰기만 정리), 없으면 그날 추천 동선 앞 두 곳으로 만든다.
+ * (round3 남은 문제: mt-0240 D2 제목이 '추천일정 1day'만 나오던 것)
+ */
+export function buildRegisterFreeDayRecommendedTitle(args: {
+  duration: RegisterFreeDayDurationLabel
+  geminiTitle?: string | null
+  route?: string | null
+  city?: string | null
+  productTitle?: string | null
+}): string {
+  const prefix = registerFreeDayRecommendedTitle(args.duration)
+  const city = String(args.city ?? '').trim()
+  const titleTokens = new Set(
+    String(args.productTitle ?? '')
+      .split(/[^\p{L}\p{N}]+/u)
+      .map((x) => x.trim())
+      .filter(Boolean),
+  )
+  const gt = String(args.geminiTitle ?? '').trim()
+  let places: string[] = []
+  if (/^추천일정/u.test(gt)) {
+    places = gt
+      .replace(FREE_DAY_TITLE_PREFIX_RE, '')
+      .split(/\s*·\s*/u)
+      .map((x) => x.trim())
+      .filter((x) => freeDayTitlePlaceOk(x, city, titleTokens))
+  }
+  if (!places.length) {
+    places = String(args.route ?? '')
+      .split(/\s+-\s+/u)
+      .map((x) => x.trim())
+      .filter((x) => freeDayTitlePlaceOk(x, city, titleTokens))
+  }
+  places = [...new Set(places)].slice(0, 2)
+  return places.length ? `${prefix} · ${places.join('·')}` : prefix
 }
 
 export function groupRegisterFreeLeisureDaysByStayCity(
@@ -323,9 +378,18 @@ Duration:
 - 반나절 / half-day: 2 landmark stops
 - 1day: 3-4 landmark stops
 
-Write recommendedRoute as Korean place names in visit order joined by " - ".
-Write title as "추천일정 반나절" or "추천일정 1day".
+Write recommendedRoute as Korean place names in visit order joined by " - ". Keep ONE area (zone) per day — do not mix two districts that need a train ride between them.
+Write title as "추천일정 반나절 · 장소1·장소2" or "추천일정 1day · 장소1·장소2" — keep the leading "추천일정 반나절/1day" exactly (code uses it), then the day's 1-2 main places joined by "·" with no spaces around that middle dot.
+Write summary in Korean, 3-4 sentences in visit order, as a Bongtour travel manager recommending directly to a customer ("저라면 …", "~해 보세요", "~하시면 편해요"). One short reason per place.
+Summary/route/places rules:
+- No numbers at all (no prices, fees, times, durations, distances, counts). Never invent prices.
+- Banned words: 최저가, 무조건, 최고, 유명, 제일, 가장, 빠질 수 없는, 피로가 싹, 인기 있는, 꼭 가야.
+- The package hotel address is unknown: never say 숙소 근처 / 호텔 근처 / 숙소와 가까운 / 호텔 바로 옆, or anything about distance to the hotel.
+- Do not repeat places already visited on other days. Do not write the product title.
 imageKeyword / imageKeyword2 must be English Pexels proper names from THAT recommendedRoute (not literal translations).
+
+Korean voice & fact rules for title/summary (same block as the FIT itinerary prompt):
+${BONGTOUR_FREE_DAY_VOICE_BLOCK}
 
 Product title: ${opts.productTitle?.trim() || 'unknown'}
 Destination: ${opts.productDestination?.trim() || 'unknown'}
@@ -341,7 +405,7 @@ Free-leisure days to fill:
 ${lines.join('\n')}
 
 Return JSON only:
-{"schedule":[{"day":6,"stayCity":"Abu Dhabi","duration":"1day","title":"추천일정 1day","recommendedRoute":"야스아일랜드 - 페라리 월드 - 씨월드","imageKeyword":"Ferrari World","imageKeyword2":"SeaWorld Abu Dhabi"}]}`
+{"schedule":[{"day":6,"stayCity":"Abu Dhabi","duration":"1day","title":"추천일정 1day · 페라리 월드·씨월드","recommendedRoute":"야스아일랜드 - 페라리 월드 - 씨월드","summary":"저라면 아침에 야스아일랜드로 넘어가 하루를 시작합니다. 페라리 월드에서는 실내라 더위 걱정 없이 놀이기구를 즐기시면 돼요. 오후에는 씨월드로 옮겨 바다 동물 전시를 천천히 구경해 보세요. 두 곳이 같은 섬 안이라 동선이 단순해서 편해요.","imageKeyword":"Ferrari World","imageKeyword2":"SeaWorld Abu Dhabi"}]}`
 }
 
 export type GeminiFreeLeisureDayFill = {
@@ -349,6 +413,8 @@ export type GeminiFreeLeisureDayFill = {
   kw2: string | null
   recommendedRoute: string
   title: string
+  /** 톤 1031: 제미나이 3~4문장 요약 — 있으면 description 에 그대로(템플릿으로 덮어쓰지 않음) */
+  summary: string
   duration: RegisterFreeDayDurationLabel | ''
   stayCity: string
 }
@@ -375,7 +441,6 @@ export function mergeGeminiFreeLeisureRecommendedItinerary<
     if (!g) return row
     const duration =
       g.duration || inferRegisterFreeDayDurationLabel(opts.productTitle, row)
-    const recommendedTitle = registerFreeDayRecommendedTitle(duration)
     const keepRoute = freeDayRouteHasLandmarks(row)
     const nextRoute = keepRoute
       ? row.routeText
@@ -388,9 +453,20 @@ export function mergeGeminiFreeLeisureRecommendedItinerary<
         productTitle: opts.productTitle,
       })
     const routeLabel = String(nextRoute ?? '').trim()
-    const description = routeLabel
-      ? `${city} 자유일정 추천. ${routeLabel}를 둘러봅니다.`
-      : String(row.description ?? '')
+    const recommendedTitle = buildRegisterFreeDayRecommendedTitle({
+      duration,
+      geminiTitle: g.title,
+      route: routeLabel,
+      city,
+      productTitle: opts.productTitle,
+    })
+    // 톤 1031: 제미나이 요약이 있으면 그대로 쓴다. '…를 둘러봅니다' 템플릿은 요약이 없을 때만(옛 응답 호환).
+    const geminiSummary = String(g.summary ?? '').replace(/\s+/g, ' ').trim()
+    const description = geminiSummary
+      ? geminiSummary
+      : routeLabel
+        ? `${city} 자유일정 추천. ${routeLabel}를 둘러봅니다.`
+        : String(row.description ?? '')
     return {
       ...row,
       title: recommendedTitle,
@@ -480,6 +556,7 @@ export function parseGeminiFreeLeisureRows(raw: unknown): Map<number, GeminiFree
       kw2,
       recommendedRoute,
       title,
+      summary: String(o.summary ?? '').trim(),
       duration: parseFreeDayDuration(o.duration) || parseFreeDayDuration(title),
       stayCity: String(o.stayCity ?? '').trim(),
     })

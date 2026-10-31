@@ -214,12 +214,13 @@ describe('register-schedule-image-keyword-gemini-fill', () => {
       byDay,
       { productTitle: '보르도 4일' },
     )
-    expect(merged[1]?.title).toBe('추천일정 1day')
+    // 톤 1031: '추천일정 1day · 장소·장소' — 상품 제목 속 도시명(보르도)은 장소로 치지 않음
+    expect(merged[1]?.title).toBe('추천일정 1day · 시테 뒤 뱅·미로아르 도')
     expect(merged[1]?.routeText).toMatch(/시테 뒤 뱅/)
     expect(merged[1]?.description).toMatch(/자유일정 추천/)
     expect(merged[1]?.imageKeyword).toMatch(/Cite du Vin/i)
     expect(merged[2]?.routeText).toBe('야스아일랜드 - 씨월드 - 페라리 월드')
-    expect(merged[2]?.title).toBe('추천일정 반나절')
+    expect(merged[2]?.title).toBe('추천일정 반나절 · 야스아일랜드·씨월드')
   })
 
   it('buildFreeLeisureDayGeminiPrompt — 도시별 빈 날 수·추천일정 persist', () => {
