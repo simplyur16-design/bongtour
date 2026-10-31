@@ -66,14 +66,24 @@ const RO_ENDING_PLACE_NAME_RE =
 
 /**
  * route 장소 정리 단계에서 조사로 오인해 잘린 이름(`카이로`→`카이`)을 표시용으로만 되돌린다.
- * `picked + 로` 가 allowlist 지명이고 원래 routeText 에 그 이름이 실제로 있을 때만. 그 외는 picked 그대로.
+ * 봉실장 제약: 그날 routeText 의 **원래 구간 문자열 그대로**만 사용(allowlist 로 이름을 추측·완성하지 않음).
+ * - picked 를 만들어 낸 원래 구간이 하나의 문자열로 특정되고,
+ * - 그 구간이 picked 로 시작하며(끝 「로」만 잘린 경우),
+ * - 그 구간 전체가 allowlist 지명일 때만 원래 구간을 반환. 확인 불가 시 picked 그대로.
  */
 export function restoreRoEndingPlaceName(picked: string, routeText: string | null | undefined): string {
-  const full = `${picked}로`
-  if (!RO_ENDING_PLACE_NAME_RE.test(full.replace(/\s+/g, ' ').trim())) return picked
-  const key = (v: string) => v.replace(/\s+/g, '')
-  if (!key(String(routeText ?? '')).includes(key(full))) return picked
-  return full
+  const rawSegs = splitRouteTextPlaceSegments(String(routeText ?? ''))
+  const sources = new Set<string>()
+  for (const raw of rawSegs) {
+    const labels = filterRegisterScheduleRoutePlaceSegments([raw]).map((s) => stripPlaceParens(s))
+    if (labels.includes(picked)) sources.add(String(raw).replace(/\s+/g, ' ').trim())
+  }
+  if (sources.size !== 1) return picked
+  const original = [...sources][0]!
+  if (original === picked) return picked
+  if (!original.startsWith(picked) || original.length <= picked.length) return picked
+  if (!RO_ENDING_PLACE_NAME_RE.test(original)) return picked
+  return original
 }
 
 /**

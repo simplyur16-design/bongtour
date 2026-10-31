@@ -25,9 +25,16 @@ describe('composeScheduleImageSeoTitleKr — 선택 유지 + 「로」 지명 �
     expect(restoreRoEndingPlaceName('시내', '시내로 이동')).toBe('시내')
     expect(restoreRoEndingPlaceName('파리', '파리로')).toBe('파리')
   })
-  it('allowlist 지명 복원', () => {
-    expect(restoreRoEndingPlaceName('카이', '카이로로 이동')).toBe('카이로')
-    expect(restoreRoEndingPlaceName('비스트', '비스트로')).toBe('비스트로')
+  it('원래 구간 문자열이 지명 그대로일 때만 복원 — 추측·완성 금지', () => {
+    // `카이로로 이동` 구간은 지명 문자열 그대로가 아님 → 복원하지 않음
+    expect(restoreRoEndingPlaceName('카이', '카이로로 이동')).toBe('카이')
+    expect(restoreRoEndingPlaceName('카이', '카이로 이동')).toBe('카이')
+    // routeText 에 원래 구간이 없으면 그대로
+    expect(restoreRoEndingPlaceName('카이', '기자 - 아스완')).toBe('카이')
+  })
+  it('allowlist 지명 복원 (원래 구간 그대로)', () => {
+    expect(restoreRoEndingPlaceName('카이', '카이로 - 기자 - 카이로')).toBe('카이로')
+    expect(restoreRoEndingPlaceName('비스트', 'T 갤러리아 - 비스트로 - PIC 괌')).toBe('비스트로')
     expect(restoreRoEndingPlaceName('모지코 레트', '아카마 신궁 - 모지코 레트로')).toBe('모지코 레트로')
     expect(restoreRoEndingPlaceName('아스완', '카이로 - 아스완')).toBe('아스완')
   })
