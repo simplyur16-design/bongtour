@@ -365,3 +365,20 @@ describe('round3 22:16 요약은 지우거나 원문으로 바꾸지 않고, 상
     expect(out[3].description).toBe('앙코르와트에서 일출을 감상합니다. 바욘 사원의 미소 조각을 둘러봅니다. 저녁에는 압사라 공연을 관람합니다. 숙소는 H입니다.')
   })
 })
+
+import { photoMatchGate, isRegisterPhotoAirportCodeTerm } from '@/lib/register-photo-match-gate'
+
+describe('round3 사진: 공항 코드 키워드·가족 인물 사진', () => {
+  const c = { altText: "Father and daughter embrace with a sign saying 'The Best Dad Ever.'", width: 4000, height: 3000, externalId: '1', photographer: 'p', originalLink: 'x' } as any
+  it('사람(아버지·딸)이 주인공이면 탈락', () => {
+    expect(personIsMainSubject("father and daughter embrace with a sign saying the best dad ever")).toBe(true)
+  })
+  it("공항 코드 'DAD'는 장소 일치 근거가 아님", () => {
+    expect(isRegisterPhotoAirportCodeTerm('DAD')).toBe(true)
+    expect(isRegisterPhotoAirportCodeTerm('Da Nang')).toBe(false)
+    const r = photoMatchGate({ ...c, altText: 'A dad sign on a wall' }, { placeTerms: ['DAD'], destinationTerms: [], slotText: '다낭 공항 도착', slot: 'day' } as any)
+    expect(r.ok).toBe(false)
+    const r2 = photoMatchGate({ ...c, altText: "A black mug with 'Dad' printed on it" }, { placeTerms: ['DAD'], destinationTerms: [], slotText: '다낭 국제공항(DAD) 도착', slot: 'day', daySummary: '다낭 국제공항(DAD) 도착 dad' } as any)
+    expect(r2.ok).toBe(false)
+  })
+})

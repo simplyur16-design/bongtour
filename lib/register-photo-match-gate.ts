@@ -67,12 +67,12 @@ export const MATCH_GATE_MIN_WIDTH = 1200
 
 /** 사람을 가리키는 낱말(이것만으로는 탈락 아님 — 주인공일 때만) */
 const PERSON_WORD =
-  '(man|men|woman|women|girl|girls|boy|boys|guy|guys|lady|ladies|person|couple|couples|child|children|kid|kids|baby|bride|groom|businessman|businesswoman|vendor|vendors|customer|customers|shopper|shoppers|worker|workers|chef|cook|seller|backpacker|hiker|hikers|fisherman|monk|monks|traveler|traveller|tourist|friends|family|teen|teenager|student|students)'
+  '(man|men|woman|women|girl|girls|boy|boys|guy|guys|lady|ladies|person|couple|couples|child|children|kid|kids|baby|bride|groom|father|mother|dad|mom|daughter|daughters|son|sons|parents|grandmother|grandfather|businessman|businesswoman|vendor|vendors|customer|customers|shopper|shoppers|worker|workers|chef|cook|seller|backpacker|hiker|hikers|fisherman|monk|monks|traveler|traveller|tourist|friends|family|teen|teenager|student|students)'
 /** 사람이 주인공임이 분명한 낱말 */
 const PERSON_SUBJECT_RE =
   /\b(portrait|portraits|selfie|selfies|headshot|posing|poses|posed|fashion|wedding|bride|groom|model posing|models posing|human ear|human face|facial)\b|\bclose ?up of (a |an |the )?(man|woman|girl|boy|person|face|ear|hand|hands)\b|\b(his|her|their) (face|ear|ears|hair|eyes)\b/
 /** 사람 낱말 + 옷차림·동작 묘사 = 사람이 주인공 */
-const PERSON_DESC_RE = new RegExp(`\\b${PERSON_WORD}\\b.{0,40}\\b(wearing|wears|dressed|in (a |an |the )?(black|white|red|blue|green|yellow|pink|traditional|stylish|casual)? ?(jacket|dress|gown|robe|coat|suit|shirt|hoodie|hat|kimono|hanbok|ao dai)|holding|smiling|smiles|looking at (the )?camera|lying|sitting on (a |the )?bed|checks|checking|enjoying (a |her |his )?(drink|coffee|meal|food))\\b`)
+const PERSON_DESC_RE = new RegExp(`\\b${PERSON_WORD}\\b.{0,40}\\b(wearing|wears|dressed|in (a |an |the )?(black|white|red|blue|green|yellow|pink|traditional|stylish|casual)? ?(jacket|dress|gown|robe|coat|suit|shirt|hoodie|hat|kimono|hanbok|ao dai)|holding|smiling|smiles|looking at (the )?camera|lying|sitting on (a |the )?bed|checks|checking|enjoying (a |her |his )?(drink|coffee|meal|food)|embrace|embracing|hug|hugging|hugs)\\b`)
 
 /**
  * 사람이 주인공인가: 설명 맨 앞 명사구(앞 5낱말)가 사람이거나, 인물 사진 낱말이 있거나, 사람+옷차림·동작 묘사.
@@ -311,13 +311,30 @@ const CROWD_RE = /\b(people|crowd|crowds|tourists|visitors|street food|shop|stor
 export function matchGateScore(c: MatchGateCandidate, ctx: MatchGateContext): number {
   const t = padded(photoCandidateText([c.altText, c.pageUrl, c.label]))
   let s = 0
-  const pt = ctx.slot === 'day' && ctx.daySummary != null ? dayPlaceTerms(ctx) : ctx.placeTerms
+  const pt = withoutAirportCodeTerms(ctx.slot === 'day' && ctx.daySummary != null ? dayPlaceTerms(ctx) : ctx.placeTerms, ctx)
   if (placeHit(t, padded(low(c.label)), pt)) s += 4
   else if (placeHit(t, padded(low(c.label)), ctx.destinationTerms)) s += 1
   s += Math.min(3, (t.match(SCENE_RE) ?? []).length)
   if (Number(c.width ?? 0) >= 1920) s += 1
   if (CROWD_RE.test(t)) s -= 2
   return s
+}
+
+/** round3: 'DAD'·'ICN' 같은 공항 코드 키워드는 장소 일치 근거가 아님 ('Best Dad Ever' 사진이 붙던 문제) */
+export function isRegisterPhotoAirportCodeTerm(v: unknown): boolean {
+  return /^\s*[A-Z]{3}\s*$/.test(String(v ?? ''))
+}
+function airportCodesOf(ctx: MatchGateContext): Set<string> {
+  const out = new Set<string>()
+  const raw = [...ctx.placeTerms, ctx.slotText, ctx.daySummary].map((x) => String(x ?? '')).join(' ')
+  for (const m of raw.matchAll(/(?<![A-Za-z])([A-Z]{3})(?![A-Za-z])/g)) out.add(m[1]!.toLowerCase())
+  return out
+}
+function withoutAirportCodeTerms(terms: readonly (string | null | undefined)[], ctx: MatchGateContext): string[] {
+  const codes = airportCodesOf(ctx)
+  return terms
+    .map((x) => String(x ?? ''))
+    .filter((x) => !isRegisterPhotoAirportCodeTerm(x) && !codes.has(x.trim().toLowerCase()))
 }
 
 export function photoMatchGate(c: MatchGateCandidate, ctx: MatchGateContext): { ok: boolean; reason: MatchGateReason | null; matched: string | null } {
@@ -351,7 +368,7 @@ export function photoMatchGate(c: MatchGateCandidate, ctx: MatchGateContext): { 
   const allowed = (key: string) => (PLACE_NAMES[key] ?? [key]).some((n) => slotHay.includes(` ${n} `) || slotHay.includes(n.replace(/\s+/g, '')) || (/[가-힣]/.test(n) && slotHay.includes(n)))
   for (const [re, home] of LANDMARK_HOME) if (re.test(t) && !allowed(home)) return no('other_place_landmark')
   for (const city of CITY_KEYS_FOR_MISMATCH) if (t.includes(` ${city} `) && !allowed(city)) return no('city_mismatch')
-  const terms = ctx.slot === 'day' && ctx.daySummary != null ? dayPlaceTerms(ctx) : [...ctx.placeTerms, ...ctx.destinationTerms]
+  const terms = withoutAirportCodeTerms(ctx.slot === 'day' && ctx.daySummary != null ? dayPlaceTerms(ctx) : [...ctx.placeTerms, ...ctx.destinationTerms], ctx)
   const hit = placeHit(t, padded(low(c.label)), terms)
   if (!hit && !c.isGenerated) return no('no_place_match')
   return { ok: true, reason: null, matched: hit ?? null }
