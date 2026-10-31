@@ -30015,7 +30015,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "톤 1031(사장님 지시·문과장 검수): 자유여행 추천일정·패키지 자유일정 날 — 실장 말투 3~4문장, 금지어·숙소 위치 규칙, 요약 2문장 자르기·'…를 둘러봅니다' 템플릿 덮어쓰기 금지, dayCityKey 코드 권역 표, 사진 키워드 식당 제외, 제목 '추천일정 1day · 장소·장소'",
+      "summary": "톤 1031(사장님 지시·문과장 검수): 자유여행 추천일정·패키지 자유일정 날 — 실장 말투 3~4문장, 금지어·숙소 위치 규칙, 요약 2문장 자르기·'…를 둘러봅니다' 템플릿 덮어쓰기 금지, dayCityKey 코드 권역 표, 사진 키워드 식당 제외, 제목 '추천일정 1day · 장소·장소' · 자유일정 추천일정 사후 검사(숫자·금지어·숙소 근처) 실패 시 저장 안 함 · 활동 소요시간 빈 값/0 이면 '0분' 대신 숨김",
       "checks": [
         {
           "file": "lib/bongtour-free-day-voice-block.ts",
@@ -30073,7 +30073,26 @@
           "mustInclude": [
             "export function buildRegisterFreeDayRecommendedTitle",
             "${BONGTOUR_FREE_DAY_VOICE_BLOCK}",
-            "const description = geminiSummary"
+            "const description = geminiSummary",
+            "export function rejectGeminiFreeLeisureDaysFailingPostcheck",
+            "rejectGeminiFreeLeisureDaysFailingPostcheck(parsedByDay)"
+          ]
+        },
+        {
+          "file": "lib/bongtour-free-day-postcheck.ts",
+          "mustInclude": [
+            "export function postcheckBongtourFreeDayItinerary",
+            "FREE_DAY_TITLE_FIXED_PREFIX_RE",
+            "lodging_near_unknown_hotel"
+          ]
+        },
+        {
+          "file": "components/itinerary/ItineraryView.tsx",
+          "mustInclude": [
+            "formatItineraryActivityDurationLabel(act.durationMinutes)"
+          ],
+          "mustNotInclude": [
+            "{act.durationMinutes}분"
           ]
         }
       ]
@@ -30596,7 +30615,9 @@
       "summary": "톤 1031 저장 경로 증명(샘플 문장 그대로 저장·D2 kyoto·mt-0240 D2 제목 새 형식·추천일정 검사 통과)",
       "files": [
         "lib/tone-1031-save-path.test.ts",
-        "lib/fit-itinerary-prompt.test.ts"
+        "lib/fit-itinerary-prompt.test.ts",
+        "lib/bongtour-free-day-postcheck.test.ts",
+        "lib/itinerary-activity-duration-label.test.ts"
       ]
     }
   ]
