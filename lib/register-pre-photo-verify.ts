@@ -347,6 +347,8 @@ const NO_ITINERARY_ROUTE_NOISE_RE = /(?:호텔|리조트|숙박|Hotel|Resort|공
 /** 상품·일차 제목에 자유일정이 붙어 있을 때만 패키지 추천예시일정 대상. FIT는 이 경로를 쓰지 않는다. */
 // REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: 제목 자유일정만 추천일정 — manifest
 export const REGISTER_FREE_ITINERARY_TITLE_RE = /자유\s*일정|자유일정/
+/** 일차 제목 전용: 자유시간·자유관광 (반나절·전일) */
+export const REGISTER_DAY_FREE_TIME_TITLE_RE = /자유\s*(?:시간|관광)/
 
 export function productOrDayTitleHasFreeItineraryLabel(
   productTitle?: string | null,
@@ -354,7 +356,9 @@ export function productOrDayTitleHasFreeItineraryLabel(
 ): boolean {
   return (
     REGISTER_FREE_ITINERARY_TITLE_RE.test(String(productTitle ?? '')) ||
-    REGISTER_FREE_ITINERARY_TITLE_RE.test(String(dayTitle ?? ''))
+    REGISTER_FREE_ITINERARY_TITLE_RE.test(String(dayTitle ?? '')) ||
+    // round3(사장님 10/30): 그날 제목의 반나절·전일 자유시간도 자유일정 (상품명은 기존 '자유일정'만)
+    REGISTER_DAY_FREE_TIME_TITLE_RE.test(String(dayTitle ?? ''))
   )
 }
 

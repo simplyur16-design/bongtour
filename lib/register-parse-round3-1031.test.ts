@@ -324,3 +324,44 @@ describe('round3 22:16 자유일정 날 제목', () => {
     expect(out[2].title).toBe('오사카 · 오후 자유시간')
   })
 })
+
+import { isRegisterPendingFreeItineraryDay } from '@/lib/register-pre-photo-verify'
+
+describe('round3 22:16 전일·반나절 자유시간도 제미나이 추천일정 대상', () => {
+  it('전일 리조트 자유시간 (new-mt-3 D4 모양)', () => {
+    expect(
+      isRegisterPendingFreeItineraryDay(
+        { day: 4, title: '전일 리조트내 부대시설 이용 및 자유시간', routeText: '전일 리조트내 부대시설 이용 및 자유시간', description: '', hotelText: 'PIC 슈페리어룸' } as any,
+        { productTitle: '괌 PIC 5일' },
+      ),
+    ).toBe(true)
+  })
+  it('관광지가 있는 날의 짧은 자유시간은 추천일정 대상 아님', () => {
+    expect(
+      isRegisterPendingFreeItineraryDay(
+        { day: 2, title: '오후 자유시간', routeText: '에펠탑 - 루브르 박물관 - 오후 자유시간', description: '', hotelText: 'H' } as any,
+        { productTitle: '파리 5일' },
+      ),
+    ).toBe(false)
+  })
+})
+
+describe('round3 22:16 요약은 지우거나 원문으로 바꾸지 않고, 상관없는 문장만 다듬음', () => {
+  const rows = [
+    row({ day: 1, title: '씨엠립', routeText: '씨엠립', hotelText: 'H', description: '' }),
+    row({ day: 2, title: '반나절 추천일정', routeText: '펍 스트리트 - 올드 마켓', hotelText: 'H', description: '씨엠립 자유일정 추천. 펍 스트리트 - 올드 마켓를 둘러봅니다. 오후에는 리조트에서 휴식을 취합니다.' }),
+    row({ day: 3, title: '자유 일정', routeText: '앙코르와트 국제 하프 마라톤 자유 일정', hotelText: 'H', description: '' }),
+    row({ day: 4, title: '앙코르와트 · 바욘 사원', routeText: '앙코르와트 - 바욘 사원', hotelText: 'H', description: '앙코르와트에서 일출을 감상합니다. 바욘 사원의 미소 조각을 둘러봅니다. 결제취소문자가 가지는 않습니다. 저녁에는 압사라 공연을 관람합니다.' }),
+    row({ day: 5, title: '귀국', routeText: '', hotelText: '', description: '' }),
+  ]
+  const out = finalizeRegisterPackageScheduleRows(rows, { destination: '씨엠립' })
+  it('제미나이 자유일정 추천 문장은 그대로 (뒤 문장이 있어도)', () => {
+    expect(out[1].description).toContain('씨엠립 자유일정 추천. 펍 스트리트 - 올드 마켓를 둘러봅니다. 오후에는 리조트에서 휴식을 취합니다.')
+  })
+  it("자유일정 조각을 'X를 둘러봅니다'로 합성하지 않음", () => {
+    expect(out[2].description).not.toMatch(/자유 일정을 둘러봅니다/)
+  })
+  it('3~4문장 요약은 유지하고 그날과 상관없는 안내문 조각만 뺌', () => {
+    expect(out[3].description).toBe('앙코르와트에서 일출을 감상합니다. 바욘 사원의 미소 조각을 둘러봅니다. 저녁에는 압사라 공연을 관람합니다. 숙소는 H입니다.')
+  })
+})

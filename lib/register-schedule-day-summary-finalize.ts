@@ -359,10 +359,13 @@ export function finalizeRegisterScheduleDaySummary(
   const kept: string[] = []
   const edgeDay = isFirst || isLast
   // 출발·귀국일: 파싱 단계 그날 문장 중 출발·도착·귀국 문장만 먼저 (지어내지 않고 원문 그대로)
-  const descSents = splitRegisterScheduleDescriptionSentences(koreanizeRegisterSchedulePlaceNames(String(row.description ?? '')))
+  // round3(22:16): '○○ 자유일정 추천. A - B를 둘러봅니다.' 처럼 동사 아닌 마침표 문장이 앞 문장에 붙어 통째로 빠지지 않게 마침표로 한 번 더 나눔
+  const splitAll = (t: string) =>
+    splitRegisterScheduleDescriptionSentences(t).flatMap((x) => x.split(/(?<=[.!?。])\s+/u).map((y) => y.trim()).filter(Boolean))
+  const descSents = splitAll(koreanizeRegisterSchedulePlaceNames(String(row.description ?? '')))
   const descHasEdge = descSents.some((x) => /출발|도착|귀국|공항|체크\s*아웃/u.test(x) && !isRegisterScheduleFillerSentence(x) && x.trim() !== GENERIC_RETURN)
   const srcSents = edgeDay && !descHasEdge
-    ? splitRegisterScheduleDescriptionSentences(koreanizeRegisterSchedulePlaceNames(String(ctx.sourceDescription ?? ''))).filter(
+    ? splitAll(koreanizeRegisterSchedulePlaceNames(String(ctx.sourceDescription ?? ''))).filter(
         (x) => /출발|도착|귀국|체크\s*아웃/u.test(x),
       )
     : []
@@ -415,7 +418,8 @@ export function finalizeRegisterScheduleDaySummary(
     out.unshift(`${hub0}에서 출발해 ${places[0]}에 도착합니다.`)
   }
   // 방문지 — 요약에 안 나온 그날 장소
-  const unmentioned = lastCityOnly ? [] : places.filter((p) => !mentioned(text(), p))
+  // round3(22:16): 자유일정·자유시간 조각은 'X를 둘러봅니다' 합성 대상이 아님 (제미나이 추천일정이 채움)
+  const unmentioned = lastCityOnly ? [] : places.filter((p) => !mentioned(text(), p) && !REGISTER_SCHEDULE_FREE_TIME_RE.test(p))
   if (out.length === 0 && unmentioned.length >= 2) {
     out.push(`${eulReul(waGwa(unmentioned[0]!, unmentioned[1]!))} 둘러봅니다.`)
     unmentioned.splice(0, 2)
