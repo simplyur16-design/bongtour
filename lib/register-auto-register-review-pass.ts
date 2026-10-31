@@ -4,15 +4,16 @@
  * - 목록에 없으면 자동 검사를 통과해도 registered 로 바꾸지 않고 '사진 검수 대기'로 남긴다.
  * - 목록에 넣는 것은 문과장 검수 통과 기록이 있는 상품만, 커밋으로만.
  * 2026-10-31 1차(48개 중 20): 교체 후 통과 14 + 기존 통과 6. 출처 기록 없음 20·용량 초과 7·#16 은 재검수 뒤 추가.
- * 2026-10-31 2차(44): 1차 20 중 18 + rework2 통과 26. 보류: #14·#46·#16(조건 충족 뒤 커밋으로 추가), 불합격: #32.
+ * 2026-10-31 2차(45): 1차 20 중 18 + rework2 통과 26 + #14(11:37 2차 사진 통과). 보류: #46·#16(조건 충족 뒤 커밋으로 추가), 불합격: #32.
  * REGRESSION-FREEZE[auto-register-review-pass]: FLIP 이어도 검수 통과 목록 밖 상품은 등록 전환 안 함 — manifest
  */
 export const AUTO_REGISTER_REVIEW_PASS_IDS: readonly string[] = [
-  // 1차 통과(10:31) 18개 — #14 hn-0123(D2-2/D4-2 미리보기 통과 대기)·#46 vg-0091(라이브 크레딧 미노출 캡처 대기) 제외
+  // 1차 통과(10:31) 19개 — #14 hn-0123 은 D2-2(17177476)/D4-2(38015799) 2차 통과(11:37) 후 포함, #46 vg-0091(라이브 크레딧 미노출 캡처 대기) 제외
   'cmv4piesd003214itc6pwjvj2', // #2 pkg-hn-0168
   'cmvjmfmn00gi53z00cirafoqz', // #4 pkg-yb-0148
   'cmvcjz78h1xke1wlkragkr60r', // #8 pkg-mt-0297
   'cmv3pm575077pd11evkefyacj', // #11 pkg-yb-0103
+  'cmusembtg005p11e2o6ocpnm5', // #14 pkg-hn-0123
   'cmte6t3vy01ajnd9utuk01sef', // #18 fit-xx-0001
   'cmvh7k1cu0dcnaicvibm5ags2', // #19 fit-mt-0066
   'cmv84kka0002a1wlkm66phptu', // #25 pkg-hn-0186

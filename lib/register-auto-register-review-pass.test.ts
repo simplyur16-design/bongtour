@@ -5,15 +5,15 @@ import { AUTO_REGISTER_REVIEW_PASS_IDS, isAutoRegisterReviewPassed } from '@/lib
 import { AUTO_REGISTER_BLOCK_REASON_KO, formatAutoRegisterBlockReasons } from '@/lib/register-auto-register-gate'
 
 describe('auto-register review-pass allowlist (봉실장 10/31)', () => {
-  it('2차 통과 44개만 허용, 중복 없음', () => {
-    expect(AUTO_REGISTER_REVIEW_PASS_IDS).toHaveLength(44)
-    expect(new Set(AUTO_REGISTER_REVIEW_PASS_IDS).size).toBe(44)
+  it('2차 통과 45개만 허용, 중복 없음', () => {
+    expect(AUTO_REGISTER_REVIEW_PASS_IDS).toHaveLength(45)
+    expect(new Set(AUTO_REGISTER_REVIEW_PASS_IDS).size).toBe(45)
     expect(isAutoRegisterReviewPassed('cmv9jwr9n0i2p1wlkj6ix1gg4')).toBe(true) // #27 pkg-hn-0187 1차 통과
     expect(isAutoRegisterReviewPassed('cmv3r8pvm0b5jd11ek6l83zf7')).toBe(true) // #1 rework2 통과
     expect(isAutoRegisterReviewPassed('cmv2mem8d00q6zmu5bxh2e3v4')).toBe(true) // #13 재압축 후 통과
+    expect(isAutoRegisterReviewPassed('cmusembtg005p11e2o6ocpnm5')).toBe(true) // #14 hn-0123 2차 사진 통과
   })
   it('조건 대기·불합격 상품은 불허', () => {
-    expect(isAutoRegisterReviewPassed('cmusembtg005p11e2o6ocpnm5')).toBe(false) // #14 hn-0123 미리보기 대기
     expect(isAutoRegisterReviewPassed('cmvb6vequ1db01wlkggbhpef3')).toBe(false) // #46 라이브 캡처 대기
     expect(isAutoRegisterReviewPassed('cmte6uh2h01b7nd9uabfq24jh')).toBe(false) // #16 slug 없음
     expect(isAutoRegisterReviewPassed('cmv84gbv800071wlk9jkzdjbl')).toBe(false) // #32 hn-0184 불합격
