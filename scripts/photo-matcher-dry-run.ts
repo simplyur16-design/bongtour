@@ -52,6 +52,7 @@ function gateCtx(s: Slot, query: string): MatchGateContext {
     destinationTerms: [s.destination, destEn],
     slotText: [s.dayTitle, s.routeText, s.description, s.itCity, s.itPoi, s.destination].map((x) => String(x ?? '')).join(' '),
     slot: 'day',
+    daySummary: [s.dayTitle, String(s.description ?? '').trim() ? s.description : s.routeText].map((x) => String(x ?? '')).join(' '),
   }
 }
 
@@ -92,7 +93,8 @@ async function main() {
         triggerDownload: async () => undefined,
       },
       accept: (c: ChainCandidate) => {
-        if (usedIds.has(c.externalId)) return bump('already_used'), false
+        // 문과장 10/31: 이미 쓴 사진도 그날 일정 장소면 다시 쓸 수 있다(pick 에서 안 쓴 사진 먼저)
+        if (usedIds.has(c.externalId)) bump('already_used(재사용 가능)')
         const why = photoSubjectBlockReason(
           photoCandidateText([c.altText, c.pageUrl ?? c.originalLink]),
           { destination: s.destination, destinationEn: destEn, productText: s.productText, query: c.queryUsed },
@@ -107,7 +109,10 @@ async function main() {
         // process-images v2: dayCityOk = 기존 도시 메타 일치 || 관문 통과 (관문은 위에서 이미 통과)
         return true
       },
-      pick: (cands) => sortByMatchGateScore(rankPhotosByScore(cands, { keywords: [query, destEn] }), ctx)[0] ?? null,
+      pick: (cands) => {
+        const sorted = sortByMatchGateScore(rankPhotosByScore(cands, { keywords: [query, destEn] }), ctx)
+        return sorted.find((c) => !usedIds.has(c.externalId)) ?? sorted[0] ?? null
+      },
     }
     const r1 = await findStockPhotoByChain(query, chainOpts)
     // process-images v2 와 같게: 일차 키워드로 없으면 상품 대표 장소 검색어로 한 번 더
@@ -116,6 +121,7 @@ async function main() {
     const usedQuery = r === r1 ? query : mq
     if (r !== r1) r.tried.unshift(...r1.tried.map((x) => `${query}→${x}`))
     const p = r.photo
+    const reused = Boolean(p && usedIds.has(p.externalId))
     if (p) usedIds.add(p.externalId)
     results.push({
       slug: s.slug,
@@ -124,6 +130,7 @@ async function main() {
       query: usedQuery,
       tried: r.tried,
       rejects,
+      reused,
       picked: p
         ? { source: p.source, id: p.externalId, url: p.originalLink, image: p.url, author: p.photographer, width: p.width, height: p.height, alt: p.altText ?? '', aiFlag: false }
         : null,

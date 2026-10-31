@@ -641,7 +641,8 @@ export async function POST(req: Request) {
       return photoFromPoolSave(saved)
     }
     const chainAccept = (extra?: (c: ChainCandidate) => boolean, gateCtx?: MatchGateContext) => (c: ChainCandidate) => {
-      if (usage.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId })) return false
+      // v2 관문: 이미 쓴 사진도 그날 일정 장소면 다시 쓸 수 있다(고를 때 안 쓴 사진 먼저) — 중복 피하려 일정 밖 장소로 넘어가지 않음
+      if (!gateCtx && usage.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId })) return false
       // REGRESSION-FREEZE[register-photo-subject-filter]: 약한 일치·얼굴·간판·무관 사물·다른 도시 후보 탈락 — manifest
       const why = photoSubjectBlockReason(
         photoCandidateText([c.altText, c.pageUrl ?? c.originalLink]),
@@ -687,8 +688,11 @@ export async function POST(req: Request) {
         // 품질 점수 우선 − 최근 사용 감점 − 같은 도시 사용 감점
         pick: (cands) => {
           const ranked = rankPhotosByScore(cands, { keywords: [query, mapDestination(destination)], recent: recentIndex })
-          // v2 관문: 일차 장소명 일치·풍경/명소 사진을 먼저
-          return (gateCtx ? sortByMatchGateScore(ranked, gateCtx) : ranked)[0] ?? null
+          // v2 관문: 일차 장소명 일치·풍경/명소 사진을 먼저, 같은 점수대에서는 이 상품에서 아직 안 쓴 사진 먼저
+          if (!gateCtx) return ranked[0] ?? null
+          const sorted = sortByMatchGateScore(ranked, gateCtx)
+          const fresh = sorted.filter((c) => !usage.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId }))
+          return fresh[0] ?? sorted[0] ?? null
         },
       })
       newFetchCount++
@@ -846,6 +850,8 @@ export async function POST(req: Request) {
           .map((x) => String(x ?? ''))
           .join(' '),
         slot: 'day',
+        // 문과장 10/31: 그날 일정 요약(제목·설명, 설명 없으면 동선)에 실제로 있는 장소만 일치로 인정
+        daySummary: [sched?.title, sched?.description?.trim() ? sched.description : sched?.routeText].map((x) => String(x ?? '')).join(' '),
       }
       /** v2: 후보 설명·주소가 이 일차 도시 또는 명소를 가리키는지 */
       const dayCityOk = (c: ChainCandidate) =>

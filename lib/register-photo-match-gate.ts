@@ -11,6 +11,10 @@
  *  ④ 사람·인물·의료·차량·사물·실내·침실·홍보물·일정에 없는 동물이 주인공이면 탈락
  *  ⑤ 그 슬롯(일차 장소 / 상품 목적지)과 다른 도시·나라의 명소·도시명이 보이면 탈락
  *  ⑥ 그 슬롯의 장소명 또는 상품 목적지 도시명이 설명에 있어야 함(약한 일치 탈락)
+ *  ⑦ (일차) daySummary 가 있으면: 그날 일정 요약(제목·설명)에 실제로 있는 장소만 일치로 인정 —
+ *     상품 목적지·검색어라도 그날 요약에 없으면 인정 안 함(문과장 10/31: 중복 피하려다 일정 밖 장소로 넘어가지 않기)
+ * 사람: 사장님 10/31 16:29 "사람이 주인공인 사진만 빼고" — 풍경 속 작은 사람·간판은 통과, 사람이 주인공일 때만 탈락
+ * 차량: 승용차·승합차·버스가 보이면 탈락. 케이블카·유람선 등은 그날 일정에 있을 때만 예외
  * REGRESSION-FREEZE[register-photo-match-gate]: 장소 일치 + 인물·사물·홍보·타국 명소 탈락 — manifest
  */
 import { photoCandidateText, itineraryMentionsAnimal } from '@/lib/register-photo-subject-filter'
@@ -38,6 +42,8 @@ export type MatchGateContext = {
   /** 이 슬롯 일정 글(제목·동선) + 목적지 — 다른 도시 판정의 허용 범위. 대표는 상품 전체 일정. */
   slotText: string
   slot: 'main' | 'day'
+  /** (일차) 그날 일정 요약 — 제목 + 설명(없으면 동선). 있으면 장소 일치는 여기 있는 장소만 인정 */
+  daySummary?: string | null
 }
 
 export type MatchGateReason =
@@ -59,11 +65,31 @@ export type MatchGateReason =
 
 export const MATCH_GATE_MIN_WIDTH = 1200
 
-const PERSON_RE =
-  /\b(man|men|woman|women|girl|girls|boy|boys|guy|lady|ladies|person|couple|couples|model|models|portrait|selfie|bride|groom|wedding|child|children|kid|kids|baby|face|faces|ear|ears|fashion|dress|jacket|gown|robe|businessman|businesswoman|posing|poses|vendor|vendors|customer|customers|shopper|shoppers|worker|workers|chef|cook|seller|backpacker|hiker|hikers|fisherman|monk|monks)\b/
+/** 사람을 가리키는 낱말(이것만으로는 탈락 아님 — 주인공일 때만) */
+const PERSON_WORD =
+  '(man|men|woman|women|girl|girls|boy|boys|guy|guys|lady|ladies|person|couple|couples|child|children|kid|kids|baby|bride|groom|businessman|businesswoman|vendor|vendors|customer|customers|shopper|shoppers|worker|workers|chef|cook|seller|backpacker|hiker|hikers|fisherman|monk|monks|traveler|traveller|tourist|friends|family|teen|teenager|student|students)'
+/** 사람이 주인공임이 분명한 낱말 */
+const PERSON_SUBJECT_RE =
+  /\b(portrait|portraits|selfie|selfies|headshot|posing|poses|posed|fashion|wedding|bride|groom|model posing|models posing|human ear|human face|facial)\b|\bclose ?up of (a |an |the )?(man|woman|girl|boy|person|face|ear|hand|hands)\b|\b(his|her|their) (face|ear|ears|hair|eyes)\b/
+/** 사람 낱말 + 옷차림·동작 묘사 = 사람이 주인공 */
+const PERSON_DESC_RE = new RegExp(`\\b${PERSON_WORD}\\b.{0,40}\\b(wearing|wears|dressed|in (a |an |the )?(black|white|red|blue|green|yellow|pink|traditional|stylish|casual)? ?(jacket|dress|gown|robe|coat|suit|shirt|hoodie|hat|kimono|hanbok|ao dai)|holding|smiling|smiles|looking at (the )?camera|lying|sitting on (a |the )?bed|checks|checking|enjoying (a |her |his )?(drink|coffee|meal|food))\\b`)
+
+/**
+ * 사람이 주인공인가: 설명 맨 앞 명사구(앞 5낱말)가 사람이거나, 인물 사진 낱말이 있거나, 사람+옷차림·동작 묘사.
+ * 'People walk past the Ruins of St. Paul's'·'Prague Castle with tourists on the bridge' 처럼 풍경 속 사람은 통과.
+ * 간판(sign)은 사유가 아님.
+ */
+export function personIsMainSubject(altLower: string): boolean {
+  const t = ` ${altLower.replace(/[^\p{L}\p{N}' ]+/gu, ' ').replace(/\s+/g, ' ').trim()} `
+  if (PERSON_SUBJECT_RE.test(t)) return true
+  if (PERSON_DESC_RE.test(t)) return true
+  const head = t.trim().split(' ').slice(0, 5).join(' ')
+  const lead = new RegExp(`^(a |an |the |two |three |young |old |elderly |smiling |happy |asian |beautiful |stylish |pretty |handsome |cheerful |senior |little |small )*${PERSON_WORD}\\b`)
+  return lead.test(head)
+}
 const MEDICAL_RE = /\b(surgeon|surgeons|surgery|surgical|doctor|doctors|nurse|nurses|hospital|medical|patient|clinic|dentist|operating|operation|scrubs|stethoscope)\b/
 const VEHICLE_RE =
-  /\b(car|cars|vehicle|vehicles|truck|trucks|suv|motorcycle|motorbike|scooter|taxi|traffic|supercar|sportscar|airplane|aeroplane|aircraft|airliner|jet|runway|airport)\b/
+  /\b(car|cars|vehicle|vehicles|van|vans|minivan|bus|buses|truck|trucks|suv|jeep|motorcycle|motorbike|motorbikes|scooter|scooters|taxi|taxis|traffic|parked|parking|supercar|sportscar|airplane|aeroplane|aircraft|airliner|jet|runway|airport|street scene|busy street|busy road)\b/
 const PROMO_RE = /\b(esim|e sim|sim card|promo|promotion|advertisement|advert|banner|logo|coupon|discount|sale|bongsim|flag|flags|poster|mockup|infographic)\b|봉심|이심/
 const OBJECT_RE =
   /\b(watch|watches|wristwatch|clock|phone|smartphone|laptop|keyboard|camera|passport|luggage|suitcase|ticket|jewelry|jewellery|necklace|ring|sneaker|sneakers|shoe|shoes|handbag|perfume|lipstick|headphones|charger|monstera|hay|letters|figurine|prop|statuette)\b/
@@ -72,8 +98,15 @@ const INTERIOR_RE =
 const ANIMAL_RE =
   /\b(elephant|elephants|tiger|tigers|lion|monkey|monkeys|dog|dogs|cat|cats|bird|birds|horse|horses|camel|camels|panda|pandas|deer|cow|cows|snake|dolphin|whale|bear|bears)\b/
 
-/** '케이블카'·'천문산 케이블카' 같은 지명·관광 수단은 차량으로 보지 않음 */
-const VEHICLE_EXEMPT_RE = /\b(cable car|cable cars|tram|funicular|train|railway|boat|cruise|ferry|gondola|cyclo)\b/g
+/** 관광 수단 — 그날(대표는 상품) 일정에 그 수단이 있을 때만 차량으로 보지 않음 */
+const VEHICLE_EXEMPT: ReadonlyArray<[RegExp, RegExp]> = [
+  [/\b(cable car|cable cars|ropeway|gondola|gondolas)\b/g, /케이블카|로프웨이|곤돌라|cable car|ropeway|gondola/],
+  [/\b(tram|trams|streetcar)\b/g, /트램|노면전차|tram/],
+  [/\b(funicular)\b/g, /푸니쿨라|푸니쿨러|산악열차|funicular/],
+  [/\b(train|trains|railway)\b/g, /기차|열차|산악열차|train|railway/],
+  [/\b(boat|boats|cruise|ferry|ferries|raft|bamboo raft)\b/g, /유람선|크루즈|보트|페리|뗏목|배|cruise|boat|ferry/],
+  [/\b(cyclo)\b/g, /씨클로|시클로|cyclo/],
+]
 
 /** 명소 → 소속 도시/나라 키 (다른 곳 상품에 보이면 탈락) */
 export const LANDMARK_HOME: ReadonlyArray<[RegExp, string]> = [
@@ -213,6 +246,34 @@ export function placeHit(text: string, label: string, valuesIn: Array<string | n
   return null
 }
 
+/**
+ * 일차 장소 일치에 쓸 이름: 그날 요약(제목·설명)에 실제로 있는 장소만.
+ *  - 요약의 한글 도시·명소명 → 영문 이름(PLACE_NAMES)
+ *  - 일차 키워드·목적지는 그 안의 도시명이 요약에 있을 때만(도시명이 없는 명소 키워드 'Grand World' 는 그대로)
+ *  - 예: 오타루 일차(삿포로 상품) → otaru 만, 'Sapporo brewery' 는 no_place_match
+ */
+export function dayPlaceTerms(ctx: MatchGateContext): string[] {
+  const summary = low(ctx.daySummary).trim()
+  if (!summary) return []
+  const compact = summary.replace(/\s+/g, '')
+  const out = new Set<string>()
+  for (const v of expandPlaceValues([summary])) if (v !== summary) out.add(v)
+  const cityKeysIn = (v: string) => Object.entries(PLACE_NAMES).filter(([, names]) => names.some((n) => !/[가-힣]/.test(n) && padded(v).includes(` ${n} `))).map(([k]) => k)
+  const inSummary = (key: string) => out.has(key) || (PLACE_NAMES[key] ?? []).some((n) => /[가-힣]/.test(n) && compact.includes(n.replace(/\s+/g, '')))
+  for (const raw of [...ctx.placeTerms, ...ctx.destinationTerms]) {
+    const v = low(raw).trim()
+    if (!v) continue
+    if (/[가-힣]/.test(v)) {
+      const k = v.replace(/\s+/g, '')
+      if (k.length >= 2 && compact.includes(k)) out.add(v)
+      continue
+    }
+    const keys = cityKeysIn(v)
+    if (keys.length === 0 ? !ctx.destinationTerms.includes(raw) : keys.every(inSummary)) out.add(v)
+  }
+  return [...out]
+}
+
 const SCENE_RE =
   /\b(aerial|panorama|panoramic|skyline|landscape|cityscape|view|vista|scenic|temple|castle|bridge|mountain|mountains|canal|ruins|cathedral|basilica|mosque|pagoda|old town|beach|bay|harbor|harbour|coast|river|lake|valley|canyon|waterfall|palace|tower|square|karst|island|sunset|sunrise)\b/g
 const CROWD_RE = /\b(people|crowd|crowds|tourists|visitors|street food|shop|store|display|market stall)\b/
@@ -224,7 +285,8 @@ const CROWD_RE = /\b(people|crowd|crowds|tourists|visitors|street food|shop|stor
 export function matchGateScore(c: MatchGateCandidate, ctx: MatchGateContext): number {
   const t = padded(photoCandidateText([c.altText, c.pageUrl, c.label]))
   let s = 0
-  if (placeHit(t, padded(low(c.label)), ctx.placeTerms)) s += 4
+  const pt = ctx.slot === 'day' && ctx.daySummary != null ? dayPlaceTerms(ctx) : ctx.placeTerms
+  if (placeHit(t, padded(low(c.label)), pt)) s += 4
   else if (placeHit(t, padded(low(c.label)), ctx.destinationTerms)) s += 1
   s += Math.min(3, (t.match(SCENE_RE) ?? []).length)
   if (Number(c.width ?? 0) >= 1920) s += 1
@@ -247,20 +309,24 @@ export function photoMatchGate(c: MatchGateCandidate, ctx: MatchGateContext): { 
   const raw = photoCandidateText([c.altText, c.pageUrl, c.label])
   const t = padded(raw.replace(/\b(pexels|unsplash|photo|photos|free|stock|image|webp|jpe?g|png|https?|www|com|\d+)\b/g, ' '))
   if (!c.isGenerated && t.trim().length < 3) return no('no_description')
-  const tv = t.replace(VEHICLE_EXEMPT_RE, ' ')
   const slotHay = padded(low([ctx.slotText, ...ctx.placeTerms, ...ctx.destinationTerms].join(' ')))
+  let tv = t
+  for (const [en, ko] of VEHICLE_EXEMPT) if (ko.test(low(ctx.slotText))) tv = tv.replace(en, ' ')
   if (MEDICAL_RE.test(t)) return no('medical')
-  if (PERSON_RE.test(t)) return no('person')
+  if (personIsMainSubject(t)) return no('person')
   if (PROMO_RE.test(t)) return no('promo')
   if (VEHICLE_RE.test(tv)) return no('vehicle')
-  if (OBJECT_RE.test(t)) return no('unrelated_object')
+  // '삿포로 시계탑' 처럼 일정에 있는 시계탑은 사물(시계)로 보지 않음
+  const to = /시계탑|clock tower/.test(low(ctx.slotText)) ? t.replace(/\bclock tower(s)?\b/g, ' ') : t
+  if (OBJECT_RE.test(to)) return no('unrelated_object')
   if (INTERIOR_RE.test(t)) return no('interior_not_place')
   const animal = ANIMAL_RE.exec(t)?.[1]
   if (animal && !itineraryMentionsAnimal(slotHay, animal)) return no('animal_not_in_itinerary')
   const allowed = (key: string) => (PLACE_NAMES[key] ?? [key]).some((n) => slotHay.includes(` ${n} `) || slotHay.includes(n.replace(/\s+/g, '')) || (/[가-힣]/.test(n) && slotHay.includes(n)))
   for (const [re, home] of LANDMARK_HOME) if (re.test(t) && !allowed(home)) return no('other_place_landmark')
   for (const city of CITY_KEYS_FOR_MISMATCH) if (t.includes(` ${city} `) && !allowed(city)) return no('city_mismatch')
-  const hit = placeHit(t, padded(low(c.label)), [...ctx.placeTerms, ...ctx.destinationTerms])
+  const terms = ctx.slot === 'day' && ctx.daySummary != null ? dayPlaceTerms(ctx) : [...ctx.placeTerms, ...ctx.destinationTerms]
+  const hit = placeHit(t, padded(low(c.label)), terms)
   if (!hit && !c.isGenerated) return no('no_place_match')
   return { ok: true, reason: null, matched: hit ?? null }
 }

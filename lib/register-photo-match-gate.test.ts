@@ -40,7 +40,12 @@ describe('photoMatchGate — 문과장 batch-01 탈락 유형', () => {
     expect(g('Bongsim eSIM promo Da Nang', danangDay)).toBe('promo')
   })
   it('케이블카는 차량으로 보지 않는다', () => {
-    expect(g('Ba Na Hills cable car above forest Da Nang', danangDay)).toBeNull()
+    expect(g('Ba Na Hills cable car above forest Da Nang', { ...danangDay, slotText: '바나힐 케이블카 골든브릿지 다낭' })).toBeNull()
+  })
+  it('케이블카도 그날 일정에 없으면 차량, 승합차·버스는 탈락', () => {
+    expect(g('Ba Na Hills cable car above forest Da Nang', danangDay)).toBe('vehicle')
+    expect(g('White van parked near Golden Bridge Ba Na Hills Da Nang', danangDay)).toBe('vehicle')
+    expect(g('Tour bus on a road in Da Nang', danangDay)).toBe('vehicle')
   })
   it('장소명 없는 설명·설명 없음·출처 없음·저해상도 탈락', () => {
     expect(g('Beautiful mountain landscape', danangDay)).toBe('no_place_match')
@@ -78,5 +83,47 @@ describe('photoMatchGate — 약한 일치', () => {
   it('한글 목적지를 영문으로 넓혀 본다', () => {
     const gl: MatchGateContext = { placeTerms: ['Li River Guilin Cruise'], destinationTerms: ['구이린', '구이린'], slotText: '첩채산 상비산', slot: 'day' }
     expect(g('Li River with karst mountains in Guilin, China', gl)).toBeNull()
+    // 그날 요약이 있으면 요약에 없는 목적지(구이린)로는 인정하지 않는다
+    expect(g('Li River with karst mountains in Guilin, China', { ...gl, daySummary: '첩채산 · 자연과 역사가 조화로운 첩채산과 상비산을 둘러봅니다.' })).toBe('no_place_match')
+    expect(g('Li River with karst mountains in Guilin, China', { ...gl, daySummary: '계림 · 이강유람' })).toBeNull()
+  })
+})
+
+describe('photoMatchGate — 그날 일정 요약에 있는 장소만 (문과장 10/31 mt-0314 D3)', () => {
+  const otaru: MatchGateContext = {
+    placeTerms: ['Otaru Music Box Museum', '오타루 - 삿포 - 오타루운하(추계) - 오타루 오르골당'],
+    destinationTerms: ['삿포로', 'Sapporo'],
+    slotText: '오타루 · 시로이 코이비토 파크 오타루 - 삿포 - 오타루운하(추계) - 오타루 오르골당 - 과자거리와 유리공방(추계) 삿포로',
+    slot: 'day',
+    daySummary: '오타루 · 시로이 코이비토 파크 (외부정원 관광) 오타루와 오타루운하를 둘러봅니다. 오타루 오르골당과 과자거리와 유리공방을 이어서 방문합니다.',
+  }
+  it('삿포로 양조장(그날 일정에 없음)은 탈락', () => {
+    expect(g('A rainy day at the historic entrance of a Sapporo brewery in Hokkaido, Japan, capturing the classic architecture and street scene.', otaru)).not.toBeNull()
+    expect(g('Historic Sapporo brewery building in Hokkaido', otaru)).toBe('no_place_match')
+  })
+  it('오타루 운하·오르골당은 통과', () => {
+    expect(g('Otaru canal with old stone warehouses in Hokkaido', otaru)).toBeNull()
+    expect(g('Otaru Music Box Museum steam clock exterior', otaru)).toBe('unrelated_object')
+    expect(g('Otaru Music Box Museum building exterior at dusk', otaru)).toBeNull()
+  })
+  it('승용차가 크게 보이면 탈락', () => {
+    expect(g('Red car parked by Otaru canal', otaru)).toBe('vehicle')
+  })
+})
+
+describe('photoMatchGate — 사람이 주인공인 사진만 탈락 (사장님 10/31 16:29)', () => {
+  const mo: MatchGateContext = { placeTerms: ["Ruins of St. Paul's"], destinationTerms: ['마카오', 'Macau'], slotText: '마카오 성바울성당 유적', slot: 'main' }
+  it('풍경 속 작은 사람·간판은 통과', () => {
+    expect(g("People walk past the historic Ruins of St. Paul's in Macau during twilight", mo)).toBeNull()
+    expect(g("Ruins of St. Paul's in Macau with tourists on the steps", mo)).toBeNull()
+    expect(g('Neon signs on a street in Macau at night', mo)).toBeNull()
+    expect(g("Ruins of St. Paul's Macau with a man walking in front", mo)).toBeNull()
+  })
+  it('사람이 주인공이면 탈락', () => {
+    expect(g('A woman checks her fortune sticks in Macau', mo)).toBe('person')
+    expect(g('Portrait of a girl in front of Ruins of St. Paul Macau', mo)).toBe('person')
+    expect(g('Tourist wearing a red dress posing in Macau', mo)).toBe('person')
+    expect(g('Young couple taking a selfie in Macau', mo)).toBe('person')
+    expect(g('Close up of a woman face Macau', mo)).toBe('person')
   })
 })
