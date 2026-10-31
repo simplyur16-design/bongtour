@@ -11,6 +11,7 @@ import { extractKyowontourHiddenFieldsFromDetailHtml } from '@/lib/kyowontour-to
 import type { DepartureInput } from '@/lib/upsert-product-departures-kyowontour'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
 import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
+import { parseKyowontourTripDurationLabel } from '@/lib/kyowontour-trip-duration-filter'
 
 const KYOWONTOUR_BASE = process.env.KYOWONTOUR_BASE_URL ?? 'https://www.kyowontour.com'
 
@@ -71,6 +72,8 @@ export async function injectKyowontourApiDeparturePricesIfMissing(
     refererUrl: url,
     log: process.env.DEV_REGISTER_PERF_LOG === '1',
     logLabel: 'register-api-price-inject',
+    // 같은 masterCode 의 다른 기간(dN) 출발 가격이 상품 가격표·출발가로 들어가지 않게 — 기간 모르면 거르지 않음
+    expectedTripDuration: parseKyowontourTripDurationLabel(parsed.duration ?? null),
   })
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)

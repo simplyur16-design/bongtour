@@ -70,6 +70,9 @@ type SweepProductRow = {
   originUrl: string | null
   originCode: string | null
   rawMeta: string | null
+  duration: string | null
+  tripNights: number | null
+  tripDays: number | null
 }
 
 function ymdToUtcMidnight(ymd: string): Date {
@@ -96,6 +99,9 @@ async function findSweepProducts(
     originUrl: true,
     originCode: true,
     rawMeta: true,
+    duration: true,
+    tripNights: true,
+    tripDays: true,
   } as const
   const today = todayYmd ?? kstTodayYmd()
 

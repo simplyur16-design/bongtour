@@ -28,6 +28,7 @@ import {
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import { collectKyowontourCalendarRange, mapKyowontourCalendarToDepartureInputs } from '@/lib/kyowontour-departures'
+import { resolveKyowontourProductTripDuration } from '@/lib/kyowontour-trip-duration-filter'
 import { resolveKyowontourSweepCollectKeys } from '@/lib/kyowontour-price-collect'
 import {
   buildLottetourEvtDetailUrl,
@@ -989,7 +990,18 @@ export async function collectDepartureInputsForAdminRescrape(
               /goodsEventDetail/i.test(product.originUrl.trim())
             ? product.originUrl.trim()
             : kyoKeys?.detailUrl ?? detailUrlForTrace
+      // 같은 masterCode 에 다른 기간(dN) 출발이 섞임 — 상품 기간으로 거름(읽기만, 모르면 거르지 않음)
+      let durRow: { duration: string | null; tripNights: number | null; tripDays: number | null } | null = null
+      try {
+        durRow = await prisma.product.findUnique({
+          where: { id: product.id },
+          select: { duration: true, tripNights: true, tripDays: true },
+        })
+      } catch {
+        durRow = null
+      }
       const { rows, warnings } = await collectKyowontourCalendarRange(masterCode, {
+        expectedTripDuration: resolveKyowontourProductTripDuration(durRow),
         tourCodeForE2EFallback: kyoKeys?.tourCodeHint ?? kyowontourTourCodeHintForE2e(product),
         e2eMasterCodeHint: masterCode,
         refererUrl: detailUrlForCollect,

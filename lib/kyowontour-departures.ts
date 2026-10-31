@@ -13,6 +13,13 @@ import { canonicalizePublicAirlineKo } from '@/lib/airline-iata-public-display-s
 import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 import { buildCommonMatchingTrace, buildDepartureTitleLayers, type DepartureTitleLayers } from '@/lib/departure-option-kyowontour'
 import { kyowontourCalendarRowToFactPriceRow } from '@/lib/register-fact-price-row'
+import {
+  classifyKyowontourRowTripDuration,
+  formatKyowontourTripDuration,
+  kyowontourRowTripDuration,
+  shouldReplaceKyowontourSameDateRow,
+  type KyowontourTripDuration,
+} from '@/lib/kyowontour-trip-duration-filter'
 import { resolvePythonExecutable } from '@/lib/resolve-python-executable'
 import type { DepartureInput } from '@/lib/upsert-product-departures-kyowontour'
 import { upsertProductDepartures } from '@/lib/upsert-product-departures-kyowontour'
@@ -57,6 +64,11 @@ export type KyowontourCalendarRangeOptions = {
   e2eMasterCodeHint?: string | null
   /** true면 monthEvtList 날짜별 dayAirList 추가 조회 생략(등록 사실 등 경량 수집). */
   skipPerDateDayAirFetch?: boolean
+  /**
+   * 상품 기간(박·일). 주면 응답 행 `dN` 이 다른 출발(같은 masterCode 의 다른 기간)은 버리고,
+   * 같은 날짜에서 다른 기간 행이 맞는 행을 덮어쓰지 못하게 한다. null/생략이면 지금 동작 + 섞임 경고.
+   */
+  expectedTripDuration?: KyowontourTripDuration | null
 }
 
 export type KyowontourDepartureUpsertResult = {
@@ -461,6 +473,27 @@ export async function collectKyowontourCalendarRange(
   const tourHint = (options?.tourCodeForE2EFallback ?? options?.e2eMasterCodeHint ?? code).trim()
   const reqHeaders = buildKyowontourDepartDateHeaders(options)
 
+  const expected = options?.expectedTripDuration ?? null
+  const seenDurations = new Set<string>()
+  let droppedOtherDuration = 0
+  let unknownDurationRows = 0
+  const mergeRow = (row: KyowontourCalendarRow, raw: unknown) => {
+    const got = kyowontourRowTripDuration(raw)
+    if (got) seenDurations.add(formatKyowontourTripDuration(got))
+    if (expected) {
+      const cls = classifyKyowontourRowTripDuration(raw, expected)
+      if (cls === 'mismatch') {
+        droppedOtherDuration++
+        return
+      }
+      if (cls === 'unknown') unknownDurationRows++
+    }
+    const prev = byDate.get(row.departDate)
+    if (shouldReplaceKyowontourSameDateRow(prev ? prev.rawJson : null, raw, expected)) {
+      byDate.set(row.departDate, row)
+    }
+  }
+
   const mergeDayAirList = (list: Record<string, unknown>[], ym: string, httpStatus: number) => {
     if (options?.log) {
       console.log(
@@ -470,7 +503,7 @@ export async function collectKyowontourCalendarRange(
     if (!list.length) return
     for (const it of list) {
       const row = dayAirToRow(it, tourHint, warnings)
-      if (row) byDate.set(row.departDate, row)
+      if (row) mergeRow(row, it)
     }
   }
 
@@ -525,6 +558,23 @@ export async function collectKyowontourCalendarRange(
   }
 
   let rows = [...byDate.values()].sort((a, b) => a.departDate.localeCompare(b.departDate))
+  const durationNote = () => {
+    const label = options?.logLabel ?? 'collect'
+    if (expected) {
+      if (droppedOtherDuration > 0) {
+        warnings.push(
+          `기간 거름: masterCode=${code} 상품 기간 ${formatKyowontourTripDuration(expected)} 과 다른 dN 출발 ${droppedOtherDuration}행 제외(응답 기간: ${[...seenDurations].join('/') || '?'})`,
+        )
+      }
+      if (unknownDurationRows > 0) {
+        warnings.push(`기간 확인 불가: dN 없는 출발 ${unknownDurationRows}행은 그대로 둠(masterCode=${code})`)
+      }
+    } else if (seenDurations.size > 1) {
+      const msg = `기간 섞임 경고: masterCode=${code} 응답에 기간 ${[...seenDurations].join('/')} 이 섞였는데 상품 기간을 몰라 거르지 않음(같은 날짜는 나중 행이 덮어씀)`
+      warnings.push(msg)
+      console.warn(`[kyowontour-departures] ${label} ${msg}`)
+    }
+  }
   let collectSource: 'ajax' | 'e2e' | null = rows.length > 0 ? 'ajax' : null
   let e2eAttempted = false
 
@@ -551,9 +601,9 @@ export async function collectKyowontourCalendarRange(
       timeoutMs: e2eMs,
     })
     if (py.rows.length > 0) {
-      const merged = new Map<string, KyowontourCalendarRow>()
-      for (const r of py.rows) merged.set(r.departDate, r)
-      rows = [...merged.values()].sort((a, b) => a.departDate.localeCompare(b.departDate))
+      byDate.clear()
+      for (const r of py.rows) mergeRow(r, r.rawJson)
+      rows = [...byDate.values()].sort((a, b) => a.departDate.localeCompare(b.departDate))
       collectSource = 'e2e'
       warnings.push(
         `Python E2E(Selenium+requests) 폴백으로 ${rows.length}건 수집(서버 fetch만으로는 0건)`
@@ -574,6 +624,7 @@ export async function collectKyowontourCalendarRange(
     warnings.push('E2E 폴백 생략: disableE2EFallback')
   }
 
+  durationNote()
   return { rows, warnings, meta: { e2eAttempted, collectSource: rows.length > 0 ? collectSource : null } }
 }
 

@@ -12,6 +12,17 @@ import { enrichKyowontourCalendarRowsWithTourCodeDetail } from '@/lib/kyowontour
 import { departureInputToYmd, filterDepartureInputsOnOrAfterCalendarToday } from '@/lib/scrape-date-bounds'
 import type { DepartureInput } from '@/lib/upsert-product-departures-kyowontour'
 import type { KyowontourPriceCollectSource } from '@/lib/kyowontour-price-recheck-meta'
+import { resolveKyowontourProductTripDuration } from '@/lib/kyowontour-trip-duration-filter'
+
+/** 수집 대상 상품 — duration·tripNights·tripDays 는 masterCode 기간 섞임 거름용(없으면 거르지 않음). */
+export type KyowontourCollectProduct = {
+  id: string
+  originCode: string | null
+  originUrl: string | null
+  duration?: string | null
+  tripNights?: number | null
+  tripDays?: number | null
+}
 
 export type KyowontourPriceCollectResult = {
   inputs: DepartureInput[]
@@ -81,7 +92,7 @@ function horizonMonthCount(fromYmd: string, toYmd: string): number {
 }
 
 async function mapKyowontourCollectedRows(
-  product: { id: string; originCode: string | null; originUrl: string | null },
+  product: KyowontourCollectProduct,
   keys: NonNullable<ReturnType<typeof resolveKyowontourSweepCollectKeys>>,
   fromYmd: string,
   toYmd: string,
@@ -109,7 +120,7 @@ async function mapKyowontourCollectedRows(
 
 /** AJAX only — E2E 없음. 3h 배치·커버리지용. */
 export async function collectKyowontourApiOnlyForDateRange(
-  product: { id: string; originCode: string | null; originUrl: string | null },
+  product: KyowontourCollectProduct,
   fromYmd: string,
   toYmd: string,
 ): Promise<
@@ -134,6 +145,7 @@ export async function collectKyowontourApiOnlyForDateRange(
     e2eMasterCodeHint: keys.masterCode,
     monthCount: horizonMonthCount(fromYmd, toYmd),
     logLabel: `kyowontour-api-only:${product.id}`,
+    expectedTripDuration: resolveKyowontourProductTripDuration(product),
     refererUrl: keys.detailUrl,
     disableE2EFallback: true,
   })
@@ -149,7 +161,7 @@ export async function collectKyowontourApiOnlyForDateRange(
 }
 
 export async function collectKyowontourPriceInputsWithE2eFallback(
-  product: { id: string; originCode: string | null; originUrl: string | null },
+  product: KyowontourCollectProduct,
   fromYmd: string,
   toYmd: string,
 ): Promise<KyowontourPriceCollectResult> {
@@ -171,6 +183,7 @@ export async function collectKyowontourPriceInputsWithE2eFallback(
     e2eMasterCodeHint: keys.masterCode,
     monthCount: horizonMonthCount(fromYmd, toYmd),
     logLabel: `kyowontour-price-collect:${product.id}`,
+    expectedTripDuration: resolveKyowontourProductTripDuration(product),
     refererUrl: keys.detailUrl,
   })
 

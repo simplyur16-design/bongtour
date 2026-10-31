@@ -51,6 +51,9 @@ export async function POST(
         title: true,
         originalTitle: true,
         rawMeta: true,
+        duration: true,
+        tripNights: true,
+        tripDays: true,
       },
     })
     if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })

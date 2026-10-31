@@ -31,6 +31,9 @@ export type CalendarHorizonCollectProduct = {
   title?: string | null
   originalTitle?: string | null
   rawMeta?: string | null
+  duration?: string | null
+  tripNights?: number | null
+  tripDays?: number | null
 }
 
 export type CalendarHorizonCollectResult = {
@@ -176,6 +179,9 @@ export async function collectCalendarHorizonPriceInputs(
         id: product.id,
         originCode: product.originCode,
         originUrl: product.originUrl,
+        duration: product.duration ?? null,
+        tripNights: product.tripNights ?? null,
+        tripDays: product.tripDays ?? null,
       },
       lo,
       hi,
