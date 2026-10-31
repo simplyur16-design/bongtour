@@ -16,6 +16,7 @@ import { dayCandidateCityMatch } from '@/lib/register-day-photo-policy'
 import { rankPhotosByScore } from '@/lib/register-photo-score'
 import { mapDestination } from '@/lib/pexels-keyword'
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 
 type Slot = {
   slug: string
@@ -28,6 +29,8 @@ type Slot = {
   dayTitle?: string | null
   routeText?: string | null
   description?: string | null
+  hotelText?: string | null
+  maxDay?: number | null
   imageKeyword?: string | null
   itCity?: string | null
   itPoi?: string | null
@@ -40,7 +43,13 @@ function mainQueryOf(s: Slot): string {
 }
 function slotQuery(s: Slot): string {
   if (s.slot === 'main') return mainQueryOf(s)
-  return normalizeToPlaceName(s.imageKeyword ?? '') || mainQueryOf(s)
+  // round3: 일차 칸은 그날 키워드로만 — 비면 검색하지 않는다(상품 도시로 대체 금지)
+  return normalizeToPlaceName(s.imageKeyword ?? '')
+}
+/** round3: 장소 없는 날(공항 이동·숙박 없는 귀국일)은 사진 칸 제외 */
+function noPlaceDay(s: Slot): boolean {
+  if (s.slot !== 'day' || !s.maxDay) return false
+  return isRegisterScheduleNoPlacePhotoDay({ day: s.day, title: s.dayTitle, routeText: s.routeText, hotelText: s.hotelText }, s.maxDay)
 }
 
 function gateCtx(s: Slot, query: string): MatchGateContext {
@@ -60,7 +69,7 @@ async function main() {
   const [mode, slotsPath, searchPath, outPath, usedPath] = process.argv.slice(2)
   const slots: Slot[] = JSON.parse(fs.readFileSync(slotsPath, 'utf8'))
   if (mode === 'queries') {
-    console.log(JSON.stringify(slots.map((s) => ({ slug: s.slug, day: s.day, query: slotQuery(s), destQuery: mainQueryOf(s) }))))
+    console.log(JSON.stringify(slots.map((s) => ({ slug: s.slug, day: s.day, query: slotQuery(s), destQuery: mainQueryOf(s), noPlaceDay: noPlaceDay(s) }))))
     return
   }
   const search: Record<string, Array<Record<string, unknown>>> = JSON.parse(fs.readFileSync(searchPath, 'utf8'))
@@ -72,6 +81,10 @@ async function main() {
   const results = []
   for (const s of slots) {
     const query = slotQuery(s)
+    if (s.slot === 'day' && (noPlaceDay(s) || !query)) {
+      results.push({ slug: s.slug, day: s.day, slot: s.slot, query, tried: [], rejects: {}, reused: false, skipped: noPlaceDay(s) ? 'no_place_day' : 'no_day_keyword', picked: null })
+      continue
+    }
     const ctx = gateCtx(s, query)
     const destEn = mapDestination(s.primaryDestination ?? s.destination)
     const rejects: Record<string, number> = {}
@@ -114,12 +127,9 @@ async function main() {
         return sorted.find((c) => !usedIds.has(c.externalId)) ?? sorted[0] ?? null
       },
     }
-    const r1 = await findStockPhotoByChain(query, chainOpts)
-    // process-images v2 와 같게: 일차 키워드로 없으면 상품 대표 장소 검색어로 한 번 더
-    const mq = mainQueryOf(s)
-    const r = !r1.photo && s.slot === 'day' && mq !== query ? await findStockPhotoByChain(mq, chainOpts) : r1
-    const usedQuery = r === r1 ? query : mq
-    if (r !== r1) r.tried.unshift(...r1.tried.map((x) => `${query}→${x}`))
+    // round3: 일차 키워드로 없으면 비운다 — 상품 대표 장소(도시) 검색어로 다시 찾지 않음 (process-images v2 와 같음)
+    const r = await findStockPhotoByChain(query, chainOpts)
+    const usedQuery = query
     const p = r.photo
     const reused = Boolean(p && usedIds.has(p.externalId))
     if (p) usedIds.add(p.externalId)
@@ -131,6 +141,7 @@ async function main() {
       tried: r.tried,
       rejects,
       reused,
+      skipped: null,
       picked: p
         ? { source: p.source, id: p.externalId, url: p.originalLink, image: p.url, author: p.photographer, width: p.width, height: p.height, alt: p.altText ?? '', aiFlag: false }
         : null,

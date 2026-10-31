@@ -29822,6 +29822,108 @@
           ]
         }
       ]
+    },
+    {
+      "id": "register-parse-round3-1031",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "round3-1031 — 제목 도시 대안·귀국일 '<도시> 출발 · 귀국'·빈말 0·Gemini 키워드 사후 검사·장소 없는 날 사진 제외·상품 도시 대체 검색 금지",
+      "checks": [
+        {
+          "file": "lib/register-parse-round3-1031.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-parse-round3-1031]"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-round3-title-summary-kw]",
+            "sourceRows: parsed.schedule"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-day-summary-finalize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-no-place-day]",
+            "isRegisterScheduleNoPlacePhotoDay",
+            "출발 · 귀국"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-no-place-day]",
+            "REGRESSION-FREEZE[register-photo-no-city-substitute]",
+            "isRegisterScheduleNoPlacePhotoDay("
+          ],
+          "mustNotInclude": [
+            "`day${dayNum}-dest`"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-schedule-round3-title-summary-kw",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "round3 제목 도시 대안·귀국일 제목·원문 요약·키워드 사후 검사 연결",
+      "checks": [
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-round3-title-summary-kw]",
+            "destination: dest"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-photo-no-place-day",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "장소 없는 날(공항 이동·숙박 없는 귀국일) 사진 제외",
+      "checks": [
+        {
+          "file": "lib/register-schedule-day-summary-finalize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-no-place-day]",
+            "export function isRegisterScheduleNoPlacePhotoDay"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-no-place-day]",
+            "v2-no-place-day"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-photo-no-city-substitute",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "v2 일차 사진 상품 도시 대체 검색 금지",
+      "checks": [
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-no-city-substitute]"
+          ],
+          "mustNotInclude": [
+            "`day${dayNum}-dest`"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -30321,6 +30423,16 @@
       "summary": "round2-1031 파서 4건 단위 테스트",
       "files": [
         "lib/register-parse-round2-1031.test.ts"
+      ]
+    },
+    {
+      "id": "register-parse-round3-1031-suite",
+      "tier": [
+        "ci"
+      ],
+      "summary": "round3-1031 제목·요약·키워드·사진 제외·사람 필터 단위 테스트",
+      "files": [
+        "lib/register-parse-round3-1031.test.ts"
       ]
     }
   ]

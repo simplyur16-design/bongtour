@@ -21,6 +21,7 @@ import {
 import { photoCandidateText, photoSubjectBlockReason } from '@/lib/register-photo-subject-filter'
 import { photoMatchGate, sortByMatchGateScore, type MatchGateContext } from '@/lib/register-photo-match-gate'
 import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-preserve'
+import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { resolveDayHeroWithFallback, saveDayHeroResult } from '@/lib/itinerary-day-hero-image'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { recordAssetUsage } from '@/lib/asset-usage-log'
@@ -802,6 +803,7 @@ export async function POST(req: Request) {
       else schedulePhotos.push(x)
     }
 
+    const scheduleMaxDay = workingSchedule.reduce((m, e) => Math.max(m, Number(e?.day) || 0), 0)
     for (let n = 0; n < workingSchedule.length; n++) {
       const sched = workingSchedule[n]
       const dayNum = typeof sched?.day === 'number' && sched.day > 0 ? sched.day : n + 1
@@ -840,6 +842,21 @@ export async function POST(req: Request) {
         continue
       }
       const itRow = itineraryRows.find((r) => r.day === dayNum) ?? itineraryRows[n] ?? null
+
+      // REGRESSION-FREEZE[register-photo-no-place-day]: v2 — 장소 없는 날(공항 이동·숙박 없는 귀국일)은 사진을 붙이지 않는다 — manifest
+      if (photoChainV2 && sched && isRegisterScheduleNoPlacePhotoDay(sched, scheduleMaxDay)) {
+        console.log(`[GATE] day ${dayNum} 장소 없는 날 — 사진 비움`)
+        slotDebug.push({
+          day: dayNum,
+          imageUrl: '',
+          imageSource: '',
+          candidateOrigin: 'v2-no-place-day',
+          semanticKey: normalizeSemanticPoiKey(`day_${dayNum}`),
+          fallbackUsed: false,
+          fallbackReason: 'v2-no-place-day',
+        })
+        continue
+      }
 
       const poolRec = poolBySlot.get(n)
       /** v2 관문: 이 일차 장소(키워드·도시) 또는 상품 목적지 도시가 설명에 있어야 하고, 다른 도시 판정은 이 일차 글 기준 */
@@ -955,9 +972,9 @@ export async function POST(req: Request) {
       }
 
       if (!photo && photoChainV2) {
-        const chainKw =
-          normalizeToPlaceName(keywordUsed) || normalizeToPlaceName(sched?.imageKeyword ?? '') || mainQuery
-        const stock = await runChain(
+        // REGRESSION-FREEZE[register-photo-no-city-substitute]: v2 일차 사진은 그날 키워드로만 — 상품 도시(mainQuery) 대체 검색 금지 — manifest
+        const chainKw = normalizeToPlaceName(keywordUsed) || normalizeToPlaceName(sched?.imageKeyword ?? '')
+        const stock = !chainKw ? null : await runChain(
           `day${dayNum}`,
           chainKw,
           `${destination}_${dayNum}`,
@@ -971,23 +988,7 @@ export async function POST(req: Request) {
           selectedOrigin = `chain-${stock.source.toLowerCase()}`
           usage.mark(stock)
         }
-        if (!stock && chainKw !== mainQuery) {
-          // 일차 키워드로 장소 일치 사진이 없으면 상품 대표 장소(목적지) 검색어로 한 번 더 — 관문은 그대로
-          const destStock = await runChain(
-            `day${dayNum}-dest`,
-            mainQuery,
-            `${destination}_${dayNum}`,
-            (c) => normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url) && dayCityOk(c),
-            'meta',
-            dayGateCtx
-          )
-          if (destStock) {
-            photo = destStock
-            fallbackUsed = true
-            selectedOrigin = `chain-dest-${destStock.source.toLowerCase()}`
-            usage.mark(destStock)
-          }
-        }
+        // 일차 키워드로 장소 일치 사진이 없으면 비워 둔다(상품 대표 장소·목적지로 바꿔 찾지 않음)
       }
 
       if (!photo && photoChainV2) {
@@ -1160,6 +1161,7 @@ export async function POST(req: Request) {
       const sched = workingSchedule[n]
       const kw2 = typeof sched?.imageKeyword2 === 'string' ? sched.imageKeyword2.trim() : ''
       if (!kw2) continue
+      if (photoChainV2 && sched && isRegisterScheduleNoPlacePhotoDay(sched, scheduleMaxDay)) continue
       const existing2 = sched?.imageUrl2 ? String(sched.imageUrl2).trim() : ''
       if (existing2) continue
       const primaryUrl = schedulePhotos[n]?.photo?.url ?? sched?.imageUrl ?? null

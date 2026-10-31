@@ -85,8 +85,13 @@ export function personIsMainSubject(altLower: string): boolean {
   if (PERSON_DESC_RE.test(t)) return true
   const head = t.trim().split(' ').slice(0, 5).join(' ')
   const lead = new RegExp(`^(a |an |the |two |three |young |old |elderly |smiling |happy |asian |beautiful |stylish |pretty |handsome |cheerful |senior |little |small )*${PERSON_WORD}\\b`)
-  return lead.test(head)
+  if (!lead.test(head)) return false
+  // round3(봉실장 10/31): 사람이 앞에 나와도 장소·풍경이 함께 찍힌 사진('a person crossing a bamboo bridge…')은 통과 — 옷차림·인물사진 낱말이 없을 때
+  return !PERSON_SCENE_RE.test(t)
 }
+/** 사진 속 장소·풍경 낱말 — 사람이 맨 앞에 나와도 이것이 있으면 풍경 속 사람으로 본다 */
+const PERSON_SCENE_RE =
+  /\b(bridge|temple|temples|pagoda|shrine|church|cathedral|mosque|palace|castle|fort|fortress|tower|ruins|monument|statue|plaza|square|courtyard|street|alley|market|harbor|harbour|pier|promenade|boardwalk|park|garden|tunnel|cave|canyon|gorge|quarry|cliff|cliffs|mountain|mountains|mountaintop|hill|trail|valley|glacier|volcano|desert|dunes|beach|bay|coast|island|lagoon|lake|river|canal|waterfall|falls|forest|landscape|skyline|cityscape|view|views|panorama|hieroglyphs|architecture|facade|landmark)\b/
 const MEDICAL_RE = /\b(surgeon|surgeons|surgery|surgical|doctor|doctors|nurse|nurses|hospital|medical|patient|clinic|dentist|operating|operation|scrubs|stethoscope)\b/
 const VEHICLE_RE =
   /\b(car|cars|vehicle|vehicles|van|vans|minivan|bus|buses|truck|trucks|suv|jeep|motorcycle|motorbike|motorbikes|scooter|scooters|taxi|taxis|traffic|parked|parking|supercar|sportscar|airplane|aeroplane|aircraft|airliner|jet|runway|airport|street scene|busy street|busy road)\b/
