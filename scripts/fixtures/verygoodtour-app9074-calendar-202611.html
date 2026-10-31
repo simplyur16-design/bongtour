@@ -1,0 +1,780 @@
+
+
+
+
+
+
+
+
+<div class="ta_c mb20">
+    <div class="leave-date">
+        <a class="date_arr date_prev jq_cl_moveMonth" data-year="26" data-month="10"><span>이전달</span></a>
+        <span class="date_txt">2026.11</span>
+        <a class="date_arr date_next jq_cl_moveMonth" data-year="26" data-month="12"><span>다음달</span></a>
+    </div>
+
+    <div class="statusinfo-btn">
+        <button type="button" class="btn sz-s brd btn-statuspop" onclick="openHelpTooltip('btn-statuspop');">예약상태 도움말</button>
+    </div>
+    <div class="tooltip-statusinfo">
+        <div class="tooltip-statusinfo-body">
+            <div class="pop-statusinfo">
+                <table class="table">
+                    <colgroup>
+                        <col style="width:20%">
+                        <col style="width:30%">
+                        <col style="">
+                    </colgroup>
+                    <tr>
+                        <th rowspan="2" class="align-center">출발상태</th>
+                        <td class="align-center"><span class="badge dept-type01">출발확정</span></td>
+                        <td>
+                            <ul class="sti-list">
+                                <li>항공/호텔 확보</li>
+                                <li>최소 출발인원 계약 완료</li>
+                                <li>출발 보장 상품</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <!--tr>
+                        <td class="align-center"><span class="badge dept-type02">출발확정</span></td>
+                        <td>
+                            <ul class="sti-list">
+                                <li>항공/호텔 확보</li>
+                                <li>최소 출발인원 도달</li>
+                            </ul>
+                            <div class="sti-p"><span class="badge dept-type01">출발확정</span> 과의 차이점 </div>
+                            <ul class="dash">
+                                <li>예약금 미납 고객님 보유상품</li>
+                                <li>이중 예약 협의 중(고객님 2건의 상품 예약 시)</li>
+                            </ul>
+                        </td>
+                    </tr-->
+                    <tr>
+                        <td class="align-center"><span class="badge dept-type03">출발가능</span></td>
+                        <td>
+                            <ul class="sti-list">
+                                <li>항공/호텔 확보</li>
+                                <li>최소 출발인원 미도달</li>
+                                <li>(출발 확정을 위하여 모객 진행 중)</li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th rowspan="3" class="align-center">예약상태</th>
+                        <td class="align-center"><span class="fc_sky st-text">예약가능</span></td>
+                        <td>
+                            출발 상태 관계없이 예약 가능
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-center"><span class="fc_green st-text">대기예약</span></td>
+                        <td>
+                            <span class="badge dept-type01">출발확정</span> 상품으로, 예약 접수 후 항공/호텔 추가 수배 예정
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="align-center"><span class="fc_gray st-text">예약마감</span></td>
+                        <td>
+                            신규예약 접수 불가 상태
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="align-center">프로모션</th>
+                        <td class="align-center"><span class="fc_darkgreen st-text">이벤트</span></td>
+                        <td>
+                            고객님께 혜택이 제공되는 상품
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="tooltip-statusinfo-close">
+            <button type="button" class="btn-tooltip-close" onclick="openHelpTooltipClose($(this).attr('class'));"><span class="hide">닫기</span></button>
+        </div>
+    </div>
+
+    <!--// 예약상태 도움말 tooltip -->
+
+</div>
+<div class="dep_left_wrap">
+    <div class="indicate">
+        <ul>
+            <li><span class="indicate_blue"></span><span>예약가능</span></li>
+            <li><span class="indicate_green"></span><span>대기예약</span></li>
+            <li><span class="indicate_gray"></span><span>예약마감</span></li>
+        </ul>
+        
+    </div>
+    <div class="calendar">
+        <table>
+            <colgroup><col span="7" /></colgroup>
+            <thead>
+                <tr>
+                    <th scope="col">일</th>
+                    <th scope="col">월</th>
+                    <th scope="col">화</th>
+                    <th scope="col">수</th>
+                    <th scope="col">목</th>
+                    <th scope="col">금</th>
+                    <th scope="col">토</th>
+                </tr>
+            </thead>
+            <tbody>
+
+
+                        <tr>
+                                <td class="jq_cl_day">
+                                    <div class="jq_cl_noneSchedule">
+                                        <span class="date">1</span>
+                                        <p class="price">
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">2</span>
+                                        <p class="price">
+112 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="done">
+                                        <span class="date">3</span>
+                                        <p class="price">
+124 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="done">
+                                        <span class="date">4</span>
+                                        <p class="price">
+124 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">5</span>
+                                        <p class="price">
+106 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">6</span>
+                                        <p class="price">
+106 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">7</span>
+                                        <p class="price">
+105 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                        </tr>
+                        <tr>
+                                <td class="jq_cl_day">
+                                    <div class="standby">
+                                        <span class="date">8</span>
+                                        <p class="price">
+100 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">9</span>
+                                        <p class="price">
+108 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">10</span>
+                                        <p class="price">
+108 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="done">
+                                        <span class="date">11</span>
+                                        <p class="price">
+104 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">12</span>
+                                        <p class="price">
+111 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">13</span>
+                                        <p class="price">
+131 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">14</span>
+                                        <p class="price">
+105 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                        </tr>
+                        <tr>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">15</span>
+                                        <p class="price">
+109 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">16</span>
+                                        <p class="price">
+105 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">17</span>
+                                        <p class="price">
+100 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">18</span>
+                                        <p class="price">
+112 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">19</span>
+                                        <p class="price">
+106 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">20</span>
+                                        <p class="price">
+104 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="standby">
+                                        <span class="date">21</span>
+                                        <p class="price">
+100 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                        </tr>
+                        <tr>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">22</span>
+                                        <p class="price">
+100 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">23</span>
+                                        <p class="price">
+100 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">24</span>
+                                        <p class="price">
+100 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">25</span>
+                                        <p class="price">
+104 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">26</span>
+                                        <p class="price">
+104 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">27</span>
+                                        <p class="price">
+104 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">28</span>
+                                        <p class="price">
+100 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                        </tr>
+                        <tr>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">29</span>
+                                        <p class="price">
+100 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td class="jq_cl_day">
+                                    <div class="available">
+                                        <span class="date">30</span>
+                                        <p class="price">
+100 만원~
+                                        </p>
+                                    </div>
+                                </td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                        </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pro_num">
+        <p>상품번호 <span>APP9074</span></p>
+        <div class="statusinfo-btn">
+            <button type="button" class="btn sz-s brd btn-statuspop" onclick="openHelpTooltip('btn-statuspop');">예약상태</button>
+        </div>
+    </div>
+
+            <div class="dep_event_wrap" onclick="javascript:location.href='/Product/PackageDetail?ProCode=APP9074-270131LJ35&PriceSeq=1&MenuCode=106'" style="cursor: pointer;">
+                <span class="dep_ev_label">이벤트</span> <span class="dep_ev_tit">진에어</span>
+                
+                <span class="start_status status01">예약가능</span>
+                <p class="dep_ev_day">2027.01.31(일) 19:50 ~ 2027.02.04(목) 07:55</p>
+                <div class="price_wrap">
+                    944,000<span class="price_unit">원</span>
+                </div>
+            </div>
+
+
+
+</div>
+<div class="dep_right_wrap">
+    <div class="dep_right_tit">
+        <h6><span id="jq_id_depDateTitle">전체</span> 상품</h6><!--or <h6></h6> -->
+        <div class="more_plus" style="display:none;"><a id="jq_id_depDateAllView">전체보기</a></div>
+    </div>
+    <div class="dep_form_wrap clearFix">
+        <ul class="inline_checkboxs" id="jq_id_calendarSelOpt">
+            <li>
+                <input type="checkbox" name="tHour" class="brd_4 jq_cl_calendarFiler" value="AM" id="jq_id_Filer1" />
+                <label for="jq_id_Filer1">오전출발</label>
+            </li>
+            <li>
+                <input type="checkbox" name="tHour" class="brd_4 jq_cl_calendarFiler" value="PM" id="jq_id_Filer2" />
+                <label for="jq_id_Filer2">오후출발</label>
+            </li>
+            <li>
+                <input type="checkbox" name="tAir" class="brd_4 jq_cl_calendarFiler" value="1" id="jq_id_Filer3" />
+                <label for="jq_id_Filer3">국적항공</label>
+            </li>
+            <li>
+                <input type="checkbox" name="tAir" class="brd_4 jq_cl_calendarFiler" value="2" id="jq_id_Filer4" />
+                <label for="jq_id_Filer4">실속항공</label>
+            </li>
+            <li>
+                <input type="checkbox" name="tOpt" class="brd_4 jq_cl_calendarFiler" value="0" id="jq_id_Filer5" />
+                <label for="jq_id_Filer5">노옵션</label>
+            </li>
+            <li>
+                <input type="checkbox" name="tShop" class="brd_4 jq_cl_calendarFiler" value="0" id="jq_id_Filer6" />
+                <label for="jq_id_Filer6">노쇼핑</label>
+            </li>
+        </ul>
+        <div class="formWrap selectWrap smallSelect">
+            <select id="jq_id_calendarSort" class="formControl" title="정렬조건">
+                <option value="1">출발일빠른순</option>
+                <option value="2">낮은가격순</option>
+                <option value="3">높은가격순</option>
+                <option value="4">예약가능순</option>
+            </select>
+        </div>
+    </div>
+    <div class="prdlit_typ_2">
+        <div class="pro_detail_start_list">
+            <ul id="jq_id_calendarProductList">
+                <!-- 상품아이템 -->
+                <!--// 상품아이템 -->
+            </ul>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var $calendarProductListJson = [{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"월","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","DepartureDateToShortString":"2026-11-02","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"금","ArrivalDateToShortString":"2026-11-06","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"done","BtnReserveAltTag":"예약마감","IsBtnReserve":false,"AirlineType":2,"BtnReserveStatusNumber":3,"btnReserve":["done","예약마감","N","3"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261102BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-02T00:00:00","DayTicks":46326,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-06T00:00:00","DayTicks":46330,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-02T00:00:00","DayTicks":46326,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-06T00:00:00","DayTicks":46330,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1081000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":false,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"4박 6일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"월","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","DepartureDateToShortString":"2026-11-02","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"토","ArrivalDateToShortString":"2026-11-07","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611027C46","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-02T00:00:00","DayTicks":46326,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-07T00:00:00","DayTicks":46331,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-02T00:00:00","DayTicks":46326,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-07T00:00:00","DayTicks":46331,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 6일","MaxCount":0,"MinCount":4,"FakeCount":0,"TourNight":4,"TourDay":6,"ReserveCount":0,"AdultPrice":1129000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"N","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":4,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"화","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">화</span>","DepartureDateToShortString":"2026-11-03","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"토","ArrivalDateToShortString":"2026-11-07","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"done","BtnReserveAltTag":"예약마감","IsBtnReserve":false,"AirlineType":2,"BtnReserveStatusNumber":3,"btnReserve":["done","예약마감","N","3"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261103BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-03T00:00:00","DayTicks":46327,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-07T00:00:00","DayTicks":46331,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-03T00:00:00","DayTicks":46327,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-07T00:00:00","DayTicks":46331,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":1,"AdultPrice":1241000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":false,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"수","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">수</span>","DepartureDateToShortString":"2026-11-04","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"일","ArrivalDateToShortString":"2026-11-08","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"done","BtnReserveAltTag":"예약마감","IsBtnReserve":false,"AirlineType":2,"BtnReserveStatusNumber":3,"btnReserve":["done","예약마감","N","3"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261104BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-04T00:00:00","DayTicks":46328,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-08T00:00:00","DayTicks":46332,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-04T00:00:00","DayTicks":46328,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-08T00:00:00","DayTicks":46332,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":3,"AdultPrice":1241000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":false,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"목","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","DepartureDateToShortString":"2026-11-05","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"월","ArrivalDateToShortString":"2026-11-09","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611057C35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-05T00:00:00","DayTicks":46329,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-09T00:00:00","DayTicks":46333,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-05T00:00:00","DayTicks":46329,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-09T00:00:00","DayTicks":46333,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1069000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"목","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","DepartureDateToShortString":"2026-11-05","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"월","ArrivalDateToShortString":"2026-11-09","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261105BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-05T00:00:00","DayTicks":46329,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-09T00:00:00","DayTicks":46333,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-05T00:00:00","DayTicks":46329,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-09T00:00:00","DayTicks":46333,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":10,"AdultPrice":1091000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"금","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","DepartureDateToShortString":"2026-11-06","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"화","ArrivalDateToShortString":"2026-11-10","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">화</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611067C35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-06T00:00:00","DayTicks":46330,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-10T00:00:00","DayTicks":46334,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-06T00:00:00","DayTicks":46330,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-10T00:00:00","DayTicks":46334,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1069000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"금","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","DepartureDateToShortString":"2026-11-06","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"화","ArrivalDateToShortString":"2026-11-10","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">화</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261106BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-06T00:00:00","DayTicks":46330,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-10T00:00:00","DayTicks":46334,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-06T00:00:00","DayTicks":46330,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-10T00:00:00","DayTicks":46334,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1091000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"토","DepartureDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","DepartureDateToShortString":"2026-11-07","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"수","ArrivalDateToShortString":"2026-11-11","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">수</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261107BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-07T00:00:00","DayTicks":46331,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-11T00:00:00","DayTicks":46335,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-07T00:00:00","DayTicks":46331,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-11T00:00:00","DayTicks":46335,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1051000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"일","DepartureDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","DepartureDateToShortString":"2026-11-08","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"목","ArrivalDateToShortString":"2026-11-12","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"standby","BtnReserveAltTag":"대기예약","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":2,"btnReserve":["standby","대기예약","Y","2"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261108BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-08T00:00:00","DayTicks":46332,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-12T00:00:00","DayTicks":46336,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-08T00:00:00","DayTicks":46332,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-12T00:00:00","DayTicks":46336,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":-1,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1001000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"4박 6일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"일","DepartureDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","DepartureDateToShortString":"2026-11-08","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"금","ArrivalDateToShortString":"2026-11-13","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"done","BtnReserveAltTag":"예약마감","IsBtnReserve":false,"AirlineType":2,"BtnReserveStatusNumber":3,"btnReserve":["done","예약마감","N","3"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611087C46","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-08T00:00:00","DayTicks":46332,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-13T00:00:00","DayTicks":46337,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-08T00:00:00","DayTicks":46332,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-13T00:00:00","DayTicks":46337,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 6일","MaxCount":0,"MinCount":4,"FakeCount":0,"TourNight":4,"TourDay":6,"ReserveCount":0,"AdultPrice":1019000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":false,"IsDepatureConfirm":"N","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":4,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"월","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","DepartureDateToShortString":"2026-11-09","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"금","ArrivalDateToShortString":"2026-11-13","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261109BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-09T00:00:00","DayTicks":46333,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-13T00:00:00","DayTicks":46337,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-09T00:00:00","DayTicks":46333,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-13T00:00:00","DayTicks":46337,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1081000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"화","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">화</span>","DepartureDateToShortString":"2026-11-10","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"토","ArrivalDateToShortString":"2026-11-14","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261110BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-10T00:00:00","DayTicks":46334,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-14T00:00:00","DayTicks":46338,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-10T00:00:00","DayTicks":46334,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-14T00:00:00","DayTicks":46338,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1081000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"수","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">수</span>","DepartureDateToShortString":"2026-11-11","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"일","ArrivalDateToShortString":"2026-11-15","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"done","BtnReserveAltTag":"예약마감","IsBtnReserve":false,"AirlineType":2,"BtnReserveStatusNumber":3,"btnReserve":["done","예약마감","N","3"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261111BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-11T00:00:00","DayTicks":46335,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-15T00:00:00","DayTicks":46339,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-11T00:00:00","DayTicks":46335,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-15T00:00:00","DayTicks":46339,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1041000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":false,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"목","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","DepartureDateToShortString":"2026-11-12","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"월","ArrivalDateToShortString":"2026-11-16","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261112BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-12T00:00:00","DayTicks":46336,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-16T00:00:00","DayTicks":46340,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-12T00:00:00","DayTicks":46336,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-16T00:00:00","DayTicks":46340,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1111000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"목","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","DepartureDateToShortString":"2026-11-12","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"월","ArrivalDateToShortString":"2026-11-16","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"standby","BtnReserveAltTag":"대기예약","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":2,"btnReserve":["standby","대기예약","Y","2"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611127C35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-12T00:00:00","DayTicks":46336,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-16T00:00:00","DayTicks":46340,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-12T00:00:00","DayTicks":46336,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-16T00:00:00","DayTicks":46340,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 5일","MaxCount":-1,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":30,"AdultPrice":1159000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"금","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","DepartureDateToShortString":"2026-11-13","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"화","ArrivalDateToShortString":"2026-11-17","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">화</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"standby","BtnReserveAltTag":"대기예약","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":2,"btnReserve":["standby","대기예약","Y","2"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611137C35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-13T00:00:00","DayTicks":46337,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-17T00:00:00","DayTicks":46341,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-13T00:00:00","DayTicks":46337,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-17T00:00:00","DayTicks":46341,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 5일","MaxCount":-1,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1159000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"금","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","DepartureDateToShortString":"2026-11-13","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"화","ArrivalDateToShortString":"2026-11-17","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">화</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261113BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-13T00:00:00","DayTicks":46337,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-17T00:00:00","DayTicks":46341,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-13T00:00:00","DayTicks":46337,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-17T00:00:00","DayTicks":46341,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1311000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"토","DepartureDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","DepartureDateToShortString":"2026-11-14","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"수","ArrivalDateToShortString":"2026-11-18","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">수</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261114BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-14T00:00:00","DayTicks":46338,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-18T00:00:00","DayTicks":46342,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-14T00:00:00","DayTicks":46338,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-18T00:00:00","DayTicks":46342,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1051000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"일","DepartureDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","DepartureDateToShortString":"2026-11-15","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"목","ArrivalDateToShortString":"2026-11-19","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"done","BtnReserveAltTag":"예약마감","IsBtnReserve":false,"AirlineType":2,"BtnReserveStatusNumber":3,"btnReserve":["done","예약마감","N","3"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261115BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-15T00:00:00","DayTicks":46339,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-19T00:00:00","DayTicks":46343,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-15T00:00:00","DayTicks":46339,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-19T00:00:00","DayTicks":46343,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1001000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":false,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"4박 6일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"일","DepartureDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","DepartureDateToShortString":"2026-11-15","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"금","ArrivalDateToShortString":"2026-11-20","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611157C46","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-15T00:00:00","DayTicks":46339,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-20T00:00:00","DayTicks":46344,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-15T00:00:00","DayTicks":46339,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-20T00:00:00","DayTicks":46344,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 6일","MaxCount":0,"MinCount":4,"FakeCount":0,"TourNight":4,"TourDay":6,"ReserveCount":0,"AdultPrice":1099000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"N","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":4,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"월","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","DepartureDateToShortString":"2026-11-16","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"금","ArrivalDateToShortString":"2026-11-20","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261116BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-16T00:00:00","DayTicks":46340,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-20T00:00:00","DayTicks":46344,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-16T00:00:00","DayTicks":46340,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-20T00:00:00","DayTicks":46344,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":2,"AdultPrice":1051000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"4박 6일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"월","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","DepartureDateToShortString":"2026-11-16","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"토","ArrivalDateToShortString":"2026-11-21","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611167C46","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-16T00:00:00","DayTicks":46340,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-21T00:00:00","DayTicks":46345,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-16T00:00:00","DayTicks":46340,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-21T00:00:00","DayTicks":46345,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 6일","MaxCount":0,"MinCount":4,"FakeCount":0,"TourNight":4,"TourDay":6,"ReserveCount":0,"AdultPrice":1099000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"N","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":4,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"화","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">화</span>","DepartureDateToShortString":"2026-11-17","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"토","ArrivalDateToShortString":"2026-11-21","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261117BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-17T00:00:00","DayTicks":46341,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-21T00:00:00","DayTicks":46345,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-17T00:00:00","DayTicks":46341,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-21T00:00:00","DayTicks":46345,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1001000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"수","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">수</span>","DepartureDateToShortString":"2026-11-18","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"일","ArrivalDateToShortString":"2026-11-22","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261118BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-18T00:00:00","DayTicks":46342,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-22T00:00:00","DayTicks":46346,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-18T00:00:00","DayTicks":46342,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-22T00:00:00","DayTicks":46346,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1121000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"목","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","DepartureDateToShortString":"2026-11-19","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"월","ArrivalDateToShortString":"2026-11-23","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261119BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-19T00:00:00","DayTicks":46343,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-23T00:00:00","DayTicks":46347,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-19T00:00:00","DayTicks":46343,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-23T00:00:00","DayTicks":46347,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":2,"AdultPrice":1061000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"목","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","DepartureDateToShortString":"2026-11-19","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"월","ArrivalDateToShortString":"2026-11-23","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"standby","BtnReserveAltTag":"대기예약","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":2,"btnReserve":["standby","대기예약","Y","2"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611197C35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-19T00:00:00","DayTicks":46343,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-23T00:00:00","DayTicks":46347,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-19T00:00:00","DayTicks":46343,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-23T00:00:00","DayTicks":46347,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 5일","MaxCount":-1,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1159000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"금","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","DepartureDateToShortString":"2026-11-20","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"화","ArrivalDateToShortString":"2026-11-24","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">화</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261120BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-20T00:00:00","DayTicks":46344,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-24T00:00:00","DayTicks":46348,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-20T00:00:00","DayTicks":46344,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-24T00:00:00","DayTicks":46348,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1041000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"토","DepartureDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","DepartureDateToShortString":"2026-11-21","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"수","ArrivalDateToShortString":"2026-11-25","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">수</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"standby","BtnReserveAltTag":"대기예약","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":2,"btnReserve":["standby","대기예약","Y","2"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261121BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-21T00:00:00","DayTicks":46345,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-25T00:00:00","DayTicks":46349,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-21T00:00:00","DayTicks":46345,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-25T00:00:00","DayTicks":46349,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":-1,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":4,"AdultPrice":1001000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"일","DepartureDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","DepartureDateToShortString":"2026-11-22","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"목","ArrivalDateToShortString":"2026-11-26","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261122BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-22T00:00:00","DayTicks":46346,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-26T00:00:00","DayTicks":46350,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-22T00:00:00","DayTicks":46346,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-26T00:00:00","DayTicks":46350,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1001000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"일","DepartureDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","DepartureDateToShortString":"2026-11-22","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"목","ArrivalDateToShortString":"2026-11-26","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611227C35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-22T00:00:00","DayTicks":46346,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-26T00:00:00","DayTicks":46350,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-22T00:00:00","DayTicks":46346,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-26T00:00:00","DayTicks":46350,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1049000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"월","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","DepartureDateToShortString":"2026-11-23","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"금","ArrivalDateToShortString":"2026-11-27","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261123BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-23T00:00:00","DayTicks":46347,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-27T00:00:00","DayTicks":46351,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-23T00:00:00","DayTicks":46347,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-27T00:00:00","DayTicks":46351,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1001000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"화","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">화</span>","DepartureDateToShortString":"2026-11-24","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"토","ArrivalDateToShortString":"2026-11-28","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261124BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-24T00:00:00","DayTicks":46348,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-28T00:00:00","DayTicks":46352,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-24T00:00:00","DayTicks":46348,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-28T00:00:00","DayTicks":46352,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1001000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"수","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">수</span>","DepartureDateToShortString":"2026-11-25","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"일","ArrivalDateToShortString":"2026-11-29","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261125BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-25T00:00:00","DayTicks":46349,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-29T00:00:00","DayTicks":46353,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-25T00:00:00","DayTicks":46349,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-29T00:00:00","DayTicks":46353,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":9,"AdultPrice":1041000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"수","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">수</span>","DepartureDateToShortString":"2026-11-25","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"일","ArrivalDateToShortString":"2026-11-29","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611257C35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-25T00:00:00","DayTicks":46349,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-29T00:00:00","DayTicks":46353,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-25T00:00:00","DayTicks":46349,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-29T00:00:00","DayTicks":46353,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1089000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"목","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","DepartureDateToShortString":"2026-11-26","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"월","ArrivalDateToShortString":"2026-11-30","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261126BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-26T00:00:00","DayTicks":46350,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-30T00:00:00","DayTicks":46354,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-26T00:00:00","DayTicks":46350,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-30T00:00:00","DayTicks":46354,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":4,"AdultPrice":1041000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"목","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","DepartureDateToShortString":"2026-11-26","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"월","ArrivalDateToShortString":"2026-11-30","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"standby","BtnReserveAltTag":"대기예약","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":2,"btnReserve":["standby","대기예약","Y","2"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611267C35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-26T00:00:00","DayTicks":46350,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-11-30T00:00:00","DayTicks":46354,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-26T00:00:00","DayTicks":46350,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-11-30T00:00:00","DayTicks":46354,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 5일","MaxCount":-1,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1089000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"금","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","DepartureDateToShortString":"2026-11-27","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"화","ArrivalDateToShortString":"2026-12-01","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">화</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261127BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-27T00:00:00","DayTicks":46351,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-12-01T00:00:00","DayTicks":46355,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-27T00:00:00","DayTicks":46351,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-12-01T00:00:00","DayTicks":46355,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1041000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"토","DepartureDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","DepartureDateToShortString":"2026-11-28","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"수","ArrivalDateToShortString":"2026-12-02","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">수</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261128BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-28T00:00:00","DayTicks":46352,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-12-02T00:00:00","DayTicks":46356,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-28T00:00:00","DayTicks":46352,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-12-02T00:00:00","DayTicks":46356,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1001000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"4박 6일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"토","DepartureDateWeekExt":"<span style=\"color:blue;margin-bottom:0;\">토</span>","DepartureDateToShortString":"2026-11-28","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"목","ArrivalDateToShortString":"2026-12-03","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611287C46","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-28T00:00:00","DayTicks":46352,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-12-03T00:00:00","DayTicks":46357,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-28T00:00:00","DayTicks":46352,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-12-03T00:00:00","DayTicks":46357,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 6일","MaxCount":0,"MinCount":4,"FakeCount":0,"TourNight":4,"TourDay":6,"ReserveCount":0,"AdultPrice":1119000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"N","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":4,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"일","DepartureDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","DepartureDateToShortString":"2026-11-29","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"목","ArrivalDateToShortString":"2026-12-03","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">목</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261129BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-29T00:00:00","DayTicks":46353,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-12-03T00:00:00","DayTicks":46357,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-29T00:00:00","DayTicks":46353,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-12-03T00:00:00","DayTicks":46357,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1001000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"4박 6일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"일","DepartureDateWeekExt":"<span style=\"color:red;margin-bottom:0;\">일</span>","DepartureDateToShortString":"2026-11-29","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"금","ArrivalDateToShortString":"2026-12-04","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-2611297C46","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-29T00:00:00","DayTicks":46353,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-12-04T00:00:00","DayTicks":46358,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-29T00:00:00","DayTicks":46353,"TimeTicks":0},"DepartureDepartureTime":"20:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-12-04T00:00:00","DayTicks":46358,"TimeTicks":0},"ArrivalArrivalTime":"08:30","ProductName":"[부산][노팁/노옵션/특급][신고서무료대행] 방콕,왓포,마사지/ 파타야 요트+알카자,코끼리체험/크루즈 6일","MaxCount":0,"MinCount":4,"FakeCount":0,"TourNight":4,"TourDay":6,"ReserveCount":1,"AdultPrice":1119000,"TransCode":"7C","TransNumber":"2551","TrasnName":"제주항공","IsResAdd":true,"IsDepatureConfirm":"N","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":4,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""},{"ProductNameExt":{},"TrasnNameIconExt":{},"TravelPeriodExt":"3박 5일","AdultPriceExt":{},"DepartureDateExt":{},"DepartureDateWeek":"월","DepartureDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">월</span>","DepartureDateToShortString":"2026-11-30","DepartureTimeToString":"PM","ArrivalDateExt":{},"ArrivalDateWeek":"금","ArrivalDateToShortString":"2026-12-04","ArrivalTimeToString":"AM","ArrivalDateWeekExt":"<span style=\"color:#333;margin-bottom:0;\">금</span>","ProductTypeIcon":{},"restSeatCount":{},"BtnReserveUrl":"available","BtnReserveAltTag":"예약가능","IsBtnReserve":true,"AirlineType":2,"BtnReserveStatusNumber":1,"btnReserve":["available","예약가능","Y","1"],"IsTransferLine":false,"CountTransferLine":0,"arrTransferLineCode":[],"arrTransferLineName":[],"PriceSeq":1,"ProductCode":"APP9074-261130BX35","ProductCodeCount":0,"DepartureDate":{"IsNull":false,"Value":"2026-11-30T00:00:00","DayTicks":46354,"TimeTicks":0},"ArrivalDate":{"IsNull":false,"Value":"2026-12-04T00:00:00","DayTicks":46358,"TimeTicks":0},"DepartureDepartureDate":{"IsNull":false,"Value":"2026-11-30T00:00:00","DayTicks":46354,"TimeTicks":0},"DepartureDepartureTime":"18:00","ArrivalArrivalDate":{"IsNull":false,"Value":"2026-12-04T00:00:00","DayTicks":46358,"TimeTicks":0},"ArrivalArrivalTime":"06:20","ProductName":"[부산][노팁/노옵션_방콕/파타야] 왓 포/알카자쇼/ 파타야 요트투어, 루프탑바, 욧시암크루즈 3박5일","MaxCount":0,"MinCount":2,"FakeCount":0,"TourNight":3,"TourDay":5,"ReserveCount":0,"AdultPrice":1001000,"TransCode":"BX","TransNumber":"545 ","TrasnName":"에어부산","IsResAdd":true,"IsDepatureConfirm":"Y","IsConfirm":false,"ConfirmYn":"N","SaleType":1,"PriceType":1,"BranchCode":1,"AttributeCode":"P","IsEvent":false,"OptCnt":0,"ShopCnt":3,"DepartureTransferAirLine":"","DepartureTransferAirLineName":""}];
+    
+    var nowYear = '2026';
+    var nowMonth = '11';
+    var nowDay = "";
+    var $resultCalendar = null;
+
+    var calendarFilter = {
+        DepartureTimeToString: [],
+        TransCode: [],
+        ShopCnt: [],
+        OptCnt: []
+    }
+
+    
+    //상품리스트 출력
+    var setListCalendar = function (listJson) {
+
+        $("#jq_id_calendarProductList").empty();
+
+        //전체 or 일 선택
+        if ($("#jq_id_depDateTitle").text().indexOf("전체") > -1) {
+        } else {
+            var conditionDate = nowYear + '-' + (nowMonth.length < 2 ? "0" + nowMonth : nowMonth) + '-' + (parseInt(nowDay) < 10 ? "0" + nowDay : nowDay);
+            listJson = listJson.filter(function (x) { return x.DepartureDateToShortString == conditionDate; });
+        }
+
+        var html = '';
+
+        $.each(listJson, function (i, v) {
+            if (v != "") {
+                var trans = v.TransCode.replace(/ /g, "") + v.TransNumber.replace(/ /g, "");
+
+                var resStatus = "status01";
+
+                var btnReserveAltTag = v.BtnReserveAltTag;
+
+                if (v.BtnReserveAltTag == "예약가능") {
+                    resStatus = "status01"; // 예약가능
+                    if (v.MaxCount > 0 && v.MaxCount - v.ReserveCount - v.FakeCount > 0) {
+                        btnReserveAltTag = (v.MaxCount - v.ReserveCount - v.FakeCount) + "석";
+                    }
+                }
+                else if (v.BtnReserveAltTag == "대기예약") {
+                    resStatus = "status02"; // 대기예약
+                }
+                else if (v.BtnReserveAltTag == "예약마감") {
+                    resStatus = "status03"; // 예약마감
+                }
+
+                html += '<li class="jq_cl_detailViewBtn" data-master="' + v.MasterCode + '" onclick="javascript:location.href=\'/Product/PackageDetail?ProCode=' + v.ProductCode + '&PriceSeq=' + v.PriceSeq + '&MenuCode=106\'" style="cursor: pointer;">';
+                html += '    <p class="first"><span class="start_day">' + v.DepartureDateToShortString.substr(5, 5) + '</span> <span class="start_status ' + resStatus + '">' + btnReserveAltTag + '</span></p>';
+                html += '        <div class="tours_wrap">';
+
+                if (v.TransCode != "") {
+                    html += '            <div class="airline">';
+                    html += '                <p>';
+                    html += '                <span class="airline_logo"><img src="/images/air_logo/air_' + v.TransCode + '01.gif" alt="항공사 로고" /></span>';
+                    if (v.TransCode != "00") { // 선박이 아닌경우
+                        html += '                <span class="airline_name">' + v.TrasnName + '</span>';
+                        if (v.IsTransferLine) {
+                            for (let i = 1; i < v.CountTransferLine; i++){
+                                html += '                <span style="margin: 0 5px;">+</span>';
+                                html += '                <span class="airline_logo"><img src="/images/air_logo/air_' + v.arrTransferLineCode[i].trim() + '01.gif" alt="항공사 로고" /></span>';
+                                html += '                <span class="airline_name">' + v.arrTransferLineName[i].trim() + '</span>';
+                            }
+
+                        }
+                    } else { // 선박인경우
+                        html += '                </span> <span class="airline_num">' + v.TransNumber.replace(/ /g, "") + '편</span>';
+                    }
+                    html += '                </p>';
+                    html += '                <div class="state_gro">';
+
+                    if (v.IsEvent) {
+                        html += '                <span class="state_event">이벤트</span>';
+                    }
+
+                    if (v.IsDepatureConfirm == "Y") { //"F"일때 처리..
+                        html += '                <span class="state_confirm type02">출발확정</span>';
+                    }
+                    else if (v.IsDepatureConfirm == "F") {
+                        html += '                <span class="state_confirm">출발확정</span>';
+                    }
+                    else if (v.IsConfirm == true) {
+                        html += '                <span class="state_confirm type03">출발가능</span>';
+                    }
+                    html += '</div>';
+                    html += '            </div>';
+                }
+                html += '            <p class="airline_infos">';
+                html += '                <span class="dep_arr">';
+                html += v.DepartureDateToShortString.replace(/-/g, '.') + '(' + v.DepartureDateWeek + ') ';
+                if (v.TourNight !="0") { //무박이 아닐 경우
+                    html += v.DepartureDepartureTime;
+                }
+                html += ' ~ ' + v.ArrivalDateToShortString.replace(/-/g, '.') + '(' + v.ArrivalDateWeek + ') ';
+                if (v.TourNight != 0) { //무박이 아닐경우
+                    html += v.ArrivalArrivalTime;
+                }
+                html += '                </span>';
+                html += '                <span class="period">' + v.TravelPeriodExt + '</span>';
+                html += '            </p>';
+                html += '            <p class="tour_tit">' + v.ProductName.replace("&amp;", "&") + '</p>';
+                html += '            <div class="status_info">';
+
+
+                html += '            </div>';
+                html += '        </div>';
+                html += '<div class="price_wrap fs18 mr0">' + numberWithCommas(v.AdultPrice) + '<span class="price_unit fs16 wonpadding">원</span></div>';
+            }
+        });
+
+        if ($.trim(html) == '') {
+            html = '<li class="none">' +
+                '<div id="noSearchResultView" style="text-align:center;" class="mt20">' +
+                '    <img src="/Images/2013/Common/img_noresult.png" alt="NO DATA" />' +
+                '</div>                                                               ' +
+                '</li>';
+        }
+
+        $("#jq_id_calendarProductList").append(html);
+    }
+
+
+
+    //다중 필터 처리
+    var setFilterCalendar = function () {
+        calendarFilter.DepartureTimeToString = [];
+        calendarFilter.TransCode = [];
+        calendarFilter.ShopCnt = [];
+        calendarFilter.OptCnt = [];
+
+        calendarFilter.DepartureTimeToString = setFilterCalendarVal("jq_id_calendarSelOpt", "tHour");
+        calendarFilter.AirlineType = setFilterCalendarVal("jq_id_calendarSelOpt", "tAir");
+        calendarFilter.ShopCnt = setFilterCalendarVal("jq_id_calendarSelOpt", "tShop");
+        calendarFilter.OptCnt = setFilterCalendarVal("jq_id_calendarSelOpt", "tOpt");
+    }
+
+
+    //필터 값 넣기
+    var setFilterCalendarVal = function (id, name) {
+        var $input = $("#" + id + " input[name='" + name + "']");
+        var arr = [];
+
+        if ($input != undefined && $input != "undefined" && $input != null && $input.length > 0) {
+            if ($input.eq(0).is(":checked") && $input.eq(0).val() == "A") {//전체선택
+                return arr;
+            } else {
+                for (var i = 0; i < $input.length; i++) {
+                    if ($input.eq(i).is(":checked")) {
+                        arr.push($input.eq(i).val());
+                    }
+                }
+            }
+        }
+
+        return arr;
+    }
+
+    //필터배열
+    var buildFilterCalendar = function (filter) {
+        var query = {};
+        for (var keys in filter) {
+            if (filter[keys].constructor === Array && filter[keys].length > 0) {
+                query[keys] = filter[keys];
+            }
+        }
+        return query;
+    }
+
+    //데이터 필터링
+    var filterDataCalendar = function (data, query) {
+        var filteredData3 = [];
+        var fReturn = true;
+        var cnt = 0;
+        for (var key in query) {
+            filteredData = data.filter(function (x) {
+                if (x[key] === undefined || !chkIncludesKeysCalendar(query[key], x[key])) {
+                    return false;
+                }
+                return true;
+            });
+            if (filteredData.length > 0) {
+                $.each(filteredData3, function (i, v) {
+                    for (var a = 0; a < filteredData.length; a++) {
+                        if (v.ProductCode == filteredData[a].ProductCode) {
+                            filteredData[a] = "";
+                        }
+                    }
+                });
+                if (cnt == 0)
+                    filteredData3 = filteredData;
+                else
+                    filteredData3 = filteredData3.concat(filteredData);
+
+                fReturn = false;
+                cnt++;
+
+            }
+            else
+                filteredData3 = filteredData3.concat(filteredData);
+
+        }
+        if (cnt == 0 && query[key] == undefined) filteredData3 = data;
+
+        if (fReturn)
+            return filteredData3;
+        else
+            return filteredData3;
+    }
+
+    //필터값 비교
+    var chkIncludesKeysCalendar = function (c, k) {
+        var bReturn = false;
+
+        for (var i = 0; i < c.length; i++) {
+
+            if (k == c[i] || (typeof k.indexOf == 'function' && k.indexOf(c[i]) > -1)) {
+                bReturn = !bReturn;
+                break;
+            }
+        }
+        return bReturn;
+    }
+
+
+    //옵션선택
+    var filterJsonCalendar = function () {
+        $resultCalendar = null;
+        setFilterCalendar();
+        var query = buildFilterCalendar(calendarFilter);
+        $resultCalendar = filterDataCalendar($calendarProductListJson, query);
+        setListCalendar($resultCalendar);
+    }
+
+    //옵션에 따른 상품리스트
+    var setProductSchedule = function () {
+        switch ($("#jq_id_calendarSort").val()) {
+            case '1': //출발일순
+                $calendarProductListJson.sort(function (a, b) { return a.DepartureDateToShortString.localeCompare(b.DepartureDateToShortString); });
+                break;
+            case '2'://낮은 가격순
+                $calendarProductListJson.sort(function (a, b) { return a.AdultPrice - b.AdultPrice; });
+                break;
+            case '3'://높은 가격순
+                $calendarProductListJson.sort(function (a, b) { return b.AdultPrice - a.AdultPrice; });
+                break;
+            case '4'://예약가능순
+                $calendarProductListJson.sort(function (a, b) { return a.BtnReserveStatusNumber - b.BtnReserveStatusNumber; });
+                break;
+        }
+        setListCalendar($calendarProductListJson);
+    }
+
+    $(function () {
+        
+        //옵션선택
+        $(".jq_cl_calendarFiler").click(function () {
+            filterJsonCalendar()
+        });
+
+        //달력 일자 선택
+        $(".jq_cl_day").click(function () {
+            var selectDay = $(this).find("span.date").text();
+
+            if ($(this).find("div").hasClass("jq_cl_noneSchedule")) return false;
+            if (selectDay === nowDay) return false;
+
+            nowDay = selectDay;
+            $(".jq_cl_day").find("div").removeClass("today");
+            $(this).find("div").addClass("today");
+            $("#jq_id_depDateTitle").text(nowMonth + '월 ' + nowDay + '일');
+            $("#jq_id_depDateAllView").parent("div").css("display", "");
+
+            filterJsonCalendar();
+        });
+
+        //전체보기 클릭
+        $("#jq_id_depDateAllView").click(function () {
+            nowDay = "";
+            $("#jq_id_depDateAllView").parent("div").css("display", "none");
+            $(".jq_cl_day .today").removeClass("today");
+            $("#jq_id_depDateTitle").text('전체');
+            filterJsonCalendar();
+        });
+
+        //전체보기 클릭
+        $(".date_txt").click(function () {
+            nowDay = "";
+            $("#jq_id_depDateAllView").parent("div").css("display", "none");
+            $(".jq_cl_day .today").removeClass("today");
+            $("#jq_id_depDateTitle").text('전체');
+            filterJsonCalendar();
+        });
+
+        //정렬
+        $("#jq_id_calendarSort").change(function () {
+            setProductSchedule();
+        });
+
+        $(".jq_cl_moveMonth").click(function () {
+            var year = $(this).attr("data-year");
+            var month = $(this).attr("data-month");
+            var masterCode = 'APP9074';
+            var menuCode = '106'
+
+            month = parseInt(month) < 10 ? "0" + month : month;
+
+            if ($(this).hasClass("date_prev")) {
+                var today = new Date();
+                var currMonth = today.getMonth() + 1;
+                if (parseInt(year + "" + month) < (parseInt((today.getFullYear() + "").substr(2, 2) + "" + (currMonth < 10 ? "0" + currMonth : currMonth)))) {
+                    alert("지난 달은 조회 할 수 없습니다.");
+                    return false;
+                }
+            }
+
+            startDayChange(masterCode + '-' + year + "" + month, menuCode, 'leaveLayer');
+        });
+
+        
+        setListCalendar($calendarProductListJson);
+    });
+
+</script>

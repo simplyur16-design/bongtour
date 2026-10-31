@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[calendar-batch-api-first]: batch Node collect SSOT — manifest
  */
+import { resolveSupplierProductTripDuration } from '@/lib/supplier-trip-duration'
 import { buildDetailUrl } from '@/lib/admin-departure-rescrape'
 import {
   mapDepartureInputsToCalendarScrapeItems,
@@ -128,7 +129,9 @@ export async function collectCalendarHorizonPriceInputs(
   }
 
   if (supplier === 'verygoodtour') {
-    const collected = await collectVerygoodHxrOnlyForDateRange(detailUrl, lo, hi)
+    const collected = await collectVerygoodHxrOnlyForDateRange(detailUrl, lo, hi, {
+      expectedTripDuration: resolveSupplierProductTripDuration(product),
+    })
     const warnings = [...collected.warnings]
     if (collected.hxrError) warnings.push(collected.hxrError)
     return {
@@ -160,7 +163,7 @@ export async function collectCalendarHorizonPriceInputs(
       product.id,
       lo,
       hi,
-      { logLabel: `batch:${product.id}` },
+      { logLabel: `batch:${product.id}`, expectedTripDuration: resolveSupplierProductTripDuration(product) },
     )
     const warnings = [...collected.warnings]
     if (collected.hxrError) warnings.push(collected.hxrError)

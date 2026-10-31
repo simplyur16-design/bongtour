@@ -1,6 +1,7 @@
 /**
  * REGRESSION-FREEZE[naeiltour-admin-rescrape-program-process]: upsert uses naeiltour module — manifest
  */
+import { resolveSupplierProductTripDuration, type SupplierTripDuration } from '@/lib/supplier-trip-duration'
 import { revalidatePath } from 'next/cache'
 import type { PrismaClient } from '@prisma/client'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
@@ -539,6 +540,18 @@ export async function executeRangeOnDemandDepartures(
         }
         const months = eachYmBetweenInclusive(fromYmd, toYmd)
         const allRows = []
+        // 같은 godId 에 다른 기간(박·일) 출발이 섞임 — 상품 기간으로 거름(읽기만, 모르면 거르지 않음)
+        let ltExpectedTripDuration: SupplierTripDuration | null = null
+        try {
+          ltExpectedTripDuration = resolveSupplierProductTripDuration(
+            await prisma.product.findUnique({
+              where: { id: product.id },
+              select: { duration: true, tripNights: true, tripDays: true },
+            }),
+          )
+        } catch {
+          ltExpectedTripDuration = null
+        }
         for (const ym of months) {
           const { rows } = await collectLottetourCalendarRange(
             { godId: hints.godId, menuNos: hints.menuNos },
@@ -548,6 +561,7 @@ export async function executeRangeOnDemandDepartures(
               logLabel: `execute-range-on-demand:${product.id}`,
               e2eTourCodeHint:
                 (hints.detailEvtCd ?? '').trim() || (product.originCode ?? '').trim() || null,
+              expectedTripDuration: ltExpectedTripDuration,
             }
           )
           allRows.push(...rows)

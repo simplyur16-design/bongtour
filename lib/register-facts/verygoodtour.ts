@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[register-facts-foundation]: PackageDetail fetch·메타 추출 — manifest
  * REGRESSION-FREEZE[register-facts-fetch-resilience]: PackageDetail fetch timeout — manifest
  */
+import { supplierTripDurationFromNumbers } from '@/lib/supplier-trip-duration'
 import type {
   RegisterFactFlightLeg,
   RegisterFactScheduleDay,
@@ -190,7 +191,10 @@ export async function collectVerygoodtourRegisterFacts(originUrl: string): Promi
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-  const collected = await collectVerygoodtourPriceInputsWithProCodeDetail(url, fromYmd, toYmd)
+  // 같은 MasterCode 달력의 다른 기간(박·일) 출발을 가격행에 섞지 않음(모르면 거르지 않음)
+  const collected = await collectVerygoodtourPriceInputsWithProCodeDetail(url, fromYmd, toYmd, {
+    expectedTripDuration: supplierTripDurationFromNumbers(base.nights, base.days),
+  })
   const priceRows = collected.inputs
     .filter((x) => (x.adultPrice ?? 0) > 0)
     .map((dep) =>

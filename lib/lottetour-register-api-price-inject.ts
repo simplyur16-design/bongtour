@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[lottetour-register-api-price-inject]: injectLottetourApiDeparturePricesIfMissing — manifest
  */
+import { parseSupplierTripDurationLabel } from '@/lib/supplier-trip-duration'
 import {
   collectLottetourCalendarRange,
   enrichLottetourEvtListCollectionHintsFromDetailPage,
@@ -58,6 +59,8 @@ export async function injectLottetourApiDeparturePricesIfMissing(
       disableE2EFallback: true,
       e2eTourCodeHint: bundle?.evtCd ?? null,
       logLabel: 'register-api-price-inject',
+      // 등록 상품 기간(박·일) — 다른 기간 출발 제외(모르면 거르지 않음)
+      expectedTripDuration: parseSupplierTripDurationLabel(bundle?.evtListRow?.durationText ?? parsed.duration ?? null),
     },
   )
   let rows = cal.rows.filter((r) => r.adultPrice > 0 && r.departDate)

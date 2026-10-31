@@ -186,3 +186,104 @@ export function parseVerygoodProCodeMasterCode(proCode: string): string {
   const i = t.indexOf('-')
   return i > 0 ? t.slice(0, i) : t
 }
+
+/**
+ * ProductCalendarSearch HTML 안 `var $calendarProductListJson = [...]` — 우측 목록을 그리는 출발 행 원본.
+ * (우측 li 는 JS 템플릿이라 서버 HTML 에는 실제 행이 없다. 좌측 칸은 날짜별 최저가 근사치라 기간 구분이 없다.)
+ * 행마다 ProductCode·TourNight·TourDay·AdultPrice(정확한 공급사 값)·예약 상태가 있다.
+ */
+export type VerygoodCalendarProductJsonRow = {
+  date: string
+  returnDate: string | null
+  proCode: string | null
+  tourNights: number | null
+  tourDays: number | null
+  travelPeriodText: string | null
+  adultPrice: number
+  statusRaw: string | null
+  productName: string | null
+  carrierText: string | null
+  minPax: number | null
+}
+
+function extractJsonArrayAfter(html: string, marker: string): unknown[] | null {
+  const k = html.indexOf(marker)
+  if (k < 0) return null
+  const st = html.indexOf('[', k)
+  if (st < 0) return null
+  let depth = 0
+  let inStr = false
+  let esc = false
+  for (let i = st; i < html.length; i += 1) {
+    const ch = html[i]!
+    if (inStr) {
+      if (esc) esc = false
+      else if (ch === '\\') esc = true
+      else if (ch === '"') inStr = false
+      continue
+    }
+    if (ch === '"') inStr = true
+    else if (ch === '[') depth += 1
+    else if (ch === ']') {
+      depth -= 1
+      if (depth === 0) {
+        try {
+          const v = JSON.parse(html.slice(st, i + 1)) as unknown
+          return Array.isArray(v) ? v : null
+        } catch {
+          return null
+        }
+      }
+    }
+  }
+  return null
+}
+
+function toNumOrNull(v: unknown): number | null {
+  if (typeof v === 'number' && Number.isFinite(v)) return v
+  if (typeof v === 'string' && v.trim() && Number.isFinite(Number(v))) return Number(v)
+  return null
+}
+
+function toStrOrNull(v: unknown, max = 200): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
+}
+
+/** `$calendarProductListJson` 파싱. 변수 자체가 없거나 JSON 이 깨지면 null(= 판단 불가, 지금 동작 유지). */
+export function parseVerygoodCalendarProductListJson(html: string): VerygoodCalendarProductJsonRow[] | null {
+  const arr = extractJsonArrayAfter(html, '$calendarProductListJson')
+  if (!arr) return null
+  const out: VerygoodCalendarProductJsonRow[] = []
+  for (const item of arr) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) continue
+    const o = item as Record<string, unknown>
+    const date = toStrOrNull(o.DepartureDateToShortString, 10)
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+    const ret = toStrOrNull(o.ArrivalDateToShortString, 10)
+    out.push({
+      date,
+      returnDate: ret && /^\d{4}-\d{2}-\d{2}$/.test(ret) ? ret : null,
+      proCode: toStrOrNull(o.ProductCode, 40),
+      tourNights: toNumOrNull(o.TourNight),
+      tourDays: toNumOrNull(o.TourDay),
+      travelPeriodText: toStrOrNull(o.TravelPeriodExt, 40),
+      adultPrice: toNumOrNull(o.AdultPrice) ?? 0,
+      statusRaw: toStrOrNull(o.BtnReserveAltTag, 40),
+      productName: toStrOrNull(o.ProductName, 400),
+      carrierText: toStrOrNull(o.TrasnName, 80),
+      minPax: toNumOrNull(o.MinCount),
+    })
+  }
+  return out
+}
+
+/** 'APP9074-2611027C46' → '7C46' (마스터-YYMMDD 뒤 접미). 형식이 다르면 null. */
+export function verygoodProCodeSuffix(proCode: string | null | undefined): string | null {
+  const m = String(proCode ?? '').trim().match(/^[A-Z0-9]+-\d{6}([A-Z0-9]+)$/i)
+  return m?.[1]?.toUpperCase() ?? null
+}
+
+/** 예약 상태가 판매 중인지(마감 제외) — 수집 공통 규칙. */
+export function isVerygoodCalendarJsonRowOnSale(row: Pick<VerygoodCalendarProductJsonRow, 'statusRaw'>): boolean {
+  return isDepartureOnSaleForImport(row.statusRaw)
+}

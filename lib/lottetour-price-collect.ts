@@ -17,6 +17,10 @@ import {
   filterDepartureInputsOnOrAfterCalendarToday,
 } from '@/lib/scrape-date-bounds'
 import type { DepartureInput } from '@/lib/upsert-product-departures-lottetour'
+import type { SupplierTripDuration } from '@/lib/supplier-trip-duration'
+
+/** 상품 기간(박·일) — 있으면 다른 기간 출발 제외, 없으면 지금 동작 + 섞임 경고 */
+export type LottetourCollectDurationOptions = { expectedTripDuration?: SupplierTripDuration | null }
 
 export type LottetourPriceCollectSource = 'hxr' | 'e2e'
 
@@ -106,10 +110,10 @@ async function collectMappedForContext(
   productId: string,
   fromYmd: string,
   toYmd: string,
-  options: { disableE2EFallback: boolean; logLabel?: string },
-): Promise<{ inputs: DepartureInput[]; warnings: string[] }> {
+  options: { disableE2EFallback: boolean; logLabel?: string } & LottetourCollectDurationOptions,
+): Promise<{ inputs: DepartureInput[]; warnings: string[]; durationAllMismatch: boolean }> {
   const monthCount = lottetourMonthCountInclusive(fromYmd, toYmd)
-  const { rows, warnings } = await collectLottetourCalendarRange(
+  const { rows, warnings, durationStats } = await collectLottetourCalendarRange(
     { godId: ctx.godId, menuNos: ctx.menuNos },
     {
       monthCount,
@@ -117,12 +121,16 @@ async function collectMappedForContext(
       disableE2EFallback: options.disableE2EFallback,
       e2eTourCodeHint: ctx.evtCdHint,
       logLabel: options.logLabel,
+      expectedTripDuration: options.expectedTripDuration ?? null,
     },
   )
   const mapped = mapLottetourCalendarToDepartureInputs(rows, productId)
   const todayFiltered = filterDepartureInputsOnOrAfterCalendarToday(mapped)
   const inputs = filterPricedInputsInWindow(todayFiltered, fromYmd, toYmd)
-  return { inputs, warnings }
+  // 응답 출발이 전부 상품 기간과 다름 — 상품 기간값이 낡았을 수 있음(판매종료로 보지 않음)
+  const durationAllMismatch =
+    !!options.expectedTripDuration && !!durationStats && durationStats.droppedMismatch > 0 && durationStats.kept === 0
+  return { inputs, warnings, durationAllMismatch }
 }
 
 /** HXR(evtListAjax TS fetch)만 — E2E·DB upsert 없음. 커버리지·sweep 사전 검증용. */
@@ -131,7 +139,7 @@ export async function collectLottetourHxrOnlyForDateRange(
   productId: string,
   fromYmd: string,
   toYmd: string,
-  options?: { logLabel?: string },
+  options?: { logLabel?: string } & LottetourCollectDurationOptions,
 ): Promise<LottetourHxrOnlyCollectResult> {
   if (!ctx.godId || !ctx.menuNos) {
     return {
@@ -146,6 +154,7 @@ export async function collectLottetourHxrOnlyForDateRange(
     const hit = await collectMappedForContext(ctx, productId, fromYmd, toYmd, {
       disableE2EFallback: true,
       logLabel: options?.logLabel,
+      expectedTripDuration: options?.expectedTripDuration ?? null,
     })
     return {
       inputs: hit.inputs,
@@ -170,7 +179,7 @@ export async function collectLottetourPriceInputsWithE2eFallback(
   productId: string,
   fromYmd: string,
   toYmd: string,
-  options?: { logLabel?: string },
+  options?: { logLabel?: string } & LottetourCollectDurationOptions,
 ): Promise<LottetourPriceCollectResult> {
   const warnings: string[] = []
 
@@ -178,8 +187,20 @@ export async function collectLottetourPriceInputsWithE2eFallback(
     const hxr = await collectMappedForContext(ctx, productId, fromYmd, toYmd, {
       disableE2EFallback: true,
       logLabel: options?.logLabel,
+      expectedTripDuration: options?.expectedTripDuration ?? null,
     })
     warnings.push(...hxr.warnings)
+    if (hxr.inputs.length === 0 && hxr.durationAllMismatch) {
+      // E2E 도 같은 godId 행이라 결과가 같음 — 판매종료(horizonSoldOut)로 지우지 않고 건너뜀
+      warnings.push('[lottetour] 응답 출발이 전부 상품 기간과 다름 — 상품 기간값 의심, E2E 폴백·판매종료 처리 생략')
+      return {
+        inputs: [],
+        source: null,
+        e2eAttempted: false,
+        horizonSoldOut: false,
+        warnings,
+      }
+    }
     if (hxr.inputs.length > 0) {
       return {
         inputs: hxr.inputs,
@@ -200,6 +221,7 @@ export async function collectLottetourPriceInputsWithE2eFallback(
     const e2e = await collectMappedForContext(ctx, productId, fromYmd, toYmd, {
       disableE2EFallback: false,
       logLabel: options?.logLabel ? `${options.logLabel}:e2e` : 'e2e',
+      expectedTripDuration: options?.expectedTripDuration ?? null,
     })
     warnings.push(...e2e.warnings)
     return {

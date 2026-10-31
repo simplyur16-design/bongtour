@@ -7,6 +7,7 @@ import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sa
 import type { RegisterParsed } from '@/lib/register-llm-schema-verygoodtour'
 import { registerDepartureInputsToParsedPrices } from '@/lib/register-departure-input-to-parsed-price'
 import { collectVerygoodtourPriceInputsWithProCodeDetail } from '@/lib/verygoodtour-price-collect'
+import { parseSupplierTripDurationLabel } from '@/lib/supplier-trip-duration'
 
 export async function injectVerygoodtourApiDeparturePricesIfMissing(
   parsed: RegisterParsed,
@@ -18,7 +19,10 @@ export async function injectVerygoodtourApiDeparturePricesIfMissing(
 
   const fromYmd = kstTodayYmd()
   const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
-  const hxr = await collectVerygoodtourPriceInputsWithProCodeDetail(url, fromYmd, toYmd)
+  // 등록 상품 기간(박·일) — 다른 기간 출발 제외(모르면 거르지 않음)
+  const hxr = await collectVerygoodtourPriceInputsWithProCodeDetail(url, fromYmd, toYmd, {
+    expectedTripDuration: parseSupplierTripDurationLabel(parsed.duration ?? null),
+  })
   const priced = hxr.inputs.filter((r) => (r.adultPrice ?? 0) > 0)
   if (priced.length === 0) return parsed
 

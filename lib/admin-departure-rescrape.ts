@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[kyowontour-admin-rescrape-master-code]: differentDepartDate는 6자 masterCode — manifest
  * REGRESSION-FREEZE[naeiltour-admin-rescrape-program-process]: naeiltour≠hanatour E2E — manifest
  */
+import { resolveSupplierProductTripDuration, type SupplierTripDuration } from '@/lib/supplier-trip-duration'
 import { execFile } from 'child_process'
 import fs from 'fs'
 import path from 'path'
@@ -556,15 +557,34 @@ export async function collectYbtourDepartureInputsForDateRange(
   return collected.inputs
 }
 
+/** 상품 기간(박·일) 읽기 — 수집 거르기용. 읽기 실패·값 없음 → null(거르지 않음). */
+async function readProductTripDurationForCollect(
+  prisma: PrismaClient,
+  productId: string,
+): Promise<SupplierTripDuration | null> {
+  try {
+    const row = await prisma.product.findUnique({
+      where: { id: productId },
+      select: { duration: true, tripNights: true, tripDays: true },
+    })
+    return resolveSupplierProductTripDuration(row)
+  } catch {
+    return null
+  }
+}
+
 /** verygoodtour on-demand: ProductCalendarSearch HXR 우선, 0건 시 달력 E2E. */
 export async function collectVerygoodtourDepartureInputsForDateRange(
   detailUrl: string,
   fromYmd: string,
   toYmd: string,
+  options?: { expectedTripDuration?: SupplierTripDuration | null },
 ): Promise<DepartureInput[]> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
   const { collectVerygoodtourPriceInputsWithE2eFallback } = await import('@/lib/verygoodtour-price-collect')
-  const collected = await collectVerygoodtourPriceInputsWithE2eFallback(detailUrl, fromYmd, toYmd)
+  const collected = await collectVerygoodtourPriceInputsWithE2eFallback(detailUrl, fromYmd, toYmd, {
+    expectedTripDuration: options?.expectedTripDuration ?? null,
+  })
   return collected.inputs
 }
 
@@ -755,7 +775,10 @@ export async function collectDepartureInputsForAdminRescrape(
     const fromYmd = kstTodayYmd()
     const toYmd = addDaysUtcYmd(fromYmd, RULE_A_WINDOW_DAYS)
     try {
-      const inputs = await collectVerygoodtourDepartureInputsForDateRange(detailUrlResolved, fromYmd, toYmd)
+      // 같은 MasterCode 달력에 다른 기간(박·일) 출발이 섞임 — 상품 기간으로 거름(읽기만, 모르면 거르지 않음)
+      const inputs = await collectVerygoodtourDepartureInputsForDateRange(detailUrlResolved, fromYmd, toYmd, {
+        expectedTripDuration: await readProductTripDurationForCollect(prisma, product.id),
+      })
       const filtered = filterDepartureInputsOnOrAfterCalendarToday(inputs)
       if (filtered.length > 0) {
         const fillMeta = deriveFillMeta(filtered)
@@ -876,6 +899,8 @@ export async function collectDepartureInputsForAdminRescrape(
           logLabel: `admin-departure-rescrape:${product.id}`,
           e2eTourCodeHint:
             (hints.detailEvtCd ?? '').trim() || (product.originCode ?? '').trim() || null,
+          // 같은 godId 에 다른 기간(박·일) 출발이 섞임 — 상품 기간으로 거름(읽기만, 모르면 거르지 않음)
+          expectedTripDuration: await readProductTripDurationForCollect(prisma, product.id),
         }
       )
       const mapped = mapLottetourCalendarToDepartureInputs(rows, product.id)

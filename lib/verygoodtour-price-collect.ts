@@ -11,10 +11,21 @@ import {
 } from '@/lib/verygoodtour-detail-url-health'
 import {
   buildVerygoodProductCalendarSearchUrl,
+  isVerygoodCalendarJsonRowOnSale,
+  parseVerygoodCalendarProductListJson,
   parseVerygoodCalendarRightRows,
   parseVerygoodModalDomHtml,
   parseVerygoodProCodeMasterCode,
+  verygoodProCodeSuffix,
+  type VerygoodCalendarProductJsonRow,
 } from '@/lib/verygoodtour-calendar-hxr'
+import {
+  formatSupplierTripDuration,
+  parseSupplierTripDurationLabel,
+  supplierTripDurationEquals,
+  supplierTripDurationFromNumbers,
+  type SupplierTripDuration,
+} from '@/lib/supplier-trip-duration'
 import { enrichVerygoodDepartureInputsWithProCodeDetail } from '@/lib/verygoodtour-procode-detail-meta'
 import { parseVerygoodProCodeFromUrl } from '@/lib/register-facts/verygoodtour'
 import type { DepartureInput } from '@/lib/upsert-product-departures-verygoodtour'
@@ -39,6 +50,69 @@ export type VerygoodHxrOnlyCollectResult = {
   leftWithPriceCount: number
   hxrError: string | null
   warnings: string[]
+  /** 상품 기간으로 `$calendarProductListJson` 행을 거른 달이 하나라도 있으면 true */
+  durationFilterApplied?: boolean
+}
+
+/** 상품 기간(박·일) — 있으면 다른 기간 출발 제외, 없으면 지금 동작 + 섞임 경고 */
+export type VerygoodCollectDurationOptions = { expectedTripDuration?: SupplierTripDuration | null }
+
+/** 참좋은 달력 JSON 행 기간 — TourNight·TourDay 우선, 없으면 TravelPeriodExt('4박 6일'). */
+export function verygoodCalendarJsonRowTripDuration(
+  row: Pick<VerygoodCalendarProductJsonRow, 'tourNights' | 'tourDays' | 'travelPeriodText'>,
+): SupplierTripDuration | null {
+  return supplierTripDurationFromNumbers(row.tourNights, row.tourDays) ?? parseSupplierTripDurationLabel(row.travelPeriodText)
+}
+
+/**
+ * 같은 MasterCode 달력 JSON 행 → 상품 기간이 같은 판매중 출발만, 날짜당 1행.
+ * 같은 날짜 여러 행: 시드 ProCode 와 접미(항공·박일 코드)가 같은 행 → 없으면 최저 성인가 → ProductCode 사전순.
+ * 기간을 못 읽는 행은 남기고 개수만 센다. 가격은 응답 AdultPrice 그대로(추정 없음).
+ */
+export function pickVerygoodCalendarJsonRowsForTripDuration(
+  rows: readonly VerygoodCalendarProductJsonRow[],
+  expected: SupplierTripDuration,
+  seedProCode: string | null | undefined,
+): { inputs: DepartureInput[]; droppedMismatch: number; droppedClosed: number; keptUnknown: number } {
+  const seedSuffix = verygoodProCodeSuffix(seedProCode)
+  let droppedMismatch = 0
+  let droppedClosed = 0
+  let keptUnknown = 0
+  const byDate = new Map<string, VerygoodCalendarProductJsonRow[]>()
+  for (const r of rows) {
+    if (!(r.adultPrice > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(r.date)) continue
+    const got = verygoodCalendarJsonRowTripDuration(r)
+    if (got && !supplierTripDurationEquals(got, expected)) {
+      droppedMismatch += 1
+      continue
+    }
+    if (!got) keptUnknown += 1
+    if (!isVerygoodCalendarJsonRowOnSale(r)) {
+      droppedClosed += 1
+      continue
+    }
+    const list = byDate.get(r.date) ?? []
+    list.push(r)
+    byDate.set(r.date, list)
+  }
+  const inputs: DepartureInput[] = []
+  for (const [date, group] of [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    const sameSuffix = seedSuffix ? group.filter((r) => verygoodProCodeSuffix(r.proCode) === seedSuffix) : []
+    const pool = sameSuffix.length > 0 ? sameSuffix : group
+    const pick = [...pool].sort((a, b) => {
+      if (a.adultPrice !== b.adultPrice) return a.adultPrice - b.adultPrice
+      return String(a.proCode ?? '').localeCompare(String(b.proCode ?? ''))
+    })[0]!
+    inputs.push({
+      departureDate: date,
+      adultPrice: pick.adultPrice,
+      statusRaw: pick.statusRaw,
+      seatsStatusRaw: null,
+      minPax: pick.minPax,
+      carrierName: pick.carrierText,
+    })
+  }
+  return { inputs, droppedMismatch, droppedClosed, keptUnknown }
 }
 
 const VERYGOOD_FETCH_HEADERS = {
@@ -137,7 +211,9 @@ export async function collectVerygoodHxrOnlyForDateRange(
   detailUrl: string,
   fromYmd: string,
   toYmd: string,
+  options?: VerygoodCollectDurationOptions,
 ): Promise<VerygoodHxrOnlyCollectResult> {
+  const expected = options?.expectedTripDuration ?? null
   const normalized = normalizeVerygoodtourDetailUrlForCollect(detailUrl)
   const proCode = parseVerygoodProCodeFromUrl(normalized)
   const masterCode = proCode ? parseVerygoodProCodeMasterCode(proCode) : null
@@ -171,6 +247,10 @@ export async function collectVerygoodHxrOnlyForDateRange(
   let rightRowCount = 0
   let leftWithPriceCount = 0
   const merged = new Map<string, DepartureInput>()
+  let durationFilterApplied = false
+  let durationDropped = 0
+  let durationUnknownKept = 0
+  const durationSeen = new Map<string, number>()
 
   for (const ym of monthKeysInclusive(fromYmd, toYmd)) {
     const calUrl = buildVerygoodProductCalendarSearchUrl({
@@ -193,6 +273,23 @@ export async function collectVerygoodHxrOnlyForDateRange(
       rightRowCount += parsed.rightRows.length
       leftWithPriceCount += parsed.leftCells.filter((c) => c.approxPrice > 0).length
       if (parsed.warnings.length > 0) warnings.push(...parsed.warnings.map((w) => `${ym.year}-${ym.month}:${w}`))
+      const jsonRows = parseVerygoodCalendarProductListJson(html)
+      for (const r of jsonRows ?? []) {
+        const k = formatSupplierTripDuration(verygoodCalendarJsonRowTripDuration(r))
+        durationSeen.set(k, (durationSeen.get(k) ?? 0) + 1)
+      }
+      if (expected && jsonRows && jsonRows.length > 0) {
+        // 같은 MasterCode 에 다른 기간(박·일) 출발이 섞임 — 상품 기간이 같은 JSON 행만, 날짜당 1행
+        const picked = pickVerygoodCalendarJsonRowsForTripDuration(jsonRows, expected, proCode)
+        durationFilterApplied = true
+        durationDropped += picked.droppedMismatch
+        durationUnknownKept += picked.keptUnknown
+        for (const row of picked.inputs) {
+          const dk = departureInputToYmd(row.departureDate)
+          if (dk) merged.set(dk, row)
+        }
+        continue
+      }
       const rightInputs = mapVerygoodRightRowsToInputs(parsed.rightRows)
       const rowInputs =
         rightInputs.length > 0 ? rightInputs : mapVerygoodLeftCellsToInputs(parsed.leftCells)
@@ -205,6 +302,23 @@ export async function collectVerygoodHxrOnlyForDateRange(
     }
   }
 
+  const seenLabel = [...durationSeen.entries()].map(([k, v]) => `${k} ${v}건`).join(', ')
+  const knownDurations = [...durationSeen.keys()].filter((k) => k !== '?')
+  if (!expected && knownDurations.length > 1) {
+    warnings.push(`[verygoodtour] ${masterCode}: 기간 섞임 경고 — 상품 기간을 몰라 거르지 않음 (달력 기간 ${seenLabel})`)
+  }
+  if (expected && durationDropped > 0) {
+    warnings.push(
+      `[verygoodtour] ${masterCode}: 상품 기간 ${formatSupplierTripDuration(expected)}과 다른 출발 ${durationDropped}건 제외 (달력 기간 ${seenLabel})`,
+    )
+  }
+  if (expected && durationUnknownKept > 0) {
+    warnings.push(`[verygoodtour] ${masterCode}: 기간을 읽지 못한 출발 ${durationUnknownKept}건은 남김`)
+  }
+  if (expected && !durationFilterApplied && merged.size > 0) {
+    warnings.push(`[verygoodtour] ${masterCode}: 달력 출발 JSON 없음 — 기간 거르기 못 함(지금 동작)`)
+  }
+
   const inputs = filterPricedInputsInWindow([...merged.values()], fromYmd, toYmd)
   return {
     inputs,
@@ -214,6 +328,7 @@ export async function collectVerygoodHxrOnlyForDateRange(
     leftWithPriceCount,
     hxrError: null,
     warnings,
+    durationFilterApplied,
   }
 }
 
@@ -222,10 +337,11 @@ export async function collectVerygoodtourPriceInputsWithProCodeDetail(
   detailUrl: string,
   fromYmd: string,
   toYmd: string,
+  options?: VerygoodCollectDurationOptions,
 ): Promise<VerygoodHxrOnlyCollectResult & { seedProCode: string | null }> {
   const normalized = normalizeVerygoodtourDetailUrlForCollect(detailUrl)
   const seedProCode = parseVerygoodProCodeFromUrl(normalized)
-  const hxr = await collectVerygoodHxrOnlyForDateRange(normalized, fromYmd, toYmd)
+  const hxr = await collectVerygoodHxrOnlyForDateRange(normalized, fromYmd, toYmd, options)
   if (!seedProCode || hxr.inputs.length === 0) {
     return { ...hxr, seedProCode }
   }
@@ -241,7 +357,7 @@ export async function collectVerygoodtourPriceInputsWithE2eFallback(
   detailUrl: string,
   fromYmd: string,
   toYmd: string,
-  options?: { skipExpiredCheck?: boolean },
+  options?: { skipExpiredCheck?: boolean } & VerygoodCollectDurationOptions,
 ): Promise<VerygoodPriceCollectResult> {
   const normalized = normalizeVerygoodtourDetailUrlForCollect(detailUrl)
   const warnings: string[] = []
@@ -258,8 +374,22 @@ export async function collectVerygoodtourPriceInputsWithE2eFallback(
   }
 
   try {
-    const hxr = await collectVerygoodHxrOnlyForDateRange(normalized, fromYmd, toYmd)
+    const hxr = await collectVerygoodHxrOnlyForDateRange(normalized, fromYmd, toYmd, {
+      expectedTripDuration: options?.expectedTripDuration ?? null,
+    })
     warnings.push(...hxr.warnings)
+    if (hxr.inputs.length === 0 && hxr.durationFilterApplied) {
+      // 기간이 같은 출발이 창 안에 0건 — E2E(좌측 칸)는 기간을 구분하지 못해 다른 기간 값을 다시 가져온다.
+      warnings.push('[verygoodtour] 상품 기간과 같은 출발 0건 — E2E 폴백 생략(E2E 는 기간 구분 불가)')
+      return {
+        inputs: [],
+        source: null,
+        e2eAttempted: false,
+        horizonSoldOut: false,
+        detailUrl: normalized,
+        warnings,
+      }
+    }
     if (hxr.inputs.length > 0) {
       return {
         inputs: hxr.inputs,

@@ -24,6 +24,7 @@
  *  - 가격 동기화는 cron 야간 배치(`runCalendarPriceBatchInline`) + on-demand 흐름 SSOT 그대로.
  */
 
+import { resolveSupplierProductTripDuration } from '@/lib/supplier-trip-duration'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import {
   buildDetailUrl,
@@ -330,7 +331,7 @@ export async function runOneSalesPolicyCheck(
     if (supplierKey === 'lottetour') {
       const metaRow = await prisma.product.findUnique({
         where: { id: product.id },
-        select: { rawMeta: true, originUrl: true },
+        select: { rawMeta: true, originUrl: true, duration: true, tripNights: true, tripDays: true },
       })
       let hints = parseLottetourEvtListCollectionHints({
         rawMeta: metaRow?.rawMeta ?? null,
@@ -358,6 +359,8 @@ export async function runOneSalesPolicyCheck(
               logLabel: `sales-policy:${product.id}`,
               e2eTourCodeHint:
                 (hints.detailEvtCd ?? '').trim() || (product.originCode ?? '').trim() || null,
+              // 상품 기간(박·일)과 다른 출발 제외(모르면 거르지 않음)
+              expectedTripDuration: resolveSupplierProductTripDuration(metaRow),
             }
           )
           allRows.push(...rows)

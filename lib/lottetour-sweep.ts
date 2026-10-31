@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[lottetour-sweep-e2e-recheck]: HXR→E2E·7일 재확인·stale 미래출발 정리 — manifest
  * REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]: due = lastPriceObservedAt — manifest
  */
+import { resolveSupplierProductTripDuration } from '@/lib/supplier-trip-duration'
 import type { PrismaClient } from '@prisma/client'
 import { createSupplierSweepPacer } from '@/lib/supplier-sweep-pacing'
 
@@ -74,6 +75,9 @@ type SweepProductRow = {
   originUrl: string | null
   originCode: string | null
   rawMeta: string | null
+  duration: string | null
+  tripNights: number | null
+  tripDays: number | null
 }
 
 function ymdToUtcMidnight(ymd: string): Date {
@@ -125,6 +129,9 @@ async function findSweepProducts(
     originUrl: true,
     originCode: true,
     rawMeta: true,
+    duration: true,
+    tripNights: true,
+    tripDays: true,
   } as const
   const today = todayYmd ?? kstTodayYmd()
 
@@ -268,7 +275,7 @@ export async function sweepDueLottetourProducts(
         product.id,
         fromYmd,
         toYmd,
-        { logLabel: `sweep:${product.id}` },
+        { logLabel: `sweep:${product.id}`, expectedTripDuration: resolveSupplierProductTripDuration(product) },
       )
 
       if (collected.source === 'e2e') {

@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[register-facts-foundation]: fetchLottetourRegisterDetailBundle — manifest
  */
+import { supplierTripDurationFromNumbers } from '@/lib/supplier-trip-duration'
 import {
   collectLottetourCalendarRange,
   enrichLottetourEvtListCollectionHintsFromDetailPage,
@@ -135,7 +136,14 @@ export async function collectLottetourRegisterFacts(originUrl: string): Promise<
     const monthCount = lottetourMonthCountInclusive(fromYmd, toYmd)
     const cal = await collectLottetourCalendarRange(
       { godId: hints.godId, menuNos: hints.menuNos },
-      { monthCount, disableE2EFallback: true, logLabel: 'register-facts-lottetour' },
+      {
+        monthCount,
+        disableE2EFallback: true,
+        logLabel: 'register-facts-lottetour',
+        // 등록 상품 기간(박·일) — 같은 godId 의 다른 기간 출발을 가격행에 섞지 않음(모르면 거르지 않음)
+        expectedTripDuration:
+          nights != null && days != null ? supplierTripDurationFromNumbers(nights, days) : null,
+      },
     )
     const evtExact = (bundle.evtCd ?? '').trim()
     const filtered = cal.rows.filter((r) => r.adultPrice > 0 && r.departDate)

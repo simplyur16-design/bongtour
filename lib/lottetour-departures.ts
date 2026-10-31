@@ -10,6 +10,12 @@
  *
  * REGRESSION-FREEZE[lottetour-calendar-month-concurrency]: parallel month fetch (local concurrency) — manifest
  */
+import {
+  filterRowsBySupplierTripDuration,
+  parseSupplierTripDurationLabel,
+  type SupplierTripDuration,
+  type SupplierTripDurationFilterStats,
+} from '@/lib/supplier-trip-duration'
 import { execFile } from 'child_process'
 import fs from 'fs'
 import path from 'path'
@@ -84,6 +90,11 @@ export type LottetourCalendarRangeOptions = {
    * REGRESSION-FREEZE[lottetour-calendar-month-concurrency]: monthConcurrency — manifest
    */
   monthConcurrency?: number
+  /**
+   * 상품 기간(박·일). 있으면 행의 기간 칸(durationText)이 다른 출발은 버린다.
+   * 없으면(null) 지금처럼 모두 남기고, 응답에 기간이 섞이면 경고만 남긴다.
+   */
+  expectedTripDuration?: SupplierTripDuration | null
 }
 
 export type LottetourCalendarRangeParams = {
@@ -755,7 +766,7 @@ async function fetchEvtListAjaxPage(args: {
 export async function collectLottetourCalendarRange(
   params: LottetourCalendarRangeParams,
   options?: LottetourCalendarRangeOptions
-): Promise<{ rows: LottetourCalendarRow[]; warnings: string[] }> {
+): Promise<{ rows: LottetourCalendarRow[]; warnings: string[]; durationStats?: SupplierTripDurationFilterStats }> {
   const warnings: string[] = []
   const godId = (params.godId ?? '').trim()
   const menuNos = params.menuNos
@@ -910,12 +921,35 @@ export async function collectLottetourCalendarRange(
     warnings.push('E2E 폴백 생략: disableE2EFallback')
   }
 
+  const durationFiltered = filterLottetourCalendarRowsByTripDuration(
+    all,
+    options?.expectedTripDuration ?? null,
+    `[lottetour] godId=${godId}`,
+  )
+  warnings.push(...durationFiltered.warnings)
+  all.length = 0
+  all.push(...durationFiltered.rows)
+
   all.sort((a, b) => {
     const c = a.departDate.localeCompare(b.departDate)
     if (c !== 0) return c
     return a.evtCd.localeCompare(b.evtCd)
   })
-  return { rows: all, warnings }
+  return { rows: all, warnings, durationStats: durationFiltered.stats }
+}
+
+/** 롯데 행 기간 — 기간 칸('3박4일') 기준. 못 읽으면 null. */
+export function lottetourCalendarRowTripDuration(row: Pick<LottetourCalendarRow, 'durationText'>): SupplierTripDuration | null {
+  return parseSupplierTripDurationLabel(row.durationText)
+}
+
+/** 상품 기간과 다른 출발 행을 버린다(기간 모름 → 그대로 + 섞임 경고). */
+export function filterLottetourCalendarRowsByTripDuration(
+  rows: readonly LottetourCalendarRow[],
+  expected: SupplierTripDuration | null | undefined,
+  label = '[lottetour]',
+): { rows: LottetourCalendarRow[]; warnings: string[]; stats: SupplierTripDurationFilterStats } {
+  return filterRowsBySupplierTripDuration(rows, lottetourCalendarRowTripDuration, expected, label)
 }
 
 function titleLayersFromEvtRow(r: LottetourCalendarRow): DepartureTitleLayers {
