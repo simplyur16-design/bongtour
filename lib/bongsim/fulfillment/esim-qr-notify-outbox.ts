@@ -333,12 +333,12 @@ export async function processNextEsimQrNotifyOutbox(): Promise<ProcessEsimQrNoti
     } catch {
       /* ignore */
     }
-    client.release()
     console.error('[bongsim:esim-qr-notify:pick]', e)
     return { outcome: 'error' }
+  } finally {
+    // empty/terminal 조기 return도 반드시 release — outbox 풀(max 2) 누수로 cron connect timeout
+    client.release()
   }
-
-  client.release()
 
   if (!pickedId || !parsed) return { outcome: 'error' }
 
