@@ -2263,3 +2263,65 @@ export function resolveTravelSubjectEnForMedia(options: TravelSubjectEnMediaOpti
 export function buildPexelsKeyword(options: TravelSubjectEnMediaOptions): string {
   return resolveTravelSubjectEnForMedia(options)
 }
+
+/**
+ * 영문 지명(도시·명소) → 한글 지명. DESTINATION_MAP·POI_KO_TO_EN 역매핑 (긴 한글 키 우선).
+ * 일정 요약·routeText 에 영문 도시명(Lucerne·Cairo·Cebu)이 남지 않게 하는 SSOT.
+ * REGRESSION-FREEZE[register-schedule-day-summary-ko-place]: EN→KO place name — manifest
+ */
+let EN_TO_KO_PLACE_CACHE: Map<string, string> | null = null
+
+function enToKoPlaceMap(): Map<string, string> {
+  if (EN_TO_KO_PLACE_CACHE) return EN_TO_KO_PLACE_CACHE
+  const m = new Map<string, string>()
+  const add = (ko: string, en: string) => {
+    const key = normalizeSemanticPoiKey(en)
+    if (!key || !/[가-힣]/u.test(ko)) return
+    if (/[A-Za-z]/.test(ko)) return
+    const prev = m.get(key)
+    // 같은 영문에 여러 한글 키 — 긴(정식) 이름 우선 (카이 < 카이로)
+    if (!prev || ko.replace(/\s+/g, '').length > prev.replace(/\s+/g, '').length) m.set(key, ko)
+  }
+  for (const [ko, en] of Object.entries(DESTINATION_MAP)) add(ko, en)
+  for (const [ko, en] of Object.entries(POI_KO_TO_EN)) {
+    if (!m.has(normalizeSemanticPoiKey(en))) add(ko, en)
+  }
+  EN_TO_KO_PLACE_CACHE = m
+  return m
+}
+
+export function koreanPlaceNameFromEnglish(en: string | null | undefined): string | null {
+  const key = normalizeSemanticPoiKey(String(en ?? ''))
+  if (!key) return null
+  return enToKoPlaceMap().get(key) ?? null
+}
+
+/** 영문 도시·국가명(DESTINATION_MAP 값) → 한글. 명소(POI)는 제외 — 키워드 도시 수식어 판정용 */
+let EN_TO_KO_CITY_CACHE: Map<string, string> | null = null
+export function koreanCityNameFromEnglish(en: string | null | undefined): string | null {
+  const key = normalizeSemanticPoiKey(String(en ?? ''))
+  if (!key) return null
+  if (!EN_TO_KO_CITY_CACHE) {
+    const m = new Map<string, string>()
+    for (const [ko, v] of Object.entries(DESTINATION_MAP)) {
+      const k = normalizeSemanticPoiKey(v)
+      if (!k || !/[가-힣]/u.test(ko) || /[A-Za-z]/.test(ko)) continue
+      const prev = m.get(k)
+      if (!prev || ko.replace(/\s+/g, '').length > prev.replace(/\s+/g, '').length) m.set(k, ko)
+    }
+    EN_TO_KO_CITY_CACHE = m
+  }
+  return EN_TO_KO_CITY_CACHE.get(key) ?? null
+}
+
+/** 한글 텍스트에 등장하는 DESTINATION_MAP 지명의 영문 키 집합 */
+export function destinationEnKeysInKoreanText(text: string | null | undefined): Set<string> {
+  const t = String(text ?? '')
+  const out = new Set<string>()
+  if (!t) return out
+  for (const ko of DESTINATION_MAP_KEYS_SORTED) {
+    if (/[A-Za-z]/.test(ko) || ko.length < 2) continue
+    if (t.includes(ko)) out.add(normalizeSemanticPoiKey(DESTINATION_MAP[ko]!))
+  }
+  return out
+}

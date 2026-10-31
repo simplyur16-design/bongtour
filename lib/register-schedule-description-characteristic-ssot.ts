@@ -51,6 +51,9 @@ const FACET_CLOSER: Record<ScheduleDescFacet, string> = {
   generic: '동선에 맞춰 하루 일정을 이어갑니다.',
 }
 
+/** 템플릿 closer 문장 목록 — 최종 요약 패스가 군더더기 문장으로 제거할 때 사용 */
+export const REGISTER_SCHEDULE_DESCRIPTION_FACET_CLOSERS: readonly string[] = Object.values(FACET_CLOSER)
+
 function jongseong(ch: string): number | null {
   const code = ch.charCodeAt(0)
   if (code < 0xac00 || code > 0xd7a3) return null

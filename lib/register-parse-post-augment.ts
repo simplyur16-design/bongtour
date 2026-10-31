@@ -29,6 +29,7 @@ import {
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { healRegisterPrePhotoSchedule } from '@/lib/register-pre-photo-self-heal'
+import { finalizeRegisterPackageScheduleRows } from '@/lib/register-schedule-day-summary-finalize'
 import {
   hasRegisterFreeDayRecommendedItinerary,
   isRegisterPendingFreeItineraryDay,
@@ -169,7 +170,9 @@ async function applyPackagePostAugmentScheduleKeywords(
     })
     return {
       ...parsed,
-      schedule: ensurePackageScheduleLastDayGateCompliance(healedSkip.rows),
+      schedule: ensurePackageScheduleLastDayGateCompliance(
+        finalizeRegisterPackageScheduleRows(healedSkip.rows),
+      ),
     }
   }
 
@@ -221,7 +224,10 @@ async function applyPackagePostAugmentScheduleKeywords(
   const promotedAfterHeal = promoteEmptyMiddlePrimaryFromKeyword2(healed.rows)
   return {
     ...parsed,
-    schedule: ensurePackageScheduleLastDayGateCompliance(promotedAfterHeal),
+    // REGRESSION-FREEZE[register-schedule-day-summary-finalize]: 3–4 sentences·KO place·same-day keywords — manifest
+    schedule: ensurePackageScheduleLastDayGateCompliance(
+      finalizeRegisterPackageScheduleRows(promotedAfterHeal),
+    ),
   }
 }
 
