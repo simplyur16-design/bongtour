@@ -79,7 +79,8 @@ function titlePairKey(s: string): string {
 }
 
 /**
- * `A · B` 결합 — 같은 말이거나 한쪽이 다른 쪽을 포함하면 긴 쪽 하나만 (제목 중복 회귀 차단).
+ * `A · B` 결합 — 같은 말, 긴 문구(8자+) 포함, 띄어쓴 낱말 포함이면 긴 쪽 하나만 (제목 중복 회귀 차단).
+ * 도시 + 그 도시 랜드마크(`오사카 · 오사카성`)는 그대로 둔다.
  * 예: `앙코르와트 국제 하프 마라톤 입국 · 앙코르와트 국제 하프 마라톤 입국` → 한 번만.
  * REGRESSION-FREEZE[register-schedule-day-title-ssot]: no duplicated title pair — manifest
  */
@@ -96,8 +97,13 @@ export function joinRegisterScheduleDayTitlePair(
   if (!kx) return y
   if (!ky) return x
   if (kx === ky) return x
-  if (kx.includes(ky)) return x
-  if (ky.includes(kx)) return y
+  // 짧은 도시명 + 그 도시 랜드마크(`오사카 · 오사카성`)는 의도된 짝이다.
+  // 포함 접기는 (1) 긴 문구(8자+) 중복, (2) 짧은 쪽이 긴 쪽의 띄어쓴 낱말일 때(`파리 · 파리 시내`)만.
+  const PAIR_CONTAIN_MIN = 8
+  const hasWord = (long: string, short: string) =>
+    long.split(/[\s·,，()（）\[\]]+/u).some((w) => titlePairKey(w) === short)
+  if (kx.includes(ky) && (ky.length >= PAIR_CONTAIN_MIN || hasWord(x, ky))) return x
+  if (ky.includes(kx) && (kx.length >= PAIR_CONTAIN_MIN || hasWord(y, kx))) return y
   return `${x} · ${y}`
 }
 

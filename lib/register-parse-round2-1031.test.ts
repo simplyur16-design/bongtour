@@ -63,6 +63,9 @@ describe('1) 1일차 제목 — 숙소 텍스트·중복 금지', () => {
     )
     expect(joinRegisterScheduleDayTitlePair('파리', '파리 시내')).toBe('파리 시내')
     expect(joinRegisterScheduleDayTitlePair('헬라', '스카프타펠')).toBe('헬라 · 스카프타펠')
+    // city + its landmark stays a pair (verygoodtour 오사카 · 오사카성)
+    expect(joinRegisterScheduleDayTitlePair('오사카', '오사카성')).toBe('오사카 · 오사카성')
+    expect(joinRegisterScheduleDayTitlePair('나트랑', '나트랑 야간시티')).toBe('나트랑 야간시티')
   })
 
   it('해외 공항 도착 구간에서 도시를 살린다 (국내 허브 제외)', () => {
