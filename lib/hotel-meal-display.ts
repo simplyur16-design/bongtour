@@ -106,7 +106,26 @@ export function isLikelyReturnArrivalDayWithoutHotel(description: string | null 
   if (/호텔\s*투숙|숙박/.test(t)) return false
   if (/\bOZ\d+편\s*인천\s*출발|인천\s*출발|\[.*\]\s*.*인천\s*출발/.test(t)) return false
   if (/(인천국제공항|인천\s*국제\s*공항|제\s*\d+\s*터미널|\(T2\)|\bT2\b)/i.test(t) && /도착/.test(t)) return true
+  // no-hotel-day-display-1031 (B): `[18:20] 인천 도착`·`김해 도착`·귀국 문구도 귀국일로 인식
+  if (NO_HOTEL_RETURN_ARRIVAL_RE.test(t)) return true
   return false
+}
+
+/** no-hotel-day-display-1031 (B): 국내 공항 도착·귀국 (마지막 일차에서만 사용) */
+const NO_HOTEL_RETURN_ARRIVAL_RE =
+  /(?:인천|김포|김해|부산|대구|청주|제주|무안|양양)\s*(?:국제\s*)?(?:공항\s*)?(?:\([^)]*\)\s*)?도착|귀국/u
+
+/**
+ * no-hotel-day-display-1031 (A): 공급사 일차 숙소가 「숙박 없음」 명시(기내박·기내숙박·숙박 없음(귀국)·차중박 등).
+ * 이 경우 상품 대표 호텔(hotelSummaryText·hotelNames)로 폴백하지 않는다. 문자열 전체가 무숙박 표기일 때만.
+ */
+const EXPLICIT_NO_HOTEL_DAY_RE =
+  /^(?:[:：·\-]\s*)?(?:기내\s*(?:박|숙박)|숙박\s*(?:없음|없슴|안\s*함|불포함)|숙소\s*없음|호텔\s*없음|무박|차중\s*박|야간\s*열차\s*박)\s*(?:\(\s*[^)]*\))?\s*\.?$/u
+
+export function isExplicitNoHotelDayText(raw: string | null | undefined): boolean {
+  const t = String(raw ?? '').replace(/\s+/g, ' ').trim()
+  if (!t) return false
+  return EXPLICIT_NO_HOTEL_DAY_RE.test(t)
 }
 
 /**
@@ -123,6 +142,8 @@ export function formatScheduleDayHotelLine(params: {
   // REGRESSION-FREEZE[public-hotel-display-scrub]: day 호텔 scrub — manifest
   const day = scrubPublicHotelDisplayLine(params.dayHotelText)
   if (day) return day
+  // no-hotel-day-display-1031 (A): 공급사가 무숙박(기내박 등) 명시 → 상품 대표 호텔 폴백 금지
+  if (isExplicitNoHotelDayText(params.dayHotelText)) return null
   if (
     params.isLastScheduleRow &&
     isLikelyReturnArrivalDayWithoutHotel(params.dayDescription)

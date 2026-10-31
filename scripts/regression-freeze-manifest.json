@@ -26655,7 +26655,9 @@
           "file": "lib/hotel-meal-display.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[public-hotel-display-scrub]",
-            "scrubPublicHotelDisplayLine"
+            "scrubPublicHotelDisplayLine",
+            "no-hotel-day-display-1031",
+            "isExplicitNoHotelDayText"
           ]
         },
         {
@@ -26674,6 +26676,7 @@
         }
       ],
       "vitestSuites": [
+        "lib/hotel-meal-display-no-hotel-day.test.ts",
         "lib/public-hotel-display-ssot.test.ts"
       ]
     },
