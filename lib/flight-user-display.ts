@@ -5,6 +5,7 @@
 import type { DepartureKeyFacts, DepartureLegCard } from '@/lib/departure-key-facts'
 import { legHasGarbageFlightFields } from '@/lib/flight-leg-garbage'
 import { parseKoreanDateTimeLineToDate } from '@/lib/flight-korean-datetime'
+import { resolveOvernightArrivalAtText } from '@/lib/flight-overnight-arrival'
 
 const BANNED_USER_SUBSTRINGS =
   /추출\s*필요|확인중|미입력|출발지\s*확인중|도착지\s*확인중|도착시간\s*미입력|출발시간\s*미입력|편명\s*상담\s*시\s*확인\s*가능|항공\s*예정|예정\s*항공|항공일정\s*미정|편명\s*미정|항공\s*미정/i
@@ -231,11 +232,20 @@ export function formatFlightLegTwoLines(
   const depParts = splitFlightAtTextDayOffset(leg.departureAtText)
   const arrParts = splitFlightAtTextDayOffset(leg.arrivalAtText)
   const departureAtText = depParts.text
-  const arrivalAtText = arrParts.text
-  if (!departureAtText || !arrivalAtText) return null
+  const arrivalAtTextRaw = arrParts.text
+  if (!departureAtText || !arrivalAtTextRaw) return null
   const departureAirport = normalizeFlightAirportLabel(leg.departureAirport)
   const arrivalAirport = normalizeFlightAirportLabel(leg.arrivalAirport)
   const flightNo = leg.flightNo?.replace(/\s+/g, ' ').trim() || null
+  // 야간편: 도착 시각 < 출발 시각 + 같은 날짜(또는 날짜 없음) → 다음날로 표시 (표시 전용)
+  const overnight = resolveOvernightArrivalAtText({
+    departureAtText,
+    arrivalAtText: arrivalAtTextRaw,
+    departureAirport: leg.departureAirport,
+    arrivalAirport: leg.arrivalAirport,
+    embeddedDayOffset: arrParts.dayOffset,
+  })
+  const arrivalAtText = overnight.arrivalAtText || arrivalAtTextRaw
   const computedArrOffset = computeFlightLegArrivalDayOffset(departureAtText, arrivalAtText)
   return {
     departureAirport,
@@ -244,7 +254,7 @@ export function formatFlightLegTwoLines(
     flightNo,
     arrivalAirport,
     arrivalAtText,
-    arrivalDayOffset: resolveDayOffset(arrParts.dayOffset, computedArrOffset),
+    arrivalDayOffset: resolveDayOffset(overnight.rolledDays ?? arrParts.dayOffset, computedArrOffset),
   }
 }
 
@@ -279,7 +289,13 @@ export function departureLegCardToItineraryFlightDisplay(
   const from = normalizeFlightAirportLabel(leg.departureAirport)
   const to = normalizeFlightAirportLabel(leg.arrivalAirport)
   const departureAt = leg.departureAtText?.trim() || ''
-  const arrivalAt = leg.arrivalAtText?.trim() || ''
+  const arrivalAt =
+    resolveOvernightArrivalAtText({
+      departureAtText: leg.departureAtText,
+      arrivalAtText: leg.arrivalAtText,
+      departureAirport: leg.departureAirport,
+      arrivalAirport: leg.arrivalAirport,
+    }).arrivalAtText || ''
   if (!from && !to && !departureAt && !arrivalAt) return null
   return { from, to, departureAt, arrivalAt }
 }

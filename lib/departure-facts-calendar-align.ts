@@ -5,6 +5,7 @@ import {
   formatKoreanDateTimeLine,
   parseFlexibleDateTimeLineToDate,
 } from '@/lib/flight-korean-datetime'
+import { resolveOvernightArrivalAtText } from '@/lib/flight-overnight-arrival'
 import { addDaysIso, diffCalendarDaysIso, extractIsoDate } from '@/lib/hero-date-utils'
 import { computeReturnDate } from '@/lib/package-rules'
 
@@ -53,11 +54,32 @@ function alignAtTextToCalendarDate(
 
 function alignLegToCalendarDate(leg: DepartureLegCard | null, depDateKey: string, arrDateKey: string): DepartureLegCard | null {
   if (!leg) return null
-  return {
-    ...leg,
-    departureAtText: alignAtTextToCalendarDate(leg.departureAtText, depDateKey) ?? leg.departureAtText,
-    arrivalAtText: alignAtTextToCalendarDate(leg.arrivalAtText, arrDateKey) ?? leg.arrivalAtText,
-  }
+  const departureAtText = alignAtTextToCalendarDate(leg.departureAtText, depDateKey) ?? leg.departureAtText
+  const arrivalAligned = alignAtTextToCalendarDate(leg.arrivalAtText, arrDateKey) ?? leg.arrivalAtText
+  // 야간편: 같은 날짜로 맞춰졌는데 도착 시각 < 출발 시각이면 다음날로 표시 (표시 전용)
+  const arrivalAtText =
+    resolveOvernightArrivalAtText({
+      departureAtText,
+      arrivalAtText: arrivalAligned,
+      departureAirport: leg.departureAirport,
+      arrivalAirport: leg.arrivalAirport,
+    }).arrivalAtText ?? arrivalAligned
+  return { ...leg, departureAtText, arrivalAtText }
+}
+
+/** 원문 leg의 출발→도착 날짜 차이(일). 날짜가 둘 다 있고 도착이 뒤일 때만 >0 */
+function legArrivalDayOffset(leg: DepartureLegCard | null | undefined): number {
+  const depIso = extractIsoDate(leg?.departureAtText)
+  const arrIso = extractIsoDate(leg?.arrivalAtText)
+  if (!depIso || !arrIso) return 0
+  const d = diffCalendarDaysIso(depIso, arrIso)
+  return d != null && d > 0 ? d : 0
+}
+
+/** 가는편 도착일 키 — 공급사 원문의 익일(+N) 도착을 유지 (이전엔 출발일로 강제되어 야간편이 같은 날로 보였음) */
+function outboundArrivalDateKey(leg: DepartureLegCard | null | undefined, target: string): string {
+  const off = legArrivalDayOffset(leg)
+  return off > 0 ? (addDaysIso(target, off) ?? target) : target
 }
 
 export type AlignDepartureFactsCalendarOpts = {
@@ -111,7 +133,7 @@ export function alignDepartureKeyFactsToSelectedCalendarDate(
   if (!returnKey || returnKey === target) {
     return {
       ...shifted,
-      outbound: alignLegToCalendarDate(shifted.outbound, target, target) ?? shifted.outbound,
+      outbound: alignLegToCalendarDate(shifted.outbound, target, outboundArrivalDateKey(shifted.outbound, target)) ?? shifted.outbound,
       inbound: shifted.inbound,
     }
   }
@@ -120,7 +142,7 @@ export function alignDepartureKeyFactsToSelectedCalendarDate(
   if (!ib) {
     return {
       ...shifted,
-      outbound: alignLegToCalendarDate(shifted.outbound, target, target) ?? shifted.outbound,
+      outbound: alignLegToCalendarDate(shifted.outbound, target, outboundArrivalDateKey(shifted.outbound, target)) ?? shifted.outbound,
     }
   }
 
@@ -133,7 +155,7 @@ export function alignDepartureKeyFactsToSelectedCalendarDate(
 
   return {
     ...shifted,
-    outbound: alignLegToCalendarDate(shifted.outbound, target, target) ?? shifted.outbound,
+    outbound: alignLegToCalendarDate(shifted.outbound, target, outboundArrivalDateKey(shifted.outbound, target)) ?? shifted.outbound,
     inbound: alignLegToCalendarDate(ib, returnKey, ibArrKey) ?? ib,
   }
 }
