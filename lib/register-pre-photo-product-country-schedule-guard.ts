@@ -151,15 +151,191 @@ export function countryKeyHasContentEvidence(countryKey: string | null | undefin
   return re.test(hay)
 }
 
+/**
+ * 지명 토큰 → 나라 추론의 문맥.
+ * productTitle·productDestination 이 있으면 「상품 목적지 나라/권역에 안 맞는 고립 지명 토큰」은 버린다.
+ */
+export type StrongOtherCountryHintContext = {
+  productTitle?: string | null
+  productDestination?: string | null
+}
+
+/**
+ * 나라 → 권역. 목적지 적합성 판정용 (한 나라가 여러 권역에 걸칠 수 있음).
+ * REGRESSION-FREEZE[register-pre-photo-product-country-schedule]: destination-fit country hints — manifest
+ */
+const COUNTRY_KEY_REGIONS: Readonly<Record<string, readonly string[]>> = {
+  china: ['east-asia'],
+  japan: ['east-asia'],
+  taiwan: ['east-asia'],
+  'hong-kong': ['east-asia'],
+  macau: ['east-asia'],
+  mongolia: ['east-asia', 'central-asia'],
+  korea: ['east-asia'],
+  vietnam: ['southeast-asia'],
+  cambodia: ['southeast-asia'],
+  laos: ['southeast-asia'],
+  thailand: ['southeast-asia'],
+  malaysia: ['southeast-asia'],
+  singapore: ['southeast-asia'],
+  indonesia: ['southeast-asia'],
+  philippines: ['southeast-asia'],
+  india: ['south-asia'],
+  lithuania: ['europe'],
+  latvia: ['europe'],
+  estonia: ['europe'],
+  poland: ['europe'],
+  czech: ['europe'],
+  austria: ['europe'],
+  hungary: ['europe'],
+  italy: ['europe'],
+  spain: ['europe'],
+  portugal: ['europe'],
+  france: ['europe'],
+  germany: ['europe'],
+  switzerland: ['europe'],
+  'united-kingdom': ['europe'],
+  greece: ['europe'],
+  iceland: ['europe'],
+  'nordic-baltic': ['europe'],
+  turkey: ['europe', 'middle-east-africa'],
+  caucasus: ['europe', 'middle-east-africa', 'central-asia'],
+  egypt: ['middle-east-africa'],
+  dubai: ['middle-east-africa'],
+  'united-arab-emirates': ['middle-east-africa'],
+  jordan: ['middle-east-africa'],
+  tunisia: ['middle-east-africa'],
+  kenya: ['middle-east-africa'],
+  tanzania: ['middle-east-africa'],
+  'south-africa': ['middle-east-africa'],
+  zambia: ['middle-east-africa'],
+  botswana: ['middle-east-africa'],
+  zimbabwe: ['middle-east-africa'],
+  africa: ['middle-east-africa'],
+  canada: ['americas'],
+  'united-states': ['americas', 'oceania'],
+  'usa-west': ['americas'],
+  mexico: ['americas'],
+  brazil: ['americas'],
+  peru: ['americas'],
+  argentina: ['americas'],
+  bolivia: ['americas'],
+  'latin-caribbean': ['americas'],
+  australia: ['oceania'],
+  'new-zealand': ['oceania'],
+  guam: ['oceania'],
+  saipan: ['oceania'],
+}
+
+/** 나라 이름 자체(지명 토큰이 아닌 국가명) — 국가명 단독 언급은 목적지 적합성으로 버리지 않는다. */
+const COUNTRY_NAME_TOKEN_RE =
+  /^(?:베트남|캄보디아|필리핀|중국|캐나다|미국|미동부|리투아니아|라트비아|에스토니아|체코|오스트리아|헝가리|튀르키예|튀르키|터키|그리스|greece|이탈리아|이태리|스페인|포르투갈|일본|말레이시아|프랑스|스위스|독일|이집트|아이슬란드|호주|몽골|인도|대한민국|국내여행|cambodia)$/iu
+
+/**
+ * 한국어 단어 경계 — 토큰이 더 긴 한글 낱말 **안**에 있으면 지명으로 세지 않는다.
+ * - 앞 글자가 한글이면(예: 볼거리가 → 리가) 낱말 내부.
+ * - 뒤 글자가 한글이면 조사·지명 접미(에서·의·시내·공항·성 …)일 때만 지명. 그 밖(스페인광장·리가성…)은
+ *   복합 고유명사의 일부로 본다 — 단 지명 접미 목록은 일반 규칙(단어별 예외 아님).
+ * - 원래 정규식에 lookaround 가 있는 토큰(세부·파리·니스·제주)은 그 정규식 경계를 그대로 따른다.
+ */
+const HANGUL_RE = /[가-힣]/u
+const KO_TOKEN_FOLLOW_OK_RE =
+  /^(?:에서|에게|으로|부터|까지|처럼|보다|이나|에는|에도|에서는|으로는|와|과|의|에|로|를|을|은|는|이|가|도|만|및|행|발|시내|시가지|구시가지|시|주|성|공항|국제공항|역|항|항구|섬|일대|근교|외곽|전역|여행|관광|일주|투어|자유|일정|도착|출발|입국|출국|경유|이동|국경|북부|남부|동부|서부|중부|중심|대표|정통|전통|요리|식|대성당|성당|궁전|왕궁)/u
+
+function hintTokenHasKoreanWordBoundary(hay: string, index: number, token: string): boolean {
+  if (!HANGUL_RE.test(token)) return true
+  const prev = index > 0 ? hay[index - 1]! : ''
+  if (prev && HANGUL_RE.test(prev)) return false
+  const rest = hay.slice(index + token.length)
+  const next = rest[0] ?? ''
+  if (!next || !HANGUL_RE.test(next)) return true
+  return KO_TOKEN_FOLLOW_OK_RE.test(rest)
+}
+
+type CountryHintEvidence = { key: string; tokens: string[]; countryNameHit: boolean }
+
+function globalOf(re: RegExp): RegExp {
+  const flags = re.flags.includes('g') ? re.flags : `${re.flags}g`
+  return new RegExp(re.source, flags)
+}
+
+function collectStrongCountryHintEvidence(hay: string): CountryHintEvidence[] {
+  const out: CountryHintEvidence[] = []
+  const h = String(hay ?? '')
+  if (!h.trim()) return out
+  for (const { key, re } of STRONG_OTHER_COUNTRY_HINTS) {
+    const tokens: string[] = []
+    let countryNameHit = false
+    for (const m of h.matchAll(globalOf(re))) {
+      const tok = m[0]
+      if (!tok || m.index == null) continue
+      if (!hintTokenHasKoreanWordBoundary(h, m.index, tok)) continue
+      const norm = tok.replace(/\s+/g, '').toLowerCase()
+      if (COUNTRY_NAME_TOKEN_RE.test(norm)) countryNameHit = true
+      if (!tokens.includes(norm)) tokens.push(norm)
+    }
+    if (tokens.length > 0) out.push({ key, tokens, countryNameHit })
+  }
+  return out
+}
+
+/** 상품 제목·목적지에서 읽히는 목적지 나라 키 (단어 경계 적용) */
+export function registerProductDestinationCountryKeys(ctx: StrongOtherCountryHintContext): string[] {
+  const hay = `${String(ctx.productTitle ?? '')}\n${String(ctx.productDestination ?? '')}`
+  if (!hay.trim()) return []
+  const keys = new Set<string>()
+  for (const ev of collectStrongCountryHintEvidence(hay)) keys.add(ev.key)
+  for (const [key, re] of Object.entries(PRODUCT_COUNTRY_KEY_CONTENT_EVIDENCE)) {
+    if (keys.has(key) || key === 'nordic-baltic' || key === 'latin-caribbean' || key === 'africa') continue
+    const g = globalOf(re)
+    for (const m of hay.matchAll(g)) {
+      if (m.index == null || !m[0]) continue
+      if (hintTokenHasKoreanWordBoundary(hay, m.index, m[0])) {
+        keys.add(key)
+        break
+      }
+    }
+  }
+  return [...keys]
+}
+
+/** 추론 나라가 상품 목적지 나라·권역에 맞는가 (목적지 미상이면 true) */
+export function countryKeyFitsProductDestination(key: string, destinationKeys: readonly string[]): boolean {
+  if (destinationKeys.length === 0) return true
+  if (destinationKeys.includes(key)) return true
+  const regions = COUNTRY_KEY_REGIONS[key]
+  if (!regions) return true
+  for (const d of destinationKeys) {
+    const dr = COUNTRY_KEY_REGIONS[d]
+    if (!dr) return true
+    if (dr.some((r) => regions.includes(r))) return true
+  }
+  return false
+}
+
 export function strongOtherCountryKeysFromHay(
   hay: string,
   excludeCountryKey?: string | null,
+  ctx?: StrongOtherCountryHintContext | null,
 ): string[] {
   const exclude = String(excludeCountryKey ?? '').trim()
+  const evidence = collectStrongCountryHintEvidence(hay)
+  const destinationKeys = ctx ? registerProductDestinationCountryKeys(ctx) : []
   const out: string[] = []
-  for (const { key, re } of STRONG_OTHER_COUNTRY_HINTS) {
-    if (key === exclude) continue
-    if (re.test(hay)) out.push(key)
+  for (const ev of evidence) {
+    if (ev.key === exclude) continue
+    // 지명 토큰 1개로만 추론된 나라가 상품 목적지 나라·권역에 안 맞으면 버린다
+    // (룩소르 서안≠china, 괌 스페인광장≠spain). 국가명 언급·서로 다른 지명 2개 이상은 강한 증거로 유지
+    // — 제목만 countryKey·본문 타국(메가메뉴 독) 차단 계약 보존.
+    if (
+      ctx &&
+      !ev.countryNameHit &&
+      ev.tokens.length < 2 &&
+      !countryKeyFitsProductDestination(ev.key, destinationKeys)
+    ) {
+      continue
+    }
+    out.push(ev.key)
   }
   return out
 }
@@ -200,15 +376,21 @@ export function productCountryScheduleMismatchIssues(args: {
   // REGRESSION-FREEZE[register-pending-quality-keyword-desc-departure]: countryKey 공란 ≠ 검수완료 — manifest
   // DB/큐 경로만: countryKey 인자를 넘긴 경우(null·'')에 공란 실패. 일정-only 단위테스트(undefined)는 스킵.
   if (args.countryKey !== undefined && !ck) {
-    if (strongOtherCountryKeysFromHay(hay, null).length > 0) {
+    if (
+      strongOtherCountryKeysFromHay(hay, null, {
+        productTitle: args.productTitle,
+        productDestination: destForHay,
+      }).length > 0
+    ) {
       return ['product_country_key_missing']
     }
     return []
   }
   if (!ck) return []
   const bodyHay = registerPrePhotoScheduleBodyHaystack(args.rows)
-  const othersInFull = strongOtherCountryKeysFromHay(hay, ck)
-  const othersInBody = strongOtherCountryKeysFromHay(bodyHay, ck)
+  const hintCtx = { productTitle: args.productTitle, productDestination: destForHay }
+  const othersInFull = strongOtherCountryKeysFromHay(hay, ck, hintCtx)
+  const othersInBody = strongOtherCountryKeysFromHay(bodyHay, ck, hintCtx)
   const ckInFull = countryKeyHasContentEvidence(ck, hay)
   const ckInBody = countryKeyHasContentEvidence(ck, bodyHay)
 

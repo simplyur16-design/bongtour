@@ -139,7 +139,14 @@ export function pendingNeedsCountryScheduleGeoHeal(args: {
       productDestination: args.productDestination,
       rows: args.rows,
     })
-    if (strongOtherCountryKeysFromHay(hay, null).length > 0) return true
+    if (
+      strongOtherCountryKeysFromHay(hay, null, {
+        productTitle: args.productTitle,
+        productDestination: args.productDestination,
+      }).length > 0
+    ) {
+      return true
+    }
   }
   return false
 }
@@ -231,7 +238,10 @@ export async function rematerializePendingProductCountryGeo(
     productTitle: args.title,
   })
   const clusterNudge = cluster ? regionClusterHealNudge(cluster) : null
-  const hintKeys = strongOtherCountryKeysFromHay(haystack, null)
+  const hintKeys = strongOtherCountryKeysFromHay(haystack, null, {
+    productTitle: args.title,
+    productDestination: placeDest,
+  })
   const hintLabel =
     clusterNudge?.label ??
     hintKeys.map((k) => COUNTRY_KEY_HEAL_LABEL[k]).find(Boolean) ??
