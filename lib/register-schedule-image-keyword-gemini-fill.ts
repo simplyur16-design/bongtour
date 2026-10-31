@@ -5,6 +5,10 @@
  * REGRESSION-FREEZE[register-pre-photo-empty-middle-is-free-day]: 제목 자유일정만 추천일정 — FIT·환승 제외 — manifest
  */
 import { BONGTOUR_FREE_DAY_VOICE_BLOCK } from '@/lib/bongtour-free-day-voice-block'
+import {
+  postcheckBongtourFreeDayItinerary,
+  type BongtourFreeDayPostcheckIssue,
+} from '@/lib/bongtour-free-day-postcheck'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { parseLlmJsonObject } from '@/lib/llm-json-extract'
 import { classifyModetourScheduleCardDayKind, isModetourDomesticHubToken } from '@/lib/modetour-schedule-image-keyword'
@@ -478,6 +482,35 @@ export function mergeGeminiFreeLeisureRecommendedItinerary<
   })
 }
 
+/**
+ * 톤 1031(봉실장 23:50): 제미나이 자유일정 추천일정 사후 검사 — 숫자(제목 앞머리 '추천일정 1day/반나절' 제외)·금지어·숙소 근처(패키지는 호텔 주소 모름).
+ * 실패한 날은 byDay 에서 빼서 저장하지 않는다(문장을 고치거나 원문·템플릿으로 바꾸지 않음).
+ * 그 날은 원래 행 그대로 남아 다음 등록·재생성 때 scheduleFreeLeisureDaysMissingImageKeyword 대상이 되고,
+ * 사진 전 검수(packageScheduleIssues)가 day{N}_free_recommended_itinerary_missing 으로 '검수 필요'를 띄운다.
+ * 가격·요금 칸은 이 경로에 없다(제목·동선·설명·사진 키워드만 씀).
+ */
+// REGRESSION-FREEZE[fit-free-day-tone-1031]: 자유일정 추천일정 사후 검사 실패 = 저장 안 함 — manifest
+export function rejectGeminiFreeLeisureDaysFailingPostcheck(
+  byDay: ReadonlyMap<number, GeminiFreeLeisureDayFill>,
+): {
+  kept: Map<number, GeminiFreeLeisureDayFill>
+  rejected: Array<{ day: number; issues: BongtourFreeDayPostcheckIssue[] }>
+} {
+  const kept = new Map<number, GeminiFreeLeisureDayFill>()
+  const rejected: Array<{ day: number; issues: BongtourFreeDayPostcheckIssue[] }> = []
+  for (const [day, g] of byDay) {
+    const r = postcheckBongtourFreeDayItinerary({
+      title: g.title,
+      recommendedRoute: g.recommendedRoute,
+      summary: g.summary,
+      hotelKnown: false,
+    })
+    if (r.ok) kept.set(day, g)
+    else rejected.push({ day, issues: r.issues })
+  }
+  return { kept, rejected }
+}
+
 async function fillFreeLeisureDaysWithGemini<
   T extends RegisterScheduleImageKeywordApplyRow,
 >(
@@ -507,7 +540,14 @@ async function fillFreeLeisureDaysWithGemini<
     )
     const text = result.response.text()
     const parsed = parseLlmJsonObject<{ schedule?: unknown }>(text, { logLabel })
-    const byDay = parseGeminiFreeLeisureRows(parsed.schedule)
+    const parsedByDay = parseGeminiFreeLeisureRows(parsed.schedule)
+    const { kept: byDay, rejected } = rejectGeminiFreeLeisureDaysFailingPostcheck(parsedByDay)
+    if (rejected.length) {
+      console.warn(
+        `[${logLabel}] free-leisure postcheck rejected (not saved, needs regeneration/review)`,
+        rejected.map((r) => ({ day: r.day, issues: r.issues.map((i) => `${i.field}:${i.kind}`) })),
+      )
+    }
     if (!byDay.size) return rows
 
     const merged = mergeGeminiFreeLeisureRecommendedItinerary(rows, byDay, {
