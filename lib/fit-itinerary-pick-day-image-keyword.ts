@@ -213,7 +213,7 @@ function isWeakFitDayImageKeyword(kw: string): boolean {
   return isBareCityOrCountryKeyword(t)
 }
 
-/** 예시 일정 일차별 후보 — attraction → hotel → 일차 메타 → (랜드마크인) meal·shopping → 도시 */
+/** 예시 일정 일차별 후보 — attraction → hotel → (랜드마크인) shopping → 일차 메타 → 도시. meal(식당)은 후보 아님(톤 1031) */
 export function collectFitDayImageKeywordCandidates(
   day: FitItineraryDayForKeyword,
   fallbackCtx: FitDayImageKeywordFallbackContext,
@@ -236,8 +236,10 @@ export function collectFitDayImageKeywordCandidates(
       push(keywordFromActivity(act, { fromAttraction: cat === 'attraction' }))
     }
   }
+  // 톤 1031: 사진 키워드는 그날 관광지(attraction)에서 — 식당(meal)은 후보에서 뺀다(지역명이 붙은 식당도).
+  // 쇼핑 거리(shopping)는 랜드마크 검사를 통과할 때만 보조 후보.
   for (const act of activities) {
-    if (act.category !== 'meal' && act.category !== 'shopping') continue
+    if (act.category !== 'shopping') continue
     push(keywordFromActivity(act, { fromAttraction: false }))
   }
   push(keywordFromDayMeta(day))
