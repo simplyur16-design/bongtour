@@ -1102,7 +1102,9 @@ export async function POST(req: Request) {
               normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url) &&
               normAssetUrl(c.url) !== normAssetUrl(sealedSlot.url) &&
               dayCityOk(c),
-            'meta'
+            'meta',
+            // 정책 재시도도 같은 관문(그날 일정 요약 장소·사람 주인공·차량)
+            dayGateCtx
           )
           if (retry) {
             usage.mark(retry)
