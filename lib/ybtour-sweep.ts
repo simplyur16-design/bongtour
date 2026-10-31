@@ -6,6 +6,7 @@
  * REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]: due = lastPriceObservedAt — manifest
  * REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]: sold-out 마커는 DB 가드 존중 — manifest
  */
+import { resolveSupplierProductTripDuration } from '@/lib/supplier-trip-duration'
 import type { PrismaClient } from '@prisma/client'
 import { createSupplierSweepPacer } from '@/lib/supplier-sweep-pacing'
 
@@ -72,6 +73,9 @@ type SweepProductRow = {
   originUrl: string | null
   originCode: string | null
   rawMeta: string | null
+  duration: string | null
+  tripNights: number | null
+  tripDays: number | null
 }
 
 function ymdToUtcMidnight(ymd: string): Date {
@@ -129,6 +133,9 @@ async function findSweepProducts(
     originUrl: true,
     originCode: true,
     rawMeta: true,
+    duration: true,
+    tripNights: true,
+    tripDays: true,
   } as const
   const today = todayYmd ?? kstTodayYmd()
 
@@ -271,11 +278,13 @@ export async function sweepDueYbtourProducts(
         continue
       }
 
+      // 같은 goodsCd 에 다른 기간(박·일) 출발이 섞임 — 상품 기간으로 거름(모르면 지금 동작 + 경고)
       const collected = await collectYbtourPriceInputsWithE2eFallback(
         detailUrl,
         product.originCode,
         fromYmd,
         toYmd,
+        { expectedTripDuration: resolveSupplierProductTripDuration(product) },
       )
 
       if (collected.source === 'e2e') {

@@ -7,6 +7,7 @@ import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sa
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import { registerDepartureInputsToParsedPrices } from '@/lib/register-departure-input-to-parsed-price'
 import { collectYbtourByGoodsApiDepartureInputsForUrl } from '@/lib/ybtour-api-departures'
+import { parseSupplierTripDurationLabel } from '@/lib/supplier-trip-duration'
 
 /** ybtour confirm ProductPrice — 동일 departure date 중복 제거 (P2002 방지). */
 export function dedupeYbtourProductPriceCreateRows<T extends { date: Date }>(rows: T[]): T[] {
@@ -36,6 +37,9 @@ export async function injectYbtourApiDeparturePricesIfMissing(
   const hit = await collectYbtourByGoodsApiDepartureInputsForUrl(url, fromYmd, toYmd, {
     originCode: parsed.originCode ?? null,
     enrichEvCdPrice: false,
+    // 등록 상품 기간(박·일) — 다른 기간 출발 제외. 값이 없으면 URL evCd 행 기간, 그것도 없으면 거르지 않음
+    expectedTripDuration: parseSupplierTripDurationLabel(parsed.duration ?? null),
+    expectedTripDurationFromUrlEvCd: true,
   })
   if (hit.inputs.length === 0) return parsed
 

@@ -9,6 +9,10 @@ import {
   collectYbtourByGoodsApiDepartureInputsForUrl,
 } from '@/lib/ybtour-api-departures'
 import type { DepartureInput } from '@/lib/upsert-product-departures-ybtour'
+import type { SupplierTripDuration, SupplierTripDurationFilterStats } from '@/lib/supplier-trip-duration'
+
+/** 상품 기간(박·일) — 있으면 다른 기간 출발 제외, 없으면 지금 동작 + 섞임 경고 */
+export type YbtourCollectDurationOptions = { expectedTripDuration?: SupplierTripDuration | null }
 
 export type YbtourPriceCollectSource = 'api' | 'e2e'
 
@@ -18,6 +22,8 @@ export type YbtourPriceCollectResult = {
   e2eAttempted: boolean
   /** API·E2E 모두 180일 창 priced 0건 — 판매종료 후보 */
   horizonSoldOut: boolean
+  /** 기간 섞임 거르기 등 경고 */
+  warnings?: string[]
 }
 
 export type YbtourApiOnlyCollectResult = {
@@ -36,12 +42,15 @@ export type YbtourByGoodsApiOnlyCollectResult = {
   rawRowCount: number
   evCdPriceEnriched: boolean
   apiError: string | null
+  durationWarnings: string[]
+  durationStats: SupplierTripDurationFilterStats | null
+  durationAllMismatch: boolean
 }
 
 export type YbtourByGoodsApiOnlyOptions = {
   originCode?: string | null
   enrichEvCdPrice?: boolean
-}
+} & YbtourCollectDurationOptions
 
 /** by-goods 월 API만 — 다출발 (+ 선택 evCd /price). */
 export async function collectYbtourByGoodsApiOnlyForDateRange(
@@ -54,6 +63,7 @@ export async function collectYbtourByGoodsApiOnlyForDateRange(
     const hit = await collectYbtourByGoodsApiDepartureInputsForUrl(detailUrl, fromYmd, toYmd, {
       originCode: options?.originCode,
       enrichEvCdPrice: options?.enrichEvCdPrice,
+      expectedTripDuration: options?.expectedTripDuration ?? null,
     })
     return { ...hit, apiError: null }
   } catch (err) {
@@ -67,6 +77,9 @@ export async function collectYbtourByGoodsApiOnlyForDateRange(
       rawRowCount: 0,
       evCdPriceEnriched: false,
       apiError: (err instanceof Error ? err.message : String(err)).slice(0, 400),
+      durationWarnings: [],
+      durationStats: null,
+      durationAllMismatch: false,
     }
   }
 }
@@ -93,11 +106,13 @@ export async function collectYbtourPriceInputsWithE2eFallback(
   originCode: string | null,
   fromYmd: string,
   toYmd: string,
+  options?: YbtourCollectDurationOptions,
 ): Promise<YbtourPriceCollectResult> {
   try {
     const byGoods = await collectYbtourByGoodsApiDepartureInputsForUrl(detailUrl, fromYmd, toYmd, {
       originCode,
       enrichEvCdPrice: process.env.YBTOUR_SKIP_EVCD_PRICE_ENRICH !== '1',
+      expectedTripDuration: options?.expectedTripDuration ?? null,
     })
     if (byGoods.inputs.length > 0) {
       return {
@@ -105,6 +120,17 @@ export async function collectYbtourPriceInputsWithE2eFallback(
         source: 'api',
         e2eAttempted: false,
         horizonSoldOut: false,
+        warnings: byGoods.durationWarnings,
+      }
+    }
+    if (byGoods.durationAllMismatch) {
+      // E2E 달력은 기간을 못 읽어 다른 기간 출발을 다시 넣음 — 판매종료(horizonSoldOut)로 지우지 않고 건너뜀
+      return {
+        inputs: [],
+        source: null,
+        e2eAttempted: false,
+        horizonSoldOut: false,
+        warnings: byGoods.durationWarnings,
       }
     }
   } catch (err) {

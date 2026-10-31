@@ -395,11 +395,17 @@ export async function runOneSalesPolicyCheck(
         livesRange = []
       }
     } else if (supplierKey === 'ybtour') {
+      // 상품 기간(박·일)과 다른 출발 제외(모르면 거르지 않음)
+      const ybDurationRow = await prisma.product.findUnique({
+        where: { id: product.id },
+        select: { duration: true, tripNights: true, tripDays: true },
+      })
       livesRange = await collectYbtourDepartureInputsForDateRange(
         detailUrl,
         product.originCode,
         fromYmd,
-        toYmd
+        toYmd,
+        { expectedTripDuration: resolveSupplierProductTripDuration(ybDurationRow) },
       )
     }
   } finally {

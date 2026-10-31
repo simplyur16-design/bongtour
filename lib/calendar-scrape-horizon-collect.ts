@@ -117,8 +117,10 @@ export async function collectCalendarHorizonPriceInputs(
     const collected = await collectYbtourByGoodsApiOnlyForDateRange(detailUrl, lo, hi, {
       originCode: product.originCode,
       enrichEvCdPrice: process.env.YBTOUR_SKIP_EVCD_PRICE_ENRICH !== '1',
+      expectedTripDuration: resolveSupplierProductTripDuration(product),
     })
-    const warnings = collected.apiError ? [collected.apiError] : []
+    const warnings = [...collected.durationWarnings]
+    if (collected.apiError) warnings.push(collected.apiError)
     return {
       items: inputsToItems(collected.inputs),
       source: collected.inputs.length > 0 ? 'api' : null,

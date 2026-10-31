@@ -1,0 +1,65 @@
+{
+ "available-date-day": {
+  "code": "0000",
+  "message": "Success",
+  "body": {
+   "evCd": "CHP1128-261114NX00",
+   "evStartDt": "20261114",
+   "eventMonthList": {
+    "minOutStartDt": "20261102",
+    "maxOutStartDt": "20270630",
+    "minPrice": 599000,
+    "maxPrice": 2099900,
+    "minPriceDate": "20261218",
+    "maxPriceDate": "20270206"
+   }
+  },
+  "timestamp": "2026-11-01 00:44:24.393"
+ },
+ "first-display": {
+  "code": "0000",
+  "message": "Success",
+  "body": {
+   "evCd": "CHP1128-261114NX00",
+   "evNm": "마카오+홍콩 3일 #마카오1박+홍콩1박 #꽉찬일정 #NX",
+   "dspSid1": "AA00000",
+   "dspSid2": "AAD0000",
+   "dspSid3": "AADD000",
+   "dspSid4": "AADD001"
+  },
+  "timestamp": "2026-11-01 00:44:28.337"
+ },
+ "join-event": {
+  "code": "0000",
+  "message": "Success",
+  "body": {
+   "goodsCd": "CHP1128",
+   "goodsNm": " 홍콩/마카오 3/4일 #베스트셀러 #전일관광 #자유일정 ",
+   "tourPatInfo": "인천-홍콩-인천",
+   "minPrice": 599000,
+   "maxPrice": 2099900,
+   "minPriceDate": "20261218",
+   "maxPriceDate": "20270206",
+   "epiCnt": 4,
+   "rvwAvgScore": 4.1,
+   "rvwCnt": 320,
+   "goodsTp": "P",
+   "goodsBrandCd": "10",
+   "goodTravelYn": "N",
+   "goodsContents": "소호+헐리우드로드+에그타르트+낭만의거리+피크트램",
+   "webDisplayCls": "A",
+   "goodsTpointContents": "✔ 홍콩 핵심관광 VS 홍콩/마카오 \r\n✔ 특식 (딤섬/광동식/포르투칼식)\r\n✔ 에그타르트 포함으로 맛있는 여행",
+   "goodsFeaturesList": null,
+   "goodsTmember": "FAM,가족여행",
+   "continentCd": "C",
+   "continentNm": "중국",
+   "countryCd": "CH",
+   "countryNm": "홍콩/마카오/심천",
+   "budgetDiviCd": null,
+   "budgetDiviNm": null,
+   "scheduleDiviCd": null,
+   "scheduleDiviNm": null
+  },
+  "timestamp": "2026-11-01 00:44:55.959"
+ }
+}

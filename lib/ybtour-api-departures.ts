@@ -8,6 +8,14 @@
 import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
 import type { DepartureInput } from '@/lib/upsert-product-departures-ybtour'
+import {
+  filterRowsBySupplierTripDuration,
+  formatSupplierTripDuration,
+  parseSupplierTripDurationLabel,
+  supplierTripDurationEquals,
+  type SupplierTripDuration,
+  type SupplierTripDurationFilterStats,
+} from '@/lib/supplier-trip-duration'
 
 const YBTOUR_PAPI_BASE = process.env.YBTOUR_PAPI_BASE_URL ?? 'https://papi.ybtour.co.kr'
 
@@ -62,6 +70,11 @@ export type YbtourByGoodsEventRow = {
   evProgDiviNm?: string | null
   avlilBlockQty?: number | null
   startFixOpenYn?: string | null
+  /** 출발별 박·일 ('2박4일'·'3박4일') — 같은 goodsCd 에 기간이 섞여 옴 */
+  dayStayInfo?: string | null
+  /** 출발별 일수 ('4') — 박 수는 없음(2박4일·3박4일 구분 불가) */
+  evDayCntList?: string | null
+  inArriveDt?: string | null
 }
 
 export type YbtourGoodsJoinEventBody = {
@@ -338,6 +351,69 @@ export function ybtourByGoodsRowToDepartureInput(row: YbtourByGoodsEventRow | nu
   }
 }
 
+/** by-goods 행 기간(박·일) — dayStayInfo 만 읽음. 없거나 못 읽으면 null(추정하지 않음). */
+export function ybtourByGoodsRowTripDuration(
+  row: YbtourByGoodsEventRow | null | undefined,
+): SupplierTripDuration | null {
+  return parseSupplierTripDurationLabel(String(row?.dayStayInfo ?? '').trim() || null)
+}
+
+export type YbtourByGoodsDurationFilterResult = {
+  inputs: DepartureInput[]
+  warnings: string[]
+  stats: SupplierTripDurationFilterStats
+  /** 상품 기간을 아는데 응답 출발이 전부 다른 기간 — 상품 기간값 의심(판매종료로 보지 않음) */
+  allMismatch: boolean
+}
+
+/**
+ * by-goods (행, 매핑된 출발) 쌍을 상품 기간으로 거른다.
+ * - expected 없음: 거르지 않음(지금 동작), 응답 기간이 둘 이상이면 경고만.
+ * - expected 있음: 다른 기간 출발 제외, 기간 못 읽는 출발은 남김. 같은 날짜에서는 기간 일치 출발이 앞에 오게(날짜 첫 행 고르는 곳에서 이기도록).
+ */
+export function filterYbtourByGoodsInputsByTripDuration(
+  pairs: readonly { row: YbtourByGoodsEventRow; input: DepartureInput }[],
+  expected: SupplierTripDuration | null | undefined,
+  label = '[ybtour] by-goods',
+): YbtourByGoodsDurationFilterResult {
+  const filtered = filterRowsBySupplierTripDuration(
+    pairs,
+    (p) => ybtourByGoodsRowTripDuration(p.row),
+    expected ?? null,
+    label,
+  )
+  let kept = filtered.rows
+  if (expected) {
+    const rank = (p: { row: YbtourByGoodsEventRow }) =>
+      supplierTripDurationEquals(ybtourByGoodsRowTripDuration(p.row), expected) ? 0 : 1
+    const dateKey = (p: { input: DepartureInput }) => departureInputToYmd(p.input.departureDate) ?? ''
+    // 날짜 묶음 순서·묶음 안 원래 순서는 유지하고, 같은 날짜 안에서만 기간 일치 출발을 앞으로
+    const firstIndexByDate = new Map<string, number>()
+    kept.forEach((p, i) => {
+      const d = dateKey(p)
+      if (!firstIndexByDate.has(d)) firstIndexByDate.set(d, i)
+    })
+    kept = kept
+      .map((p, i) => ({ p, i }))
+      .sort(
+        (a, b) =>
+          (firstIndexByDate.get(dateKey(a.p)) ?? 0) - (firstIndexByDate.get(dateKey(b.p)) ?? 0) ||
+          rank(a.p) - rank(b.p) ||
+          a.i - b.i,
+      )
+      .map((x) => x.p)
+  }
+  const allMismatch =
+    !!expected && filtered.stats.droppedMismatch > 0 && filtered.stats.kept === 0
+  const warnings = [...filtered.warnings]
+  if (allMismatch) {
+    warnings.push(
+      `${label}: 응답 출발이 전부 상품 기간 ${formatSupplierTripDuration(expected)}과 다름 — 상품 기간값 의심, E2E 폴백·판매종료 처리 생략`,
+    )
+  }
+  return { inputs: kept.map((p) => p.input), warnings, stats: filtered.stats, allMismatch }
+}
+
 function dedupeYbtourInputsByEvCd(inputs: DepartureInput[]): DepartureInput[] {
   const seen = new Set<string>()
   const out: DepartureInput[] = []
@@ -603,6 +679,13 @@ export type YbtourByGoodsCollectOptions = {
   originCode?: string | null
   /** false면 by-goods 성인가만 (커버리지·교차검증용). 기본 true. */
   enrichEvCdPrice?: boolean
+  /** 상품 기간(박·일) — 있으면 다른 기간(dayStayInfo) 출발 제외, 없으면 지금 동작 + 섞임 경고 */
+  expectedTripDuration?: SupplierTripDuration | null
+  /**
+   * 등록 경로용: expectedTripDuration 이 없을 때 상세 URL evCd 출발 행의 dayStayInfo 를 상품 기간으로 씀.
+   * URL evCd 가 없거나 응답에 그 행이 없으면 거르지 않음(지금 동작 + 섞임 경고).
+   */
+  expectedTripDurationFromUrlEvCd?: boolean
 }
 
 /** goodsCd + by-goods 월 API — 180일 다출발 수집 (+ 선택 evCd /price 아동·유아). */
@@ -622,6 +705,11 @@ export async function collectYbtourByGoodsApiDepartureInputsForUrl(
   evCdPriceEnriched: boolean
   /** first-display·by-goods evNm 중 등록용 상품명 */
   listingTitle: string | null
+  /** 기간 섞임 거르기 경고 (없으면 빈 배열) */
+  durationWarnings: string[]
+  durationStats: SupplierTripDurationFilterStats | null
+  /** 상품 기간을 아는데 응답 출발이 전부 다른 기간 — 판매종료(horizonSoldOut)·E2E 폴백으로 넘기지 말 것 */
+  durationAllMismatch: boolean
 }> {
   const empty = {
     inputs: [] as DepartureInput[],
@@ -633,6 +721,9 @@ export async function collectYbtourByGoodsApiDepartureInputsForUrl(
     rawRowCount: 0,
     evCdPriceEnriched: false,
     listingTitle: null as string | null,
+    durationWarnings: [] as string[],
+    durationStats: null as SupplierTripDurationFilterStats | null,
+    durationAllMismatch: false,
   }
 
   const goodsCdFromUrl = parseYbtourGoodsCdFromUrl(detailUrl)
@@ -662,7 +753,7 @@ export async function collectYbtourByGoodsApiDepartureInputsForUrl(
   }
 
   const monthKeys = ybtourMonthKeysForYmdWindow(fromYmd, toYmd)
-  const merged: DepartureInput[] = []
+  const merged: { row: YbtourByGoodsEventRow; input: DepartureInput }[] = []
   let rawRowCount = 0
   let byGoodsEvNmForSeed: string | null = null
   let byGoodsAnyEvNm: string | null = null
@@ -689,11 +780,27 @@ export async function collectYbtourByGoodsApiDepartureInputsForUrl(
         }
       }
       const mapped = ybtourByGoodsRowToDepartureInput(row)
-      if (mapped) merged.push(mapped)
+      if (mapped) merged.push({ row, input: mapped })
     }
   }
 
-  let inputs = filterYbtourInputsInYmdWindow(dedupeYbtourInputsByEvCd(merged), fromYmd, toYmd)
+  // 같은 goodsCd 에 다른 기간(2박4일·3박4일·2박3일) 출발이 섞임 — 상품 기간으로 거름(모르면 거르지 않음)
+  let expectedTripDuration = options?.expectedTripDuration ?? null
+  if (!expectedTripDuration && options?.expectedTripDurationFromUrlEvCd && urlEvCd) {
+    const urlRow = merged.find((p) => String(p.row.evCd ?? '').trim() === urlEvCd)
+    expectedTripDuration = urlRow ? ybtourByGoodsRowTripDuration(urlRow.row) : null
+  }
+  const durationFiltered = filterYbtourByGoodsInputsByTripDuration(
+    merged,
+    expectedTripDuration,
+    `[ybtour] by-goods ${goodsCd}`,
+  )
+  for (const w of durationFiltered.warnings) console.warn(w)
+  let inputs = filterYbtourInputsInYmdWindow(
+    dedupeYbtourInputsByEvCd(durationFiltered.inputs),
+    fromYmd,
+    toYmd,
+  )
   const enrichEvCdPrice = options?.enrichEvCdPrice !== false
   let evCdPriceEnriched = false
   if (inputs.length > 0) {
@@ -727,6 +834,9 @@ export async function collectYbtourByGoodsApiDepartureInputsForUrl(
     rawRowCount,
     evCdPriceEnriched,
     listingTitle,
+    durationWarnings: durationFiltered.warnings,
+    durationStats: durationFiltered.stats,
+    durationAllMismatch: durationFiltered.allMismatch,
   }
 }
 

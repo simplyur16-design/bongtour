@@ -603,7 +603,21 @@ export async function executeRangeOnDemandDepartures(
           livesRange = []
         }
       } else if (norm === 'ybtour' || bk === 'ybtour' || brandKeyResolvesToYbtour(product.brand?.brandKey ?? null)) {
-        livesRange = await collectYbtourDepartureInputsForDateRange(detailUrl, product.originCode, fromYmd, toYmd)
+        // 같은 goodsCd 에 다른 기간(박·일) 출발이 섞임 — 상품 기간으로 거름(읽기만, 모르면 거르지 않음)
+        let ybExpectedTripDuration: SupplierTripDuration | null = null
+        try {
+          ybExpectedTripDuration = resolveSupplierProductTripDuration(
+            await prisma.product.findUnique({
+              where: { id: product.id },
+              select: { duration: true, tripNights: true, tripDays: true },
+            }),
+          )
+        } catch {
+          ybExpectedTripDuration = null
+        }
+        livesRange = await collectYbtourDepartureInputsForDateRange(detailUrl, product.originCode, fromYmd, toYmd, {
+          expectedTripDuration: ybExpectedTripDuration,
+        })
       }
     } finally {
       // G5: 완료 시각 기록 (lottetour 422 / 라이브 fetch 예외 / 정상 완료 모두 동일하게 next-G2 인터벌 산정 SSOT 갱신).

@@ -550,10 +550,13 @@ export async function collectYbtourDepartureInputsForDateRange(
   originCode: string | null,
   fromYmd: string,
   toYmd: string,
+  options?: { expectedTripDuration?: SupplierTripDuration | null },
 ): Promise<DepartureInput[]> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fromYmd) || !/^\d{4}-\d{2}-\d{2}$/.test(toYmd)) return []
   const { collectYbtourPriceInputsWithE2eFallback } = await import('@/lib/ybtour-price-collect')
-  const collected = await collectYbtourPriceInputsWithE2eFallback(detailUrl, originCode, fromYmd, toYmd)
+  const collected = await collectYbtourPriceInputsWithE2eFallback(detailUrl, originCode, fromYmd, toYmd, {
+    expectedTripDuration: options?.expectedTripDuration ?? null,
+  })
   return collected.inputs
 }
 
@@ -1370,7 +1373,29 @@ export async function collectDepartureInputsForAdminRescrape(
         const { collectYbtourByGoodsApiDepartureInputsForUrl } = await import('@/lib/ybtour-api-departures')
         const apiHit = await collectYbtourByGoodsApiDepartureInputsForUrl(detailUrlForApi, fromYmd, toYmd, {
           originCode: product.originCode,
+          // 같은 goodsCd 에 다른 기간(박·일) 출발이 섞임 — 상품 기간으로 거름(읽기만, 모르면 거르지 않음)
+          expectedTripDuration: await readProductTripDurationForCollect(prisma, product.id),
         })
+        if (apiHit.inputs.length === 0 && apiHit.durationAllMismatch) {
+          // python 달력 E2E 는 기간을 못 읽어 다른 기간 출발을 다시 넣음 — 폴백하지 않고 빈 결과
+          ybtourRescrapeLog('api-by-goods-duration-all-mismatch', apiHit.durationWarnings.join(' | ').slice(0, 300))
+          const fillMeta = deriveFillMeta([])
+          return {
+            mode: 'live-rescrape',
+            source: 'ybtour-api-by-goods',
+            inputs: [],
+            attemptedLive,
+            liveError: 'ybtour: 응답 출발이 전부 상품 기간과 다름 — 상품 기간값 의심, E2E 폴백 생략',
+            filledFields: fillMeta.filledFields,
+            missingFields: fillMeta.missingFields,
+            mappingStatus: 'detail-candidate-found-but-unmapped',
+            site,
+            detailUrl: detailUrlForTrace,
+            detailUrlSummary,
+            collectorStatus: 'api-by-goods',
+            notes: apiHit.durationWarnings,
+          }
+        }
         const apiInputs = filterDepartureInputsOnOrAfterCalendarToday(apiHit.inputs)
         if (apiInputs.length > 0) {
           const fillMeta = deriveFillMeta(apiInputs)

@@ -153,6 +153,8 @@ export async function collectYbtourRegisterFacts(originUrl: string): Promise<Sup
   const [apiHit, detailBundle] = await Promise.all([
     collectYbtourByGoodsApiDepartureInputsForUrl(originUrl, fromYmd, toYmd, {
       enrichEvCdPrice: false,
+      // 같은 goodsCd 의 다른 기간(박·일) 출발을 가격행에 섞지 않음 — URL evCd 행 기간 기준(모르면 거르지 않음)
+      expectedTripDurationFromUrlEvCd: true,
     }),
     fetchYbtourRegisterDetailBundle(originUrl, { includeTourDetail: false }),
   ])
