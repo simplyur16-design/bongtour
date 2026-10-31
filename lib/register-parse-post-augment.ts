@@ -30,7 +30,7 @@ import {
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
 import { normScheduleImageKeywordKey } from '@/lib/register-schedule-llm-image-keyword-fallback'
 import { healRegisterPrePhotoSchedule } from '@/lib/register-pre-photo-self-heal'
-import { finalizeRegisterAirtelScheduleRows, finalizeRegisterPackageScheduleRows } from '@/lib/register-schedule-day-summary-finalize'
+import { finalizeRegisterPackageScheduleRows } from '@/lib/register-schedule-day-summary-finalize'
 import {
   hasRegisterFreeDayRecommendedItinerary,
   isRegisterPendingFreeItineraryDay,
@@ -262,17 +262,15 @@ export async function applyRegisterPostAugmentSchedulePipeline(
 ): Promise<RegisterParsed> {
   parsed = stampRegisterAirtelProductTypeOnParsed(parsed, opts.travelScope)
   if (isRegisterAirtelListing(opts.travelScope, parsed.productType)) {
-    return trimRegisterParsedScheduleToSupplierDays(
-      finalizeRegisterAirtelParsed(parsed.schedule ?? null, await enrichRegisterParsedWithAirtelFit(parsed, {
+    // round3(22:16): fit·에어텔은 제미나이 추천일정 방식 그대로 — 공급사 원문 대조(일수·조각·문장 빼기) 미적용
+    return await enrichRegisterParsedWithAirtelFit(parsed, {
       travelScope: opts.travelScope,
       logLabel: opts.logPrefix ?? 'register-airtel-fit',
       reuseStoredGeminiJson:
         opts.mode === 'confirm' &&
         Boolean(opts.hasPersistedParsed) &&
         Boolean(parsed.registerFitItineraryGeminiJson?.trim()),
-    })),
-      opts.logPrefix,
-    )
+    })
   }
 
   if (PACKAGE_POST_AUGMENT_SUPPLIERS.has(opts.forcedBrandKey)) {
@@ -287,19 +285,6 @@ export async function applyRegisterPostAugmentSchedulePipeline(
   }
 
   return trimRegisterParsedScheduleToSupplierDays(parsed, opts.logPrefix)
-}
-
-/** REGRESSION-FREEZE[register-schedule-row-fragment-filter]: 에어텔 일정도 조각·빈 문구·틀 문장 빼기 (문장 생성 없음) — manifest */
-function finalizeRegisterAirtelParsed(sourceRows: RegisterParsed['schedule'] | null, parsed: RegisterParsed): RegisterParsed {
-  if (!Array.isArray(parsed.schedule) || !parsed.schedule.length) return parsed
-  return {
-    ...parsed,
-    schedule: finalizeRegisterAirtelScheduleRows(parsed.schedule, {
-      destination: parsed.primaryDestination ?? parsed.destination ?? null,
-      departureText: registerParsedDepartureText(parsed),
-      sourceRows: sourceRows ?? null,
-    }),
-  }
 }
 
 /** REGRESSION-FREEZE[register-schedule-supplier-day-count]: 원문 여행기간 일수보다 많은 일차는 만들지 않는다 — manifest */

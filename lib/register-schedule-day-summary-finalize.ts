@@ -7,7 +7,7 @@
  * 가격·상품 제목은 다루지 않는다.
  * REGRESSION-FREEZE[register-schedule-day-summary-finalize]: 3–4 sentences·KO place·same-day keywords — manifest
  */
-import { isRegisterScheduleAiTipSentence, stripRegisterScheduleFragmentSentences, stripRegisterScheduleRowFragments } from '@/lib/register-schedule-row-fragment-filter'
+import { stripRegisterScheduleFragmentSentences, stripRegisterScheduleRowFragments } from '@/lib/register-schedule-row-fragment-filter'
 import {
   destinationEnKeysInKoreanText,
   koreanCityNameFromEnglish,
@@ -790,6 +790,15 @@ function fillPlaceholderDayTitle(
     titleIsDayHotelName(t, row.hotelText)
   if (!placeholder) return row.title
   const { places } = dayRouteParts(String(row.routeText ?? ''))
+  // round3(22:16): 자유일정 날은 도시 제목만 남기지 않는다 — 원문 자유일정 조각을 제목에 둔다
+  const freeSeg = String(row.routeText ?? '')
+    .split(/\s+-\s+/u)
+    .map((x) => x.trim())
+    .find((x) => REGISTER_SCHEDULE_FREE_TIME_RE.test(x))
+  if (freeSeg) {
+    const city = places.find((p) => !REGISTER_SCHEDULE_FREE_TIME_RE.test(p)) ?? dayCityLabel(row) ?? ctx.destinationCity
+    return city && !freeSeg.includes(city) ? `${city} · ${freeSeg}` : freeSeg
+  }
   return places[0] ?? dayCityLabel(row) ?? ctx.destinationCity ?? row.title
 }
 
@@ -830,12 +839,17 @@ function returnDayCity<T extends RegisterScheduleFinalizeRow>(rows: T[], maxDay:
  * 숙박 없는 귀국일에 도시 이름만 있는 날.
  * REGRESSION-FREEZE[register-photo-no-place-day]: 장소 없는 날·숙박 없는 귀국일 사진 제외 — manifest
  */
+/** 자유일정·자유시간·자유관광·반나절/전일 자유 (호텔 부대시설 이용 및 자유시간 포함) */
+export const REGISTER_SCHEDULE_FREE_TIME_RE = /자유\s*(?:일정|시간|관광|여행|투어)|(?:반나절|전일|하루|종일|오전|오후)\s*자유|free\s*(?:day|time)/iu
+
 export function isRegisterScheduleNoPlacePhotoDay(
   row: Pick<RegisterScheduleFinalizeRow, 'day' | 'title' | 'routeText' | 'hotelText'>,
   maxDay: number,
 ): boolean {
   const route = String(row.routeText ?? '').trim()
   const parts = dayRouteParts(route || String(row.title ?? '').replace(/\s*출발\s*·\s*귀국$/u, ''))
+  // REGRESSION-FREEZE[register-photo-no-place-day]: 반나절·하루 자유일정이 있는 날은 장소 없는 날이 아님(제미나이 추천일정·키워드 사진 대상, 사장님 10/30) — manifest
+  if (REGISTER_SCHEDULE_FREE_TIME_RE.test(`${row.title ?? ''} ${route}`)) return false
   const places = parts.places.filter((p) => !/공항|airport/iu.test(p))
   if (places.length === 0) return true
   const day = Number(row.day)
@@ -898,44 +912,3 @@ export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFi
   })
 }
 
-/**
- * REGRESSION-FREEZE[register-schedule-row-fragment-filter]: 에어텔(자유여행) 일정 마지막 손질 — manifest
- * 패키지 요약을 다시 만들지 않고 빼기만 한다: 안내문·요금 조각·숙소명 제목, 기계적 빈 문구, 원문에 없는 출발지 틀 문장,
- * 숙소명을 '둘러봅니다' 목적어로 쓴 합성문. 빈 제목·'N일차'·'귀국'은 도시(없으면 목적지 도시) 제목으로. 새 문장은 만들지 않는다.
- */
-export function finalizeRegisterAirtelScheduleRows<T extends RegisterScheduleFinalizeRow>(
-  rows: T[],
-  opts: { destination?: string | null; departureText?: string | null; sourceRows?: Array<{ day?: unknown; description?: string | null }> | null } = {},
-): T[] {
-  const days = rows.filter((r) => Number(r.day) > 0)
-  if (!days.length) return rows
-  const maxDay = Math.max(...days.map((r) => Number(r.day)))
-  const destinationCity = registerScheduleDestinationCityLabel(opts.destination)
-  const stripped = rows.map((row) => (Number(row.day) > 0 ? stripRegisterScheduleRowFragments({ ...row }) : row))
-  const lastCity = maxDay >= 2 ? returnDayCity(stripped, maxDay, destinationCity) : null
-  const day1 = stripped.find((r) => Number(r.day) === 1)
-  const hub = registerScheduleDepartureHub(String(opts.departureText ?? ''), String(day1?.routeText ?? ''))
-  const known = destinationCity ? [destinationCity] : []
-  const srcText = (day: unknown) =>
-    String(opts.sourceRows?.find((r) => Number(r.day) === Number(day))?.description ?? '').replace(/\s+/g, ' ')
-  return stripped.map((row) => {
-    if (Number(row.day) <= 0) return row
-    const title = fillPlaceholderDayTitle(row, { isLast: maxDay >= 2 && Number(row.day) === maxDay, destinationCity, lastCity })
-    const desc = String(row.description ?? '').trim()
-    let description = row.description
-    if (desc) {
-      const kept: string[] = []
-      for (const s0 of desc.split(/(?<=[.!?。])\s+/u).map((x) => x.trim()).filter(Boolean)) {
-        const s1 = fixDepartureTemplateSentence(s0, hub, known)
-        if (!s1) continue
-        const s2 = cleanSightseeingSentence(s1, row.hotelText)
-        if (!s2 || isRegisterScheduleFillerSentence(s2) || kept.includes(s2)) continue
-        // REGRESSION-FREEZE[register-schedule-row-fragment-filter]: 원문에 없는 AI 팁 문장 금지 (round3 22:03) — manifest
-        if (isRegisterScheduleAiTipSentence(s2) && !srcText(row.day).includes(s2.replace(/\s+/g, ' '))) continue
-        kept.push(s2)
-      }
-      description = kept.join(' ')
-    }
-    return title === row.title && description === row.description ? row : { ...row, title: title ?? row.title, description }
-  })
-}

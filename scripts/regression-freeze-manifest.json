@@ -29910,6 +29910,13 @@
             "REGRESSION-FREEZE[register-photo-no-place-day]",
             "v2-no-place-day"
           ]
+        },
+        {
+          "file": "lib/register-schedule-day-summary-finalize.ts",
+          "mustInclude": [
+            "export const REGISTER_SCHEDULE_FREE_TIME_RE",
+            "if (REGISTER_SCHEDULE_FREE_TIME_RE.test("
+          ]
         }
       ]
     },
@@ -29970,7 +29977,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "일정 제목·경로·설명: 안내문·요금 조각·숙소명 제목·깨진 제목 제거, 조각만 빼고 문장 생성 없음 (round3 21:35) · 밑줄 별칭·중복 문구·원문에 없는 AI 팁 문장 금지 (22:03)",
+      "summary": "일정 제목·경로·설명(패키지): 안내문·요금 조각·숙소명 제목·깨진 제목·밑줄 별칭·중복 문구 제거 (round3 21:35·22:03). fit·에어텔은 제미나이 추천일정 그대로 (22:16)",
       "checks": [
         {
           "file": "lib/register-schedule-row-fragment-filter.ts",
@@ -29979,8 +29986,7 @@
             "export function stripRegisterScheduleRowFragments",
             "export function stripRegisterScheduleFragmentSentences",
             "export function cleanRegisterScheduleUnderscoreAlias",
-            "export function dedupeRegisterScheduleLabelParts",
-            "export function isRegisterScheduleAiTipSentence"
+            "export function dedupeRegisterScheduleLabelParts"
           ]
         },
         {
@@ -29988,16 +29994,17 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-row-fragment-filter]",
             "stripRegisterScheduleRowFragments(next)",
-            "stripRegisterScheduleFragmentSentences(srcRaw)",
-            "export function finalizeRegisterAirtelScheduleRows",
-            "isRegisterScheduleAiTipSentence(s2)"
+            "stripRegisterScheduleFragmentSentences(srcRaw)"
           ]
         },
         {
           "file": "lib/register-parse-post-augment.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[register-schedule-row-fragment-filter]",
-            "finalizeRegisterAirtelParsed(parsed.schedule ?? null, await enrichRegisterParsedWithAirtelFit("
+            "fit·에어텔은 제미나이 추천일정 방식 그대로"
+          ],
+          "mustNotInclude": [
+            "finalizeRegisterAirtelParsed",
+            "finalizeRegisterAirtelScheduleRows"
           ]
         }
       ]

@@ -137,13 +137,3 @@ export function stripRegisterScheduleRowFragments<T extends RegisterScheduleFrag
   return next
 }
 
-/**
- * AI 팁 문장 (원문에 없는 권유·당부): '~해 보세요', '~챙기세요', '~수 있어요', '~좋아요' 등 (round3 22:03).
- * 원문 문장인지는 부르는 쪽이 확인한다 — 이 판별은 원문에 없는 문장에만 쓴다.
- */
-const AI_TIP_SENTENCE_RE =
-  /(?:보세요|하세요|마세요|즐기세요|챙기세요|드세요|가세요|맞이하세요|마무리하세요|느껴\s*보세요|추천(?:해요|합니다|드려요|드립니다)|수\s*있어요|좋아요|좋습니다|좋겠어요|있으니|바랍니다|잊지\s*마|참고하세요|주의하세요)[.!]?$/u
-
-export function isRegisterScheduleAiTipSentence(sentence: string | null | undefined): boolean {
-  return AI_TIP_SENTENCE_RE.test(String(sentence ?? '').trim())
-}

@@ -258,39 +258,12 @@ describe('round3 21:35 일정 조각 걸러내기', () => {
   })
 })
 
-import { finalizeRegisterAirtelScheduleRows } from '@/lib/register-schedule-day-summary-finalize'
-
-describe('round3 21:35 에어텔 일정 손질 (new-ky-2 모양)', () => {
-  const rows = [
-    row({ day: 1, title: '미카즈키', routeText: '미카즈키', hotelText: '미카즈키', description: '인천에서 출발해 미카즈키에서 도착합니다. 미카즈키에서 첫날 일정을 이어갑니다. 첫날 리듬을 맞추며 일정을 이어갑니다.' }),
-    row({ day: 2, title: '다낭 대성당 · 다낭 빈원더스&사파리', routeText: '다낭 대성당 - 마블마운틴 - 다낭 빈원더스&사파리', hotelText: '미카즈키', description: '다낭 대성당과 마블마운틴을 둘러봅니다. 다낭 빈원더스&사파리를 이어서 방문합니다.' }),
-    row({ day: 3, title: '미카즈키', routeText: '미카즈키', hotelText: '미카즈키', description: '미카즈키를 둘러봅니다. 미카즈키에서 주변을 이어서 둘러봅니다.' }),
-    row({ day: 4, title: '4일차', routeText: null, hotelText: null, description: '4일차 구간을 이어서 둘러봅니다. 4일차 동선을 천천히 이어 갑니다.' }),
-    row({ day: 5, title: '귀국', routeText: null, hotelText: null, description: '체크아웃 후 인천으로 귀국합니다. 별도의 관광보다 이동 중심으로 여행을 마무리합니다.' }),
-  ]
-  const out = finalizeRegisterAirtelScheduleRows(rows, { destination: '다낭', departureText: '' })
-  it('숙소명·N일차·귀국 제목은 도시로', () => {
-    expect(out.map((r) => r.title)).toEqual(['다낭', '다낭 대성당 · 다낭 빈원더스&사파리', '다낭', '다낭', '다낭 출발 · 귀국'])
-  })
-  it('원문에 출발지가 없으면 틀 문장·빈 문구 없이 (지어내지 않음)', () => {
-    const all = out.map((r) => String(r.description ?? '')).join(' ')
-    expect(all).not.toMatch(/인천에서 출발해|일차 구간|리듬을 맞추며|미카즈키를 둘러봅니다|인천으로 귀국/)
-    expect(out[1].description).toBe('다낭 대성당과 마블마운틴을 둘러봅니다. 다낭 빈원더스&사파리를 이어서 방문합니다.')
-    expect(out[4].description).toBe('체크아웃 후 귀국합니다.')
-  })
-  it('원문 출발지(김해)가 있으면 그 도시로', () => {
-    const o2 = finalizeRegisterAirtelScheduleRows(rows, { destination: '다낭', departureText: '김해국제공항 출발' })
-    expect(o2[4].description).toBe('체크아웃 후 김해로 귀국합니다.')
-  })
-})
-
 import {
   cleanRegisterScheduleUnderscoreAlias,
   dedupeRegisterScheduleLabelParts,
-  isRegisterScheduleAiTipSentence,
 } from '@/lib/register-schedule-row-fragment-filter'
 
-describe('round3 22:03 제목·경로: 밑줄 별칭·중복 문구·AI 팁', () => {
+describe('round3 22:03 제목·경로: 밑줄 별칭·중복 문구', () => {
   it('밑줄 별칭은 빼고, 한자 원어·사진 출처 꼬리는 떼어 앞 이름만', () => {
     expect(cleanRegisterScheduleUnderscoreAlias('이색체험_전통객잔숙박')).toBe('')
     expect(cleanRegisterScheduleUnderscoreAlias('육합야시장_六合夜市')).toBe('육합야시장')
@@ -314,18 +287,40 @@ describe('round3 22:03 제목·경로: 밑줄 별칭·중복 문구·AI 팁', ()
     expect(r2.title).toBe('가오슝 · 육합야시장')
     expect(r2.routeText).toBe('가오슝 - 육합야시장')
   })
-  it('AI 팁 문장 판별', () => {
-    expect(isRegisterScheduleAiTipSentence('도나우강이 내려다보이는 파노라마 뷰를 감상해 보세요.')).toBe(true)
-    expect(isRegisterScheduleAiTipSentence('공식 택시 승강장을 이용하면 바가지 요금 걱정 없이 안전하게 시내로 이동할 수 있어요.')).toBe(true)
-    expect(isRegisterScheduleAiTipSentence('다낭 대성당과 마블마운틴을 둘러봅니다.')).toBe(false)
+})
+
+
+describe('round3 22:16 자유일정 날은 장소 없는 날이 아님 (사장님 10/30)', () => {
+  it.each([
+    ['전일 자유일정'],
+    ['오사카 - 오사카 추천 1일 자유일정'],
+    ['전일 리조트내 부대시설 이용 및 자유시간'],
+    ['오사카 - 오후 자유시간'],
+    ['반나절 자유일정'],
+  ])('%s → 사진·추천일정 대상', (routeText) => {
+    expect(isRegisterScheduleNoPlacePhotoDay({ day: 2, title: '', routeText, hotelText: 'H' }, 5)).toBe(false)
   })
-  it('에어텔: 원문에 없는 AI 팁 문장은 빼고, 원문에 있는 문장은 남김', () => {
-    const rows = [
-      row({ day: 1, title: '부다페스트', routeText: '부다페스트', description: '부다페스트 공항에 도착해 첫날을 준비해 보세요. 공항 택시를 이용하면 시내로 이동할 수 있어요.' }),
-      row({ day: 2, title: '부다 성', routeText: '부다 성 - 어부의 요새', description: '자유롭게 시내를 즐기세요.' }),
-    ]
-    const out = finalizeRegisterAirtelScheduleRows(rows, { destination: '부다페스트', sourceRows: [{ day: 2, description: '자유롭게 시내를 즐기세요.' }] })
-    expect(out[0].description).toBe('')
-    expect(out[1].description).toBe('자유롭게 시내를 즐기세요.')
+  it('귀국일이라도 자유시간이 있으면 대상', () => {
+    expect(isRegisterScheduleNoPlacePhotoDay({ day: 5, title: '', routeText: '오전 자유시간 - 공항 이동', hotelText: null }, 5)).toBe(false)
+  })
+  it('이동일·호텔만 있는 날·귀국일은 장소 없는 날', () => {
+    expect(isRegisterScheduleNoPlacePhotoDay({ day: 2, title: '', routeText: '공항 이동', hotelText: 'H' }, 5)).toBe(true)
+    expect(isRegisterScheduleNoPlacePhotoDay({ day: 5, title: '귀국', routeText: '', hotelText: null }, 5)).toBe(true)
+  })
+})
+
+describe('round3 22:16 자유일정 날 제목', () => {
+  it('자리표시 제목 + 자유일정 경로 → 도시만이 아니라 자유일정 조각', () => {
+    const out = finalizeRegisterPackageScheduleRows(
+      [
+        row({ day: 1, title: '오사카', routeText: '간사이 공항 - 오사카', hotelText: 'H' }),
+        row({ day: 2, title: '2일차', routeText: '전일 자유일정', hotelText: 'H' }),
+        row({ day: 3, title: '3일차', routeText: '오사카 - 오후 자유시간', hotelText: 'H' }),
+        row({ day: 4, title: '귀국', routeText: '', hotelText: '' }),
+      ],
+      { destination: '오사카' },
+    )
+    expect(out[1].title).toBe('오사카 · 전일 자유일정')
+    expect(out[2].title).toBe('오사카 · 오후 자유시간')
   })
 })
