@@ -7,6 +7,7 @@
  * 가격·상품 제목은 다루지 않는다.
  * REGRESSION-FREEZE[register-schedule-day-summary-finalize]: 3–4 sentences·KO place·same-day keywords — manifest
  */
+import { stripRegisterScheduleFragmentSentences, stripRegisterScheduleRowFragments } from '@/lib/register-schedule-row-fragment-filter'
 import {
   destinationEnKeysInKoreanText,
   koreanCityNameFromEnglish,
@@ -876,7 +877,8 @@ export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFi
     if (row.routeText && /[A-Za-z]/.test(row.routeText)) {
       next.routeText = koreanizeRegisterSchedulePlaceNames(row.routeText)
     }
-    return next
+    // REGRESSION-FREEZE[register-schedule-row-fragment-filter]: 안내문·요금 조각·숙소명 제목·깨진 제목 제거 (조각만, 문장 생성 없음) — manifest
+    return stripRegisterScheduleRowFragments(next)
   })
   const lastCity = maxDay >= 2 ? returnDayCity(normalized, maxDay, destinationCity) : null
   const day1 = normalized.find((r) => Number(r.day) === 1)
@@ -889,7 +891,8 @@ export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFi
   const keyed = restrictRegisterScheduleImageKeywordsToSameDay(prepared)
   return keyed.map((row) => {
     if (Number(row.day) <= 0) return row
-    const src = opts.sourceRows?.find((r) => Number(r.day) === Number(row.day))?.description ?? null
+    const srcRaw = opts.sourceRows?.find((r) => Number(r.day) === Number(row.day))?.description ?? null
+    const src = srcRaw == null ? null : stripRegisterScheduleFragmentSentences(srcRaw)
     const description = finalizeRegisterScheduleDaySummary(row, { maxDay, sourceDescription: src, lastCity, departureHub, destinationCity })
     return description === String(row.description ?? '') ? row : { ...row, description }
   })

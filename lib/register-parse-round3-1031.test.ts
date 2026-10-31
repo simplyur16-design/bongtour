@@ -184,3 +184,76 @@ describe('round3 1일차 틀 문장 (봉실장 21:27)', () => {
     expect(out[2].title).toBe('곤명 출발 · 귀국')
   })
 })
+
+import {
+  isRegisterScheduleNoticeOrFareFragment,
+  repairRegisterScheduleBrokenTitlePart,
+  stripRegisterScheduleRowFragments,
+} from '@/lib/register-schedule-row-fragment-filter'
+
+describe('round3 21:35 일정 조각 걸러내기', () => {
+  it('안내문·요금 조각 판별', () => {
+    expect(isRegisterScheduleNoticeOrFareFragment('결제취소문자가 가지는 않습니다')).toBe(true)
+    expect(isRegisterScheduleNoticeOrFareFragment('Customs. BN 어플 다운로드 후 진행')).toBe(true)
+    expect(isRegisterScheduleNoticeOrFareFragment('000원/인)')).toBe(true)
+    expect(isRegisterScheduleNoticeOrFareFragment('3인/1실 이용시, 트윈베드에 간이침대 추가됩니다.')).toBe(true)
+    expect(isRegisterScheduleNoticeOrFareFragment('참고사항')).toBe(true)
+    expect(isRegisterScheduleNoticeOrFareFragment('자금성')).toBe(false)
+    expect(isRegisterScheduleNoticeOrFareFragment('천안문 광장')).toBe(false)
+    expect(isRegisterScheduleNoticeOrFareFragment('반다르 세리 베가완')).toBe(false)
+  })
+  it('제목·경로·설명에서 조각만 빼고 문장을 만들지 않음 (lt-0096 D1)', () => {
+    const r = stripRegisterScheduleRowFragments({
+      title: 'Customs. BN 어플 다운로드 후 진행 · 반다르 세리 베가완',
+      routeText: 'Customs. BN 어플 다운로드 후 진행 - 반다르 세리 베가완',
+      description: '결제취소문자가 가지는 않습니다.',
+      hotelText: '상세보기',
+    })
+    expect(r.title).toBe('반다르 세리 베가완')
+    expect(r.routeText).toBe('반다르 세리 베가완')
+    expect(r.description).toBe('')
+  })
+  it('요금 조각 제목은 비워 다음 단계가 도시로 채움 (yb-0110 D6)', () => {
+    const r = stripRegisterScheduleRowFragments({
+      title: '참고사항 · 3인/1실 이용시, 트윈베드에 간이침대 추가됩니다.',
+      routeText: '참고사항 - 000원/인) - 3인/1실 이용시, 트윈베드에 간이침대 추가됩니다.',
+      description: null,
+    })
+    expect(r.title).toBe('')
+    expect(r.routeText).toBe('')
+  })
+  it('경로 속 요금 조각 (yb-0120 D4)', () => {
+    const r = stripRegisterScheduleRowFragments({ title: '자금성 · 000원/인', routeText: '자금성 - 천안문 광장 - 북경 - 참고사항 - 000원/인', description: '자금성과 천안문 광장을 둘러봅니다.' })
+    expect(r.title).toBe('자금성')
+    expect(r.routeText).toBe('자금성 - 천안문 광장 - 북경')
+    expect(r.description).toBe('자금성과 천안문 광장을 둘러봅니다.')
+  })
+  it('숙소 이름만 있는 제목·경로 제거 (new-ky-2 미카즈키)', () => {
+    const r = stripRegisterScheduleRowFragments({ title: '미카즈키', routeText: '미카즈키', hotelText: '미카즈키', description: null })
+    expect(r.title).toBe('')
+    expect(r.routeText).toBe('')
+  })
+  it('깨진 제목 손질', () => {
+    expect(repairRegisterScheduleBrokenTitlePart('000원/인)')).toBe('')
+    expect(repairRegisterScheduleBrokenTitlePart('대소석림(전통차 탑승')).toBe('대소석림')
+    expect(repairRegisterScheduleBrokenTitlePart('· 하롱베이 -')).toBe('하롱베이')
+    expect(repairRegisterScheduleBrokenTitlePart('바티칸 (성 베드로 대성당)')).toBe('바티칸 (성 베드로 대성당)')
+  })
+  it('설명은 조각 문장만 빼고 원문 문장은 그대로', () => {
+    const r = stripRegisterScheduleRowFragments({ title: '연태', routeText: '연태', description: '금사탄 해변을 산책합니다. 3인/1실 이용시, 트윈베드에 간이침대 추가됩니다.' })
+    expect(r.description).toBe('금사탄 해변을 산책합니다.')
+  })
+  it('파이프 끝 제목: 요금 조각 귀국일 → 도시 출발 · 귀국, 숙소명 제목 → 도시', () => {
+    const out = finalizeRegisterPackageScheduleRows(
+      [
+        row({ day: 1, title: '미카즈키', routeText: '미카즈키', hotelText: '미카즈키' }),
+        row({ day: 2, title: '다낭 대성당', routeText: '다낭 대성당 - 마블마운틴', hotelText: '미카즈키' }),
+        row({ day: 3, title: '참고사항 · 000원/인', routeText: '참고사항 - 000원/인' }),
+      ],
+      { destination: '다낭' },
+    )
+    expect(out[0].title).toBe('다낭')
+    expect(out[2].title).toBe('다낭 출발 · 귀국')
+    for (const r of out) expect(`${r.title} ${r.routeText} ${r.description}`).not.toMatch(/참고사항|원\/인|미카즈키 ·/)
+  })
+})

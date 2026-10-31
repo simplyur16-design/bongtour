@@ -29963,6 +29963,32 @@
           ]
         }
       ]
+    },
+    {
+      "id": "register-schedule-row-fragment-filter",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "일정 제목·경로·설명: 안내문·요금 조각·숙소명 제목·깨진 제목 제거, 조각만 빼고 문장 생성 없음 (round3 21:35)",
+      "checks": [
+        {
+          "file": "lib/register-schedule-row-fragment-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-row-fragment-filter]",
+            "export function stripRegisterScheduleRowFragments",
+            "export function stripRegisterScheduleFragmentSentences"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-day-summary-finalize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-row-fragment-filter]",
+            "stripRegisterScheduleRowFragments(next)",
+            "stripRegisterScheduleFragmentSentences(srcRaw)"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
