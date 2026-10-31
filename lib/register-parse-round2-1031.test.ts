@@ -218,3 +218,23 @@ describe('4b) 요약 — 불포함 식사·이름 없는 예정 호텔·자리�
     expect(rows[0]!.routeText).toBe('세부')
   })
 })
+
+import { adjacentDayVisitCityForEdgeRoute } from '@/lib/register-pre-photo-self-heal'
+
+describe('round2-1031 edge route restore prefers adjacent-day city over title hashtag city', () => {
+  const days = [
+    { day: 1, routeText: '' },
+    { day: 2, routeText: '베르사유 궁전(내부) - 샹제리제 거리 - 파리' },
+    { day: 3, routeText: '로마 시내 - 로마 출발' },
+    { day: 4, routeText: '' },
+  ]
+  it('departure day takes the first city segment of day 2', () => {
+    expect(adjacentDayVisitCityForEdgeRoute(days, 1, 4)).toBe('파리')
+  })
+  it('return day takes the last city segment of the previous day', () => {
+    expect(adjacentDayVisitCityForEdgeRoute(days, 4, 4)).toBe('로마')
+  })
+  it('returns null when the neighbour has no city (falls back to destination)', () => {
+    expect(adjacentDayVisitCityForEdgeRoute([{ day: 1, routeText: '' }, { day: 2, routeText: '자유시간' }], 1, 2)).toBeNull()
+  })
+})

@@ -57,6 +57,7 @@ import {
   scrubSameDayDuplicateImageKeyword2,
   shouldRejectAirlineTransitHubKeywordForTrip,
   softDupForeignVisitCityForMiddleRoute,
+  isScheduleDomesticHubToken,
   allowRouteRevisitBareVisitCitySoftDup,
   enforceRegisterScheduleTripUniqueImageKeywords,
 } from '@/lib/register-schedule-trip-image-keyword-dedupe'
@@ -2466,13 +2467,45 @@ function restoreEmptyEdgeRouteFromDest<T extends RegisterPrePhotoHealRow>(
       ?.replace(/\s+/g, ' ')
       .trim() ||
     ''
-  if (!fill) return rows
   return rows.map((row) => {
     const slot = resolveScheduleKeywordSlotKind(Number(row.day), maxDay, activeDays)
     if (slot === 'middle') return row
     if (String(row.routeText ?? '').trim()) return row
-    return { ...row, routeText: fill.slice(0, 500) }
+    // round2-1031: 상품 제목 해시태그의 도시(#루체른)보다 인접 일차의 실제 도시(파리)를 우선 — 출발일은 다음 날 첫 도시, 귀국일은 전날 마지막 도시
+    const neighbor = adjacentDayVisitCityForEdgeRoute(days, Number(row.day), maxDay)
+    const value = neighbor || fill
+    if (!value) return row
+    return { ...row, routeText: value.slice(0, 500) }
   })
+}
+
+/** 출발·귀국 빈 route — 인접 일차 route에서 도시 세그먼트(한글 원문)를 고른다. 없으면 null */
+export function adjacentDayVisitCityForEdgeRoute(
+  days: ReadonlyArray<{ day: number | string; routeText?: string | null }>,
+  day: number,
+  maxDay: number,
+): string | null {
+  const isFirst = day === Math.min(...days.map((r) => Number(r.day)))
+  const isLast = day === maxDay
+  if (!isFirst && !isLast) return null
+  const ordered = [...days].sort((a, b) => Number(a.day) - Number(b.day))
+  const idx = ordered.findIndex((r) => Number(r.day) === day)
+  const neighbor = isFirst ? ordered[idx + 1] : ordered[idx - 1]
+  const route = String(neighbor?.routeText ?? '').trim()
+  if (!route) return null
+  const segs = splitRouteTextPlaceSegments(route)
+  const scan = isFirst ? segs : [...segs].reverse()
+  for (const raw of scan) {
+    const seg = raw
+      .replace(/\s*(?:이동|출발|도착|입국|출국|경유|관광|시내|자유)(?:\s.*)?$/u, '')
+      .replace(/[\(（][^)）]*[\)）]/gu, '')
+      .trim()
+    if (seg.length < 2 || seg.length > 12) continue
+    if (!/^[가-힣]+$/u.test(seg)) continue
+    if (isScheduleDomesticHubToken(seg)) continue
+    if (firstMatchingScheduleCityEn(seg)) return seg
+  }
+  return null
 }
 
 function stripInventedContentOnEmptyRoutes<T extends RegisterPrePhotoHealRow>(

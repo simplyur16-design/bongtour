@@ -875,7 +875,7 @@ function preferUnusedLandmarkOverBareSoftDup(
   return primary
 }
 
-function isScheduleDomesticHubToken(token: string): boolean {
+export function isScheduleDomesticHubToken(token: string): boolean {
   const t = String(token ?? '').trim()
   if (!t) return true
   if (/^(?:인천|김포|부산|대구|청주|김해|서울|제주)(?:\s*국제?\s*공항|\s*공항)?(?:\s*출발|\s*도착)?$/u.test(t)) {
