@@ -29426,6 +29426,59 @@
           ]
         }
       ]
+    },
+    {
+      "id": "process-images-preserve-route-text",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사진 채움(process-images)이 일정 JSON을 다시 써도 일차 routeText 유지 (10/31 첫 배치 verify_failed 48·큐 이탈 원인)",
+      "checks": [
+        {
+          "file": "lib/register-schedule-route-text-preserve.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[process-images-preserve-route-text]",
+            "export function preserveScheduleRouteText"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "preserveScheduleRouteText(scheduleArr.map(",
+            "preserveScheduleRouteText(workingSchedule.map("
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-photo-subject-filter",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "자동 사진 후보 탈락은 목적지 불일치만: 다른 도시·약한 일치·무관 사물(시계·비행기)·일정에 없는 동물·실내(복도·서점). 얼굴·간판은 사유 아님, 출처 미상은 표시만 (사장님 10/31 09:58)",
+      "checks": [
+        {
+          "file": "lib/register-photo-subject-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-subject-filter]",
+            "photoSourceMetadataFlag",
+            "unrelated_object",
+            "animal_not_in_itinerary",
+            "interior_not_place",
+            "city_mismatch",
+            "no_place_relevance"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-subject-filter]",
+            "photoSubjectBlockReason("
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -29892,6 +29945,17 @@
       "summary": "A-5 상세 항공사 — 단일 항공사 선택기 없음·항공사 전환 정합·가격행 없으면 가격 없음·카드 문구·버튼 N=목록 수·머리말 위 렌더 금지·사진 아래 상자 삭제",
       "files": [
         "lib/a5-two-buttons-1030.test.ts"
+      ]
+    },
+    {
+      "id": "auto-photo-fill-1031-fix",
+      "tier": [
+        "ci"
+      ],
+      "summary": "사진 채움 routeText 유지 + 사진 후보 주제 필터",
+      "files": [
+        "lib/register-schedule-route-text-preserve.test.ts",
+        "lib/register-photo-subject-filter.test.ts"
       ]
     }
   ]

@@ -18,6 +18,8 @@ import {
   type PhotoPoolAttribution,
   type PoolPhotoRecord,
 } from '@/lib/photo-pool'
+import { photoCandidateText, photoSubjectBlockReason } from '@/lib/register-photo-subject-filter'
+import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-preserve'
 import { resolveDayHeroWithFallback, saveDayHeroResult } from '@/lib/itinerary-day-hero-image'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { recordAssetUsage } from '@/lib/asset-usage-log'
@@ -450,7 +452,17 @@ export async function POST(req: Request) {
     const recentIndex: RecentUseIndex | null = photoChainV2
       ? await loadRecentUseIndex(prisma, { productId: String(product.id), destination })
       : null
-    const poolListRaw = await getPoolPhotosForDestination(prisma, destination)
+    // REGRESSION-FREEZE[register-photo-subject-filter]: 풀 사진도 이름표로 얼굴·간판·무관 사물·다른 도시 탈락 — manifest
+    const subjectCtx = {
+      destination,
+      destinationEn: mapDestination((product as { primaryDestination?: string | null }).primaryDestination ?? destination),
+      productText: [product.title, destination, ...scheduleArr.map((r) => `${r.title ?? ''} ${r.routeText ?? ''} ${r.imageKeyword ?? ''}`)].join(' '),
+    }
+    const poolListRaw = (await getPoolPhotosForDestination(prisma, destination)).filter((rec) => {
+      const why = photoSubjectBlockReason(photoCandidateText([rec.attractionName, rec.filePath]), subjectCtx)
+      if (why) console.log(`[FILTER] 풀 사진 제외 ${why}`)
+      return !why
+    })
     // v2: 같은 도시 상품끼리 같은 사진을 쓰지 않게 최근에 덜 쓴 풀 사진부터
     const poolList = photoChainV2 ? rotatePoolWithinCity(poolListRaw, recentIndex) : poolListRaw
 
@@ -474,7 +486,7 @@ export async function POST(req: Request) {
         }
       }
 
-      const updatedSchedule: ScheduleEntry[] = scheduleArr.map((item, i) => {
+      const updatedSchedule: ScheduleEntry[] = preserveScheduleRouteText(scheduleArr.map((item, i) => {
         const rec = picked[i]
         const poolKw = rec?.attractionName?.trim() || `day_${item.day ?? i + 1}`
         return {
@@ -488,7 +500,7 @@ export async function POST(req: Request) {
             ? { source: rec.source, photographer: rec.source, originalLink: '' }
             : item.imageSource,
         }
-      })
+      }), scheduleArr)
       const scheduleStr = await stringifyScheduleWithPexelsRehost(
         product.id as string,
         updatedSchedule,
@@ -542,7 +554,7 @@ export async function POST(req: Request) {
           await sealPexelsPhotoObjectForScheduleSlot(prisma, destination, schedPhotos[i]!, `premade_${i + 1}`)
         )
       }
-      const updatedSchedule: ScheduleEntry[] = scheduleArr.map((item, i) => {
+      const updatedSchedule: ScheduleEntry[] = preserveScheduleRouteText(scheduleArr.map((item, i) => {
         const photo = schedSealed[i] ?? null
         const premadeKw = photo ? `premade_${i + 1}` : `day_${item.day ?? i + 1}`
         return {
@@ -556,7 +568,7 @@ export async function POST(req: Request) {
             ? { source: photo.source, photographer: photo.photographer, originalLink: photo.originalLink }
             : item.imageSource,
         }
-      })
+      }), scheduleArr)
       const scheduleStrPre = await stringifyScheduleWithPexelsRehost(
         product.id as string,
         updatedSchedule,
@@ -606,8 +618,20 @@ export async function POST(req: Request) {
       })
       return photoFromPoolSave(saved)
     }
-    const chainAccept = (extra?: (c: ChainCandidate) => boolean) => (c: ChainCandidate) =>
-      !usage.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId }) && (extra ? extra(c) : true)
+    const chainAccept = (extra?: (c: ChainCandidate) => boolean) => (c: ChainCandidate) => {
+      if (usage.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId })) return false
+      // REGRESSION-FREEZE[register-photo-subject-filter]: 약한 일치·얼굴·간판·무관 사물·다른 도시 후보 탈락 — manifest
+      const why = photoSubjectBlockReason(
+        photoCandidateText([c.altText, c.pageUrl ?? c.originalLink]),
+        { ...subjectCtx, query: c.queryUsed },
+        { requirePlaceMatch: true },
+      )
+      if (why) {
+        console.log(`[FILTER] 후보 제외 ${why}`)
+        return false
+      }
+      return extra ? extra(c) : true
+    }
     const runChain = async (
       slot: string,
       query: string,
@@ -1064,7 +1088,7 @@ export async function POST(req: Request) {
 
     const prevByDay = new Map<number, ScheduleEntry>()
     for (const it of workingSchedule) prevByDay.set(Number(it.day), it)
-    const updatedSchedule: ScheduleEntry[] = workingSchedule.map((item, i) => {
+    const updatedSchedule: ScheduleEntry[] = preserveScheduleRouteText(workingSchedule.map((item, i) => {
       const slot = schedulePhotos[i]
       const photo = slot?.photo
       const secondary = scheduleSecondaryPhotos[i]
@@ -1105,7 +1129,7 @@ export async function POST(req: Request) {
         imageSelectionMode: item.imageSelectionMode ?? null,
         imageCandidateOrigin: slotDebug[i]?.candidateOrigin ?? item.imageCandidateOrigin ?? null,
       }
-    })
+    }), workingSchedule)
 
     const coverCandidates = schedulePhotos
       .map((sp, i) => {
