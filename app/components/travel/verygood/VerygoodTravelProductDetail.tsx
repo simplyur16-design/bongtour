@@ -584,7 +584,8 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
     })
     /** 출발행(ProductDeparture) SSOT — 본문·구조화 flightManualCorrection 이 leg/항공사를 덮어쓰면 11월가격+7월항공 같은 섞임 발생 */
     if (normalizeSupplierOrigin(product.originSource) === 'verygoodtour') return raw
-    if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
+    // REGRESSION-FREEZE[rep-departure-future-1031]: 다른 회차 스냅샷 제외 회차는 overlay 생략
+    if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection && !raw?.flightSnapshotExcluded) {
       return applyFlightManualCorrectionForPublicOrigin(raw, product.flightManualCorrection, product.originSource)
     }
     return raw

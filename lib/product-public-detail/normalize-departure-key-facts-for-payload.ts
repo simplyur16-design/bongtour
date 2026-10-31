@@ -85,6 +85,8 @@ export function normalizeDepartureKeyFactsForPayload(facts: DepartureKeyFacts): 
     ),
     outbound: normalizeLegForPayload(facts.outbound, 'outbound'),
     inbound: normalizeLegForPayload(facts.inbound, 'inbound'),
+    // REGRESSION-FREEZE[rep-departure-future-1031]: 회차 불일치 스냅샷 제외 신호 보존
+    ...(facts.flightSnapshotExcluded ? { flightSnapshotExcluded: true } : {}),
   }
 }
 

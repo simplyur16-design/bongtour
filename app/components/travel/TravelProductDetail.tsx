@@ -448,7 +448,8 @@ export default function TravelProductDetail({
       departureKeyFactsByDate: product.departureKeyFactsByDate ?? null,
       departureKeyFactsByDepartureId: product.departureKeyFactsByDepartureId ?? null,
     })
-    if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
+    // REGRESSION-FREEZE[rep-departure-future-1031]: 다른 회차 스냅샷 제외 회차는 overlay 생략
+    if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection && !row?.flightSnapshotExcluded) {
       return applyFlightManualCorrectionForPublicOrigin(row, product.flightManualCorrection, product.originSource)
     }
     return row

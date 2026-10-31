@@ -49,6 +49,11 @@ export type DepartureKeyFacts = {
   inboundSummary: string | null
   /** 미팅·집결 안내 */
   meetingSummary: string | null
+  /**
+   * REGRESSION-FREEZE[rep-departure-future-1031]: 상품 대표 항공 스냅샷(다른 출발 회차 수집분)을 이 회차에
+   * 덮어쓰지 않음 — 클라이언트 flightManualCorrection(auto) overlay 생략 신호.
+   */
+  flightSnapshotExcluded?: boolean
 }
 
 const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토']

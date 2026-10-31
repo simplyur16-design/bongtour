@@ -59,6 +59,10 @@ import {
   mergeAdminDepartureFactsWithParsedLegs,
 } from '@/lib/departure-key-facts'
 import {
+  resolveRepresentativeFlightSnapshot,
+  snapshotAppliesToDeparture,
+} from '@/lib/representative-departure-snapshot'
+import {
   buildKeyFactsFromAdminProfile,
   parseFlightAdminJson,
   resolveFlightDisplayPolicy,
@@ -544,7 +548,32 @@ export async function buildProductPublicDetailRenderModel(
   const baseFactsByDate = departures.length > 0 ? buildDepartureKeyFactsMap(departures) : {}
   const departureKeyFactsByDepartureId =
     departures.length > 0 ? buildDepartureKeyFactsByDepartureId(departures) : undefined
-  const parsedFactsByDate =
+  // REGRESSION-FREEZE[rep-departure-future-1031]: 다른(지난) 출발 회차에서 수집한 대표 항공 스냅샷은
+  // 항공사/편명 계열이 다른 회차에 덮어쓰지 않는다 — 회차 자체 값만(추정 금지). 오늘 날짜와 무관한 판단.
+  const representativeFlightSnapshot = resolveRepresentativeFlightSnapshot({
+    structuredSignals: structuredAny,
+    flightManualCorrection,
+    originCode: travelProduct.originCode ?? null,
+  })
+  const flightSnapshotExcludedDateKeys = new Set<string>()
+  const flightSnapshotExcludedDepartureIds = new Set<string>()
+  for (const d of departures) {
+    const ymd =
+      d.departureDate instanceof Date
+        ? d.departureDate.toISOString().slice(0, 10)
+        : String(d.departureDate ?? '').slice(0, 10) || null
+    if (
+      !snapshotAppliesToDeparture(representativeFlightSnapshot, {
+        ymd,
+        carrierName: d.carrierName ?? null,
+        outboundFlightNo: d.outboundFlightNo ?? null,
+      })
+    ) {
+      if (ymd) flightSnapshotExcludedDateKeys.add(ymd)
+      flightSnapshotExcludedDepartureIds.add(String(d.id))
+    }
+  }
+  const enrichedFactsByDate =
     departures.length > 0
       ? verygoodtourPublicRowFactsOnly
         ? baseFactsByDate
@@ -554,6 +583,26 @@ export async function buildProductPublicDetailRenderModel(
             productAirlineForDisplay
           )
       : undefined
+  const parsedFactsByDate =
+    enrichedFactsByDate && flightSnapshotExcludedDateKeys.size > 0
+      ? Object.fromEntries(
+          Object.entries(enrichedFactsByDate).map(([dateKey, f]) => {
+            if (!flightSnapshotExcludedDateKeys.has(dateKey) || !baseFactsByDate[dateKey]) return [dateKey, f]
+            const own = enrichDepartureKeyFactsMapForDisplay(
+              { [dateKey]: baseFactsByDate[dateKey]! },
+              null,
+              productAirlineForDisplay
+            )[dateKey]
+            return [dateKey, { ...(own ?? baseFactsByDate[dateKey]!), flightSnapshotExcluded: true }]
+          })
+        )
+      : enrichedFactsByDate
+  if (departureKeyFactsByDepartureId && flightSnapshotExcludedDepartureIds.size > 0) {
+    for (const id of flightSnapshotExcludedDepartureIds) {
+      const f = departureKeyFactsByDepartureId[id]
+      if (f) departureKeyFactsByDepartureId[id] = { ...f, flightSnapshotExcluded: true }
+    }
+  }
   const adminFactsTemplate =
     adminFlightProfile != null
       ? buildKeyFactsFromAdminProfile(adminFlightProfile, productAirlineForDisplay)

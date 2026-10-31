@@ -422,7 +422,8 @@ function VerygoodMobileProductDetailView({ product: productInput, showEsimCrossS
       departureKeyFactsByDepartureId: product.departureKeyFactsByDepartureId ?? null,
     })
     if (normalizeSupplierOrigin(product.originSource) === 'verygoodtour') return raw
-    if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection) {
+    // REGRESSION-FREEZE[rep-departure-future-1031]: 다른 회차 스냅샷 제외 회차는 overlay 생략
+    if (product.applyFlightManualCorrectionOverlay && product.flightManualCorrection && !raw?.flightSnapshotExcluded) {
       return applyFlightManualCorrectionForPublicOrigin(raw, product.flightManualCorrection, product.originSource)
     }
     return raw

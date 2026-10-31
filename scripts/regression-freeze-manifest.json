@@ -29511,6 +29511,73 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rep-departure-future-1031",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "대표 항공 스냅샷(지난/다른 회차 수집분)은 항공사·편명 계열 다른 회차에 덮어쓰지 않음 + 지난 스냅샷 재수집 계획(오늘 이후 가장 가까운 판매 중 출발)",
+      "checks": [
+        {
+          "file": "lib/representative-departure-snapshot.ts",
+          "mustInclude": [
+            "export function snapshotAppliesToDeparture",
+            "export function planRepresentativeRecollect",
+            "export function pickNearestOnSaleDepartureOnOrAfter"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustInclude": [
+            "resolveRepresentativeFlightSnapshot({",
+            "flightSnapshotExcluded: true"
+          ]
+        },
+        {
+          "file": "lib/product-public-detail/normalize-departure-key-facts-for-payload.ts",
+          "mustInclude": [
+            "flightSnapshotExcluded: true"
+          ]
+        },
+        {
+          "file": "app/components/travel/TravelProductDetail.tsx",
+          "mustInclude": [
+            "!row?.flightSnapshotExcluded"
+          ]
+        },
+        {
+          "file": "app/components/travel/MobileProductDetail.tsx",
+          "mustInclude": [
+            "!row?.flightSnapshotExcluded"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
+          "mustInclude": [
+            "!row?.flightSnapshotExcluded"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
+          "mustInclude": [
+            "!row?.flightSnapshotExcluded"
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodTravelProductDetail.tsx",
+          "mustInclude": [
+            "!raw?.flightSnapshotExcluded"
+          ]
+        },
+        {
+          "file": "app/components/travel/verygood/VerygoodMobileProductDetail.tsx",
+          "mustInclude": [
+            "!raw?.flightSnapshotExcluded"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -29577,7 +29644,8 @@
         "lib/register-day-photo-ai-label.test.ts",
         "lib/register-auto-photo-register-schedule.test.ts",
         "lib/departure-airline-display.test.ts",
-        "lib/naeiltour-airline-flight-region.test.ts"
+        "lib/naeiltour-airline-flight-region.test.ts",
+        "lib/representative-departure-snapshot.test.ts"
       ]
     },
     {
