@@ -7,9 +7,12 @@ import {
   isRegisterScheduleFillerSentence,
   isRegisterScheduleNoPlacePhotoDay,
   registerScheduleDestinationCityLabel,
+  fixDepartureTemplateSentence,
+  registerScheduleDepartureHub,
   type RegisterScheduleFinalizeRow,
 } from '@/lib/register-schedule-day-summary-finalize'
 import { personIsMainSubject } from '@/lib/register-photo-match-gate'
+import { registerSupplierTripDays, registerSupplierTripDaysFromDuration, trimRegisterScheduleToSupplierDays } from '@/lib/register-schedule-supplier-day-count'
 
 const row = (r: Partial<RegisterScheduleFinalizeRow> & { day: number }): RegisterScheduleFinalizeRow =>
   ({ title: '', description: '', routeText: '', hotelText: '', imageKeyword: '', imageKeyword2: null, ...r }) as RegisterScheduleFinalizeRow
@@ -111,4 +114,73 @@ describe('round3 사람 필터 — 사람이 주인공일 때만', () => {
     'portrait of a young man',
     'a woman gazes at colorful fish and coral in a vibrant aquarium display.',
   ])('탈락: %s', (alt) => expect(personIsMainSubject(alt)).toBe(true))
+})
+
+describe('round3 원문 일수보다 많은 일차 금지 (봉실장 21:18)', () => {
+  it.each([
+    ['2박 3일', 3],
+    ['2박3일', 3],
+    ['3일', 3],
+    ['3박 5일', 5],
+    ['', null],
+    ['미정', null],
+  ] as const)('일수 읽기 %s → %s', (d, n) => expect(registerSupplierTripDaysFromDuration(d)).toBe(n))
+  it('원문 3일인데 4일차가 있으면 4일차를 뺀다', () => {
+    const rows = [{ day: 1 }, { day: 2 }, { day: 3 }, { day: 4 }]
+    const r = trimRegisterScheduleToSupplierDays(rows, 3)
+    expect(r.rows.map((x) => x.day)).toEqual([1, 2, 3])
+    expect(r.droppedDays).toEqual([4])
+  })
+  it('여행기간·상품명 일수가 어긋나면 큰 값(yb-0110 기간 5일·상품명 6일 → 6, 6일차 유지)', () => {
+    expect(registerSupplierTripDays({ duration: '5일', title: '곤명/여강/중전 6일 #TOP PICK' })).toBe(6)
+    expect(registerSupplierTripDays({ duration: '2박 3일', title: '청도 3일 [고품격]' })).toBe(3)
+    expect(registerSupplierTripDays({ duration: null, title: null })).toBeNull()
+  })
+  it('일수를 모르면 그대로', () => {
+    const rows = [{ day: 1 }, { day: 2 }, { day: 3 }, { day: 4 }]
+    expect(trimRegisterScheduleToSupplierDays(rows, null).rows).toBe(rows)
+  })
+})
+
+describe('round3 1일차 틀 문장 (봉실장 21:27)', () => {
+  it('원문 출발지가 없으면 출발 틀 문장을 버린다', () => {
+    expect(fixDepartureTemplateSentence('인천에서 출발해 곤명에서 도착합니다.', null)).toBeNull()
+  })
+  it('원문 출발지가 청주면 청주로', () => {
+    expect(fixDepartureTemplateSentence('인천에서 출발해 연태에서 도착합니다.', '청주', ['연태'])).toBe('청주에서 출발해 연태에 도착합니다.')
+  })
+  it.each(['보얼예술특구', '별도 간식을 챙겨주시면 좋습니다.', '가이드 미팅', '미카즈키 리조트'])('도착지 자리에 도시가 아닌 말(%s)이면 버린다', (x) => {
+    expect(fixDepartureTemplateSentence(`인천에서 출발해 ${x}에서 도착합니다.`, '인천')).toBeNull()
+  })
+  it('귀국 틀 문장의 출발지도 원문 것으로', () => {
+    expect(fixDepartureTemplateSentence('체크아웃 후 인천으로 귀국합니다.', '김해')).toBe('체크아웃 후 김해로 귀국합니다.')
+    expect(fixDepartureTemplateSentence('체크아웃 후 인천으로 귀국합니다.', null)).toBe('체크아웃 후 귀국합니다.')
+  })
+  it('출발지 확인: 출국 항공 출발 공항 → 1일차 동선 맨 앞', () => {
+    expect(registerScheduleDepartureHub('청주 국제공항', '')).toBe('청주')
+    expect(registerScheduleDepartureHub('', '김해 - 후쿠오카')).toBe('김해')
+    expect(registerScheduleDepartureHub('', '곤명 - 쿤밍')).toBeNull()
+  })
+  it('파이프 결과: 원문 출발지 없음 → 1일차 틀 문장 없음', () => {
+    const out = finalizeRegisterPackageScheduleRows(
+      [
+        row({ day: 1, title: '곤명 · 쿤밍', routeText: '곤명 - 쿤밍', description: '인천에서 출발해 곤명에서 도착합니다. 첫날 리듬을 맞추며 일정을 이어갑니다.', hotelText: '미정' }),
+        row({ day: 2, title: '호도협', routeText: '호도협 - 여강', hotelText: '미정' }),
+        row({ day: 3, title: '귀국', routeText: '' }),
+      ],
+      { destination: '쿤밍' }
+    )
+    expect(out[0].description).not.toMatch(/출발해/)
+  })
+  it('귀국일 제목에 명소 이름을 도시로 쓰지 않음(yb-0110 대소석림)', () => {
+    const out = finalizeRegisterPackageScheduleRows(
+      [
+        row({ day: 1, title: '쿤밍', routeText: '인천 - 쿤밍', hotelText: 'H' }),
+        row({ day: 2, title: '대소석림', routeText: '대소석림(전통차 탑승) / 구향동굴(리프트) - 곤명', hotelText: 'H' }),
+        row({ day: 3, title: '귀국', routeText: '대소석림' }),
+      ],
+      { destination: '곤명' }
+    )
+    expect(out[2].title).toBe('곤명 출발 · 귀국')
+  })
 })

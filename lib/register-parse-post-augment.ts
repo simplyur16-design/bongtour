@@ -8,6 +8,7 @@
  * REGRESSION-FREEZE[register-pre-photo-self-heal]: skip/apply 후 파라도르·중복 문장 셀프힐 — manifest
  * REGRESSION-FREEZE[register-admin-lane-pre-photo]: 패키지 레인만 키워드 파이프 — manifest
  */
+import { registerSupplierTripDays, trimRegisterScheduleToSupplierDays } from '@/lib/register-schedule-supplier-day-count'
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import {
   isRegisterAirtelListing,
@@ -171,7 +172,7 @@ async function applyPackagePostAugmentScheduleKeywords(
     return {
       ...parsed,
       schedule: ensurePackageScheduleLastDayGateCompliance(
-        finalizeRegisterPackageScheduleRows(healedSkip.rows, { destination: dest, sourceRows: parsed.schedule ?? null }),
+        finalizeRegisterPackageScheduleRows(healedSkip.rows, { destination: dest, sourceRows: parsed.schedule ?? null, departureText: registerParsedDepartureText(parsed) }),
       ),
     }
   }
@@ -227,7 +228,7 @@ async function applyPackagePostAugmentScheduleKeywords(
     // REGRESSION-FREEZE[register-schedule-day-summary-finalize]: 3–4 sentences·KO place·same-day keywords — manifest
     // REGRESSION-FREEZE[register-schedule-round3-title-summary-kw]: 제목 도시 대안·귀국일 '<도시> 출발 · 귀국'·출발·귀국일 원문 요약·Gemini 키워드 사후 검사 — manifest
     schedule: ensurePackageScheduleLastDayGateCompliance(
-      finalizeRegisterPackageScheduleRows(promotedAfterHeal, { destination: dest, sourceRows: parsed.schedule ?? null }),
+      finalizeRegisterPackageScheduleRows(promotedAfterHeal, { destination: dest, sourceRows: parsed.schedule ?? null, departureText: registerParsedDepartureText(parsed) }),
     ),
   }
 }
@@ -261,23 +262,49 @@ export async function applyRegisterPostAugmentSchedulePipeline(
 ): Promise<RegisterParsed> {
   parsed = stampRegisterAirtelProductTypeOnParsed(parsed, opts.travelScope)
   if (isRegisterAirtelListing(opts.travelScope, parsed.productType)) {
-    return enrichRegisterParsedWithAirtelFit(parsed, {
+    return trimRegisterParsedScheduleToSupplierDays(
+      await enrichRegisterParsedWithAirtelFit(parsed, {
       travelScope: opts.travelScope,
       logLabel: opts.logPrefix ?? 'register-airtel-fit',
       reuseStoredGeminiJson:
         opts.mode === 'confirm' &&
         Boolean(opts.hasPersistedParsed) &&
         Boolean(parsed.registerFitItineraryGeminiJson?.trim()),
-    })
+    }),
+      opts.logPrefix,
+    )
   }
 
   if (PACKAGE_POST_AUGMENT_SUPPLIERS.has(opts.forcedBrandKey)) {
-    return applyPackagePostAugmentScheduleKeywords(parsed, opts.forcedBrandKey, {
-      logPrefix: opts.logPrefix,
-      mode: opts.mode,
-      hasPersistedParsed: opts.hasPersistedParsed,
-    })
+    return trimRegisterParsedScheduleToSupplierDays(
+      await applyPackagePostAugmentScheduleKeywords(parsed, opts.forcedBrandKey, {
+        logPrefix: opts.logPrefix,
+        mode: opts.mode,
+        hasPersistedParsed: opts.hasPersistedParsed,
+      }),
+      opts.logPrefix,
+    )
   }
 
-  return parsed
+  return trimRegisterParsedScheduleToSupplierDays(parsed, opts.logPrefix)
+}
+
+/** REGRESSION-FREEZE[register-schedule-supplier-day-count]: 원문 여행기간 일수보다 많은 일차는 만들지 않는다 — manifest */
+function trimRegisterParsedScheduleToSupplierDays(parsed: RegisterParsed, logPrefix?: string): RegisterParsed {
+  const days = registerSupplierTripDays({ duration: (parsed as { duration?: string | null }).duration ?? null, title: parsed.title ?? null })
+  if (!days || !Array.isArray(parsed.schedule)) return parsed
+  const { rows, droppedDays } = trimRegisterScheduleToSupplierDays(parsed.schedule, days)
+  if (!droppedDays.length) return parsed
+  console.warn(`[${logPrefix ?? 'register'}] 원문 ${days}일 — 남는 일차 ${droppedDays.join(',')} 제외`)
+  return { ...parsed, schedule: rows }
+}
+
+/** round3(21:27): 원문 출발 정보(미팅 장소·출국 항공 시각 원문) — 실제 출발지 확인용 */
+function registerParsedDepartureText(parsed: RegisterParsed): string {
+  const p = parsed as unknown as Record<string, unknown>
+  const dbs = p.detailBodyStructured as { flightStructured?: { outbound?: { departureAirport?: unknown } | null } | null } | null | undefined
+  const outDep = dbs?.flightStructured?.outbound?.departureAirport
+  return [typeof outDep === 'string' ? outDep : '', ...['meetingInfoRaw', 'departureAirport'].map((k) => (typeof p[k] === 'string' ? (p[k] as string) : ''))]
+    .filter(Boolean)
+    .join(' ')
 }

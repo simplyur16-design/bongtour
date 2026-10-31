@@ -29862,6 +29862,13 @@
           "mustNotInclude": [
             "`day${dayNum}-dest`"
           ]
+        },
+        {
+          "file": "lib/register-schedule-day-summary-finalize.ts",
+          "mustInclude": [
+            "export function fixDepartureTemplateSentence",
+            "export function registerScheduleDepartureHub"
+          ]
         }
       ]
     },
@@ -29921,6 +29928,38 @@
           ],
           "mustNotInclude": [
             "`day${dayNum}-dest`"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-schedule-supplier-day-count",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "원문 일수(여행기간·상품명 N일 중 큰 값)보다 많은 일차를 만들지 않음 — 파이프·사진 칸 채우기 (round3 21:18)",
+      "checks": [
+        {
+          "file": "lib/register-schedule-supplier-day-count.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-supplier-day-count]",
+            "export function registerSupplierTripDays",
+            "export function trimRegisterScheduleToSupplierDays"
+          ]
+        },
+        {
+          "file": "lib/register-parse-post-augment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-supplier-day-count]",
+            "trimRegisterParsedScheduleToSupplierDays("
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-schedule-supplier-day-count]",
+            "trimRegisterScheduleToSupplierDays(padSchedule("
           ]
         }
       ]

@@ -22,6 +22,7 @@ import { photoCandidateText, photoSubjectBlockReason } from '@/lib/register-phot
 import { photoMatchGate, sortByMatchGateScore, type MatchGateContext } from '@/lib/register-photo-match-gate'
 import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-preserve'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
+import { registerSupplierTripDays, trimRegisterScheduleToSupplierDays } from '@/lib/register-schedule-supplier-day-count'
 import { resolveDayHeroWithFallback, saveDayHeroResult } from '@/lib/itinerary-day-hero-image'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { recordAssetUsage } from '@/lib/asset-usage-log'
@@ -404,6 +405,7 @@ export async function POST(req: Request) {
         primaryDestination: true,
         title: true,
         schedule: true,
+        duration: true,
         bgImageRehostSearchLabel: true,
         registrationStatus: true,
         bgImageUrl: true,
@@ -791,8 +793,11 @@ export async function POST(req: Request) {
 
     const maxItineraryDay =
       itineraryRows.length > 0 ? Math.max(...itineraryRows.map((r) => r.day)) : 0
-    const slotCount = Math.max(scheduleArr.length, SCHEDULE_PHOTOS, maxItineraryDay)
-    const workingSchedule = padSchedule(scheduleArr, slotCount)
+    // REGRESSION-FREEZE[register-schedule-supplier-day-count]: 원문 일수보다 많은 일차(빈 칸 채우기 포함)를 만들지 않는다 — manifest
+    const supplierDays = registerSupplierTripDays({ duration: typeof product.duration === "string" ? product.duration : null, title: typeof product.title === "string" ? product.title : null })
+    const slotCountRaw = Math.max(scheduleArr.length, SCHEDULE_PHOTOS, maxItineraryDay)
+    const slotCount = supplierDays ? Math.min(slotCountRaw, Math.max(supplierDays, scheduleArr.length)) : slotCountRaw
+    const workingSchedule = trimRegisterScheduleToSupplierDays(padSchedule(scheduleArr, slotCount), supplierDays).rows
     const usedHeroPlaceKeys = new Set<string>()
 
     const schedulePhotos: { photo: PhotoResult; imageKeyword: string }[] = []

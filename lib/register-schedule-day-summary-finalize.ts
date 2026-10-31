@@ -294,6 +294,45 @@ function hotelSentence(row: RegisterScheduleFinalizeRow, isLast: boolean): strin
   return `숙소는 ${name}입니다.`
 }
 
+const DEPARTURE_HUB_RE = /인천|김포|김해|부산|대구|청주|제주|무안|양양/u
+/** 원문 출발 정보·1일차 동선에서 실제 출발지 (없으면 null) */
+export function registerScheduleDepartureHub(departureText: string, day1Route: string): string | null {
+  const t = String(departureText ?? '')
+  const m = new RegExp(`(${DEPARTURE_HUB_RE.source})`, 'u').exec(t)
+  if (m) return m[1]!
+  const first = String(day1Route ?? '').split(/\s+-\s+/)[0] ?? ''
+  const m2 = new RegExp(`^(${DEPARTURE_HUB_RE.source})`, 'u').exec(first.trim())
+  return m2 ? m2[1]! : null
+}
+/** 도착지 자리에 올 수 있는 말: 도시·공항만 (안내문·가이드 이름·리조트 이름 금지) */
+function isArrivalCityLabel(x: string, knownCities: readonly string[] = []): boolean {
+  const t = stripParens(String(x ?? '')).trim()
+  if (t && knownCities.includes(t)) return true
+  if (!t || t.length > 14) return false
+  if (/안내|가이드|미팅|참고|주의|숙소|호텔|리조트|레스토랑|식당|[.,!?:]/u.test(t)) return false
+  if (/(?:국제)?공항$/u.test(t)) return true
+  const c = koreanCitiesInText(t)
+  return c.length > 0 && c[0] === t
+}
+/**
+ * 파싱 단계 틀 문장 '인천에서 출발해 X에서 도착합니다' — 실제 출발지·도시 도착지일 때만 남기고(출발지는 원문 것으로),
+ * 아니면 버린다. 귀국 틀 '체크아웃 후 인천으로 귀국합니다' 도 출발지를 원문 것으로 맞춘다.
+ */
+export function fixDepartureTemplateSentence(s: string, hub: string | null, knownCities: readonly string[] = []): string | null {
+  const dep = /^([가-힣]+)에서\s*출발해\s+(.+?)(?:에서|에)\s*도착합니다\.$/u.exec(s)
+  if (dep) {
+    if (!hub || !isArrivalCityLabel(dep[2]!, knownCities)) return null
+    return `${hub}에서 출발해 ${dep[2]}에 도착합니다.`
+  }
+  const ret = /^체크아웃\s*후\s*([가-힣]+?)(?:으로|로)\s*귀국합니다\.$/u.exec(s)
+  if (ret && DEPARTURE_HUB_RE.test(ret[1]!)) {
+    if (!hub) return '체크아웃 후 귀국합니다.'
+    const j = jongseong(hub.slice(-1))
+    return `체크아웃 후 ${hub}${j !== null && j !== 0 && j !== 8 ? '으로' : '로'} 귀국합니다.`
+  }
+  return s
+}
+
 /** 한 일차 요약을 3~4문장으로 정리 */
 const GENERIC_RETURN = '귀국편으로 한국에 돌아오며 여행을 마칩니다.'
 export function finalizeRegisterScheduleDaySummary(
@@ -304,6 +343,10 @@ export function finalizeRegisterScheduleDaySummary(
     sourceDescription?: string | null
     /** round3: 귀국일 '<도시>에서 출발해 귀국합니다' 의 도시 */
     lastCity?: string | null
+    /** round3(21:27): 원문에서 확인된 실제 출발지(인천·청주·김해…). 없으면 출발 틀 문장을 쓰지 않는다 */
+    departureHub?: string | null
+    /** 상품 목적지 도시(도착지 자리 확인용) */
+    destinationCity?: string | null
   },
 ): string {
   const day = Number(row.day)
@@ -332,7 +375,9 @@ export function finalizeRegisterScheduleDaySummary(
         (_m, a: string) => `${eulReul(a)} 둘러봅니다`,
       )
     if (!s0 || isRegisterScheduleFillerSentence(s0)) continue
-    const s = cleanSightseeingSentence(s0, row.hotelText)
+    const s1 = fixDepartureTemplateSentence(s0, ctx.departureHub ?? null, ctx.destinationCity ? [ctx.destinationCity] : [])
+    if (!s1) continue
+    const s = cleanSightseeingSentence(s1, row.hotelText)
     if (!s || isRegisterScheduleFillerSentence(s)) continue
     if (/숙박\s*없음(?:을|를|에서|과|와)/u.test(s)) continue
     if (!/[.!?。]$/u.test(s)) continue
@@ -363,9 +408,10 @@ export function finalizeRegisterScheduleDaySummary(
   const extra: string[] = []
 
   // 첫날 — 출발·도착 (공급사 문장·합성문이 없을 때, 그날 route 근거만)
-  if (isFirst && places.length > 0 && !/도착/u.test(text())) {
-    const hub = /인천|김포|김해|부산|대구|청주|제주/u.exec(route)?.[0]
-    out.unshift(hub && !/출발/u.test(text()) ? `${hub}에서 출발해 ${places[0]}에 도착합니다.` : `${places[0]}에 도착합니다.`)
+  // round3(21:27): 원문에 실제 출발지가 있고 도착지가 도시일 때만 — 아니면 틀 문장 없이 원문 문장만
+  const hub0 = ctx.departureHub ?? null
+  if (isFirst && hub0 && places.length > 0 && !/도착|출발/u.test(text()) && isArrivalCityLabel(places[0]!, ctx.destinationCity ? [ctx.destinationCity] : [])) {
+    out.unshift(`${hub0}에서 출발해 ${places[0]}에 도착합니다.`)
   }
   // 방문지 — 요약에 안 나온 그날 장소
   const unmentioned = lastCityOnly ? [] : places.filter((p) => !mentioned(text(), p))
@@ -753,12 +799,15 @@ function returnDayCity<T extends RegisterScheduleFinalizeRow>(rows: T[], maxDay:
   const last = rows.find((r) => Number(r.day) === maxDay)
   if (last) {
     const route = koreanizeRegisterSchedulePlaceNames(String(last.routeText ?? ''))
-    const c = koreanCitiesInText(route)
+    // round3: 귀국일 동선의 도시는 다른 날 동선에도 도시 칸으로 나오거나 목적지 도시일 때만 (대소석림 같은 명소 제외)
+    const otherCitySegs = new Set(
+      rows
+        .filter((r) => Number(r.day) !== maxDay)
+        .flatMap((r) => koreanizeRegisterSchedulePlaceNames(String(r.routeText ?? '')).split(/\s+-\s+/).map((x) => stripParens(x).trim())),
+    )
+    const c = koreanCitiesInText(route).filter((x) => x === destinationCity || otherCitySegs.has(x))
     if (c.length) return c[c.length - 1]!
-    const { places } = dayRouteParts(route)
-    if (places.length === 1 && /^[가-힣]{2,6}$/u.test(places[0]!) && !/(?:공항|호텔|리조트|식당|시장|공원|사원|신전|정원)$/u.test(places[0]!)) {
-      return places[0]!
-    }
+    // round3: 명소 이름(대소석림)을 귀국 도시로 쓰지 않는다 — 도시로 확인되는 것만
   }
   // 그날 키워드가 도시면 그 도시 (Cairo → 카이로)
   if (last) {
@@ -769,7 +818,7 @@ function returnDayCity<T extends RegisterScheduleFinalizeRow>(rows: T[], maxDay:
   const prev = rows.find((r) => Number(r.day) === maxDay - 1)
   if (prev) {
     const segs = koreanizeRegisterSchedulePlaceNames(String(prev.routeText ?? '')).split(/\s+-\s+/).map((x) => stripParens(x))
-    const cityOnly = segs.filter((x) => koreanCitiesInText(x)[0] === x)
+    const cityOnly = segs.filter((x) => koreanCitiesInText(x)[0] === x || (!!destinationCity && x === destinationCity))
     if (cityOnly.length) return cityOnly[cityOnly.length - 1]!
   }
   return destinationCity
@@ -806,6 +855,8 @@ export type FinalizeRegisterPackageScheduleOpts = {
   destination?: string | null
   /** 파싱 직후 schedule — 출발·귀국일 공급사 원문 요약 */
   sourceRows?: ReadonlyArray<Pick<RegisterScheduleFinalizeRow, 'day' | 'description'>> | null
+  /** round3(21:27): 원문 출발 정보(미팅·출국 항공) — 실제 출발지(인천·청주·김해…) 확인용 */
+  departureText?: string | null
 }
 
 export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFinalizeRow>(
@@ -828,6 +879,8 @@ export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFi
     return next
   })
   const lastCity = maxDay >= 2 ? returnDayCity(normalized, maxDay, destinationCity) : null
+  const day1 = normalized.find((r) => Number(r.day) === 1)
+  const departureHub = registerScheduleDepartureHub(String(opts.departureText ?? ''), String(day1?.routeText ?? ''))
   const prepared = normalized.map((row) => {
     if (Number(row.day) <= 0) return row
     const title = fillPlaceholderDayTitle(row, { isLast: maxDay >= 2 && Number(row.day) === maxDay, destinationCity, lastCity })
@@ -837,7 +890,7 @@ export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFi
   return keyed.map((row) => {
     if (Number(row.day) <= 0) return row
     const src = opts.sourceRows?.find((r) => Number(r.day) === Number(row.day))?.description ?? null
-    const description = finalizeRegisterScheduleDaySummary(row, { maxDay, sourceDescription: src, lastCity })
+    const description = finalizeRegisterScheduleDaySummary(row, { maxDay, sourceDescription: src, lastCity, departureHub, destinationCity })
     return description === String(row.description ?? '') ? row : { ...row, description }
   })
 }

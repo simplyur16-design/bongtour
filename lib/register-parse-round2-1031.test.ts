@@ -151,7 +151,7 @@ describe('4) 일차 요약·이미지 키워드', () => {
   it('첫날 영문 도착지 합성문 → 한글·조사 교정, 상품명 route 문장은 버림', () => {
     const a = finalizeRegisterScheduleDaySummary(
       { day: 1, routeText: 'Lucerne', description: '인천에서 출발해 Lucerne에서 도착합니다. 첫날 리듬을 맞추며 일정을 이어갑니다.' },
-      { maxDay: 10 },
+      { maxDay: 10, departureHub: '인천' }, // round3(21:27): 원문 출발지가 확인될 때만 출발 문장
     )
     expect(a).toBe('인천에서 출발해 루체른에 도착합니다.')
     const b = finalizeRegisterScheduleDaySummary(
