@@ -29479,6 +29479,38 @@
           ]
         }
       ]
+    },
+    {
+      "id": "auto-register-review-pass",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "자동 등록 FLIP 이어도 문과장 사진 검수 통과 목록(AUTO_REGISTER_REVIEW_PASS_IDS) 밖 상품은 registered 전환 안 함 — 새로 채운 상품은 검수 뒤 다음 배치 (봉실장 10/31 10:31)",
+      "checks": [
+        {
+          "file": "lib/register-auto-register-review-pass.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auto-register-review-pass]",
+            "export const AUTO_REGISTER_REVIEW_PASS_IDS",
+            "export function isAutoRegisterReviewPassed"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auto-register-review-pass]",
+            "isAutoRegisterReviewPassed(id)",
+            "if (gate.ok && reviewPassed) {"
+          ]
+        },
+        {
+          "file": "lib/register-auto-register-gate.ts",
+          "mustInclude": [
+            "photo_review_pending"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -29955,7 +29987,8 @@
       "summary": "사진 채움 routeText 유지 + 사진 후보 주제 필터",
       "files": [
         "lib/register-schedule-route-text-preserve.test.ts",
-        "lib/register-photo-subject-filter.test.ts"
+        "lib/register-photo-subject-filter.test.ts",
+        "lib/register-auto-register-review-pass.test.ts"
       ]
     }
   ]

@@ -68,6 +68,7 @@ export type AutoRegisterBlockReason =
   | 'day_photo_not_measured'
   | 'day_photo_city_unverified'
   | 'cover_day_duplicate'
+  | 'photo_review_pending'
 
 export const AUTO_REGISTER_BLOCK_REASON_KO: Record<AutoRegisterBlockReason, string> = {
   status_out_of_scope: '등록대기 상태 아님',
@@ -87,6 +88,7 @@ export const AUTO_REGISTER_BLOCK_REASON_KO: Record<AutoRegisterBlockReason, stri
   day_photo_not_measured: '일차 사진 측정 실패',
   day_photo_city_unverified: '일차 사진 도시 일치 확인 안 됨',
   cover_day_duplicate: '대표·일차 사진 중복',
+  photo_review_pending: '사진 검수 대기(문과장 통과 전)',
 }
 
 export type AutoRegisterGateResult = {
