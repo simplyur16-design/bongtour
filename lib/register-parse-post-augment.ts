@@ -171,7 +171,7 @@ async function applyPackagePostAugmentScheduleKeywords(
     return {
       ...parsed,
       schedule: ensurePackageScheduleLastDayGateCompliance(
-        finalizeRegisterPackageScheduleRows(healedSkip.rows),
+        finalizeRegisterPackageScheduleRows(healedSkip.rows, { destination: dest, sourceRows: parsed.schedule ?? null }),
       ),
     }
   }
@@ -225,8 +225,9 @@ async function applyPackagePostAugmentScheduleKeywords(
   return {
     ...parsed,
     // REGRESSION-FREEZE[register-schedule-day-summary-finalize]: 3–4 sentences·KO place·same-day keywords — manifest
+    // REGRESSION-FREEZE[register-schedule-round3-title-summary-kw]: 제목 도시 대안·귀국일 '<도시> 출발 · 귀국'·출발·귀국일 원문 요약·Gemini 키워드 사후 검사 — manifest
     schedule: ensurePackageScheduleLastDayGateCompliance(
-      finalizeRegisterPackageScheduleRows(promotedAfterHeal),
+      finalizeRegisterPackageScheduleRows(promotedAfterHeal, { destination: dest, sourceRows: parsed.schedule ?? null }),
     ),
   }
 }

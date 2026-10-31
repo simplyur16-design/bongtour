@@ -175,6 +175,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /기타이치|Kitaichi/i, en: "Kitaichi Glass Otaru" },
   { re: /시로이\s*코이비토|Shiroi\s*Koibito/i, en: "Shiroi Koibito Park" },
   { re: /삿포로\s*시계탑|Sapporo\s*Clock/i, en: "Sapporo Clock Tower" },
+  // round3: 시코츠 호수(치토세 도착일 명소) — 도착일 키워드가 공항으로만 잡히던 문제
+  { re: /시코츠\s*(?:호수|코)|Lake\s*Shikotsu|Shikotsu/i, en: "Lake Shikotsu Hokkaido" },
   { re: /^후라노$/u, en: "Farm Tomita Furano" },
   { re: /^비에이$/u, en: "Shikisai-no-Oka Biei" },
   { re: /^소운쿄$/u, en: "Sounkyo Gorge" },

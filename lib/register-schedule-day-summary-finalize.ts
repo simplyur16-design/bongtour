@@ -150,7 +150,37 @@ const FILLER_SENTENCE_RES: readonly RegExp[] = [
   /일정을\s*이어서\s*진행합니다/u,
   /하루\s*동안\s*여러\s*장면이|명소\s*나열보다|특정\s*장소보다\s*전체적인/u,
   /마무리\s*일정입니다|차분한\s*리듬/u,
+  // round3: 기계적 빈 문구 — 'N일차 구간을 이어서 둘러봅니다'·'구간을 둘러봅니다'
+  /구간을\s*(?:이어서\s*)?둘러봅니다/u,
+  /일차\s*(?:구간|동선|일정)(?:을|를|으로|에서)/u,
 ]
+
+/** '둘러봅니다' 목적어로 오면 안 되는 말 — 이동·출발·도착·공항·숙소·식사·자유시간·N일차 (round3) */
+const NOT_SIGHT_OBJECT_RE =
+  /(?:이동|향발|출발|도착|탑승|경유|입국|출국|귀국|귀환|공항|호텔|리조트|숙소|레지던스|빌라|체크\s*인|체크\s*아웃|뷔페|부페|디너|런치|식사|조식|중식|석식|특식|자유\s*(?:시간|일정)|휴식|\d+\s*일차)/u
+const NOT_SIGHT_OBJECT_EXACT_RE = /^(?:구간|동선|일정|시내|주변)$/u
+
+/**
+ * 'X와 Y를 둘러봅니다' 합성문에서 장소가 아닌 목적어(공항 이동·숙소명·식사·N일차)를 뺀다.
+ * 남는 장소가 없으면 null(문장 버림). 합성문 모양이 아니면 그대로.
+ */
+function cleanSightseeingSentence(s: string, hotelText: string | null | undefined): string | null {
+  const m = /^(.+?)(을|를)\s*(둘러봅니다|이어서\s*방문합니다|방문합니다)\.$/u.exec(s)
+  if (!m) return s
+  const objs = m[1]!.split(/\s*(?:(?<=[가-힣A-Za-z0-9)])(?:와|과)\s+|,\s*)/u).map((x) => x.trim()).filter(Boolean)
+  if (objs.length === 0 || objs.length > 4) return s
+  const hotelKey = String(hotelText ?? '').replace(/\s+/g, '').toLowerCase()
+  const isHotelName = (o: string) => {
+    const k = o.replace(/\s+/g, '').toLowerCase()
+    return k.length >= 2 && hotelKey.length >= 2 && hotelKey.includes(k)
+  }
+  const keep = objs.filter((o) => !NOT_SIGHT_OBJECT_RE.test(o) && !NOT_SIGHT_OBJECT_EXACT_RE.test(o) && !isHotelName(o))
+  if (keep.length === objs.length) return s
+  if (keep.length === 0) return null
+  const verb = m[3]!
+  const head = keep.length >= 2 ? waGwa(keep[0]!, keep[1]!) + (keep.length > 2 ? `, ${keep.slice(2).join(', ')}` : '') : keep[0]!
+  return `${eulReul(head)} ${verb}.`
+}
 
 export function isRegisterScheduleFillerSentence(sentence: string): boolean {
   const t = String(sentence ?? '').replace(/\s+/g, ' ').trim()
@@ -265,9 +295,16 @@ function hotelSentence(row: RegisterScheduleFinalizeRow, isLast: boolean): strin
 }
 
 /** 한 일차 요약을 3~4문장으로 정리 */
+const GENERIC_RETURN = '귀국편으로 한국에 돌아오며 여행을 마칩니다.'
 export function finalizeRegisterScheduleDaySummary(
   row: RegisterScheduleFinalizeRow,
-  ctx: { maxDay: number },
+  ctx: {
+    maxDay: number
+    /** round3: 공급사 원문(파싱 직후) 요약 — 출발·귀국일은 이 문장을 먼저 쓴다 */
+    sourceDescription?: string | null
+    /** round3: 귀국일 '<도시>에서 출발해 귀국합니다' 의 도시 */
+    lastCity?: string | null
+  },
 ): string {
   const day = Number(row.day)
   const isFirst = day === 1
@@ -276,16 +313,26 @@ export function finalizeRegisterScheduleDaySummary(
   const { places, moves } = dayRouteParts(route)
 
   const kept: string[] = []
-  for (const raw of splitRegisterScheduleDescriptionSentences(
-    koreanizeRegisterSchedulePlaceNames(String(row.description ?? '')),
-  )) {
-    const s = raw
+  const edgeDay = isFirst || isLast
+  // 출발·귀국일: 파싱 단계 그날 문장 중 출발·도착·귀국 문장만 먼저 (지어내지 않고 원문 그대로)
+  const descSents = splitRegisterScheduleDescriptionSentences(koreanizeRegisterSchedulePlaceNames(String(row.description ?? '')))
+  const descHasEdge = descSents.some((x) => /출발|도착|귀국|공항|체크\s*아웃/u.test(x) && !isRegisterScheduleFillerSentence(x) && x.trim() !== GENERIC_RETURN)
+  const srcSents = edgeDay && !descHasEdge
+    ? splitRegisterScheduleDescriptionSentences(koreanizeRegisterSchedulePlaceNames(String(ctx.sourceDescription ?? ''))).filter(
+        (x) => /출발|도착|귀국|체크\s*아웃/u.test(x),
+      )
+    : []
+  for (const raw of [...srcSents, ...descSents]) {
+    const s0 = raw
       .trim()
+      .replace(/^\d+\s*일차\s+/u, '')
       .replace(/([가-힣A-Za-z)]+)에서\s+도착합니다/gu, '$1에 도착합니다')
       .replace(
         /([가-힣A-Za-z0-9]+)(?:와|과)\s+(?:도보|차량|전용\s*차량|버스|열차|기차)(?:을|를)\s+둘러봅니다/gu,
         (_m, a: string) => `${eulReul(a)} 둘러봅니다`,
       )
+    if (!s0 || isRegisterScheduleFillerSentence(s0)) continue
+    const s = cleanSightseeingSentence(s0, row.hotelText)
     if (!s || isRegisterScheduleFillerSentence(s)) continue
     if (/숙박\s*없음(?:을|를|에서|과|와)/u.test(s)) continue
     if (!/[.!?。]$/u.test(s)) continue
@@ -296,17 +343,32 @@ export function finalizeRegisterScheduleDaySummary(
     if (kept.some((x) => x.replace(/\s+/g, '') === k)) continue
     kept.push(s)
   }
+  // 합성 귀국 문장은 다른 귀국 문장이 있으면 뺀다
+  if (kept.includes(GENERIC_RETURN) && kept.some((x) => x !== GENERIC_RETURN && /귀국/u.test(x))) {
+    kept.splice(kept.indexOf(GENERIC_RETURN), 1)
+  }
 
-  const out = [...kept]
+  // 숙박 없는 귀국일에 도시 이름만 '둘러봅니다' 하는 합성문(도하를 둘러봅니다) → 출발 문장으로 (round3)
+  const lastCityOnly =
+    isLast && places.length > 0 && places.every((p) => koreanCitiesInText(p)[0] === p)
+  const out = lastCityOnly
+    ? kept.filter((s) => {
+        const m = /^(.+?)(?:을|를)\s*둘러봅니다\.$/u.exec(s)
+        if (!m) return true
+        const objs = m[1]!.split(/\s*(?:(?<=[가-힣])(?:와|과)\s+|,\s*)/u).map((x) => x.trim())
+        return !objs.every((o) => koreanCitiesInText(o)[0] === o)
+      })
+    : [...kept]
   const text = () => out.join(' ')
   const extra: string[] = []
 
-  // 첫날 — 도착 도시 (공급사 문장·합성문이 없을 때)
+  // 첫날 — 출발·도착 (공급사 문장·합성문이 없을 때, 그날 route 근거만)
   if (isFirst && places.length > 0 && !/도착/u.test(text())) {
-    out.unshift(`${places[0]}에 도착합니다.`)
+    const hub = /인천|김포|김해|부산|대구|청주|제주/u.exec(route)?.[0]
+    out.unshift(hub && !/출발/u.test(text()) ? `${hub}에서 출발해 ${places[0]}에 도착합니다.` : `${places[0]}에 도착합니다.`)
   }
   // 방문지 — 요약에 안 나온 그날 장소
-  const unmentioned = places.filter((p) => !mentioned(text(), p))
+  const unmentioned = lastCityOnly ? [] : places.filter((p) => !mentioned(text(), p))
   if (out.length === 0 && unmentioned.length >= 2) {
     out.push(`${eulReul(waGwa(unmentioned[0]!, unmentioned[1]!))} 둘러봅니다.`)
     unmentioned.splice(0, 2)
@@ -317,18 +379,27 @@ export function finalizeRegisterScheduleDaySummary(
   if (unmentioned.length > 0) {
     extra.push(`이어서 ${unmentioned.slice(0, 3).join(', ')}도 방문합니다.`)
   }
-  for (const m of moves) {
-    if (mentioned(text(), m)) continue
-    extra.push(`${m}합니다.`)
-    break
+  // round3: '공항 이동합니다' 같은 이동 문장은 요약이 비었을 때만 (짧으면 짧게 둔다)
+  if (out.length === 0) {
+    for (const m of moves) {
+      if (mentioned(text(), m)) continue
+      extra.push(`${m}합니다.`)
+      break
+    }
   }
   const hotel = hotelSentence(row, isLast)
   if (hotel) extra.push(hotel)
-  if (isLast && !/귀국|인천|한국/u.test(text())) extra.push('귀국편으로 한국에 돌아오며 여행을 마칩니다.')
+  if (isLast && !/귀국|인천|한국/u.test(text())) {
+    const city = String(ctx.lastCity ?? '').trim()
+    extra.push(city ? `${city}에서 출발해 귀국합니다.` : '귀국편으로 한국에 돌아오며 여행을 마칩니다.')
+  }
   const meal = mealSentence(row)
   if (meal) extra.push(meal)
 
   for (const e of extra) {
+    if (out.some((x) => x.replace(/\s+/g, '') === e.replace(/\s+/g, ''))) continue
+    if (e === hotel && out.some((x) => /^숙소는\s/u.test(x))) continue
+    if (e === meal && out.some((x) => /^식사는\s/u.test(x))) continue
     if (out.length >= REGISTER_SCHEDULE_DAY_SUMMARY_MAX_SENTENCES) break
     if (out.length >= REGISTER_SCHEDULE_DAY_SUMMARY_MIN_SENTENCES && e === meal) break
     out.push(e)
@@ -428,20 +499,61 @@ function keywordStrongInDay(kw: string, dp: DayPlaces): boolean {
   return Boolean(ko && ko.length >= 2 && dp.text.includes(ko))
 }
 
+/** 나라·지역 이름 낱말 — 이것만 겹쳐서는 '그날 장소'로 보지 않는다 (round3: 'Abu Simbel Temples Egypt') */
+const COUNTRY_REGION_KW_WORDS = new Set([
+  'egypt', 'vietnam', 'japan', 'china', 'thailand', 'italy', 'france', 'spain', 'portugal', 'switzerland', 'swiss',
+  'germany', 'austria', 'czech', 'hungary', 'croatia', 'greece', 'turkey', 'turkiye', 'morocco', 'jordan', 'laos',
+  'cambodia', 'philippines', 'malaysia', 'indonesia', 'singapore', 'brunei', 'taiwan', 'mongolia', 'america', 'canada',
+  'australia', 'zealand', 'iceland', 'norway', 'sweden', 'finland', 'denmark', 'hokkaido', 'kyushu', 'honshu', 'england',
+  'scotland', 'ireland', 'korea', 'india', 'nepal', 'peru', 'mexico', 'brazil', 'argentina', 'chile', 'dubai', 'europe',
+])
+
+/** 키워드 앞·뒤의 도시·나라 수식어 낱말 (Phu Quoc Grand World → phu·quoc) */
+function keywordQualifierWords(kw: string): Set<string> {
+  const out = new Set<string>()
+  const words = String(kw ?? '').trim().split(/\s+/).filter(Boolean)
+  for (const w of words) if (COUNTRY_REGION_KW_WORDS.has(normalizeSemanticPoiKey(w))) out.add(normalizeSemanticPoiKey(w))
+  for (const n of [3, 2, 1]) {
+    if (words.length <= n) continue
+    const head = words.slice(0, n).join(' ')
+    if (koreanCityNameFromEnglish(head)) {
+      for (const w of normalizeSemanticPoiKey(head).split(' ')) out.add(w)
+      break
+    }
+  }
+  for (const n of [3, 2, 1]) {
+    if (words.length <= n) continue
+    const tail = words.slice(words.length - n).join(' ')
+    if (koreanCityNameFromEnglish(tail)) {
+      for (const w of normalizeSemanticPoiKey(tail).split(' ')) out.add(w)
+      break
+    }
+  }
+  return out
+}
+
 function keywordInDay(kw: string, dp: DayPlaces): boolean {
   if (keywordStrongInDay(kw, dp)) return true
-  const kws = kwWords(kw)
+  const qual = keywordQualifierWords(kw)
+  const all = kwWords(kw)
+  const core = all.filter((w) => !qual.has(w))
+  // 도시·나라 수식어만 겹치면(Phu Quoc ○○, ○○ Egypt) 그날 장소가 아님 — 본 이름 낱말이 겹쳐야 한다
+  const noCountry = all.filter((w) => !COUNTRY_REGION_KW_WORDS.has(w))
+  const kws = core.length > 0 ? core : noCountry.length > 0 ? noCountry : all
   const dayWords = new Set(dp.en.flatMap(kwWords))
   if (kws.some((w) => dayWords.has(w))) return true
   // 영문 키워드의 한글 지명이 그날 텍스트에 있으면 인정
   const ko = registerScheduleKoreanPlaceName(kw)
   if (ko && dp.text.includes(ko)) return true
   for (const w of kw.split(/\s+/)) {
+    if (core.length > 0 && qual.has(normalizeSemanticPoiKey(w))) continue
     const kw1 = registerScheduleKoreanPlaceName(w)
     if (kw1 && kw1.length >= 2 && dp.text.includes(kw1)) return true
   }
   return false
 }
+
+const AIRPORT_KW_RE = /\bairport\b|공항/iu
 
 /** 키워드가 일정상 특정 장소(다른 날 또는 SSOT 지명)로 식별되는가 — 모르는 서술형 키워드는 false */
 function keywordIsIdentifiablePlace(kw: string, others: DayPlaces[]): boolean {
@@ -483,14 +595,10 @@ export function restrictRegisterScheduleImageKeywordsToSameDay<T extends Registe
     const edge = day === 1 || day === maxDay
     const routeEmptyOrHub =
       !String(row.routeText ?? '').trim() || dayRouteParts(String(row.routeText ?? '')).places.length === 0
-    const pick = (kw: string): string => {
-      const t = stripForeignCityQualifierFromKeyword(kw.trim(), productTextKo)
-      if (!t) return ''
-      if (keywordInDay(t, dp)) return t
-      if (edge && routeEmptyOrHub && t.split(/\s+/).length <= 2) return t
-      if (!keywordIsIdentifiablePlace(t, others)) return t
-      // 그날 후보 — 공항보다 명소·도시 우선
-      const ordered = [...dp.en.filter((e) => !/\bairport\b/i.test(e)), ...dp.en.filter((e) => /\bairport\b/i.test(e))]
+    // 그날 후보 — 공항보다 명소·도시 우선
+    const nonAirport = dp.en.filter((e) => !AIRPORT_KW_RE.test(e))
+    const replaceWithDayPlace = (allowAirport: boolean): string => {
+      const ordered = allowAirport ? [...nonAirport, ...dp.en.filter((e) => AIRPORT_KW_RE.test(e))] : nonAirport
       const cand = ordered.find((e) => !used.has(normalizeSemanticPoiKey(e)))
       if (cand) {
         used.add(normalizeSemanticPoiKey(cand))
@@ -498,6 +606,26 @@ export function restrictRegisterScheduleImageKeywordsToSameDay<T extends Registe
       }
       // 대표 키워드는 비우지 않는다 — 다른 날과 겹쳐도 그날 장소(예: 연태 일정의 Qingdao → 연태)
       return primarySlot ? (ordered[0] ?? '') : ''
+    }
+    const pick = (kw: string): string => {
+      const t = stripForeignCityQualifierFromKeyword(kw.trim(), productTextKo)
+      if (!t) return ''
+      // round3: 공항은 도착일·출발일에만 — 그날 명소가 있으면 명소를 먼저 (New Chitose Airport → 시코츠 호수)
+      if (AIRPORT_KW_RE.test(t)) {
+        if (!edge) return replaceWithDayPlace(false)
+        const sight = nonAirport.find((e) => !used.has(normalizeSemanticPoiKey(e)) && !koreanCityNameFromEnglish(e))
+        if (sight) {
+          used.add(normalizeSemanticPoiKey(sight))
+          return sight
+        }
+        return t
+      }
+      if (keywordInDay(t, dp)) return t
+      if (edge && routeEmptyOrHub && t.split(/\s+/).length <= 2) return t
+      // round3: 보조 키워드(kw2)는 그날 장소로 확인되지 않으면 버린다 (Gemini 사후 검사)
+      if (!primarySlot && !keywordIsIdentifiablePlace(t, others)) return ''
+      if (!keywordIsIdentifiablePlace(t, others)) return t
+      return replaceWithDayPlace(edge)
     }
     let primarySlot = true
     const kw1 = pick(String(row.imageKeyword ?? ''))
@@ -524,12 +652,89 @@ function titleIsDayHotelName(title: string, hotelText: string | null | undefined
     .some((h) => h.length >= 4 && h === t)
 }
 
+const COUNTRY_KO_RE =
+  /^(?:스위스|프랑스|이탈리아|이태리|스페인|포르투갈|영국|독일|오스트리아|체코|헝가리|크로아티아|그리스|튀르키예|터키|이집트|모로코|요르단|베트남|태국|라오스|캄보디아|필리핀|말레이시아|인도네시아|싱가포르|브루나이|일본|중국|대만|몽골|미국|캐나다|호주|뉴질랜드|아이슬란드|노르웨이|스웨덴|핀란드|덴마크|발트3국|북유럽|동유럽|서유럽|남미|중남미|미지정|여행일정)$/u
+
+/** 글 속 도시(한글) — 나온 순서대로. DESTINATION_MAP 한글 키 + 도시 정규식 규칙의 한글 매치. 나라 이름은 제외 */
+function koreanCitiesInText(text: string): string[] {
+  const t = String(text ?? '')
+  if (!t.trim()) return []
+  const found: Array<{ ko: string; idx: number }> = []
+  for (const key of destinationEnKeysInKoreanText(t)) {
+    const ko = koreanCityNameFromEnglish(key)
+    if (!ko) continue
+    const idx = t.indexOf(ko)
+    if (idx >= 0) found.push({ ko, idx })
+  }
+  for (const { re } of SCHEDULE_CITY_KO_REGEX_RULES) {
+    const m = new RegExp(re.source, re.flags.replace(/g/g, '')).exec(t)
+    if (!m || !/^[가-힣]{2,8}$/u.test(m[0])) continue
+    found.push({ ko: m[0], idx: m.index })
+  }
+  const out: string[] = []
+  for (const f of found.sort((a, b) => a.idx - b.idx)) {
+    if (COUNTRY_KO_RE.test(f.ko) || isRegisterScheduleDomesticHubRouteSegment(f.ko)) continue
+    if (!out.includes(f.ko)) out.push(f.ko)
+  }
+  return out
+}
+
+/** 영문 숙소명 속 도시 (HOLIDAY INN STUTTGART → 모르면 null) */
+function koreanCityInEnglishText(text: string | null | undefined): string | null {
+  const words = String(text ?? '').replace(/[^A-Za-z\s]/g, ' ').split(/\s+/).filter(Boolean)
+  for (const n of [2, 1]) {
+    for (let i = 0; i + n <= words.length; i++) {
+      const ko = koreanCityNameFromEnglish(words.slice(i, i + n).join(' '))
+      if (ko && !COUNTRY_KO_RE.test(ko)) return ko
+    }
+  }
+  return null
+}
+
+/** 상품 목적지 → 제목에 쓸 도시 이름 (여러 줄·쉼표면 첫 조각, 이상한 값이면 null) */
+export function registerScheduleDestinationCityLabel(destination: string | null | undefined): string | null {
+  const first = String(destination ?? '').split(/[\n,，/·]/u)[0]?.trim() ?? ''
+  if (!first || first.length > 12 || /\d/.test(first) || !/^[가-힣\s]+$/u.test(first)) return null
+  if (/^(?:미지정|여행일정|해외|국내)$/u.test(first)) return null
+  return first
+}
+
+/** 그날 도시: route·제목 속 도시 → 숙소명 속 도시 → 그날 키워드가 도시면 그 도시 */
+function dayCityLabel(row: RegisterScheduleFinalizeRow): string | null {
+  const cities = koreanCitiesInText(koreanizeRegisterSchedulePlaceNames(`${row.routeText ?? ''} - ${row.title ?? ''}`))
+  if (cities[0]) return cities[0]
+  const hotelCity = /[가-힣]/u.test(String(row.hotelText ?? ''))
+    ? koreanCitiesInText(String(row.hotelText ?? ''))[0] ?? null
+    : koreanCityInEnglishText(row.hotelText)
+  if (hotelCity) return hotelCity
+  const kwCity = koreanCityNameFromEnglish(String(row.imageKeyword ?? '').trim())
+  return kwCity && !COUNTRY_KO_RE.test(kwCity) ? kwCity : null
+}
+
+/** 귀국일 제목 자리: '귀국'·'숙박 없음(귀국)'·빈칸·N일차·숙소 문구 */
+function isReturnDayPlaceholderTitle(t: string): boolean {
+  return (
+    !t ||
+    /^(?:귀국|귀국일|귀국\s*일정|인천\s*(?:도착|귀국)|한국\s*도착)$/u.test(t) ||
+    /^숙박\s*없음/u.test(t) ||
+    /^\d+\s*일차$/u.test(t)
+  )
+}
+
 /**
- * 자리표시·빈 제목·UI 문구·숙소명 제목 → 그날 route 의 첫 한글 장소 (없으면 그대로).
+ * 자리표시·빈 제목·UI 문구·숙소명 제목 → 그날 route 의 첫 한글 장소 → 그날 도시 → 상품 목적지 도시.
  * 'N일차', '', '상세보기', 숙소명(그날 hotelText 와 같은 말) 모두 제목으로 남기지 않는다.
+ * 귀국일(숙박 없음·'귀국')은 '<마지막 도시> 출발 · 귀국' (round3).
  */
-function fillPlaceholderDayTitle(row: RegisterScheduleFinalizeRow): string | null | undefined {
+function fillPlaceholderDayTitle(
+  row: RegisterScheduleFinalizeRow,
+  ctx: { isLast: boolean; destinationCity: string | null; lastCity: string | null },
+): string | null | undefined {
   const t = String(row.title ?? '').trim()
+  if (ctx.isLast && isReturnDayPlaceholderTitle(t)) {
+    const city = ctx.lastCity ?? dayCityLabel(row) ?? ctx.destinationCity
+    if (city) return `${city} 출발 · 귀국`
+  }
   const placeholder =
     !t ||
     /^\d+\s*일차$/u.test(t) ||
@@ -538,14 +743,80 @@ function fillPlaceholderDayTitle(row: RegisterScheduleFinalizeRow): string | nul
     titleIsDayHotelName(t, row.hotelText)
   if (!placeholder) return row.title
   const { places } = dayRouteParts(String(row.routeText ?? ''))
-  return places[0] ?? row.title
+  return places[0] ?? dayCityLabel(row) ?? ctx.destinationCity ?? row.title
 }
 
-export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFinalizeRow>(rows: T[]): T[] {
+/**
+ * 귀국일 출발 도시: 그날 route 의 도시 → 그날 route 의 짧은 단일 장소 → 전날 route·제목의 마지막 도시 → 목적지 도시.
+ */
+function returnDayCity<T extends RegisterScheduleFinalizeRow>(rows: T[], maxDay: number, destinationCity: string | null): string | null {
+  const last = rows.find((r) => Number(r.day) === maxDay)
+  if (last) {
+    const route = koreanizeRegisterSchedulePlaceNames(String(last.routeText ?? ''))
+    const c = koreanCitiesInText(route)
+    if (c.length) return c[c.length - 1]!
+    const { places } = dayRouteParts(route)
+    if (places.length === 1 && /^[가-힣]{2,6}$/u.test(places[0]!) && !/(?:공항|호텔|리조트|식당|시장|공원|사원|신전|정원)$/u.test(places[0]!)) {
+      return places[0]!
+    }
+  }
+  // 그날 키워드가 도시면 그 도시 (Cairo → 카이로)
+  if (last) {
+    const kwCity = koreanCityNameFromEnglish(String(last.imageKeyword ?? '').trim())
+    if (kwCity && !COUNTRY_KO_RE.test(kwCity)) return kwCity
+  }
+  // 전날 route 에서 도시만 있는 칸(‘기자 피라미드’ 속 ‘기자’ 같은 명소 일부는 제외)
+  const prev = rows.find((r) => Number(r.day) === maxDay - 1)
+  if (prev) {
+    const segs = koreanizeRegisterSchedulePlaceNames(String(prev.routeText ?? '')).split(/\s+-\s+/).map((x) => stripParens(x))
+    const cityOnly = segs.filter((x) => koreanCitiesInText(x)[0] === x)
+    if (cityOnly.length) return cityOnly[cityOnly.length - 1]!
+  }
+  return destinationCity
+}
+
+/**
+ * 사진을 붙이지 않는 '장소 없는 날' (round3): 그날 route 에 장소가 없거나(공항 이동·출발만),
+ * 숙박 없는 귀국일에 도시 이름만 있는 날.
+ * REGRESSION-FREEZE[register-photo-no-place-day]: 장소 없는 날·숙박 없는 귀국일 사진 제외 — manifest
+ */
+export function isRegisterScheduleNoPlacePhotoDay(
+  row: Pick<RegisterScheduleFinalizeRow, 'day' | 'title' | 'routeText' | 'hotelText'>,
+  maxDay: number,
+): boolean {
+  const route = String(row.routeText ?? '').trim()
+  const parts = dayRouteParts(route || String(row.title ?? '').replace(/\s*출발\s*·\s*귀국$/u, ''))
+  const places = parts.places.filter((p) => !/공항|airport/iu.test(p))
+  if (places.length === 0) return true
+  const day = Number(row.day)
+  if (maxDay >= 2 && day === maxDay) {
+    const h = String(normalizeRegisterScheduleDayHotelText(row.hotelText) ?? '').trim()
+    const noStay = !h || /^숙박\s*없음/u.test(h) || h === REGISTER_SCHEDULE_INFLIGHT_NO_HOTEL_TEXT
+    if (noStay) {
+      const cities = new Set(koreanCitiesInText(places.join(' - ')))
+      const onlyCities = places.every((p) => cities.has(p) || (/^[가-힣]{2,5}$/u.test(p) && koreanCitiesInText(p).length > 0))
+      if (onlyCities) return true
+    }
+  }
+  return false
+}
+
+export type FinalizeRegisterPackageScheduleOpts = {
+  /** 상품 목적지(primaryDestination ?? destination) — 제목에 넣을 장소·도시가 없을 때 마지막 대안 */
+  destination?: string | null
+  /** 파싱 직후 schedule — 출발·귀국일 공급사 원문 요약 */
+  sourceRows?: ReadonlyArray<Pick<RegisterScheduleFinalizeRow, 'day' | 'description'>> | null
+}
+
+export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFinalizeRow>(
+  rows: T[],
+  opts: FinalizeRegisterPackageScheduleOpts = {},
+): T[] {
   const days = rows.filter((r) => Number(r.day) > 0)
   if (!days.length) return rows
   const maxDay = Math.max(...days.map((r) => Number(r.day)))
-  const prepared = rows.map((row) => {
+  const destinationCity = registerScheduleDestinationCityLabel(opts.destination)
+  const normalized = rows.map((row) => {
     if (Number(row.day) <= 0) return row
     const next: T = { ...row }
     if (row.hotelText != null && String(row.hotelText).trim()) {
@@ -554,14 +825,19 @@ export function finalizeRegisterPackageScheduleRows<T extends RegisterScheduleFi
     if (row.routeText && /[A-Za-z]/.test(row.routeText)) {
       next.routeText = koreanizeRegisterSchedulePlaceNames(row.routeText)
     }
-    const title = fillPlaceholderDayTitle(next)
-    if (title !== next.title) next.title = title
     return next
+  })
+  const lastCity = maxDay >= 2 ? returnDayCity(normalized, maxDay, destinationCity) : null
+  const prepared = normalized.map((row) => {
+    if (Number(row.day) <= 0) return row
+    const title = fillPlaceholderDayTitle(row, { isLast: maxDay >= 2 && Number(row.day) === maxDay, destinationCity, lastCity })
+    return title !== row.title ? { ...row, title } : row
   })
   const keyed = restrictRegisterScheduleImageKeywordsToSameDay(prepared)
   return keyed.map((row) => {
     if (Number(row.day) <= 0) return row
-    const description = finalizeRegisterScheduleDaySummary(row, { maxDay })
+    const src = opts.sourceRows?.find((r) => Number(r.day) === Number(row.day))?.description ?? null
+    const description = finalizeRegisterScheduleDaySummary(row, { maxDay, sourceDescription: src, lastCity })
     return description === String(row.description ?? '') ? row : { ...row, description }
   })
 }
