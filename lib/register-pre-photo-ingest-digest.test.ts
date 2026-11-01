@@ -80,6 +80,19 @@ describe('register-pre-photo-ingest-digest', () => {
     expect(enqueueOpsSms.mock.calls[0]![0]).toMatchObject({ kind: 'ingest-digest' })
   })
 
+  it('11/01: 막힘(pre_photo_blocked)과 사진 채움 대기(pending·대표사진 없음)를 따로 적는다', () => {
+    const text = buildRegisterPrePhotoIngestDigestText({
+      createdTonight: {},
+      photoKeywordBlocked: 64,
+      awaitingPhotoFill: 125,
+      yieldSkips: 0,
+      opsDeferred: 0,
+      dailyCapPrefix: null,
+    })
+    expect(text).toMatch(/^photoKeywordBlocked 64$/m)
+    expect(text).toMatch(/^pendingAwaitingPhoto 125$/m)
+  })
+
   it('digest text has no URL or phone patterns', () => {
     recordRegisterPrePhotoIngestDigestFromJobResult({
       ingest: { created: 1, failed: 1, skippedNoListing: ['x'], bySupplier: { modetour: 1 } },

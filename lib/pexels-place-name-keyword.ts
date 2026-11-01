@@ -1001,6 +1001,14 @@ const LANDMARK_HINT_RE =
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: golf·fairway·flower fields landmark hint — manifest
   /\b(garden|park|temple|shrine|palace|castle|museum|pagoda|stupa|mosque|cathedral|church|basilica|chapel|monastery|fort|fortress|bastion|square|plaza|piazza|pra[cç]a|market|bund|lakes?|tower|peak|mount|mountains?|hills|disney|studios?|old\s+town|ancient|waterfall|fjord|beach|quarter|village|terrace|bridge|br[uü]cke|harbour|harbor|island|abbey|colosseum|sagrada|acropolis|yu\s+garden|west\s+lake|oriental\s+pearl|merlion|sentosa|marina|pyramid|monument|statue|memorial|ruins?|cave|dam|glacier|canyon|aquarium|safari|dunes?|desert|onsen|grove|lookout|viewpoint|caldera|volcano|bay|stream|forest|heritage|tram|opera|amphitheatr[e]?|canal|gondola|alps|circus|circle|sphere|sign|clock|cape|cabo|cliff|coast|railway|rail|cruise|zoo|reef|falls|gorge|springs?|conservatory|botanical|tenmangu|jinja|dera|jingu|toshogu|point|shore|kaido|parliament|mahal|ramblas?|mausoleum|tomb|citadel|treasury|forbidden\s+city|great\s+wall|university|colleges?|library|libraries|spires?|itza|khalili|bazaar|souk|zocalo|etna|cotswolds?|grand\s+world|strip|ranch|temples?|windmills?|hierapolis|stonehenge|redeemer|salt|flats|dock|waterfront|wharf|uyuni|obelisco|shakespeare|wadi|grand|steps|sicily|malta|chimneys|sheikh|\bsea\b|silent|route|sunrises?|sunsets?|rocks?|walls?|residenz|rathaus|cable\s*car|seine|changi|stephens|wildlife|alley|kuanzhai|grassland|channel|beagle|cross|camino|magellan|miraflores|larcomar|ocean|boardwalk|whale|shark|oslob|hall|tumski|centennial|ostrow|ostr[oó]w|harbor|harbour|aquarium|icewine|factory|abbey|wachau|vineyard|vineyards|melk|golf|fairway|flower\s*fields?)\b/i
 
+/**
+ * 현지어 명소 낱말(태국 Wat·Doi·Phra, 베트남 Chua, 인니 Pura·Candi, 일본 -ji·-jo·-yama, 유럽 Schloss·Duomo…).
+ * 영어 범주어(temple·mountain…)만 보던 LANDMARK_HINT_RE 가 'Wat Pho'·'Doi Suthep'·'Wat Chedi Luang' 같은 실제 명소를
+ * 2단어 상호로 오판해 키워드를 지움 → 일차 키워드 공란 → 사진 전 검수 차단(10/31 다이제스트 '이미지키워드막힘')의 원인.
+ */
+const LOCAL_LANGUAGE_LANDMARK_HINT_RE =
+  /(?:^|\s)(?:wat|doi|phra|prasat|phrathat|chedi|chua|ch\u00f9a|pura|candi|klenteng|gunung|danau|pantai|bukit|masjid|mandir|ghats?|qila|minar|darwaza|qasr|kasbah|ksar|medina|jebel|camii?|saray[\u0131i]|kalesi|kremlin|sobor|lavra|schloss|burg|dom|kirche|platz|ch[\u00e2a]teau|cath[\u00e9e]drale|palais|mus[\u00e9e]e|jardin|plage|pont|catedral|iglesia|mirador|cerro|playa|parque|laguna|volc[\u00e1a]n|castillo|alc[\u00e1a]zar|mezquita|igreja|mosteiro|praia|pal[\u00e1a]cio|museo|duomo|chiesa|castello|lago|monte|torre|ponte|observatory|observation\s+deck|skywalk|skydeck|sky\s*tree|mahanakhon)(?=\s|$)|[a-z]-(?:ji|dera|jo|yama|san|dake|kyo|en|gu|taisha|jinja)(?=\s|$)/i
+
 function famousLandmarkPriorityHit(name: string): boolean {
   const t = String(name ?? '').trim()
   if (!t) return false
@@ -1029,6 +1037,7 @@ export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
   if (isNonLandmarkHistoricalPrisonImageKeyword(raw)) return false
   if (famousLandmarkPriorityHit(raw)) return true
   if (LANDMARK_HINT_RE.test(raw)) return true
+  if (LOCAL_LANGUAGE_LANDMARK_HINT_RE.test(raw)) return true
   const n = normalizeToPlaceName(raw)
   if (!n || isBareCityOrCountryKeyword(n) || isHotelLodgingImageKeyword(n)) return false
   if (isNonLandmarkFoodOrDiningImageKeyword(n)) return false
@@ -1036,6 +1045,7 @@ export function isLikelyTourismLandmarkKeyword(keyword: string): boolean {
   if (isNonLandmarkHistoricalPrisonImageKeyword(n)) return false
   if (famousLandmarkPriorityHit(n)) return true
   if (LANDMARK_HINT_RE.test(n)) return true
+  if (LOCAL_LANGUAGE_LANDMARK_HINT_RE.test(n)) return true
   const canonKey = n.toLowerCase()
   if (CANONICAL_BY_LOWER[canonKey] || COMPOUND_LANDMARK_PHRASES[canonKey]) return true
   const words = n.split(/\s+/).filter(Boolean)

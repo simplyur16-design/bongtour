@@ -101,6 +101,8 @@ export function isRegisterPrePhotoIngestDigestSendWindow(now = new Date()): bool
 export function buildRegisterPrePhotoIngestDigestText(opts: {
   createdTonight: Record<string, number>
   photoKeywordBlocked: number | null
+  /** 등록대기(pending)인데 대표사진이 아직 없는 상품 — 자동 사진 채움 대기(막힘 아님) */
+  awaitingPhotoFill?: number | null
   yieldSkips: number
   opsDeferred: number
   dailyCapPrefix: string | null
@@ -120,6 +122,9 @@ export function buildRegisterPrePhotoIngestDigestText(opts: {
     `esimYieldSkip ${opts.yieldSkips}`,
     `healProcessed ${acc.healProcessed}`,
     `photoKeywordBlocked ${opts.photoKeywordBlocked == null ? 'n/a' : opts.photoKeywordBlocked}`,
+    ...(opts.awaitingPhotoFill === undefined
+      ? []
+      : [`pendingAwaitingPhoto ${opts.awaitingPhotoFill == null ? 'n/a' : opts.awaitingPhotoFill}`]),
     `opsSmsDailyCapDeferred ${opts.opsDeferred}`,
     `modetourE2eDeferHot ${acc.modetourE2eDeferHot}`,
   ]
@@ -128,22 +133,20 @@ export function buildRegisterPrePhotoIngestDigestText(opts: {
   return lines.join('\n')
 }
 
-async function countPhotoKeywordBlockedPending(): Promise<number | null> {
+/**
+ * 11/01: 예전 지표는 '사진 전 검수 차단(pre_photo_blocked)'과 '등록대기인데 사진만 아직 없음(pending·대표사진 없음)'을
+ * 한 숫자로 합쳐 '이미지키워드막힘'처럼 보였다(10/31 328개 = 대부분 자동 사진 채움 대기). 두 숫자로 나눈다.
+ */
+export async function countRegisterPrePhotoDigestPhotoBuckets(): Promise<{ blocked: number | null; awaitingPhotoFill: number | null }> {
   try {
     const { prisma } = await import('@/lib/prisma')
-    return await prisma.product.count({
-      where: {
-        OR: [
-          { registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS },
-          {
-            registrationStatus: 'pending',
-            OR: [{ bgImageUrl: null }, { bgImageUrl: '' }],
-          },
-        ],
-      },
-    })
+    const [blocked, awaitingPhotoFill] = await Promise.all([
+      prisma.product.count({ where: { registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS } }),
+      prisma.product.count({ where: { registrationStatus: 'pending', OR: [{ bgImageUrl: null }, { bgImageUrl: '' }] } }),
+    ])
+    return { blocked, awaitingPhotoFill }
   } catch {
-    return null
+    return { blocked: null, awaitingPhotoFill: null }
   }
 }
 
@@ -179,13 +182,16 @@ export async function maybeSendRegisterPrePhotoIngestDigest(opts?: {
     acc.partialMissing = true
   }
 
-  const photoKeywordBlocked = await countPhotoKeywordBlockedPending()
+  const buckets = await countRegisterPrePhotoDigestPhotoBuckets()
+  const photoKeywordBlocked = buckets.blocked
+  const awaitingPhotoFill = buckets.awaitingPhotoFill
   const yieldSkips = getRegisterIngestEsimYieldSkipCount()
   const opsDeferred = getOpsSmsDailyCapDeferredCount()
   const dailyCapPrefix = takeOpsSmsDailyCapDigestPrefix()
   const text = buildRegisterPrePhotoIngestDigestText({
     createdTonight,
     photoKeywordBlocked,
+    awaitingPhotoFill,
     yieldSkips,
     opsDeferred,
     dailyCapPrefix,
