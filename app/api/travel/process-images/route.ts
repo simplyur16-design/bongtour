@@ -22,6 +22,9 @@ import { photoCandidateText, photoSubjectBlockReason } from '@/lib/register-phot
 import { photoMatchGate, sortByMatchGateScore, type MatchGateContext } from '@/lib/register-photo-match-gate'
 import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-preserve'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
+import { registerScheduleRouteIsCityOnly } from '@/lib/register-schedule-city-only-day'
+import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
+import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import { registerSupplierTripDays, trimRegisterScheduleToSupplierDays } from '@/lib/register-schedule-supplier-day-count'
 import { resolveDayHeroWithFallback, saveDayHeroResult } from '@/lib/itinerary-day-hero-image'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
@@ -50,6 +53,7 @@ import { gatedAutoCoverUpdateData } from '@/lib/product-image-auto-register-gate
 // REGRESSION-FREEZE[register-photo-source-chain]: v2 = Pexels → Unsplash → (CC0 없음) → AI — manifest
 import {
   findStockPhotoByChain,
+  chainMainNotMonochrome,
   isPhotoChainV2Enabled,
   type ChainCandidate,
 } from '@/lib/register-photo-source-chain'
@@ -686,8 +690,12 @@ export async function POST(req: Request) {
       cityMatch?: DayCityMatch,
       gateCtx?: MatchGateContext
     ): Promise<PhotoResult | null> => {
+      const isMainSlot = slot === 'main'
       const r = await findStockPhotoByChain(query, {
         accept: chainAccept(extra, gateCtx),
+        // 사장님 11/01: 대표사진 흑백 금지(일차 칸 흑백은 허용) — 고른 뒤 미리보기 화소로 확인
+        slot: isMainSlot ? 'main' : 'day',
+        verify: isMainSlot ? chainMainNotMonochrome : undefined,
         // 품질 점수 우선 − 최근 사용 감점 − 같은 도시 사용 감점
         pick: (cands) => {
           const ranked = rankPhotosByScore(cands, { keywords: [query, mapDestination(destination)], recent: recentIndex })
@@ -862,6 +870,20 @@ export async function POST(req: Request) {
         })
         continue
       }
+      // 사장님 11/01: 도시 이름만 있는 날(경유·이동)은 사진 비움 — 도시=명소(우유니·이과수·카르타고·마트마타 …)는 제외
+      if (photoChainV2 && sched && registerScheduleRouteIsCityOnly(sched.routeText)) {
+        console.log(`[GATE] day ${dayNum} 도시만 있는 날 — 사진 비움`)
+        slotDebug.push({
+          day: dayNum,
+          imageUrl: '',
+          imageSource: '',
+          candidateOrigin: 'v2-city-only-day',
+          semanticKey: normalizeSemanticPoiKey(`day_${dayNum}`),
+          fallbackUsed: false,
+          fallbackReason: 'v2-city-only-day',
+        })
+        continue
+      }
 
       const poolRec = poolBySlot.get(n)
       /** v2 관문: 이 일차 장소(키워드·도시) 또는 상품 목적지 도시가 설명에 있어야 하고, 다른 도시 판정은 이 일차 글 기준 */
@@ -978,7 +1000,11 @@ export async function POST(req: Request) {
 
       if (!photo && photoChainV2) {
         // REGRESSION-FREEZE[register-photo-no-city-substitute]: v2 일차 사진은 그날 키워드로만 — 상품 도시(mainQuery) 대체 검색 금지 — manifest
-        const chainKw = normalizeToPlaceName(keywordUsed) || normalizeToPlaceName(sched?.imageKeyword ?? '')
+        // 키워드가 비면 그날 동선의 명소(사전 영문)로 — 상품 도시로 바꾸지 않음
+        const chainKw =
+          normalizeToPlaceName(sched?.imageKeyword ?? '') ||
+          (/^day \d+$/.test(keywordUsed) ? '' : normalizeToPlaceName(keywordUsed)) ||
+          normalizeToPlaceName(firstMatchingScheduleSpotEn(String(sched?.routeText ?? '')) ?? '')
         const stock = !chainKw ? null : await runChain(
           `day${dayNum}`,
           chainKw,
@@ -996,6 +1022,38 @@ export async function POST(req: Request) {
         // 일차 키워드로 장소 일치 사진이 없으면 비워 둔다(상품 대표 장소·목적지로 바꿔 찾지 않음)
       }
 
+      if (!photo && photoChainV2) {
+        // 사장님 11/01: 재고 사진(Pexels → Unsplash)이 없으면 그날 장소로 실사풍 AI 생성('AI 생성 이미지' 표시).
+        // 장소가 없거나 생성 실패면 '사진 필요'로 비워 둔다.
+        const dayAiKw = /^day \d+$/.test(keywordUsed) ? sched?.imageKeyword ?? '' : keywordUsed
+        const aiPrompt = buildRegisterDayAiPhotoPrompt({ keyword: dayAiKw, routeText: sched?.routeText ?? null, destination })
+        if (aiPrompt) {
+          try {
+            const buf = await generateImageWithGemini({ prompt: aiPrompt, aspectRatio: '16:9' })
+            if (buf) {
+              const saved = await savePhotoToPool(prisma, buf, destination, `${destination}_${dayNum}`, 'Gemini', {
+                convertToWebpFirst: true,
+              })
+              const fromPool = photoFromPoolSave(saved)
+              if (fromPool) {
+                photo = {
+                  ...fromPool,
+                  source: fromPool.source || 'Gemini',
+                  cityMatch: 'keyword',
+                  aiLabel: dayPhotoAiLabel({ source: 'Gemini', url: fromPool.url }, aiPrompt, dayAiKw || `day ${dayNum}`),
+                }
+                usage.mark(photo)
+                selectedOrigin = 'v2-ai-gemini'
+                fallbackUsed = true
+                fallbackReason = 'v2-stock-none-ai-generated'
+                console.log(`[AI] day ${dayNum} 재고 사진 없음 → 제미나이 생성(AI 표시)`)
+              }
+            }
+          } catch (e) {
+            console.warn(`[AI] day ${dayNum} 생성 실패 — 사진 필요`, e instanceof Error ? e.message.slice(0, 120) : '')
+          }
+        }
+      }
       if (!photo && photoChainV2) {
         // v2: 설명 없는 대체 검색·풀 재사용(장소 확인 불가)은 쓰지 않는다 → '사진 필요'로 비워 둔다
         fallbackReason = 'v2-no-verified-candidate'
@@ -1166,7 +1224,7 @@ export async function POST(req: Request) {
       const sched = workingSchedule[n]
       const kw2 = typeof sched?.imageKeyword2 === 'string' ? sched.imageKeyword2.trim() : ''
       if (!kw2) continue
-      if (photoChainV2 && sched && isRegisterScheduleNoPlacePhotoDay(sched, scheduleMaxDay)) continue
+      if (photoChainV2 && sched && (isRegisterScheduleNoPlacePhotoDay(sched, scheduleMaxDay) || registerScheduleRouteIsCityOnly(sched.routeText))) continue
       const existing2 = sched?.imageUrl2 ? String(sched.imageUrl2).trim() : ''
       if (existing2) continue
       const primaryUrl = schedulePhotos[n]?.photo?.url ?? sched?.imageUrl ?? null

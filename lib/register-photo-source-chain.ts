@@ -14,6 +14,7 @@ import {
   type UnsplashHeroCandidate,
 } from '@/lib/unsplash-service'
 import { IMAGE_MIN_WIDTH } from '@/lib/product-image-source-policy'
+import { altSaysMonochrome, isMonochromePhotoUrl } from '@/lib/register-photo-monochrome'
 
 export const PHOTO_CHAIN_STOCK_ORDER = ['pexels', 'unsplash', 'cc0'] as const
 export type PhotoChainStockTier = (typeof PHOTO_CHAIN_STOCK_ORDER)[number]
@@ -39,6 +40,25 @@ export type ChainCandidate = {
   pageUrl?: string | null
   downloadLocation?: string
   queryUsed: string
+  /** 평균색 힌트(#rrggbb) */
+  avgColor?: string | null
+}
+
+/**
+ * 사장님 11/01 검수: 로고·워터마크·글자 얹은 사진 금지, 대표사진 흑백 금지(일차 칸 흑백은 허용).
+ * 후보 설명(alt)으로 먼저 거른다 — 대표사진 흑백은 고른 뒤 미리보기 화소로 한 번 더 본다(findStockPhotoByChain verify).
+ */
+const TEXT_OVERLAY_RE = /\b(watermark|watermarked|typography|lettering|text overlay|overlay text|quote|quotes|motivational|logo|logos|caption|captions|meme|mockup|template)\b/i
+export function chainCandidateTextBlockReason(c: Pick<ChainCandidate, 'altText'>, slot: 'main' | 'day'): string | null {
+  const alt = String(c.altText ?? '')
+  if (TEXT_OVERLAY_RE.test(alt)) return 'text_or_logo'
+  if (slot === 'main' && altSaysMonochrome(alt)) return 'main_monochrome'
+  return null
+}
+
+/** 대표사진 흑백 확인(미리보기 화소). 받기 실패는 통과. */
+export async function chainMainNotMonochrome(c: Pick<ChainCandidate, 'url'>): Promise<boolean> {
+  return !(await isMonochromePhotoUrl(c.url))
 }
 
 export type ChainDeps = {
@@ -83,6 +103,7 @@ function fromPexels(p: PexelsHeroCandidateMeta): ChainCandidate {
     altText: p.altText,
     pageUrl: p.originalLink,
     queryUsed: p.queryUsed,
+    avgColor: p.avgColor ?? null,
   }
 }
 
@@ -104,6 +125,7 @@ function fromUnsplash(u: UnsplashHeroCandidate): ChainCandidate | null {
     pageUrl: null,
     downloadLocation: u.downloadLocation,
     queryUsed: u.queryUsed,
+    avgColor: u.avgColor ?? null,
   }
 }
 
@@ -138,25 +160,51 @@ export type ChainResult = { photo: ChainCandidate | null; tried: string[] }
  */
 export async function findStockPhotoByChain(
   query: string,
-  opts: { accept: (c: ChainCandidate) => boolean; pick?: ChainPick; deps?: ChainDeps }
+  opts: {
+    accept: (c: ChainCandidate) => boolean
+    pick?: ChainPick
+    deps?: ChainDeps
+    /** 'main' 이면 흑백 금지. 기본 'day' */
+    slot?: 'main' | 'day'
+    /** 고른 뒤 비동기 확인(대표사진 흑백 화소 검사 등). false 면 다음 후보 */
+    verify?: (c: ChainCandidate) => Promise<boolean>
+  }
 ): Promise<ChainResult> {
   const tried: string[] = []
   const pick = opts.pick ?? pickFirstCandidate
+  const slot = opts.slot ?? 'day'
   for (const tier of PHOTO_CHAIN_STOCK_ORDER) {
     if (tier === 'cc0') {
       tried.push('cc0:no-provider')
       continue
     }
     const cands = await collectChainCandidates(query, tier, opts.deps)
-    const ok = cands.filter((c) => c.width >= IMAGE_MIN_WIDTH && opts.accept(c))
+    let ok = cands.filter((c) => c.width >= IMAGE_MIN_WIDTH && !chainCandidateTextBlockReason(c, slot) && opts.accept(c))
     tried.push(`${tier}:${cands.length}/${ok.length}`)
-    const chosen = ok.length ? pick(ok) : null
-    if (!chosen) continue
-    if (chosen.tier === 'unsplash' && chosen.downloadLocation) {
-      const trig = opts.deps?.triggerDownload ?? ((d: string) => triggerUnsplashDownload(d, { env: opts.deps?.env }))
-      await trig(chosen.downloadLocation)
+    // 고른 사진이 확인(흑백 등)·download_location 에 걸리면 같은 출처의 다음 후보(최대 4번)
+    for (let attempt = 0; attempt < 4 && ok.length > 0; attempt++) {
+      const chosen = pick(ok)
+      if (!chosen) break
+      if (opts.verify && !(await opts.verify(chosen))) {
+        tried.push(`${tier}:verify-reject`)
+        ok = ok.filter((x) => x !== chosen)
+        continue
+      }
+      if (chosen.tier === 'unsplash') {
+        // 가이드라인: 쓰는 사진마다 download_location — 못 부르면(예산·멈춤·실패) 그 사진은 쓰지 않는다
+        if (!chosen.downloadLocation) {
+          ok = ok.filter((x) => x !== chosen)
+          continue
+        }
+        const trig = opts.deps?.triggerDownload ?? ((d: string) => triggerUnsplashDownload(d, { env: opts.deps?.env }))
+        const fired = await trig(chosen.downloadLocation)
+        if (fired === false) {
+          tried.push('unsplash:download-location-failed')
+          break
+        }
+      }
+      return { photo: chosen, tried }
     }
-    return { photo: chosen, tried }
   }
   return { photo: null, tried }
 }

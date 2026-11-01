@@ -11,6 +11,8 @@
  * REGRESSION-FREEZE[product-image-stage4-1030]: env 없으면 꺼짐·키 로그 금지·핫링크·download_location — manifest
  */
 
+import { sharedUnsplashCallBudget, type UnsplashCallBudget } from '@/lib/register-photo-stock-rate-guard'
+
 export const UNSPLASH_ACCESS_KEY_ENV = 'UNSPLASH_ACCESS_KEY'
 const API = 'https://api.unsplash.com'
 
@@ -37,6 +39,8 @@ export type UnsplashHeroCandidate = {
   authorName: string | null
   /** 크레딧용 작가 프로필 주소(photo.user.links.html, utm 없이 저장 — 표시할 때 붙임) */
   authorProfileUrl: string | null
+  /** 평균색 힌트(#rrggbb) */
+  avgColor?: string | null
 }
 
 type UnsplashApiPhoto = {
@@ -47,6 +51,25 @@ type UnsplashApiPhoto = {
   urls?: { raw?: string; full?: string; regular?: string }
   links?: { download_location?: string }
   user?: { name?: string | null; username?: string | null; links?: { html?: string | null } }
+  /** Unsplash+ (유료) 사진 표시 — true 면 쓰지 않는다 */
+  premium?: boolean | null
+  plus?: boolean | null
+  sponsorship?: unknown
+  /** 평균색(#rrggbb) — 흑백 여부 힌트 */
+  color?: string | null
+}
+
+/** 사장님 11/01: 무료 사진만. Unsplash+·프리미엄·광고(스폰서) 사진은 후보에서 뺀다. */
+export function isUnsplashPaidOrSponsoredPhoto(p: Pick<UnsplashApiPhoto, 'premium' | 'plus' | 'sponsorship' | 'urls'>): boolean {
+  if (p.premium === true || p.plus === true) return true
+  if (p.sponsorship != null && p.sponsorship !== false) return true
+  const raw = String(p.urls?.raw ?? p.urls?.regular ?? '')
+  try {
+    if (raw && new URL(raw).hostname === 'plus.unsplash.com') return true
+  } catch {
+    /* ignore */
+  }
+  return false
 }
 
 type FetchLike = typeof fetch
@@ -78,18 +101,24 @@ export async function searchUnsplashHeroCandidates(
   keyword: string,
   perPage: number,
   queryUsed: string,
-  deps: { env?: Record<string, string | undefined>; fetchImpl?: FetchLike } = {}
+  deps: { env?: Record<string, string | undefined>; fetchImpl?: FetchLike; budget?: UnsplashCallBudget } = {}
 ): Promise<UnsplashHeroCandidate[]> {
   const key = getUnsplashAccessKey(deps.env ?? process.env)
   if (!key) return []
   const query = keyword.trim()
   if (!query) return []
+  const budget = deps.budget ?? sharedUnsplashCallBudget()
+  if (!budget.tryAcquire()) {
+    console.warn('[unsplash] search skipped (hourly budget or stopped after 403/429)')
+    return []
+  }
   const f = deps.fetchImpl ?? fetch
   const take = Math.min(Math.max(perPage, 1), 30)
   const url = `${API}/search/photos?query=${encodeURIComponent(query)}&per_page=${take}&orientation=landscape&content_filter=high`
   try {
     const res = await f(url, { headers: headers(key) })
     if (!res.ok) {
+      budget.onStatus(res.status)
       console.warn(`[unsplash] search HTTP ${res.status}`)
       return []
     }
@@ -99,6 +128,7 @@ export async function searchUnsplashHeroCandidates(
       const raw = p.urls?.raw?.trim()
       const dl = p.links?.download_location?.trim()
       if (!p.id || !raw || !dl) continue
+      if (isUnsplashPaidOrSponsoredPhoto(p)) continue
       const w0 = typeof p.width === 'number' ? p.width : 0
       const h0 = typeof p.height === 'number' ? p.height : 0
       const w = w0 > UNSPLASH_HERO_TARGET_WIDTH ? UNSPLASH_HERO_TARGET_WIDTH : w0
@@ -115,6 +145,7 @@ export async function searchUnsplashHeroCandidates(
         authorProfileUrl:
           (p.user?.links?.html ?? '').trim() ||
           ((p.user?.username ?? '').trim() ? `https://unsplash.com/@${(p.user?.username ?? '').trim()}` : null),
+        avgColor: typeof p.color === 'string' ? p.color : null,
       })
     }
     return out
@@ -127,7 +158,7 @@ export async function searchUnsplashHeroCandidates(
 /** 가이드라인 2번: 사진을 고를 때(대표 사진으로 확정) download_location 호출. 성공 여부만 반환. */
 export async function triggerUnsplashDownload(
   downloadLocation: string,
-  deps: { env?: Record<string, string | undefined>; fetchImpl?: FetchLike } = {}
+  deps: { env?: Record<string, string | undefined>; fetchImpl?: FetchLike; budget?: UnsplashCallBudget } = {}
 ): Promise<boolean> {
   const key = getUnsplashAccessKey(deps.env ?? process.env)
   if (!key) return false
@@ -138,9 +169,16 @@ export async function triggerUnsplashDownload(
     return false
   }
   if (u.protocol !== 'https:' || u.hostname !== 'api.unsplash.com') return false
+  // download_location 도 시간당 45번 예산에 든다
+  const budget = deps.budget ?? sharedUnsplashCallBudget()
+  if (!budget.tryAcquire()) {
+    console.warn('[unsplash] download_location skipped (hourly budget or stopped after 403/429)')
+    return false
+  }
   const f = deps.fetchImpl ?? fetch
   try {
     const res = await f(u.toString(), { headers: headers(key) })
+    if (!res.ok) budget.onStatus(res.status)
     return res.ok
   } catch (e) {
     console.warn('[unsplash] download_location error', scrub(e instanceof Error ? e.message : String(e), key))

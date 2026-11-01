@@ -2,6 +2,7 @@ import { createClient } from 'pexels'
 import { LUXURY_FALLBACK_IMAGE_URL } from '@/lib/image-fallback'
 import { withPexelsRealisticQuery } from '@/lib/image-style'
 import { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
+import { sharedPexelsCallGuard, type PexelsCallGuard } from '@/lib/register-photo-stock-rate-guard'
 
 export { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
 
@@ -64,6 +65,16 @@ export type PexelsHeroCandidateMeta = {
   queryUsed: string
   /** Pexels alt — 동물 거북이 등 오매칭 거절용 */
   altText?: string
+  /** Pexels avg_color(#rrggbb) — 흑백 힌트 */
+  avgColor?: string | null
+}
+
+/** 오류 문구에서 403·429 를 읽는다(키·본문은 남기지 않음) */
+export function pexelsErrorStopStatus(err: unknown): 403 | 429 | null {
+  const msg = String(err instanceof Error ? err.message : err ?? '')
+  if (/\b429\b|too many requests|rate\s*limit/i.test(msg)) return 429
+  if (/\b403\b|forbidden/i.test(msg)) return 403
+  return null
 }
 
 /**
@@ -120,19 +131,31 @@ export async function pexelsKeywordHasPhotos(keyword: string): Promise<boolean> 
 export async function searchPexelsHeroCandidates(
   keyword: string,
   perPage: number,
-  queryUsed: string
+  queryUsed: string,
+  deps: { guard?: PexelsCallGuard } = {}
 ): Promise<PexelsHeroCandidateMeta[]> {
   const query = keyword.trim()
   const take = Math.min(Math.max(perPage, 1), 15)
+  // 사장님 11/01: Pexels 호출 사이 3.5초 이상, 403·429 면 멈춤(재시도 없음)
+  const guard = deps.guard ?? sharedPexelsCallGuard()
   try {
     const client = getPexelsClient()
     if (!client) return []
+    if (!(await guard.acquire())) {
+      console.warn('[pexels] hero search skipped (stopped after 403/429)')
+      return []
+    }
     const result = await client.photos.search({
       query,
       per_page: take,
       orientation: 'landscape',
     })
-    if (!('photos' in result) || result.photos.length === 0) return []
+    if (!('photos' in result)) {
+      const st = pexelsErrorStopStatus((result as { error?: unknown }).error)
+      if (st) guard.onStatus(st)
+      return []
+    }
+    if (result.photos.length === 0) return []
     const out: PexelsHeroCandidateMeta[] = []
     for (const photo of result.photos) {
       const p = photo as PexelsApiPhoto
@@ -147,10 +170,16 @@ export async function searchPexelsHeroCandidates(
         originalLink: p.url?.trim() || 'https://www.pexels.com',
         queryUsed,
         altText: typeof p.alt === 'string' ? p.alt : undefined,
+        avgColor: (() => {
+          const v = (p as unknown as { avg_color?: unknown }).avg_color
+          return typeof v === 'string' ? v : null
+        })(),
       })
     }
     return out
   } catch (err) {
+    const st = pexelsErrorStopStatus(err)
+    if (st) guard.onStatus(st)
     console.error('Pexels hero search error:', err)
     return []
   }
