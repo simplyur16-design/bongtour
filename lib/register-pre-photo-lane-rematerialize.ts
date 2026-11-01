@@ -24,6 +24,10 @@ import {
   type RegisterPrePhotoVerifyIssue,
 } from '@/lib/register-pre-photo-verify'
 import { fillRegisterScheduleImageKeywordsWithGeminiIfNeeded } from '@/lib/register-schedule-image-keyword-gemini-fill'
+import {
+  FREE_DAY_ITINERARY_GENERATION_META_KEY,
+  recordItineraryGenerationStatus,
+} from '@/lib/fit-itinerary-generation-status'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 
 export type RegisterPrePhotoLaneRematerializeResult = {
@@ -118,17 +122,18 @@ async function rematerializeFitLane(
   let path: RegisterPrePhotoLaneRematerializeResult['path'] = 'fit_sync_master'
   let updated = false
 
-  const synced = await syncScheduleImageKeywordsFromFitMasterDb(productId)
-  if (synced.hadMaster) {
-    updated = synced.updated
-  } else {
+  // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 추천일정이 없거나 일수가 틀리면(기본값 4일) 제미나이로 다시 만든다 — manifest
+  const gen = await generateFitItineraryForProduct(productId, { replaceIfDaysMismatch: true })
+  if (gen.success) {
     path = 'fit_generate'
-    const gen = await generateFitItineraryForProduct(productId)
-    updated = Boolean(gen.success)
-    if (!gen.success && gen.reason === 'already_exists') {
-      const again = await syncScheduleImageKeywordsFromFitMasterDb(productId)
-      updated = again.updated
-      path = 'fit_sync_master'
+    updated = true
+  } else {
+    const synced = await syncScheduleImageKeywordsFromFitMasterDb(productId)
+    if (synced.hadMaster) {
+      updated = synced.updated
+    } else {
+      path = 'fit_generate'
+      updated = false
     }
   }
 
@@ -245,6 +250,17 @@ async function rematerializePackageLane(
   })
   const afterV = verifyRegisterPrePhotoForStoredProduct(after as never)
   const afterIssues = afterV.ok ? [] : afterV.issues || []
+  // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 자유일정 추천일정 실패 사유 rawMeta 기록(매시간 재시도) — manifest
+  if (beforeIssues.some((i) => i.includes('free_recommended_itinerary_missing'))) {
+    const still = afterIssues.filter((i) => i.includes('free_recommended_itinerary_missing'))
+    await recordItineraryGenerationStatus(
+      productId,
+      still.length
+        ? { ok: false, reason: 'free_day_itinerary_missing', detail: still.join(',') }
+        : { ok: true },
+      FREE_DAY_ITINERARY_GENERATION_META_KEY,
+    )
+  }
   return {
     productId,
     lane: 'package',

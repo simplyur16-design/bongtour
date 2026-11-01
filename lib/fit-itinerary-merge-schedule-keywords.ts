@@ -69,7 +69,11 @@ export function mergeScheduleWithFitKeywords(
     byDay.set(dayNum, next)
   }
 
-  const rows = [...byDay.values()].sort((a, b) => a.day - b.day)
+  // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 자유여행 일정 = 제미나이 추천일정 일차만(원문 꼬리 일차·유령 일차 제거) — manifest
+  const maxFitDay = sortedDays.reduce((m, d) => Math.max(m, Math.floor(Number(d.dayNumber)) || 0), 0)
+  const rows = [...byDay.values()]
+    .filter((r) => maxFitDay < 1 || Math.floor(Number(r.day)) <= maxFitDay)
+    .sort((a, b) => a.day - b.day)
   return { rows, dayKeywords }
 }
 

@@ -30494,6 +30494,102 @@
           ]
         }
       ]
+    },
+    {
+      "id": "fit-gemini-recommended-itinerary-1101",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/01 19:01 — 자유여행은 공급사 일정표를 읽지 않고 제미나이가 전 일차 추천일정(봉실장 말투)을 만든다. 일수 기본값 4 금지, 실패 사유 rawMeta 기록·재시도, 사진 전 막힘도 백필, 추천일정 없는 자유여행·향후 출발일 없는 상품은 registered 금지, 자유일정 날은 도시만 규칙 제외",
+      "checks": [
+        {
+          "file": "lib/fit-itinerary-total-days.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
+            "resolveFitTotalDays"
+          ],
+          "mustNotInclude": [
+            "?? '4'"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-generate-for-product.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
+            "resolveFitTotalDays",
+            "validateFitItineraryGeminiDays",
+            "recordItineraryGenerationStatus",
+            "봉실장",
+            "FIT_ITINERARY_GENERATE_ATTEMPTS"
+          ],
+          "mustNotInclude": [
+            "?? '4'",
+            "schedulePreview(p.schedule)"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-generation-status.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
+            "fitItineraryGeneration",
+            "ITINERARY_GENERATION_MAX_ATTEMPTS"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-fit-itinerary-backfill.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
+            "registrationStatus: 'pre_photo_blocked'",
+            "futureDepartureWhere",
+            "runPackageFreeDayItineraryBackfill"
+          ]
+        },
+        {
+          "file": "lib/register-auto-register-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
+            "registerPublishBlockReasons",
+            "no_future_departures",
+            "fit_itinerary_missing"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
+            "registerPublishBlockReasons",
+            "loadRegisterPublishFacts"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "loadRegisterPublishFacts",
+            "futureDepartureCount: publishFacts.futureDepartureCount"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-merge-schedule-keywords.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
+            "maxFitDay"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-city-only-day.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
+            "registerScheduleDayIsCityOnlyPhotoSkip"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "registerScheduleDayIsCityOnlyPhotoSkip(sched)"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [

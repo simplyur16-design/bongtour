@@ -22,7 +22,7 @@ import { photoCandidateText, photoSubjectBlockReason } from '@/lib/register-phot
 import { photoMatchGate, sortByMatchGateScore, type MatchGateContext } from '@/lib/register-photo-match-gate'
 import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-preserve'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
-import { registerScheduleRouteIsCityOnly } from '@/lib/register-schedule-city-only-day'
+import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
 import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import { registerSupplierTripDays, trimRegisterScheduleToSupplierDays } from '@/lib/register-schedule-supplier-day-count'
@@ -871,7 +871,7 @@ export async function POST(req: Request) {
         continue
       }
       // 사장님 11/01: 도시 이름만 있는 날(경유·이동)은 사진 비움 — 도시=명소(우유니·이과수·카르타고·마트마타 …)는 제외
-      if (photoChainV2 && sched && registerScheduleRouteIsCityOnly(sched.routeText)) {
+      if (photoChainV2 && sched && registerScheduleDayIsCityOnlyPhotoSkip(sched)) {
         console.log(`[GATE] day ${dayNum} 도시만 있는 날 — 사진 비움`)
         slotDebug.push({
           day: dayNum,
@@ -1224,7 +1224,7 @@ export async function POST(req: Request) {
       const sched = workingSchedule[n]
       const kw2 = typeof sched?.imageKeyword2 === 'string' ? sched.imageKeyword2.trim() : ''
       if (!kw2) continue
-      if (photoChainV2 && sched && (isRegisterScheduleNoPlacePhotoDay(sched, scheduleMaxDay) || registerScheduleRouteIsCityOnly(sched.routeText))) continue
+      if (photoChainV2 && sched && (isRegisterScheduleNoPlacePhotoDay(sched, scheduleMaxDay) || registerScheduleDayIsCityOnlyPhotoSkip(sched))) continue
       const existing2 = sched?.imageUrl2 ? String(sched.imageUrl2).trim() : ''
       if (existing2) continue
       const primaryUrl = schedulePhotos[n]?.photo?.url ?? sched?.imageUrl ?? null

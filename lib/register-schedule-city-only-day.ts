@@ -45,3 +45,18 @@ export function registerScheduleRouteIsCityOnly(routeText: string | null | undef
   }
   return cities > 0
 }
+
+/** 자유일정·추천일정 날 — 도시만 있는 날 규칙을 쓰지 않는다(사장님 11/01 19:01: 자유일정 날은 추천일정 사진 유지) */
+const FREE_DAY_TITLE_RE = /추천일정|자유\s*일정/u
+
+/**
+ * 사진 비움 판정용 — 도시만 있는 날이면서 자유일정·추천일정 날이 아닐 때만 true.
+ * REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 자유일정 날은 도시만 규칙 제외 — manifest
+ */
+export function registerScheduleDayIsCityOnlyPhotoSkip(day: {
+  title?: string | null
+  routeText?: string | null
+}): boolean {
+  if (FREE_DAY_TITLE_RE.test(String(day.title ?? ''))) return false
+  return registerScheduleRouteIsCityOnly(day.routeText)
+}

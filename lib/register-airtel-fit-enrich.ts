@@ -16,6 +16,7 @@ import {
   generateFitItineraryGeminiResponse,
   persistFitItineraryFromGeminiJson,
   registerParsedToFitPromptProduct,
+  generateFitItineraryForProduct,
 } from '@/lib/fit-itinerary-generate-for-product'
 import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
 import type { SyncFitScheduleKeywordsResult } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
@@ -161,6 +162,11 @@ export async function enrichRegisterParsedWithAirtelFit(
 
   try {
     const promptProduct = registerParsedToFitPromptProduct(parsed)
+    if (!promptProduct.totalDays) {
+      // 일수를 모르면 4일로 지어내지 않는다 — 확정 후 백필이 DB 원문 일정표 행 수로 다시 시도
+      issues.push(airtelFitFieldIssue('예시 일정 Gemini 생략: 여행 일수를 알 수 없음(기본 4일 금지). 확정 후 백필이 다시 시도합니다.', 'warn'))
+      return { ...parsed, productType: AIR_HOTEL_PRODUCT_TYPE, extractionFieldIssues: issues }
+    }
     const prompt = buildAirtelPrompt(promptProduct)
     const geminiResult = await generateFitItineraryGeminiResponse(prompt, logLabel)
     const response = parseFitItineraryGeminiJson(geminiResult.text, logLabel)
@@ -205,7 +211,9 @@ export async function persistRegisterAirtelFitAfterConfirm(
   if (!json) return
   const result = await persistFitItineraryFromGeminiJson(productId, json)
   if (!result.success && result.reason !== 'already_exists') {
-    console.warn(`[register-airtel-fit] persist failed productId=${productId} reason=${result.reason ?? 'unknown'}`)
+    console.warn(`[register-airtel-fit] persist failed productId=${productId} reason=${result.reason ?? 'unknown'} — 새로 생성`)
+    // 미리보기 JSON 이 일수·빈 일차 검사에 걸리면 DB 기준으로 다시 만든다(실패 사유는 rawMeta 에 남음)
+    await generateFitItineraryForProduct(productId)
   }
 }
 

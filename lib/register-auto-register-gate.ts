@@ -44,6 +44,10 @@ export type AutoRegisterGateInput = {
   bgImageRehostSearchLabel?: string | null
   departureCount: number
   itineraryDayCount: number
+  /** 오늘(한국 날짜) 이후 출발일 수. 없으면(undefined) departureCount 로 대신 */
+  futureDepartureCount?: number
+  /** 자유여행: 제미나이 추천일정 일차 수(FitItineraryDay)와 필요한 일수. 패키지는 undefined */
+  fitItinerary?: { masterDays: number; requiredDays: number | null }
   /** 예약 가능 출발일의 저장된 공개 가격이 있는지(값은 받지 않음) */
   hasBookablePrice: boolean
   /** URL → 측정 결과. 없으면 '측정 안 됨'으로 보류 */
@@ -69,6 +73,8 @@ export type AutoRegisterBlockReason =
   | 'day_photo_city_unverified'
   | 'cover_day_duplicate'
   | 'photo_review_pending'
+  | 'no_future_departures'
+  | 'fit_itinerary_missing'
 
 export const AUTO_REGISTER_BLOCK_REASON_KO: Record<AutoRegisterBlockReason, string> = {
   status_out_of_scope: '등록대기 상태 아님',
@@ -89,6 +95,26 @@ export const AUTO_REGISTER_BLOCK_REASON_KO: Record<AutoRegisterBlockReason, stri
   day_photo_city_unverified: '일차 사진 도시 일치 확인 안 됨',
   cover_day_duplicate: '대표·일차 사진 중복',
   photo_review_pending: '사진 검수 대기(문과장 통과 전)',
+  no_future_departures: '향후 출발일 없음(등록 안 함)',
+  fit_itinerary_missing: '자유여행 추천일정 없음·일차 부족',
+}
+
+/**
+ * 사장님 11/01 19:01 — 향후 출발일 없는 상품은 등록하지 않고, 추천일정 없는 자유여행은 공개하지 않는다.
+ * 관리자 PATCH(registered)와 자동 전환이 같이 쓴다.
+ * REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 향후 출발일·자유여행 추천일정 게이트 — manifest
+ */
+export function registerPublishBlockReasons(p: {
+  futureDepartureCount: number
+  fitItinerary?: { masterDays: number; requiredDays: number | null }
+}): Array<'no_future_departures' | 'fit_itinerary_missing'> {
+  const out: Array<'no_future_departures' | 'fit_itinerary_missing'> = []
+  if (p.futureDepartureCount <= 0) out.push('no_future_departures')
+  if (p.fitItinerary) {
+    const { masterDays, requiredDays } = p.fitItinerary
+    if (masterDays <= 0 || (requiredDays != null && masterDays < requiredDays)) out.push('fit_itinerary_missing')
+  }
+  return out
 }
 
 export type AutoRegisterGateResult = {
@@ -164,6 +190,12 @@ export function evaluateAutoRegisterGate(p: AutoRegisterGateInput): AutoRegister
 
   // 관리자 PATCH(registered)와 같은 조건
   if (p.departureCount <= 0) reasons.add('no_departures')
+  for (const r of registerPublishBlockReasons({
+    futureDepartureCount: p.futureDepartureCount ?? p.departureCount,
+    fitItinerary: p.fitItinerary,
+  })) {
+    reasons.add(r)
+  }
   if (p.itineraryDayCount <= 0) reasons.add('no_itinerary_days')
   if (!p.hasBookablePrice) reasons.add('no_bookable_price')
   if (!String(p.countryKey ?? '').trim()) reasons.add('no_country')

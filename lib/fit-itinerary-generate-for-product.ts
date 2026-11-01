@@ -28,6 +28,9 @@ import { BONGTOUR_FREE_DAY_VOICE_BLOCK } from '@/lib/bongtour-free-day-voice-blo
 import { resolveFitDayCityKey } from '@/lib/fit-itinerary-day-city-key'
 import { buildProductScheduleJsonForDb } from '@/lib/schedule-image-keyword-persist'
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
+import { resolveFitTotalDays } from '@/lib/fit-itinerary-total-days'
+import { validateFitItineraryGeminiDays } from '@/lib/fit-itinerary-validate-days'
+import { recordItineraryGenerationStatus } from '@/lib/fit-itinerary-generation-status'
 
 /** 다일정 Fit JSON — season(4096)과 달리 5~6일·activities 다수 시 8k+ chars. 기본 16384 */
 const FIT_ITINERARY_MAX_OUTPUT_TOKENS = Math.max(
@@ -59,8 +62,16 @@ const countryCodeMap: Record<string, string> = {
 export type GenerateFitItineraryResult = {
   success: boolean
   masterId?: string
-  reason?: 'already_exists' | 'not_airtel' | 'gemini_failed' | 'db_failed'
+  reason?:
+    | 'already_exists'
+    | 'not_airtel'
+    | 'gemini_failed'
+    | 'db_failed'
+    | 'days_unknown'
+    | 'validation_failed'
   error?: unknown
+  /** 사람이 읽는 실패 내용(키 값 없음) */
+  detail?: string
 }
 
 type PromptProduct = {
@@ -84,16 +95,11 @@ function fitItineraryModelName(): string {
   return (process.env.GEMINI_MODEL?.trim() || GEMINI_MODEL || 'gemini-3-flash-preview')
 }
 
-function schedulePreview(schedule: string | null, maxLen = 4000): string {
-  if (!schedule?.trim()) return '없음'
-  const t = schedule.trim()
-  return t.length > maxLen ? `${t.slice(0, maxLen)}…` : t
-}
-
 export function buildAirtelPrompt(p: PromptProduct): string {
   const activityRule = p.totalDays >= 5 ? '정확히 3개(JSON 잘림 방지 — 4개 이상 금지)' : '3~4개'
   const hotelLine = p.hotelSummaryText ?? p.airtelHotelInfoJson ?? '에어텔 포함(호텔 주소 정보 없음)'
-  return `당신은 봉투어 자유여행 상품의 '추천 예시 일정'을 짜는 봉투어 실장입니다. 이 일정은 고객이 참고하는 예시이고, 실제 예약 조건은 아닙니다.
+  // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 자유여행은 공급사 일정표를 읽지 않고 제미나이가 전 일차 추천일정을 만든다 — manifest
+  return `당신은 봉투어 자유여행 상품의 '추천 예시 일정'을 짜는 봉실장(봉투어 실장)입니다. 이 일정은 고객이 참고하는 예시이고, 실제 예약 조건은 아닙니다.
 
 [상품 정보 — 이 안의 사실만 씁니다]
 - 제목(참고용 — 상품 제목 문구를 일정 제목·요약에 그대로 옮겨 쓰지 않습니다): ${p.title}
@@ -101,7 +107,7 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - 일정: ${p.duration} (총 ${p.totalDays}일)
 - 항공사: ${p.airline ?? '미지정'}
 - 호텔: ${hotelLine}
-- 기존 스케줄(참고): ${schedulePreview(p.schedule)}
+- 공급사 일정표: 쓰지 않습니다(자유여행은 항공·호텔만 정해진 상품). 아래 규칙으로 1일차부터 ${p.totalDays}일차까지 모든 날을 새로 짭니다.
 
 ${BONGTOUR_FREE_DAY_VOICE_BLOCK}
 
@@ -122,7 +128,8 @@ ${BONGTOUR_FREE_DAY_VOICE_BLOCK}
 - **동선·imageKeyword(시스템 자동):** 예시 일정 각 일차 activities가 그날 **동선**이다. 등록 후 시스템은 그날 **attraction location의 괄호 영문 랜드마크**로 imageKeyword를 만든다(일차마다 다른 명소). 식사·쇼핑 상호명(식당·약국·면세점)은 imageKeyword로 쓰지 않는다. 도시명·공항명만 쓰지 말 것.
 - dayCityKey는 시스템이 그날 장소로 다시 정합니다. 그날 실제로 머무는 도시를 영문 소문자로 적습니다(예: 교토 하루면 "kyoto").
 - 숫자 필드는 비웁니다: startTime, durationMinutes, estimatedCostKrw, estimatedCostNote, transportDuration 은 모두 null. transportMode는 "도보"/"지하철"/"버스"/"택시"/"페리" 중 하나 또는 null.
-- days 배열 길이 = ${p.totalDays}일 (dayNumber 1부터 연속)
+- days 배열 길이 = ${p.totalDays}일 (dayNumber 1부터 연속). 빈 날 없이 모든 날에 summary 3~4문장과 activities를 넣습니다.
+- 가격·요금·최저가·할인 이야기는 하지 않습니다.
 - 모든 텍스트는 한국어입니다.
 
 ${PLACE_NAME_SPELLING_PROMPT_RULE}
@@ -244,11 +251,14 @@ function logGeminiRawFailure(
 export { fitGeminiResponseToKeywordDays, parseFitItineraryGeminiJson }
 export type { FitItineraryGeminiResponse } from '@/lib/fit-itinerary-gemini-parse'
 
-function inferTotalDaysFromDuration(duration: string | null | undefined, scheduleLen: number): number {
-  const fromDur = parseInt(String(duration ?? '').match(/(\d+)\s*일/)?.[1] ?? '', 10)
-  if (Number.isFinite(fromDur) && fromDur >= 1) return fromDur
-  if (scheduleLen >= 1) return scheduleLen
-  return 4
+/** 기본값 4일 없음 — 모르면 0(호출부가 생성하지 않음) */
+function inferTotalDaysFromDuration(
+  duration: string | null | undefined,
+  scheduleLen: number,
+  title?: string | null,
+): number {
+  const r = resolveFitTotalDays({ duration, title, itineraryDayCount: scheduleLen })
+  return r?.days ?? 0
 }
 
 function inferCountryCodeFromHaystack(hay: string): string {
@@ -282,7 +292,7 @@ export function registerParsedToFitPromptProduct(parsed: RegisterParsed): Prompt
           })),
         )
       : null
-  const totalDays = inferTotalDaysFromDuration(parsed.duration, parsed.schedule?.length ?? 0)
+  const totalDays = inferTotalDaysFromDuration(parsed.duration, parsed.schedule?.length ?? 0, parsed.title)
   return {
     title: parsed.title ?? '',
     cityNameKo,
@@ -334,15 +344,21 @@ export async function generateFitItineraryGeminiResponse(
   }
 }
 
+export type PersistFitItineraryOptions = {
+  /** 일수가 틀린 기존 master 를 바꿀 때만 true */
+  replaceExisting?: boolean
+}
+
 export async function persistFitItineraryFromGeminiJson(
   productId: string,
   geminiJsonText: string,
+  opts: PersistFitItineraryOptions = {},
 ): Promise<GenerateFitItineraryResult> {
   const existing = await prisma.fitItineraryMaster.findUnique({
     where: { productId },
     select: { id: true },
   })
-  if (existing) {
+  if (existing && !opts.replaceExisting) {
     return { success: false, reason: 'already_exists', masterId: existing.id }
   }
 
@@ -356,6 +372,10 @@ export async function persistFitItineraryFromGeminiJson(
       cityKey: true,
       primaryDestination: true,
       destination: true,
+      duration: true,
+      schedule: true,
+      hotelSummaryText: true,
+      _count: { select: { itineraryDays: true } },
     },
   })
   if (!product || !isAirHotelFitItineraryProduct(product)) {
@@ -366,7 +386,21 @@ export async function persistFitItineraryFromGeminiJson(
   try {
     parsed = parseFitItineraryGeminiJson(geminiJsonText, productId)
   } catch (error) {
-    return { success: false, reason: 'gemini_failed', error }
+    return { success: false, reason: 'gemini_failed', error, detail: errMsg(error) }
+  }
+  // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 모든 일차 채움·일수 일치 아니면 저장 안 함 — manifest
+  const resolved = resolveFitTotalDays({
+    duration: product.duration,
+    title: product.title,
+    itineraryDayCount: product._count?.itineraryDays ?? 0,
+    schedule: product.schedule,
+  })
+  const expectedDays = resolved?.days ?? parsed.days.length
+  const v = validateFitItineraryGeminiDays(parsed, expectedDays, {
+    hotelKnown: !!product.hotelSummaryText?.trim(),
+  })
+  if (!v.ok) {
+    return { success: false, reason: 'validation_failed', detail: v.issues.slice(0, 8).join(',') }
   }
   // REGRESSION-FREEZE[place-name-spelling-n1]: Gemini 추천일정 사후 검사 — certain 사전만 교정(비용 필드 불변)
   parsed = applyPlaceNameSpellingToFitGemini(parsed)
@@ -378,6 +412,10 @@ export async function persistFitItineraryFromGeminiJson(
   const masterId = cuid()
   try {
     await prisma.$transaction(async (tx) => {
+      // 일수가 틀린 기존 추천일정(예: 기본값 4일로 만든 10일 상품)은 같은 트랜잭션에서 바꾼다
+      if (opts.replaceExisting && existing) {
+        await tx.fitItineraryMaster.deleteMany({ where: { id: existing.id, productId } })
+      }
       await tx.fitItineraryMaster.create({
         data: {
           id: masterId,
@@ -445,14 +483,21 @@ export async function persistFitItineraryFromGeminiJson(
   return { success: true, masterId }
 }
 
+function errMsg(e: unknown): string {
+  return (e instanceof Error ? e.message : String(e ?? '')).replace(/key=[^&\s]+/gi, 'key=[redacted]').slice(0, 240)
+}
+
+const FIT_ITINERARY_GENERATE_ATTEMPTS = 2
+
 export async function generateFitItineraryForProduct(
   productId: string,
+  opts: { replaceIfDaysMismatch?: boolean } = {},
 ): Promise<GenerateFitItineraryResult> {
   const existing = await prisma.fitItineraryMaster.findUnique({
     where: { productId },
-    select: { id: true },
+    select: { id: true, totalDays: true },
   })
-  if (existing) {
+  if (existing && !opts.replaceIfDaysMismatch) {
     return { success: false, reason: 'already_exists', masterId: existing.id }
   }
 
@@ -472,6 +517,7 @@ export async function generateFitItineraryForProduct(
       hotelSummaryText: true,
       airtelHotelInfoJson: true,
       schedule: true,
+      _count: { select: { itineraryDays: true } },
     },
   })
   if (!product) {
@@ -481,8 +527,28 @@ export async function generateFitItineraryForProduct(
     return { success: false, reason: 'not_airtel' }
   }
 
+  // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 일수 기본값 4 금지 — duration·원문 행 수·schedule 로만 — manifest
+  const resolved = resolveFitTotalDays({
+    duration: product.duration,
+    title: product.title,
+    itineraryDayCount: product._count?.itineraryDays ?? 0,
+    schedule: product.schedule,
+  })
+  if (existing && (!resolved || existing.totalDays === resolved.days)) {
+    return { success: false, reason: 'already_exists', masterId: existing.id }
+  }
+  if (!resolved) {
+    const fail: GenerateFitItineraryResult = {
+      success: false,
+      reason: 'days_unknown',
+      detail: 'duration·원문 일정표·schedule 어디에도 일수가 없음',
+    }
+    await recordItineraryGenerationStatus(productId, { ok: false, reason: fail.reason, detail: fail.detail })
+    return fail
+  }
+  const totalDays = resolved.days
+
   const countryCode = countryCodeMap[product.countryKey ?? ''] ?? 'XX'
-  const totalDays = parseInt(product.duration?.match(/(\d+)일/)?.[1] ?? '4', 10)
   const cityNameKo =
     product.primaryDestination?.trim() || product.destination?.trim() || product.cityKey || ''
 
@@ -491,22 +557,45 @@ export async function generateFitItineraryForProduct(
     cityNameKo,
     cityKey: product.cityKey ?? '',
     countryCode,
-    duration: product.duration ?? '',
+    duration: product.duration?.trim() || `${totalDays}일`,
     totalDays,
     airline: product.airline,
     hotelSummaryText: product.hotelSummaryText,
     airtelHotelInfoJson: product.airtelHotelInfoJson,
-    schedule: product.schedule,
+    schedule: null,
   }
 
   const prompt = buildAirtelPrompt(promptInput)
-  try {
-    const geminiResult = await generateFitItineraryGeminiResponse(prompt, productId)
-    return persistFitItineraryFromGeminiJson(productId, geminiResult.text)
-  } catch (error) {
-    console.error(`[fit-itinerary-generate] gemini_failed productId=${productId}`, error)
-    return { success: false, reason: 'gemini_failed', error }
+  let last: GenerateFitItineraryResult = { success: false, reason: 'gemini_failed' }
+  // 실패하면 한 번 더 부른다. 그래도 안 되면 저장하지 않고 사유를 rawMeta 에 남긴다(매시간 백필이 다시 시도).
+  for (let attempt = 1; attempt <= FIT_ITINERARY_GENERATE_ATTEMPTS; attempt++) {
+    try {
+      const geminiResult = await generateFitItineraryGeminiResponse(prompt, productId)
+      const res = await persistFitItineraryFromGeminiJson(productId, geminiResult.text, {
+        replaceExisting: !!existing,
+      })
+      if (res.success) {
+        await recordItineraryGenerationStatus(productId, { ok: true })
+        return res
+      }
+      last = res
+      if (res.reason === 'already_exists' || res.reason === 'not_airtel' || res.reason === 'db_failed') break
+      console.warn(
+        `[fit-itinerary-generate] attempt ${attempt} failed productId=${productId} reason=${res.reason} ${res.detail ?? ''}`,
+      )
+    } catch (error) {
+      console.error(`[fit-itinerary-generate] gemini_failed productId=${productId} attempt=${attempt}`, error)
+      last = { success: false, reason: 'gemini_failed', error, detail: errMsg(error) }
+    }
   }
+  if (last.reason !== 'already_exists') {
+    await recordItineraryGenerationStatus(productId, {
+      ok: false,
+      reason: last.reason ?? 'unknown',
+      detail: last.detail ?? errMsg(last.error),
+    })
+  }
+  return last
 }
 
 /** Gemini 추천일정 텍스트(제목·요약·일차·활동) 지명 사후 교정 — estimatedCostKrw/estimatedCostNote 등 비용은 그대로 */

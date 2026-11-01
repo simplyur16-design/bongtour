@@ -15,6 +15,7 @@ import { prisma } from '@/lib/prisma'
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import { REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE } from '@/lib/register-pre-photo-pending-queue-query'
 import { refreshRegisterPrePhotoQueueFlagsForProductId } from '@/lib/register-pre-photo-queue-flags'
+import { loadRegisterPublishFacts } from '@/lib/register-publish-facts'
 import {
   evaluateAutoRegisterGate,
   formatAutoRegisterBlockReasons,
@@ -159,6 +160,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
         destination: true,
         primaryDestination: true,
         title: true,
+        duration: true,
         countryKey: true,
         bgImageUrl: true,
         bgImageSource: true,
@@ -174,6 +176,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
       },
     })
     if (!p) continue
+    const publishFacts = await loadRegisterPublishFacts(id, p)
     // 가격 값은 메모리로도 읽지 않고 '있는지'만 센다
     const priceRows = await prisma.product.count({ where: { id, minBookableAdultPrice: { not: null } } })
     const urls = [String(p.bgImageUrl ?? '').trim(), ...scheduleImageUrls(p.schedule)].filter(Boolean)
@@ -183,6 +186,8 @@ export async function runAutoPhotoRegisterJob(opts?: {
       ...p,
       sportsThemeTag: p.sportsThemeTag ?? null,
       departureCount: p._count.departures,
+      futureDepartureCount: publishFacts.futureDepartureCount,
+      fitItinerary: publishFacts.fitItinerary,
       itineraryDayCount: p._count.itineraryDays,
       // 가격 값 자체는 쓰지 않고 '있음' 여부만
       hasBookablePrice: p.hasBookableDepartures === true && priceRows === 1,

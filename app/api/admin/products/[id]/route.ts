@@ -1,3 +1,5 @@
+import { loadRegisterPublishFacts } from '@/lib/register-publish-facts'
+import { registerPublishBlockReasons } from '@/lib/register-auto-register-gate'
 import { after, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
@@ -514,9 +516,33 @@ export async function PATCH(request: Request, { params }: RouteParams) {
               destination: true,
               title: true,
               countryKey: true,
+              duration: true,
             },
           }),
         ])
+        // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 향후 출발일 없음·자유여행 추천일정 없음 → registered 금지 — manifest
+        const publishFacts = await loadRegisterPublishFacts(id, {
+          listingKind: photoRow?.listingKind,
+          productType: photoRow?.productType,
+          duration: photoRow?.duration,
+          title: photoRow?.title,
+          schedule: typeof data.schedule === 'string' ? data.schedule : photoRow?.schedule,
+        })
+        const publishBlocks = registerPublishBlockReasons(publishFacts)
+        if (publishBlocks.length) {
+          return NextResponse.json(
+            {
+              error: publishBlocks.includes('no_future_departures')
+                ? '오늘 이후 출발일이 없는 상품은 등록하지 않습니다.'
+                : '자유여행 추천일정(제미나이)이 모든 일차에 만들어진 뒤에 등록할 수 있습니다. 등록중 상태로 두세요.',
+              missing: {
+                futureDepartures: publishBlocks.includes('no_future_departures'),
+                fitItinerary: publishBlocks.includes('fit_itinerary_missing'),
+              },
+            },
+            { status: 400 },
+          )
+        }
         if (departureCount === 0 || itineraryDayCount === 0) {
           return NextResponse.json(
             {
