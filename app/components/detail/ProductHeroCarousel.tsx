@@ -1,5 +1,6 @@
 'use client'
 
+import { scheduleDayImageAiRightLabel } from '@/lib/schedule-day-image-ai-label-display'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
 import SafeImage from '@/app/components/SafeImage'
@@ -18,6 +19,8 @@ type DaySlide = {
   city?: string | null
   imagePhotographer?: string | null
   imageSource?: string | null
+  /** 일차 사진 AI 생성 기록 — 슬라이드 우측 'AI 생성 이미지' */
+  imageIsGenerated?: boolean | null
 }
 
 type Slide = {
@@ -131,7 +134,7 @@ export default function ProductHeroCarousel({
         src: s,
         alt: titleBase ? `${titleBase} 일정 이미지 ${slideIdx}` : `여행 상품 일정 이미지 ${slideIdx}`,
         leftLabel: dayLeft,
-        rightLabel: null,
+        rightLabel: scheduleDayImageAiRightLabel(d.imageIsGenerated),
       })
     }
     return out

@@ -49,6 +49,9 @@ export type ScheduleDay = {
   imageDisplayName2?: string | null
   imagePhotographer?: string | null
   imageSource?: string | null
+  /** schedule imageSource AI 생성 기록 — 공개 일차 사진 'AI 생성 이미지' 표시 */
+  imageIsGenerated?: boolean
+  imageIsGenerated2?: boolean
   imagePhotographer2?: string | null
   imageSource2?: string | null
   city?: string | null

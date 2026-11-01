@@ -2,6 +2,7 @@ import {
   parseScheduleDaySupplierOriginal,
   type ScheduleDaySupplierOriginal,
 } from '@/lib/schedule-day-supplier-original'
+import { scheduleDayImageIsGenerated } from '@/lib/schedule-day-image-ai-label-display'
 import { getFinalScheduleDayImageUrl } from '@/lib/final-image-selection'
 import { decodePublicHtmlEntities } from '@/lib/decode-public-html-entities'
 import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
@@ -45,6 +46,9 @@ export type ScheduleDayDisplay = {
   imageSource?: string | null
   imagePhotographer2?: string | null
   imageSource2?: string | null
+  /** imageSource 의 AI 생성 기록(isGenerated·aiLabel) — 공개 일차 사진 칸 'AI 생성 이미지' 표시용 */
+  imageIsGenerated?: boolean
+  imageIsGenerated2?: boolean
   /** confirm 시 itineraryDayDrafts와 함께 직렬화(모두투어 등) — 공개 상세는 ItineraryDay와 병합 */
   hotelText?: string | null
   breakfastText?: string | null
@@ -257,6 +261,8 @@ export function getScheduleFromProduct(
             imageSource: resolveScheduleRowImageSource(row, 'imageSource'),
             imagePhotographer2: resolveScheduleRowImagePhotographer(row, 'imagePhotographer2', 'imageSource2'),
             imageSource2: resolveScheduleRowImageSource(row, 'imageSource2'),
+            imageIsGenerated: imageUrl ? scheduleDayImageIsGenerated(row?.imageSource, imageUrl) : false,
+            imageIsGenerated2: imageUrl2 ? scheduleDayImageIsGenerated(row?.imageSource2, imageUrl2) : false,
             hotelText: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'hotelText')) ?? undefined,
             breakfastText: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'breakfastText')) ?? undefined,
             lunchText: decodeScheduleTextOpt(optionalScheduleMealCol(row, 'lunchText')) ?? undefined,

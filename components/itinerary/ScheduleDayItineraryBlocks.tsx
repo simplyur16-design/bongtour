@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import SafeImage from '@/app/components/SafeImage'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
+import { scheduleDayImageAiRightLabel } from '@/lib/schedule-day-image-ai-label-display'
 import { formatMealDisplay, formatScheduleDayHotelLine } from '@/lib/hotel-meal-display'
 import { resolvePublicScheduleDayDescription } from '@/lib/public-schedule-display'
 import { resolveScheduleThumbCaption } from '@/lib/schedule-image-thumb-caption'
@@ -32,6 +33,8 @@ export type ScheduleDayItineraryBlocksDay = {
   imageSource?: string | null
   imagePhotographer2?: string | null
   imageSource2?: string | null
+  imageIsGenerated?: boolean | null
+  imageIsGenerated2?: boolean | null
   hotelText?: string | null
   breakfastText?: string | null
   lunchText?: string | null
@@ -53,17 +56,20 @@ type Props = {
 type ThumbOverlayProps = {
   src: string
   leftLabel?: string | null
+  rightLabel?: string | null
 }
 
 function ScheduleDayImageLightbox({
   src,
   alt,
   leftLabel,
+  rightLabel,
   onClose,
 }: {
   src: string
   alt: string
   leftLabel?: string | null
+  rightLabel?: string | null
   onClose: () => void
 }) {
   useEffect(() => {
@@ -101,7 +107,7 @@ function ScheduleDayImageLightbox({
           height={800}
           className="max-h-[85vh] w-full object-contain"
         />
-        <PublicImageBottomOverlay leftLabel={leftLabel} />
+        <PublicImageBottomOverlay leftLabel={leftLabel} rightLabel={rightLabel} />
       </div>
     </div>
   )
@@ -112,12 +118,14 @@ function DayThumb({
   alt,
   caption,
   leftLabel,
+  rightLabel,
   onOpen,
 }: {
   src: string
   alt: string
   caption?: string | null
   leftLabel?: string | null
+  rightLabel?: string | null
   onOpen: () => void
 }) {
   return (
@@ -128,7 +136,7 @@ function DayThumb({
       className="group relative h-full min-h-0 w-full overflow-hidden rounded-lg border border-[#DAD4EE] bg-[#F5F2EA] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#85510B]"
     >
       <SafeImage src={src} alt={alt} fill className="object-cover transition group-hover:scale-[1.02]" sizes="120px" />
-      <PublicImageBottomOverlay leftLabel={leftLabel} />
+      <PublicImageBottomOverlay leftLabel={leftLabel} rightLabel={rightLabel} />
     </button>
   )
 }
@@ -174,6 +182,7 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
     alt: string
     caption: string | null
     leftLabel: string | null
+    rightLabel: string | null
   }> = []
   if (url1) {
     thumbs.push({
@@ -181,6 +190,7 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
       alt: caption1 || `Day ${day.day} itinerary photo`,
       caption: caption1,
       leftLabel: caption1,
+      rightLabel: scheduleDayImageAiRightLabel(day.imageIsGenerated),
     })
   }
   if (url2 && url2 !== url1) {
@@ -189,6 +199,7 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
       alt: caption2 || `Day ${day.day} itinerary photo 2`,
       caption: caption2,
       leftLabel: caption2,
+      rightLabel: scheduleDayImageAiRightLabel(day.imageIsGenerated2),
     })
   }
 
@@ -270,6 +281,7 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
                     alt={t.alt}
                     caption={t.caption}
                     leftLabel={t.leftLabel}
+                    rightLabel={t.rightLabel}
                     onOpen={() => setLightbox(t)}
                   />
                 ))}
@@ -286,6 +298,7 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
           src={lightbox.src}
           alt={lightbox.alt}
           leftLabel={lightbox.leftLabel}
+          rightLabel={lightbox.rightLabel}
           onClose={closeLightbox}
         />
       ) : null}

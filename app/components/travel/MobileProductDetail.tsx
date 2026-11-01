@@ -148,6 +148,7 @@ export default function MobileProductDetail({
     title: d.title ?? null,
     imageKeyword: d.imageKeyword ?? null,
     city: d.city ?? null,
+    imageIsGenerated: d.imageIsGenerated === true,
   }))
   const detailScope = product.primaryRegion === '국내' ? 'domestic' : 'overseas'
   const labels = getHotelMealLabels(detailScope)

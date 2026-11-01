@@ -13,6 +13,7 @@ import { resolveDetailLocalDepartureTags } from '@/lib/local-departure-display-p
 import FitItineraryQuoteCard from '@/app/components/detail/FitItineraryQuoteCard'
 import SafeImage from '@/app/components/SafeImage'
 import PublicImageBottomOverlay from '@/app/components/ui/PublicImageBottomOverlay'
+import { scheduleDayImageAiRightLabel, scheduleDayImageIsGenerated } from '@/lib/schedule-day-image-ai-label-display'
 import type { ProductPriceRow, ScheduleDay } from '@/app/components/travel/travel-product-detail-types'
 import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import type { FlightStructuredBody } from '@/lib/public-product-extras'
@@ -354,6 +355,7 @@ export function ItineraryView({
         city: d.city ?? null,
         imagePhotographer: d.imagePhotographer ?? null,
         imageSource: resolveScheduleImageSource(d),
+        imageIsGenerated: d.imageUrl ? scheduleDayImageIsGenerated(d.imageSource, d.imageUrl) : false,
       }))
       .filter((s) => s.imageUrl)
   }, [product.schedule])
@@ -736,7 +738,10 @@ export function ItineraryView({
                             className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent"
                             aria-hidden
                           />
-                          <PublicImageBottomOverlay leftLabel={dayImageLeftLabel} />
+                          <PublicImageBottomOverlay
+                            leftLabel={dayImageLeftLabel}
+                            rightLabel={scheduleDayImageAiRightLabel(daySlide?.imageIsGenerated)}
+                          />
                         </div>
                       ) : null}
                     </div>

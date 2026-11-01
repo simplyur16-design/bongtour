@@ -399,6 +399,7 @@ export default function TravelProductDetail({
         city: d.city ?? null,
         imagePhotographer: d.imagePhotographer ?? null,
         imageSource: d.imageSource ?? null,
+        imageIsGenerated: d.imageIsGenerated === true,
       })),
     [product.schedule]
   )
