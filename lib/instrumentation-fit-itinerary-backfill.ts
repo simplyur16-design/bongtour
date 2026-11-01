@@ -5,6 +5,7 @@
  * production + DATABASE_URL + GEMINI_API_KEY (`instrumentation.ts` 가드).
  * 비활성화: `DISABLE_INSTRUMENTATION_FIT_ITINERARY_BACKFILL_CRON=1`
  * REGRESSION-FREEZE[fit-itinerary-pending-backfill]: pending도 Fit 마스터 백필 — manifest
+ * REGRESSION-FREEZE[fit-itinerary-backfill-skip-public-1101]: 공개(registered) 상품은 매시간 백필 대상에서 제외 — manifest
  * REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 사진 전 막힘(pre_photo_blocked)도 백필·향후 출발일 있는 상품만·실패 횟수 상한·패키지 자유일정 재시도 — manifest
  */
 import { AIR_HOTEL_LISTING_KIND, AIR_HOTEL_PRODUCT_TYPE } from '@/lib/air-hotel-product-ssot'
@@ -14,6 +15,7 @@ import {
   itineraryGenerationAttemptsExhausted,
 } from '@/lib/fit-itinerary-generation-status'
 import { futureDepartureWhere } from '@/lib/product-future-departure'
+import { fitItineraryBackfillStatusWhere, isFitItineraryBackfillStatus } from '@/lib/fit-itinerary-backfill-status'
 
 const CRON_EXPR = '0 * * * *'
 const INTER_MS = 1500
@@ -60,15 +62,9 @@ async function runFitItineraryBackfillOnBoot(): Promise<void> {
         travelScope: 'overseas',
         fitMaster: null,
         AND: [
-          {
-            OR: [
-              { registrationStatus: 'registered' },
-              { registrationStatus: 'pending' },
-              { registrationStatus: 'pre_photo_blocked' },
-              { registrationStatus: '' },
-              { registrationStatus: null },
-            ],
-          },
+          // 판매 중(registered 등 공개) 상품은 매시간 작업에서 뺀다 — 등록 전만
+          // registrationStatus: 'pending' · registrationStatus: 'pre_photo_blocked' · 빈 값
+          fitItineraryBackfillStatusWhere(),
           {
             OR: [
               { productType: AIR_HOTEL_PRODUCT_TYPE },
@@ -80,10 +76,10 @@ async function runFitItineraryBackfillOnBoot(): Promise<void> {
         // 향후 출발일 없는 상품은 등록하지 않으므로 추천일정도 만들지 않는다
         departures: { some: futureDepartureWhere() },
       },
-      select: { id: true, slug: true, rawMeta: true },
+      select: { id: true, slug: true, rawMeta: true, registrationStatus: true },
       orderBy: { createdAt: 'asc' },
       take: BACKFILL_TAKE * 3,
-    }).then((rows) => rows.filter((r) => !itineraryGenerationAttemptsExhausted(r.rawMeta)).slice(0, BACKFILL_TAKE))
+    }).then((rows) => rows.filter((r) => isFitItineraryBackfillStatus(r.registrationStatus) && !itineraryGenerationAttemptsExhausted(r.rawMeta)).slice(0, BACKFILL_TAKE))
 
     if (targets.length === 0) {
       console.log('[fit-itinerary-backfill] no targets')

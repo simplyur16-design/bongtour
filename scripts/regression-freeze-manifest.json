@@ -23717,7 +23717,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "Fit 마스터 백필은 pending·registered 모두, 시간당 상한",
+      "summary": "Fit 마스터 백필은 pending(등록 전)만, 시간당 상한 — registered 는 11/01부터 제외",
       "checks": [
         {
           "file": "lib/instrumentation-fit-itinerary-backfill.ts",
@@ -30635,6 +30635,40 @@
             "fitPlaceKeywordsEn"
           ]
         }
+      ]
+    },
+    {
+      "id": "fit-itinerary-backfill-skip-public-1101",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "봉실장 11/01 — 매시간 FIT 추천일정 백필은 공개(registered) 상품을 건드리지 않음(pending·pre_photo_blocked·빈 값만)",
+      "checks": [
+        {
+          "file": "lib/instrumentation-fit-itinerary-backfill.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-itinerary-backfill-skip-public-1101]",
+            "fitItineraryBackfillStatusWhere()",
+            "isFitItineraryBackfillStatus(r.registrationStatus)"
+          ],
+          "mustNotInclude": [
+            "{ registrationStatus: 'registered' }"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-backfill-status.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-itinerary-backfill-skip-public-1101]",
+            "'pre_photo_blocked'"
+          ],
+          "mustNotInclude": [
+            "'registered' }"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/fit-itinerary-backfill-status.test.ts"
       ]
     }
   ],
