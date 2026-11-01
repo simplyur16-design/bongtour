@@ -5,6 +5,8 @@
  */
 import type { FitItineraryGeminiResponse } from '@/lib/fit-itinerary-gemini-parse'
 import { checkBongtourFreeDayText } from '@/lib/bongtour-free-day-postcheck'
+import { buildFitDayRouteText } from '@/lib/fit-itinerary-pick-day-image-keyword'
+import { isBrokenRegisterFitScheduleDescription } from '@/lib/register-pre-photo-guards'
 
 export type FitItineraryDaysValidation = { ok: boolean; issues: string[] }
 
@@ -28,8 +30,32 @@ export function validateFitItineraryGeminiDays(
     if (!(d.activities ?? []).some((a) => String(a.location ?? a.title ?? '').trim())) {
       issues.push(`day${i}_no_activities`)
     }
+    // 등록 전 검사와 같은 기준 — 그날 동선 장소 이름이 요약에 하나도 없으면 다시 만든다
+    if (summary.length >= 20 && (d.activities ?? []).length) {
+      const route = buildFitDayRouteText({
+        dayNumber: i,
+        title: String(d.title ?? ''),
+        summary,
+        activities: (d.activities ?? []).map((a) => ({
+          order: Number(a.order) || 0,
+          category: String(a.category ?? ''),
+          title: String(a.title ?? ''),
+          description: String(a.description ?? ''),
+          location: String(a.location ?? ''),
+        })),
+      })
+      if (isBrokenRegisterFitScheduleDescription(summary, route)) issues.push(`day${i}_summary_no_route_place`)
+    }
     // 가격·최저가·단정어 — 요약에만 엄격 적용(제목 속 호텔명 숫자 오탐 방지)
-    for (const iss of checkBongtourFreeDayText('summary', summary, { hotelKnown: opts.hotelKnown === true })) {
+    // 그날 장소 이름 속 숫자('비토리오 에마누엘레 2세 갤러리아', '피어 39')는 가격·시간 숫자가 아니다
+    let probe = summary
+    for (const a of d.activities ?? []) {
+      for (const name of [a.title, String(a.location ?? '').replace(/\s*\([^)]*\)\s*/g, ' ')]) {
+        const n = String(name ?? '').trim()
+        if (n.length >= 2 && /[0-9]/.test(n)) probe = probe.split(n).join('장소')
+      }
+    }
+    for (const iss of checkBongtourFreeDayText('summary', probe, { hotelKnown: opts.hotelKnown === true })) {
       if (iss.kind === 'banned_word' || iss.kind === 'number') issues.push(`day${i}_${iss.kind}`)
     }
   }

@@ -10,11 +10,15 @@ import { kstTomorrowStartUtc } from '@/lib/product-future-departure'
 import { validateFitItineraryGeminiDays } from '@/lib/fit-itinerary-validate-days'
 import { registerPublishBlockReasons } from '@/lib/register-auto-register-gate'
 import { mergeScheduleWithFitKeywords } from '@/lib/fit-itinerary-merge-schedule-keywords'
+import { pickFitDayImageKeywordDistinct, collectFitDayEnglishPlaceNames } from '@/lib/fit-itinerary-pick-day-image-keyword'
+import { registerFitKeywordFromOwnDayPlaces } from '@/lib/register-pre-photo-guards'
+import { buildProductScheduleJsonForDb } from '@/lib/schedule-image-keyword-persist'
+import { scheduleRowsForPrePhotoVerify } from '@/lib/register-pre-photo-verify'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
 import { buildAirtelPrompt } from '@/lib/fit-itinerary-generate-for-product'
 import type { FitItineraryGeminiResponse } from '@/lib/fit-itinerary-gemini-parse'
 
-const day = (n: number, summary = '첫날은 짐만 풀고 시장 골목으로 나가 보세요. 해가 지면 간판 불이 들어와 걷기 좋아요. 저녁은 시장 안 노점에서 가볍게 드시면 편해요.') => ({
+const day = (n: number, summary = '첫날은 짐만 풀고 구로몬 시장 골목으로 나가 보세요. 해가 지면 간판 불이 들어와 걷기 좋아요. 저녁은 시장 안 노점에서 가볍게 드시면 편해요.') => ({
   dayNumber: n,
   title: `시장 골목 ${'산책'}`,
   summary,
@@ -97,6 +101,38 @@ describe('추천일정 검사', () => {
     r2.days[0] = day(1, '시장 골목은 최저가로 즐기기 좋아요. 해가 지면 간판 불이 들어와 걷기 좋아요. 저녁은 노점에서 드세요.') as never
     expect(validateFitItineraryGeminiDays(r2, 1).issues).toContain('day1_banned_word')
   })
+  it('장소 이름 속 숫자(2세 갤러리아)는 숫자 금지에 걸리지 않는다', () => {
+    const r = resp(1)
+    r.days[0] = {
+      ...day(1, '비토리오 에마누엘레 2세 갤러리아는 유리 천장으로 햇살이 들어와 예뻐요. 천천히 걸으며 구경하시면 좋아요. 근처 골목도 가볍게 둘러보세요.'),
+      activities: [{ ...day(1).activities[0], title: '비토리오 에마누엘레 2세 갤러리아', location: '비토리오 에마누엘레 2세 갤러리아 (Galleria Vittorio Emanuele II)' }],
+    } as never
+    expect(validateFitItineraryGeminiDays(r, 1).issues).not.toContain('day1_number')
+    r.days[0] = { ...(r.days[0] as object), summary: '비토리오 에마누엘레 2세 갤러리아까지 30분이면 가요. 천천히 걸으며 구경하시면 좋아요. 근처 골목도 가볍게 둘러보세요.' } as never
+    expect(validateFitItineraryGeminiDays(r, 1).issues).toContain('day1_number')
+  })
+  it('그날 동선 장소 이름이 요약에 없으면 실패(등록 전 검사와 같은 기준)', () => {
+    const r = resp(1)
+    r.days[0] = day(1, '기차를 타고 호수 마을로 떠나 맑은 공기를 마셔 보세요. 산책로를 따라 걷는 시간이 참 평화로워요. 호수가 보이는 식당에서 점심을 드시면 돼요.') as never
+    expect(validateFitItineraryGeminiDays(r, 1).issues).toContain('day1_summary_no_route_place')
+  })
+  it("'Duomo Di'처럼 전치사로 끝난 키워드는 쓰지 않는다", () => {
+    const kw = pickFitDayImageKeywordDistinct(
+      {
+        dayNumber: 2,
+        title: '대성당',
+        summary: '밀라노 대성당과 갤러리아를 걸어요.',
+        activities: [
+          { order: 1, category: 'attraction', title: '밀라노 대성당', description: '', location: '밀라노 대성당 (Duomo di Milano)' },
+          { order: 2, category: 'attraction', title: '갤러리아', description: '', location: '비토리오 에마누엘레 2세 갤러리아 (Galleria Vittorio Emanuele II)' },
+        ],
+      },
+      { cityNameKo: '밀라노', cityKey: 'milan', productTitle: '밀라노 9일', primaryDestination: '밀라노', destination: '밀라노' },
+      new Set(),
+    )
+    expect(kw).not.toMatch(/\sDi$/i)
+    expect(kw.length).toBeGreaterThan(0)
+  })
 })
 
 describe('자유여행 일정 = 추천일정 일차만', () => {
@@ -124,5 +160,74 @@ describe('프롬프트', () => {
     expect(p).not.toContain('SUPPLIER_SECRET_ROW')
     expect(p).toContain('1일차부터 9일차까지')
     expect(p).toContain('최저가')
+  })
+})
+
+describe('fit gemini 1101 — 추천일정 장소 키워드 출처', () => {
+  it('그날 장소 영문 이름을 모으고(식사·이동 제외) 키워드 출처로 인정한다', () => {
+    const names = collectFitDayEnglishPlaceNames({
+      dayNumber: 2,
+      title: 't',
+      summary: 's',
+      activities: [
+        { order: 1, category: 'attraction', title: '긴자', description: '', location: '긴자 (Ginza)' },
+        { order: 2, category: 'meal', title: '초밥집', description: '', location: '초밥집 (Sushi Bar)' },
+        { order: 3, category: 'transport', title: '공항', description: '', location: '나리타 국제공항 (Narita Airport)' },
+      ],
+    })
+    expect(names).toEqual(['Ginza'])
+    expect(registerFitKeywordFromOwnDayPlaces({ fitPlaceKeywordsEn: names }, 'Ginza')).toBe(true)
+    expect(registerFitKeywordFromOwnDayPlaces({ fitPlaceKeywordsEn: names }, 'Shibuya')).toBe(false)
+    expect(registerFitKeywordFromOwnDayPlaces({}, 'Ginza')).toBe(false)
+  })
+  it('schedule JSON 저장·검사 읽기에서 장소 영문 이름이 유지된다', () => {
+    const json = buildProductScheduleJsonForDb([
+      { day: 1, title: '긴자', description: '긴자 거리를 걸어요.', routeText: '긴자', imageKeyword: 'Ginza', imageKeyword2: null, imageUrl: null, imageUrl2: null, fitPlaceKeywordsEn: ['Ginza'] } as never,
+    ])
+    expect(JSON.parse(json)[0].fitPlaceKeywordsEn).toEqual(['Ginza'])
+    expect(scheduleRowsForPrePhotoVerify(json)[0].fitPlaceKeywordsEn).toEqual(['Ginza'])
+  })
+})
+
+describe('fit gemini 1101 — 관광지 없는 날 키워드 폴백', () => {
+  it("cityKey 'it' 대신 앞선 날 추천일정 장소를 쓴다", () => {
+    const { rows } = mergeScheduleWithFitKeywords(
+      [],
+      [
+        {
+          dayNumber: 1,
+          title: '두오모',
+          summary: '밀라노 두오모와 꼬모 호수를 둘러봐요.',
+          activities: [
+            { order: 1, category: 'attraction', title: '밀라노 두오모', description: '', location: '밀라노 두오모 (Duomo di Milano)' },
+            { order: 2, category: 'attraction', title: '꼬모 호수', description: '', location: '꼬모 호수 (Lake Como)' },
+          ],
+        },
+        {
+          dayNumber: 2,
+          title: '인천 도착',
+          summary: '인천 국제공항에 도착해요.',
+          activities: [{ order: 1, category: 'transport', title: '인천 국제공항 도착', description: '', location: '인천 국제공항' }],
+        },
+      ],
+      { cityNameKo: '밀라노', cityKey: 'it', productTitle: '[에어텔전용] 이탈리아 9일', primaryDestination: '밀라노', destination: '밀라노' },
+    )
+    expect(rows[1]!.imageKeyword).not.toBe('It')
+    expect(rows[0]!.imageKeyword).toBe('Lake Como')
+    expect(rows[1]!.imageKeyword).toBe('Lake Como')
+  })
+})
+
+describe('fit gemini 1101 — 그날 장소 키워드 유지', () => {
+  it('그날 관광지(공원)가 있으면 다른 날 장소로 바꾸지 않는다', () => {
+    const { rows } = mergeScheduleWithFitKeywords(
+      [],
+      [
+        { dayNumber: 1, title: '꼬모', summary: '꼬모 호수를 둘러봐요.', activities: [{ order: 1, category: 'attraction', title: '꼬모 호수', description: '', location: '꼬모 호수 (Lake Como)' }] },
+        { dayNumber: 2, title: '공원', summary: '셈피오네 공원을 걸어요.', activities: [{ order: 1, category: 'attraction', title: '셈피오네 공원', description: '', location: '셈피오네 공원 (Parco Sempione)' }] },
+      ],
+      { cityNameKo: '밀라노', cityKey: 'it', productTitle: '[에어텔전용] 이탈리아 9일', primaryDestination: '밀라노', destination: '밀라노' },
+    )
+    expect(rows[1]!.imageKeyword).toBe('Parco Sempione')
   })
 })

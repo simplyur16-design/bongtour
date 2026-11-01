@@ -263,15 +263,39 @@ export function collectFitDayImageKeywordCandidates(
 }
 
 /** 여러 일차에 걸쳐 중복 키워드 회피 — 예시 일정 SSOT 추출용 */
+/** 그날 activities location 의 괄호 영문 장소 이름(식사 제외) — 사진 키워드 출처 표시용 */
+export function collectFitDayEnglishPlaceNames(day: FitItineraryDayForKeyword): string[] {
+  const out: string[] = []
+  for (const act of day.activities ?? []) {
+    if (act.category === 'meal' || act.category === 'transport') continue
+    const m = String(act.location ?? '').match(/\(([A-Za-z][^()]{1,80})\)/)
+    const en = m?.[1]?.trim()
+    if (en && !out.some((x) => x.toLowerCase() === en.toLowerCase())) out.push(en)
+  }
+  return out
+}
+
 export function pickFitDayImageKeywordDistinct(
   day: FitItineraryDayForKeyword,
   fallbackCtx: FitDayImageKeywordFallbackContext,
   usedLower: Set<string>,
 ): string {
-  const candidates = collectFitDayImageKeywordCandidates(day, fallbackCtx)
+  // 도시명을 떼고 'Duomo Di'처럼 전치사로 끝난 키워드는 쓰지 않는다(REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101])
+  const raw = collectFitDayImageKeywordCandidates(day, fallbackCtx).filter(
+    (kw) => !/\s(?:di|de|del|della|des|du|da|of|the|la|le|al|alla|von|van)$/i.test(kw.trim()),
+  )
+  // 깨진 후보('It' = cityKey 폴백)보다 성한 후보 먼저 — REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]
+  const own = collectFitDayEnglishPlaceNames(day).map((x) => x.toLowerCase())
+  const fromOwn = (kw: string) => own.some((p) => p.includes(kw.toLowerCase()) || kw.toLowerCase().includes(p))
+  const sound = raw.filter((kw) => fromOwn(kw) || !isBrokenRegisterLandmarkKeyword(kw, { allowHotelLodging: true }))
+  const candidates = sound.length ? [...sound, ...raw.filter((kw) => !sound.includes(kw))] : raw
   for (const kw of candidates) {
     if (!isWeakFitDayImageKeyword(kw) && !usedLower.has(kw.toLowerCase())) return kw
   }
+  for (const kw of sound) {
+    if (!usedLower.has(kw.toLowerCase())) return kw
+  }
+  if (sound[0]) return sound[0]
   for (const kw of candidates) {
     if (!usedLower.has(kw.toLowerCase())) return kw
   }

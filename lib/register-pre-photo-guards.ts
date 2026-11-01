@@ -55,6 +55,26 @@ export type RegisterPrePhotoHealRow = {
   imageKeyword?: string | null
   imageKeyword2?: string | null
   imageUrl?: string | null
+  /** 자유여행 제미나이 추천일정 — 그날 activities 장소의 괄호 영문 이름(사진 키워드 출처) */
+  fitPlaceKeywordsEn?: string[] | null
+}
+
+/**
+ * 자유여행: 키워드가 그날 추천일정 장소(괄호 영문)에서 나왔는지.
+ * REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 추천일정 장소 키워드는 한글 동선 사전 대조 없이 그날 것으로 인정 — manifest
+ */
+export function registerFitKeywordFromOwnDayPlaces(
+  row: Pick<RegisterPrePhotoHealRow, 'fitPlaceKeywordsEn'>,
+  keyword: string | null | undefined,
+): boolean {
+  const kw = String(keyword ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
+  if (kw.length < 3) return false
+  for (const raw of row.fitPlaceKeywordsEn ?? []) {
+    const p = String(raw ?? '').trim().toLowerCase().replace(/\s+/g, ' ')
+    if (p.length < 3) continue
+    if (p === kw || p.includes(kw) || kw.includes(p)) return true
+  }
+  return false
 }
 
 export type BrokenRegisterLandmarkOpts = {

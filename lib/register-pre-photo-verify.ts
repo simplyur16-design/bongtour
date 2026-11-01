@@ -31,6 +31,7 @@ import {
   isBrokenRegisterScheduleDescription,
   isBrokenRegisterFitScheduleDescription,
   isRegisterScheduleTransitHubPlace,
+  registerFitKeywordFromOwnDayPlaces,
   tripDaysSharingTemplateCloser,
   type RegisterPrePhotoHealRow,
 } from '@/lib/register-pre-photo-guards'
@@ -697,9 +698,13 @@ function fitScheduleIssues(
     const kw = String(row.imageKeyword ?? '').trim()
     const kw2 = String(row.imageKeyword2 ?? '').trim()
     if (kw) anyKeyword = true
+    // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 그날 추천일정 장소에서 나온 키워드는 한글 동선 사전·관광지 추정 검사 대신 출처로 인정(식당·항공은 여전히 거부) — manifest
+    const kwFromOwnFitPlace = !!kw && registerFitKeywordFromOwnDayPlaces(row, kw)
     if (kw) {
       pushFilledKeywordQualityIssues(issues, day, 'keyword', kw)
-      if (isBrokenRegisterLandmarkKeyword(kw, { allowHotelLodging: true })) {
+      if (kwFromOwnFitPlace) {
+        if (isNonLandmarkFoodOrDiningImageKeyword(kw)) issues.push(`day${day}_keyword_lodging_or_non_landmark`)
+      } else if (isBrokenRegisterLandmarkKeyword(kw, { allowHotelLodging: true })) {
         issues.push(`day${day}_keyword_lodging_or_non_landmark`)
       }
     }
@@ -732,6 +737,7 @@ function fitScheduleIssues(
     if (
       slot === 'middle' &&
       kw &&
+      !kwFromOwnFitPlace &&
       !(
         isAuroraHuntingProductTitle(productTitle) &&
         imageKeywordMentionsAurora(kw)
@@ -1001,6 +1007,9 @@ export function scheduleRowsForPrePhotoVerify(schedule: string | null | undefine
         imageKeyword: row.imageKeyword != null ? String(row.imageKeyword) : null,
         imageKeyword2: row.imageKeyword2 != null ? String(row.imageKeyword2) : null,
         imageUrl: row.imageUrl != null ? String(row.imageUrl) : null,
+        ...(Array.isArray(row.fitPlaceKeywordsEn)
+          ? { fitPlaceKeywordsEn: (row.fitPlaceKeywordsEn as unknown[]).map((x) => String(x ?? '')) }
+          : {}),
       }
     })
   } catch {

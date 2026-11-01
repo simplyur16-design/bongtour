@@ -123,6 +123,8 @@ ${BONGTOUR_FREE_DAY_VOICE_BLOCK}
 - 같은 명소를 두 날 이상 넣지 않습니다.
 - 일차 title: 그날 대표 장소가 들어간 짧은 한국어 제목(8~24자). 시적 수식(설레는, 꿈과 환상의…)은 쓰지 않습니다.
 - 일차 summary: 3~4문장, 동선 순서대로. summary에 나온 장소와 activities.location이 같아야 합니다.
+- 일차 summary에는 그날 activities 장소 이름을 한국어 그대로 한 곳 이상 넣습니다(예: '꼬모 호수', '센소지'). '호수 마을'처럼 이름을 돌려 말하지 않습니다.
+- 현지에 머무는 날(출국하는 날 포함)은 activities에 관광 장소(category attraction)를 한 곳 이상 넣고, location은 '한글 이름 (English name)'으로 씁니다. 공항 가기 전 들를 만한 가까운 명소도 좋습니다.
 - activities: ${activityRule}, 동선 순서대로. 카테고리는 transport / hotel / meal / attraction / shopping 다섯 개만 씁니다.
 - **location 필수 형식:** attraction은 한글명 (English landmark name) — 괄호 안 **영문 랜드마크** 필수 (예: "청수사 (Kiyomizu-dera Temple)", "바나힐 (Ba Na Hills)"). meal은 상호를 지어내지 않고 "근처 라멘집", "시장 안 노점"처럼 일반 명사로만 쓰고 영문 괄호를 붙이지 않습니다. transport·hotel은 공항·호텔명 한글만.
 - **동선·imageKeyword(시스템 자동):** 예시 일정 각 일차 activities가 그날 **동선**이다. 등록 후 시스템은 그날 **attraction location의 괄호 영문 랜드마크**로 imageKeyword를 만든다(일차마다 다른 명소). 식사·쇼핑 상호명(식당·약국·면세점)은 imageKeyword로 쓰지 않는다. 도시명·공항명만 쓰지 말 것.

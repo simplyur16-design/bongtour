@@ -127,6 +127,17 @@ async function rematerializeFitLane(
   if (gen.success) {
     path = 'fit_generate'
     updated = true
+  } else if (gen.reason !== 'already_exists') {
+    // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 새 추천일정이 필요했는데 실패하면 옛(일수 틀린) 추천일정으로 일정을 줄이지 않는다 — 사유는 rawMeta, 등록 보류 — manifest
+    return {
+      productId,
+      lane: 'air_hotel_free',
+      path: 'fit_generate',
+      updated: false,
+      beforeIssues,
+      afterIssues: [...beforeIssues, `fit_recommended_itinerary_${gen.reason ?? 'failed'}`],
+      ok: false,
+    }
   } else {
     const synced = await syncScheduleImageKeywordsFromFitMasterDb(productId)
     if (synced.hadMaster) {
@@ -151,6 +162,13 @@ async function rematerializeFitLane(
       afterIssues: beforeIssues,
       ok: false,
     }
+  }
+
+  // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 방금 만든 제미나이 추천일정은 패키지용 힐로 문장·키워드를 다시 쓰지 않는다 — manifest
+  if (gen.success) {
+    const afterV = verifyRegisterPrePhotoForStoredProduct(product as never)
+    const afterIssues = afterV.ok ? [] : afterV.issues || []
+    return { productId, lane: 'air_hotel_free', path, updated, beforeIssues, afterIssues, ok: afterV.ok }
   }
 
   const supplierKey = normalizeSupplierOrigin(String(product.originSource ?? '')) || 'etc'

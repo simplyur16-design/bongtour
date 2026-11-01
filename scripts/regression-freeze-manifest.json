@@ -30521,7 +30521,9 @@
             "validateFitItineraryGeminiDays",
             "recordItineraryGenerationStatus",
             "봉실장",
-            "FIT_ITINERARY_GENERATE_ATTEMPTS"
+            "FIT_ITINERARY_GENERATE_ATTEMPTS",
+            "그날 activities 장소 이름을 한국어 그대로 한 곳 이상",
+            "현지에 머무는 날(출국하는 날 포함)은 activities에 관광 장소"
           ],
           "mustNotInclude": [
             "?? '4'",
@@ -30573,7 +30575,9 @@
           "file": "lib/fit-itinerary-merge-schedule-keywords.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
-            "maxFitDay"
+            "maxFitDay",
+            "collectFitDayEnglishPlaceNames(fitDay)",
+            "fitTripPlaceFallbackKeyword(sortedDays, dayNum, usedLower)"
           ]
         },
         {
@@ -30587,6 +30591,48 @@
           "file": "app/api/travel/process-images/route.ts",
           "mustInclude": [
             "registerScheduleDayIsCityOnlyPhotoSkip(sched)"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-lane-rematerialize.ts",
+          "mustInclude": [
+            "방금 만든 제미나이 추천일정은 패키지용 힐로 문장·키워드를 다시 쓰지 않는다",
+            "옛(일수 틀린) 추천일정으로 일정을 줄이지 않는다"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-validate-days.ts",
+          "mustInclude": [
+            "summary_no_route_place",
+            "isBrokenRegisterFitScheduleDescription",
+            "그날 장소 이름 속 숫자"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-pick-day-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
+            "깨진 후보('It' = cityKey 폴백)보다 성한 후보 먼저"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
+            "registerFitKeywordFromOwnDayPlaces(row, kw)",
+            "fitPlaceKeywordsEn"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-guards.ts",
+          "mustInclude": [
+            "export function registerFitKeywordFromOwnDayPlaces"
+          ]
+        },
+        {
+          "file": "lib/schedule-image-keyword-persist.ts",
+          "mustInclude": [
+            "fitPlaceKeywordsEn"
           ]
         }
       ]

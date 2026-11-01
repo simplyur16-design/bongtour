@@ -197,6 +197,10 @@ export function buildProductScheduleJsonForDb(
         mealSummaryText: src.mealSummaryText ?? null,
         meals: src.meals ?? null,
         ...(src.supplierOriginal ? { supplierOriginal: src.supplierOriginal } : {}),
+        // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 자유여행 추천일정 장소 영문 이름 유지 — manifest
+        ...(Array.isArray((src as { fitPlaceKeywordsEn?: unknown }).fitPlaceKeywordsEn)
+          ? { fitPlaceKeywordsEn: (src as unknown as { fitPlaceKeywordsEn: string[] }).fitPlaceKeywordsEn }
+          : {}),
         ...extra,
       }
     }),

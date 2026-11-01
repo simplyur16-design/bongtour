@@ -4,12 +4,39 @@
  */
 import {
   buildFitDayRouteText,
+  collectFitDayEnglishPlaceNames,
   pickFitDayImageKeywordDistinct,
   pickSingleAirtelFitImageKeywordFromDays,
   type FitDayImageKeywordFallbackContext,
   type FitItineraryDayForKeyword,
 } from '@/lib/fit-itinerary-pick-day-image-keyword'
-import type { ProductScheduleJsonRow } from '@/lib/schedule-image-keyword-persist'
+import { persistScheduleImageKeyword, type ProductScheduleJsonRow } from '@/lib/schedule-image-keyword-persist'
+import { isBrokenRegisterLandmarkKeyword, registerFitKeywordFromOwnDayPlaces } from '@/lib/register-pre-photo-guards'
+
+/** 관광지 없는 출국·귀국일 — 앞선 일차 추천일정 장소 중 아직 안 쓴 영문 이름(가까운 날부터) */
+function fitTripPlaceFallbackKeyword(
+  sortedDays: FitItineraryDayForKeyword[],
+  dayNum: number,
+  usedLower: Set<string>,
+): string | null {
+  const earlier = sortedDays.filter((d) => Math.floor(Number(d.dayNumber)) < dayNum).reverse()
+  const ok: string[] = []
+  for (const d of earlier) {
+    for (const name of collectFitDayEnglishPlaceNames(d)) {
+      let kw = ''
+      try {
+        kw = persistScheduleImageKeyword(name) || ''
+      } catch {
+        kw = ''
+      }
+      if (!kw || /\s(?:di|de|del|della|des|du|da|of|the|la|le|al|alla|von|van)$/i.test(kw)) continue
+      if (isBrokenRegisterLandmarkKeyword(kw, { allowHotelLodging: true })) continue
+      ok.push(kw)
+    }
+  }
+  // 안 쓴 장소 먼저, 없으면 가장 가까운 날 장소를 다시 쓴다('It'보다 낫다)
+  return ok.find((kw) => !usedLower.has(kw.toLowerCase())) ?? ok[0] ?? null
+}
 
 export function mergeScheduleWithFitKeywords(
   existing: ProductScheduleJsonRow[],
@@ -29,7 +56,17 @@ export function mergeScheduleWithFitKeywords(
     const dayNum = Math.floor(Number(fitDay.dayNumber))
     if (!Number.isFinite(dayNum) || dayNum < 1) continue
 
-    const kw = pickFitDayImageKeywordDistinct(fitDay, fallbackCtx, usedLower)
+    let kw = pickFitDayImageKeywordDistinct(fitDay, fallbackCtx, usedLower)
+    // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 깨진 키워드('It')면 앞선 날 추천일정 장소로 — manifest
+    const ownPlaces = collectFitDayEnglishPlaceNames(fitDay)
+    if (
+      !kw ||
+      kw.toLowerCase() === 'travel' ||
+      (!registerFitKeywordFromOwnDayPlaces({ fitPlaceKeywordsEn: ownPlaces }, kw) &&
+        isBrokenRegisterLandmarkKeyword(kw, { allowHotelLodging: true }))
+    ) {
+      kw = fitTripPlaceFallbackKeyword(sortedDays, dayNum, usedLower) ?? kw
+    }
     dayKeywords[dayNum] = kw
     if (kw) usedLower.add(kw.toLowerCase())
 
@@ -54,6 +91,8 @@ export function mergeScheduleWithFitKeywords(
       routeText: routeFromFit || prev?.routeText || null,
       imageKeyword: kw,
     }
+    // REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]: 그날 추천일정 장소 영문 이름을 함께 저장(등록 전 검사가 키워드 출처를 안다) — manifest
+    ;(next as ProductScheduleJsonRow & { fitPlaceKeywordsEn?: string[] }).fitPlaceKeywordsEn = ownPlaces
 
     if (keywordChanged) {
       next.imageUrl = null
