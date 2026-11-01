@@ -30670,6 +30670,35 @@
       "vitestSuites": [
         "lib/fit-itinerary-backfill-status.test.ts"
       ]
+    },
+    {
+      "id": "fit-gemini-original-route-postcheck-1101",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "문과장 11/01 — 관광+자유(원문 코스 고정) FIT는 제미나이 추천일정이 원문 도시·코스 밖 장소를 넣으면 저장 안 함(재시도→validation_failed). 원문 코스 없는 일반 에어텔은 기존대로 자유 생성",
+      "checks": [
+        {
+          "file": "lib/fit-itinerary-original-route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-original-route-postcheck-1101]",
+            "checkFitItineraryWithinOriginalRoute",
+            "_outside_original_route"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-generate-for-product.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[fit-gemini-original-route-postcheck-1101]",
+            "checkFitItineraryWithinOriginalRoute(",
+            "buildFitOriginalRoutePromptBlock("
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/fit-itinerary-original-route.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

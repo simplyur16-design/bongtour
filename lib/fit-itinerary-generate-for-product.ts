@@ -30,6 +30,13 @@ import { buildProductScheduleJsonForDb } from '@/lib/schedule-image-keyword-pers
 import type { RegisterParsed } from '@/lib/register-llm-schema-ybtour'
 import { resolveFitTotalDays } from '@/lib/fit-itinerary-total-days'
 import { validateFitItineraryGeminiDays } from '@/lib/fit-itinerary-validate-days'
+import {
+  buildFitOriginalRoute,
+  buildFitOriginalRoutePromptBlock,
+  checkFitItineraryWithinOriginalRoute,
+  isFitOriginalRouteTitle,
+  type FitOriginalRouteDay,
+} from '@/lib/fit-itinerary-original-route'
 import { recordItineraryGenerationStatus } from '@/lib/fit-itinerary-generation-status'
 
 /** 다일정 Fit JSON — season(4096)과 달리 5~6일·activities 다수 시 8k+ chars. 기본 16384 */
@@ -85,6 +92,8 @@ type PromptProduct = {
   hotelSummaryText: string | null
   airtelHotelInfoJson: string | null
   schedule: string | null
+  /** 관광+자유처럼 원문 코스가 정해진 상품만 — 있으면 '공급사 일정표 안 씀' 줄 대신 원문 코스를 고정한다 */
+  originalRouteBlock?: string | null
 }
 
 function cuid(): string {
@@ -107,7 +116,7 @@ export function buildAirtelPrompt(p: PromptProduct): string {
 - 일정: ${p.duration} (총 ${p.totalDays}일)
 - 항공사: ${p.airline ?? '미지정'}
 - 호텔: ${hotelLine}
-- 공급사 일정표: 쓰지 않습니다(자유여행은 항공·호텔만 정해진 상품). 아래 규칙으로 1일차부터 ${p.totalDays}일차까지 모든 날을 새로 짭니다.
+${p.originalRouteBlock ? p.originalRouteBlock : `- 공급사 일정표: 쓰지 않습니다(자유여행은 항공·호텔만 정해진 상품). 아래 규칙으로 1일차부터 ${p.totalDays}일차까지 모든 날을 새로 짭니다.`}
 
 ${BONGTOUR_FREE_DAY_VOICE_BLOCK}
 
@@ -351,6 +360,22 @@ export type PersistFitItineraryOptions = {
   replaceExisting?: boolean
 }
 
+/** 원문 경로(관광+자유) — 없으면 null(일반 에어텔: 기존 동작 그대로) */
+async function loadFitOriginalRoute(
+  productId: string,
+  title: string | null | undefined,
+  totalDays: number,
+): Promise<FitOriginalRouteDay[] | null> {
+  // 관광+자유가 아닌 상품은 DB를 읽지 않는다(기존 에어텔 경로·테스트 목 그대로)
+  if (!isFitOriginalRouteTitle(title)) return null
+  const rows = await prisma.itineraryDay.findMany({
+    where: { productId },
+    select: { day: true, city: true, summaryTextRaw: true, poiNamesRaw: true, hotelText: true },
+    orderBy: { day: 'asc' },
+  })
+  return buildFitOriginalRoute(title, rows, totalDays)
+}
+
 export async function persistFitItineraryFromGeminiJson(
   productId: string,
   geminiJsonText: string,
@@ -401,8 +426,17 @@ export async function persistFitItineraryFromGeminiJson(
   const v = validateFitItineraryGeminiDays(parsed, expectedDays, {
     hotelKnown: !!product.hotelSummaryText?.trim(),
   })
-  if (!v.ok) {
-    return { success: false, reason: 'validation_failed', detail: v.issues.slice(0, 8).join(',') }
+  // REGRESSION-FREEZE[fit-gemini-original-route-postcheck-1101]: 원문 코스 상품은 원문 밖 장소가 있으면 저장 안 함 — manifest
+  const routeIssues = checkFitItineraryWithinOriginalRoute(
+    parsed,
+    await loadFitOriginalRoute(productId, product.title, expectedDays),
+  )
+  if (!v.ok || routeIssues.length) {
+    return {
+      success: false,
+      reason: 'validation_failed',
+      detail: [...v.issues, ...routeIssues].slice(0, 8).join(','),
+    }
   }
   // REGRESSION-FREEZE[place-name-spelling-n1]: Gemini 추천일정 사후 검사 — certain 사전만 교정(비용 필드 불변)
   parsed = applyPlaceNameSpellingToFitGemini(parsed)
@@ -566,6 +600,8 @@ export async function generateFitItineraryForProduct(
     airtelHotelInfoJson: product.airtelHotelInfoJson,
     schedule: null,
   }
+  const originalRoute = await loadFitOriginalRoute(productId, product.title, totalDays)
+  if (originalRoute) promptInput.originalRouteBlock = buildFitOriginalRoutePromptBlock(originalRoute)
 
   const prompt = buildAirtelPrompt(promptInput)
   let last: GenerateFitItineraryResult = { success: false, reason: 'gemini_failed' }
