@@ -42,9 +42,23 @@ function cacheSet(key: string, sellable: boolean) {
   cache.set(key, { sellable, exp: Date.now() + CACHE_TTL_MS })
 }
 
-function sellableCheckOrigin(req: NextRequest): string {
-  const fromEnv = (process.env.BONGSIM_SELLABLE_CHECK_ORIGIN ?? '').trim().replace(/\/+$/, '')
-  return fromEnv || req.nextUrl.origin
+/**
+ * 판정 조회 origin — env override 가 있으면 그 값, 없으면 같은 프로세스의 Node 서버(`next start -p $PORT`)에 http 로 직접.
+ *
+ * `req.nextUrl.origin` 을 쓰면 안 됨: next start 는 initURL 을 `${protocol}://localhost:${port}` 로 만들고
+ * protocol 은 `x-forwarded-proto` 가 https 면 https — Railway 프록시 뒤에서는 `https://localhost:<PORT>` 가 되어
+ * 평문 HTTP 서버에 TLS 로 붙다가 바로 실패 → null(fail-open) → 판매 불가 페이지가 200 으로 남았음 (2026-11-01 라이브 확인).
+ * `/products/*` 308·404 판정(lib/product-path-status)과 같은 방식.
+ */
+export function esimSellableCheckOrigin(envOrigin: string | undefined, port: string | undefined): string {
+  const fromEnv = (envOrigin ?? '').trim().replace(/\/+$/, '')
+  if (/^https?:\/\/[^\s/]+$/i.test(fromEnv)) return fromEnv
+  const p = (port ?? '').trim()
+  return `http://127.0.0.1:${/^\d{1,5}$/.test(p) ? p : '3000'}`
+}
+
+function sellableCheckOrigin(): string {
+  return esimSellableCheckOrigin(process.env.BONGSIM_SELLABLE_CHECK_ORIGIN, process.env.PORT)
 }
 
 /** 판정 대상 쿼리(option= / country=) — 대상 아님이면 null, 형식상 불가면 'invalid' */
@@ -74,7 +88,7 @@ async function fetchSellable(req: NextRequest, query: string): Promise<boolean |
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), CHECK_TIMEOUT_MS)
   try {
-    const url = `${sellableCheckOrigin(req)}${BONGSIM_SELLABLE_API_PATH}?${query}`
+    const url = `${sellableCheckOrigin()}${BONGSIM_SELLABLE_API_PATH}?${query}`
     const res = await fetch(url, {
       signal: ctrl.signal,
       headers: { accept: 'application/json', 'x-bongsim-sellable-check': '1' },
