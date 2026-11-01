@@ -30207,6 +30207,27 @@
           ]
         }
       ]
+    },
+    {
+      "id": "package-day-tabs-390-sticky",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "패키지 상세 390px — 일차 탭 바를 실제 사이트 헤더 높이 아래에 sticky, '일정 상세보기'는 모바일에서 맨 앞(스와이프 없이 보임)",
+      "checks": [
+        {
+          "file": "components/itinerary/ItineraryViewPackageMain.tsx",
+          "mustInclude": [
+            "tab390",
+            "header.sticky",
+            "siteHeaderOffsetPx",
+            "sm:hidden",
+            "일정 상세보기",
+            "package-day-tabs-bar"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [

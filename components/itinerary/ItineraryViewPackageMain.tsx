@@ -115,6 +115,34 @@ export function ItineraryViewPackageMain({
 
   const isAirHotelFree = isAirHotelFreeListingForUi(product.listingKind)
 
+  /**
+   * tab390 — 모바일(390px)에서 사이트 헤더가 상단 줄 + 메뉴 줄로 72px보다 높아 sticky 일차 탭(top 72px, z-10)이
+   * 헤더(z-50) 뒤로 숨던 문제. 패키지 상품만: 실제 사이트 헤더 높이를 재서 탭 바를 헤더 바로 아래에 붙인다.
+   */
+  const [siteHeaderOffsetPx, setSiteHeaderOffsetPx] = useState<number | null>(null)
+  useEffect(() => {
+    if (isAirHotelFree || typeof window === 'undefined') return
+    const header = document.querySelector<HTMLElement>('header.sticky')
+    if (!header) return
+    const measure = () => {
+      const pos = window.getComputedStyle(header).position
+      if (pos !== 'sticky' && pos !== 'fixed') {
+        setSiteHeaderOffsetPx(null)
+        return
+      }
+      const h = Math.round(header.getBoundingClientRect().height)
+      setSiteHeaderOffsetPx(h > 0 ? h : null)
+    }
+    measure()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
+    ro?.observe(header)
+    window.addEventListener('resize', measure)
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [isAirHotelFree])
+
   const extraProduct = useMemo(
     () => ({
       productType: product.productType,
@@ -189,8 +217,23 @@ export function ItineraryViewPackageMain({
       <ItineraryExtraInfoBoxes product={extraProduct} section="top" />
 
       {totalDays > 0 ? (
-        <div ref={dayTabsBarRef} className="sticky top-[72px] sm:top-20 z-10 -mx-1 bg-[#FAFAFC]/95 backdrop-blur-sm border-b border-[#DAD4EE] py-3">
+        <div
+          ref={dayTabsBarRef}
+          data-testid="package-day-tabs-bar"
+          className="sticky top-[72px] sm:top-20 z-10 -mx-1 bg-[#FAFAFC]/95 backdrop-blur-sm border-b border-[#DAD4EE] py-3"
+          style={siteHeaderOffsetPx != null ? { top: siteHeaderOffsetPx } : undefined}
+        >
           <div className="flex items-center gap-2 overflow-x-auto">
+            {!isAirHotelFree ? (
+              // tab390: 모바일은 '일정 상세보기'를 맨 앞에 — 옆으로 밀지 않아도 보이게 (sm 이상은 기존 순서)
+              <button
+                type="button"
+                onClick={openDetailFromDayOne}
+                className="shrink-0 px-4 py-2 rounded-full text-sm whitespace-nowrap transition bg-[#FAEED4] fit-tx-price hover:bg-[#F5E5B8] font-semibold sm:hidden"
+              >
+                일정 상세보기
+              </button>
+            ) : null}
             <span className="text-sm text-[#888780] font-medium whitespace-nowrap mr-2">전체 {totalDays}일</span>
             {Array.from({ length: pageCount }, (_, i) => {
               const pageNum = i + 1
@@ -225,7 +268,9 @@ export function ItineraryViewPackageMain({
             <button
               type="button"
               onClick={openDetailFromDayOne}
-              className="px-5 py-2 rounded-full text-sm whitespace-nowrap transition bg-[#FAEED4] fit-tx-price hover:bg-[#F5E5B8] font-semibold"
+              className={`px-5 py-2 rounded-full text-sm whitespace-nowrap transition bg-[#FAEED4] fit-tx-price hover:bg-[#F5E5B8] font-semibold${
+                !isAirHotelFree ? ' hidden sm:inline-flex' : ''
+              }`}
             >
               일정 상세보기
             </button>
