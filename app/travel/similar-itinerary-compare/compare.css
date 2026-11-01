@@ -372,3 +372,53 @@
   border-radius: 0.35rem;
   padding: 0.15rem 0.4rem;
 }
+
+/* 같은 출발 주간 선택 (compare-week) */
+.sic-weeks {
+  margin: 0 0 0.85rem;
+}
+.sic-weeks-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--sic-muted);
+}
+.sic-weeks-list {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+.sic-week {
+  display: inline-flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  gap: 0.1rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--sic-line);
+  border-radius: 999px;
+  background: var(--bt-ow-surface);
+  font-size: 0.82rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  color: inherit;
+}
+.sic-week--on {
+  border-color: #1f1b2d;
+  background: #1f1b2d;
+  color: #fff;
+}
+.sic-week-count {
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+.sic-week-date {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sic-week-note {
+  margin: 0.6rem 0 0;
+  font-size: 0.78rem;
+  color: var(--sic-muted);
+}

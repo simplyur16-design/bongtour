@@ -45,6 +45,17 @@ import {
   pickGloballyCheapestDepartureRowByAdultPrice,
   publicDateKeyFromRowDate,
 } from '@/lib/public-default-departure-selection'
+import {
+  formatCompareDayLabel,
+  formatCompareWeekPriceLabel,
+  listCompareWeekOptions,
+  parseCompareWeekParam,
+  pickCompareWeekDeparture,
+  resolveSelectedCompareWeek,
+  toCompareWeekRows,
+  type CompareWeekOption,
+  type CompareWeekRow,
+} from '@/lib/similar-itinerary-compare-week'
 
 export type TriStateFact =
   | { kind: 'yes'; detail?: string }
@@ -65,6 +76,12 @@ export type SimilarItineraryCompareRow = {
   optional: TriStateFact
   hotelLabel: string
   mealLabel: string
+  /** 같은 출발 주간 — 그 주 성인가가 낮은 출발 1건의 DB 가격(원). 그 주 출발 없으면 null */
+  weekAdultKrw: number | null
+  weekPriceLabel: string
+  /** 그 출발의 날짜 YMD / 표시 `11/12(목)` */
+  weekDepartureYmd: string | null
+  weekDepartureLabel: string
 }
 
 export type SimilarItineraryCompareBundle = {
@@ -74,6 +91,10 @@ export type SimilarItineraryCompareBundle = {
   rows: SimilarItineraryCompareRow[]
   /** 등록 클러스터에 없는 canonical 7사 — 갭 수집 대상 */
   missingSuppliers: CanonicalOverseasSupplierKey[]
+  /** 같은 출발 주간 — 고를 수 있는 주(이른 주부터), 선택된 주 월요일 YMD, 그 주 출발이 없어 빠진 후보 수 */
+  weekOptions: CompareWeekOption[]
+  selectedWeekStartYmd: string | null
+  rowsWithoutWeekDepartureCount: number
 }
 
 /** 등록 상품 originSource 목록 → 비어 있는 canonical 공급사 */
@@ -184,7 +205,17 @@ export async function loadSimilarItineraryCompare(opts: {
   kind?: SimilarItineraryCompareKind | string | null
   /** admin/ops only — DEV_COMPARE_PRESETS 폴백. 공개 travel 페이지는 false. */
   allowPresetFallback?: boolean
+  /** 같은 출발 주간 `?week=YYYY-MM-DD`(그 주 아무 날짜) — 없거나 목록 밖이면 가까운 주 */
+  week?: string | null
+  /**
+   * true = 공개 비교표: 고른 주에 출발이 있는 후보만 rows 에 남김.
+   * 기본 false — 관리자·갭 수집(compare-cluster-supplier-gap-ingest)은 전 후보 기준 그대로(주 칸만 채움).
+   */
+  applyWeekFilter?: boolean
+  /** 테스트용 기준 시각 */
+  baseDate?: Date
 }): Promise<SimilarItineraryCompareBundle> {
+  const baseDate = opts.baseDate ?? new Date()
   // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: kind로 패키지/FIT 분리 — manifest
   const compareKind = parseSimilarItineraryCompareKind(opts.kind)
   const allowPreset = opts.allowPresetFallback === true
@@ -218,6 +249,9 @@ export async function loadSimilarItineraryCompare(opts: {
       disclaimer: similarItineraryCompareDisclaimer(compareKind),
       rows: [],
       missingSuppliers: [],
+      weekOptions: [],
+      selectedWeekStartYmd: null,
+      rowsWithoutWeekDepartureCount: 0,
     }
   }
 
@@ -230,6 +264,9 @@ export async function loadSimilarItineraryCompare(opts: {
       disclaimer: similarItineraryCompareDisclaimer(compareKind),
       rows: [],
       missingSuppliers: [],
+      weekOptions: [],
+      selectedWeekStartYmd: null,
+      rowsWithoutWeekDepartureCount: 0,
     }
   }
   const placeOr = placeTerms.flatMap((t) => [
@@ -281,15 +318,21 @@ export async function loadSimilarItineraryCompare(opts: {
         take: 20,
         orderBy: { date: 'asc' as const },
       },
+      // REGRESSION-FREEZE[similar-itinerary-compare-week]: 주간 비교는 지난 출발 빼고 DB adultPrice 만 — manifest
       departures: {
+        where: { departureDate: { gte: new Date(baseDate.getTime() - 2 * 24 * 60 * 60 * 1000) } },
         select: {
           id: true,
           adultPrice: true,
           departureDate: true,
           carrierName: true,
+          statusRaw: true,
+          seatsStatusRaw: true,
+          seatCount: true,
+          isBookable: true,
         },
         orderBy: { departureDate: 'asc' },
-        take: 16,
+        take: 160,
       },
       itineraryDays: {
         select: {
@@ -331,12 +374,31 @@ export async function loadSimilarItineraryCompare(opts: {
           durationWantInput,
         )
         if (!comparePlaceClustersMatch(placeWant, place) || !durOk) return false
+        // REGRESSION-FREEZE[similar-itinerary-compare-week]: 기존 7개 공급사만(신규 공급사 추가 금지) — manifest
+        if (!isCanonicalOverseasSupplierKey(normalizeSupplierOrigin(p.originSource))) return false
         // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 패키지 표에 FIT 금지·반대도 금지 — manifest
         return productMatchesSimilarItineraryCompareKind(p, compareKind)
       })
     : []
 
-  const rows: SimilarItineraryCompareRow[] = matched.map((p) => {
+  // REGRESSION-FREEZE[similar-itinerary-compare-week]: 같은 출발 주간 — 기본은 가까운 주, 사용자가 주를 고름 — manifest
+  const weekRowsById = new Map<string, CompareWeekRow[]>(
+    matched.map((p) => [p.id, toCompareWeekRows(p.departures ?? [])]),
+  )
+  const weekOptions = listCompareWeekOptions(
+    matched.map((p) => ({
+      id: p.id,
+      supplierKey: normalizeSupplierOrigin(p.originSource),
+      rows: weekRowsById.get(p.id) ?? [],
+    })),
+    baseDate,
+  )
+  const selectedWeekStartYmd = resolveSelectedCompareWeek(parseCompareWeekParam(opts.week), weekOptions)
+
+  const allRows: SimilarItineraryCompareRow[] = matched.map((p) => {
+    const weekPick = selectedWeekStartYmd
+      ? pickCompareWeekDeparture(weekRowsById.get(p.id) ?? [], selectedWeekStartYmd, baseDate)
+      : null
     // REGRESSION-FREEZE[supplier-product-fact-ssot]: 비교표 사실 도출 — manifest
     const shop = deriveShoppingFact(p)
     const opt = deriveOptionalFact(p)
@@ -355,6 +417,15 @@ export async function loadSimilarItineraryCompare(opts: {
       })),
       departures: p.departures,
     })
+    // 주간 출발이 있으면 그 출발 회차 항공사(A-5: 가격·출발일·항공사 한 회차로 맞춤)
+    const weekCarrier = weekPick?.carrierName?.trim() || null
+    const airlineLabelForRow = weekCarrier
+      ? deriveAirlineFact({
+          departureKeyFactsAirline: weekCarrier,
+          selectedDepartureCarrierName: weekCarrier,
+          rawMeta: null,
+        }).airlineLabel
+      : airlineLabel
     const originKey = normalizeSupplierOrigin(p.originSource)
     const supplierKey = isCanonicalOverseasSupplierKey(originKey) ? originKey : null
     const scheduleDayCount = Array.isArray(p.itineraryDays) ? p.itineraryDays.length : null
@@ -392,13 +463,21 @@ export async function loadSimilarItineraryCompare(opts: {
       })(),
       duration: tripLen.label || normalizeCompareDurationLabel(p.duration, p.title) || '정보 없음',
       priceLabel: priceLabel(computeEffectivePricePerPersonKrwFromRow(p)),
-      airlineLabel,
+      airlineLabel: airlineLabelForRow,
       shopping: toTriState(shop.state, shop.visitCount),
       optional: toTriState(opt.state),
       hotelLabel: hm.hotelLabel,
       mealLabel: hm.mealLabel,
+      weekAdultKrw: weekPick?.adultKrw ?? null,
+      weekPriceLabel: formatCompareWeekPriceLabel(weekPick?.adultKrw ?? null),
+      weekDepartureYmd: weekPick?.dateYmd ?? null,
+      weekDepartureLabel: weekPick ? formatCompareDayLabel(weekPick.dateYmd) : '—',
     }
   })
+
+  // 같은 출발 주간 조건: 고른 주에 예약가능 출발이 있는 후보만 표에 남김
+  const rows = opts.applyWeekFilter === true && selectedWeekStartYmd ? allRows.filter((r) => r.weekAdultKrw != null) : allRows
+  const rowsWithoutWeekDepartureCount = allRows.length - rows.length
 
   rows.sort((a, b) => {
     const s = a.supplierLabel.localeCompare(b.supplierLabel, 'ko')
@@ -416,6 +495,9 @@ export async function loadSimilarItineraryCompare(opts: {
     disclaimer: similarItineraryCompareDisclaimer(compareKind),
     rows,
     missingSuppliers,
+    weekOptions,
+    selectedWeekStartYmd,
+    rowsWithoutWeekDepartureCount,
   }
 }
 

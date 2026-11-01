@@ -30228,6 +30228,52 @@
           ]
         }
       ]
+    },
+    {
+      "id": "similar-itinerary-compare-week",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "비슷한 일정 비교 — 같은 출발 주간(월~일) 조건: 공급사 행마다 그 주 출발가·출발일(DB adultPrice만), 주 선택·기본 가까운 주, 기존 7개 공급사만, UI에 '최저가' 금지",
+      "checks": [
+        {
+          "file": "lib/similar-itinerary-compare-week.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-week]",
+            "filterPublicBookableDepartureRows",
+            "pickCompareWeekDeparture",
+            "resolveSelectedCompareWeek",
+            "compareWeekStartYmd"
+          ],
+          "mustNotInclude": [
+            "최저가"
+          ]
+        },
+        {
+          "file": "lib/dev-similar-itinerary-compare.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-week]",
+            "기존 7개 공급사만",
+            "isCanonicalOverseasSupplierKey(normalizeSupplierOrigin(p.originSource))",
+            "applyWeekFilter",
+            "weekPriceLabel",
+            "weekDepartureLabel"
+          ]
+        },
+        {
+          "file": "app/travel/similar-itinerary-compare/page.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[similar-itinerary-compare-week]",
+            "applyWeekFilter: true",
+            "출발 주간",
+            "이 주 출발가"
+          ],
+          "mustNotInclude": [
+            "최저가"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -30770,6 +30816,16 @@
       "summary": "제목 복구 잠금 strip·배선",
       "files": [
         "lib/product-title-restore-lock.test.ts"
+      ]
+    },
+    {
+      "id": "similar-itinerary-compare-week",
+      "tier": [
+        "ci"
+      ],
+      "summary": "같은 출발 주간 — 월요일 시작·주 안 성인가 낮은 출발·하한/마감/잔여0 제외·기본 가까운 주",
+      "files": [
+        "lib/similar-itinerary-compare-week.test.ts"
       ]
     }
   ]

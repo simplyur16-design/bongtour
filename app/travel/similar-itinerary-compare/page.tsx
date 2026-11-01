@@ -8,6 +8,7 @@ import {
   parseSimilarItineraryCompareKind,
   SIMILAR_ITINERARY_COMPARE_PATH,
 } from '@/lib/similar-itinerary-compare-href'
+import { formatCompareWeekLabel } from '@/lib/similar-itinerary-compare-week'
 import './compare.css'
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ type PageProps = {
     place?: string
     duration?: string
     kind?: string
+    week?: string
   }>
 }
 
@@ -46,7 +48,12 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
   const duration = String(sp.duration || '').trim()
   // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: kind=package|fit — manifest
   const kind = parseSimilarItineraryCompareKind(sp.kind)
-  const bundle = await loadSimilarItineraryCompare({ place, duration, kind })
+  // REGRESSION-FREEZE[similar-itinerary-compare-week]: 같은 출발 주간 — week=YYYY-MM-DD, 기본 가까운 주 — manifest
+  const week = String(sp.week || '').trim()
+  const bundle = await loadSimilarItineraryCompare({ place, duration, kind, week, applyWeekFilter: true })
+  const selectedWeek = bundle.selectedWeekStartYmd
+  const weekHref = (ws: string) =>
+    `${SIMILAR_ITINERARY_COMPARE_PATH}?${new URLSearchParams({ place, duration, kind, week: ws }).toString()}`
   const hasQuery = Boolean(place && duration)
   const isFitKind = kind === 'fit'
   const backHref = isFitKind ? '/travel/air-hotel' : '/travel/overseas'
@@ -81,19 +88,46 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
           상품 상세의 「같은 일정, 공급사별 사실 비교」로 들어와 주세요.
           <span className="sic-empty-path"> ({SIMILAR_ITINERARY_COMPARE_PATH}?place=…&amp;duration=…&amp;kind=package|fit)</span>
         </p>
-      ) : bundle.rows.length === 0 ? (
+      ) : bundle.rows.length === 0 && bundle.weekOptions.length === 0 ? (
         <p className="sic-empty">이 목적지·박일의 {kindLabel} 후보가 없습니다.</p>
       ) : (
+        <>
+        {bundle.weekOptions.length > 0 ? (
+          <nav className="sic-weeks" aria-label="출발 주간 선택">
+            <p className="sic-weeks-label">출발 주간</p>
+            <div className="sic-weeks-list">
+              {bundle.weekOptions.map((o) => (
+                <Link
+                  key={o.weekStartYmd}
+                  href={weekHref(o.weekStartYmd)}
+                  scroll={false}
+                  aria-current={o.weekStartYmd === selectedWeek ? 'true' : undefined}
+                  className={o.weekStartYmd === selectedWeek ? 'sic-week sic-week--on' : 'sic-week'}
+                >
+                  <span className="sic-week-range">{formatCompareWeekLabel(o.weekStartYmd)}</span>
+                  <span className="sic-week-count">공급사 {o.supplierCount}곳</span>
+                </Link>
+              ))}
+            </div>
+          </nav>
+        ) : null}
         <div className="sic-table-wrap">
           <table className="sic-table">
             <caption className="sic-caption">
-              {kindLabel} 후보 {bundle.rows.length}건 · 추천/우위 표시 없음
+              {kindLabel} 후보 {bundle.rows.length}건
+              {selectedWeek ? ` · ${formatCompareWeekLabel(selectedWeek)} 출발 기준` : ''}
+              {bundle.rowsWithoutWeekDepartureCount > 0
+                ? ` · 이 주 출발이 없는 후보 ${bundle.rowsWithoutWeekDepartureCount}건 제외`
+                : ''}
+              {' · 추천/우위 표시 없음'}
             </caption>
             <thead>
               <tr>
                 <th scope="col">공급사</th>
                 <th scope="col">상품</th>
                 <th scope="col">박일</th>
+                <th scope="col">이 주 출발가(성인)</th>
+                <th scope="col">출발일</th>
                 <th scope="col">가격대</th>
                 <th scope="col">항공사</th>
                 <th scope="col">쇼핑</th>
@@ -110,6 +144,8 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
                     <Link href={r.href}>{r.title}</Link>
                   </td>
                   <td>{r.duration}</td>
+                  <td className="sic-price sic-week-price">{r.weekPriceLabel}</td>
+                  <td className="sic-week-date">{r.weekDepartureLabel}</td>
                   <td className="sic-price">{r.priceLabel}</td>
                   <td className="sic-airline">
                     {r.airlineLabel === '정보 없음' ? (
@@ -131,6 +167,11 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
             </tbody>
           </table>
         </div>
+        <p className="sic-week-note">
+          이 주 출발가: 고른 주(월~일) 출발일 중 성인 1인 요금이 낮은 출발 1건의 등록 요금이에요. 예약 가능한 출발만 보며, 실제 요금은
+          상품 상세의 출발일 달력에서 다시 확인해 주세요.
+        </p>
+        </>
       )}
     </div>
   )
