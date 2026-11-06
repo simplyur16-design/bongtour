@@ -10,5 +10,6 @@ describe('registerPrePhotoIssuesNeedLaneRematerialize', () => {
     )
     expect(registerPrePhotoIssuesNeedLaneRematerialize(['fit_keyword_empty'])).toBe(true)
     expect(registerPrePhotoIssuesNeedLaneRematerialize(['theme_tag_missing'])).toBe(false)
+    expect(registerPrePhotoIssuesNeedLaneRematerialize(['day2_description_filler_or_duplicate'])).toBe(true)
   })
 })

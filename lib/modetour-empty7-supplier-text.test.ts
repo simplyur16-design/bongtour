@@ -1,4 +1,4 @@
-﻿/**
+/**
  * empty7: modetour ortherActions supplierText — empty7
  */
 import { describe, expect, it } from 'vitest'

@@ -29,6 +29,7 @@ import {
 } from '@/lib/register-pending-heal-write-guard'
 import { sanitizeHighlightPointsIfNoisy } from '@/lib/highlight-points-supplier-noise'
 import { prisma } from '@/lib/prisma'
+import { rematerializeRegisterPrePhotoByLane } from '@/lib/register-pre-photo-lane-rematerialize'
 import { syncScheduleImageKeywordsFromFitMasterDb } from '@/lib/fit-itinerary-sync-schedule-image-keywords'
 import { isScheduleSupplierOriginalLocked } from '@/lib/schedule-supplier-original-lock'
 import { withPrismaRetry } from '@/lib/prisma-retry'
@@ -161,6 +162,7 @@ export async function healPendingRegisterPrePhoto(
       themeTags: true,
       destination: true,
       originSource: true,
+      originUrl: true,
       countryKey: true,
       schedule: true,
       bgImageUrl: true,
@@ -217,6 +219,28 @@ export async function healPendingRegisterPrePhoto(
             select: { schedule: true },
           })
           scheduleRaw = reloaded?.schedule ?? scheduleRaw
+        }
+      }
+      // 패키지 thin(템플릿/빈제목) → 공급사 재수집 remat (pending/pre_photo_blocked만, title 미기록)
+      if (lane === 'package' && !scheduleLocked) {
+        const thinProbe = parseScheduleRows(scheduleRaw).map((row) => ({
+          day: Number(row.day) || 0,
+          title: row.title != null ? String(row.title) : null,
+          description: row.description != null ? String(row.description) : null,
+          routeText: row.routeText != null ? String(row.routeText) : null,
+        }))
+        const { registerPrePhotoPackageScheduleLooksThin } = await import(
+          '@/lib/register-pre-photo-package-supplier-rematerialize'
+        )
+        if (registerPrePhotoPackageScheduleLooksThin(thinProbe)) {
+          const remat = await rematerializeRegisterPrePhotoByLane(product.id).catch(() => null)
+          if (remat?.updated) {
+            const reloaded = await prisma.product.findUnique({
+              where: { id: product.id },
+              select: { schedule: true },
+            })
+            scheduleRaw = reloaded?.schedule ?? scheduleRaw
+          }
         }
       }
       const rows = parseScheduleRows(scheduleRaw)
