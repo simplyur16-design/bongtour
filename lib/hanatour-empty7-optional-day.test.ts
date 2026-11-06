@@ -1,5 +1,5 @@
-﻿/**
- * empty7: hanatour optional-only day + htlInfoList ??empty7
+/**
+ * empty7: hanatour optional-only day + htlInfoList — empty7
  */
 import { describe, expect, it } from 'vitest'
 import {
@@ -8,29 +8,29 @@ import {
 } from '@/lib/hanatour-register-api-detail'
 
 describe('hanatour empty7 optional-tour day places', () => {
-  it('uses ?좏깮愿愿?labels when 愿愿묒? empty and maps htlInfoList', () => {
+  it('uses 선택관광 labels when 관광지 empty and maps htlInfoList', () => {
     const facts = hanatourItnrSchdToFactDays([
       {
         schdDay: 3,
-        htlInfoList: [{ htlKoNm: '?섎뵒??釉붾（ 由ъ“???멸씀?? }],
+        htlInfoList: [{ htlKoNm: '래디슨 블루 리조트 푸꾸옥' }],
         schdMainInfoList: [
           {
-            schdCatgNm: '?좏깮愿愿?,
-            cardNm: "?좎썡???쇰삍?? 耳?대툝移?& ?뚰꽣?뚰겕",
-            cmsInfoList: [{ cmsCntntNm: '?좎썡???쇰삍?? 耳?대툝移?& ?뚰꽣?뚰겕(留앷퀬?덉뒪?좊옉 ?앹궗?ы븿)' }],
+            schdCatgNm: '선택관광',
+            cardNm: "선월드(혼똔섬) 케이블카 & 워터파크",
+            cmsInfoList: [{ cmsCntntNm: '선월드(혼똔섬) 케이블카 & 워터파크(망고레스토랑 식사포함)' }],
           },
           {
-            schdCatgNm: '?좏깮愿愿?,
-            cardNm: '?멸씀???⑤? ?쇨꼍?ъ뼱(?앹궗鍮꾩슜?쒓났)',
-            cmsInfoList: [{ cmsCntntNm: '?멸씀???⑤? ?좎뀑?ъ뼱' }],
+            schdCatgNm: '선택관광',
+            cardNm: '푸꾸옥 남부 야경투어(식사비용제공)',
+            cmsInfoList: [{ cmsCntntNm: '푸꾸옥 남부 선셋투어' }],
           },
         ],
       },
     ])
-    expect(facts[0]?.places.join(' ')).toMatch(/?좎썡???쇰삍/)
-    expect(facts[0]?.hotels[0]).toMatch(/?섎뵒??)
+    expect(facts[0]?.places.join(' ')).toMatch(/선월드|혼똔/)
+    expect(facts[0]?.hotels[0]).toMatch(/래디슨/)
     const sched = hanatourFactDaysToRegisterSchedule(facts)
-    expect(sched[0]?.title).toMatch(/?좎썡???쇰삍|?쇨꼍/)
+    expect(sched[0]?.title).toMatch(/선월드|혼똔|야경/)
     expect(sched[0]?.description.length).toBeGreaterThan(10)
   })
 })

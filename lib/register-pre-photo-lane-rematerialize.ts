@@ -30,6 +30,7 @@ import {
 } from '@/lib/fit-itinerary-generation-status'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import { rematerializePackageScheduleFromSupplierFacts } from '@/lib/register-pre-photo-package-supplier-rematerialize'
+import { commitPendingOnlyProductScheduleWrite } from '@/lib/register-pending-write-guard'
 
 export type RegisterPrePhotoLaneRematerializeResult = {
   productId: string
@@ -71,7 +72,7 @@ async function persistHealedSchedule(
     imageKeyword?: string | null
     imageKeyword2?: string | null
   }>,
-): Promise<void> {
+): Promise<boolean> {
   let scheduleArr: unknown[] = []
   try {
     scheduleArr = JSON.parse(String(scheduleJson ?? '[]')) as unknown[]
@@ -111,10 +112,12 @@ async function persistHealedSchedule(
     }
   }
   next.sort((a, b) => Number((a as { day: number }).day) - Number((b as { day: number }).day))
-  await prisma.product.update({
-    where: { id: productId },
-    data: { schedule: JSON.stringify(next) },
+  const commit = await commitPendingOnlyProductScheduleWrite({
+    productId,
+    expectedSchedule: scheduleJson,
+    nextSchedule: JSON.stringify(next),
   })
+  return commit.ok
 }
 
 async function rematerializeFitLane(
@@ -185,8 +188,8 @@ async function rematerializeFitLane(
       .filter(Boolean)
       .join('\n'),
   })
-  await persistHealedSchedule(productId, product.schedule, healed.rows)
-  updated = true
+  const persisted = await persistHealedSchedule(productId, product.schedule, healed.rows)
+  updated = persisted
 
   const after = await prisma.product.findUnique({
     where: { id: productId },
@@ -270,7 +273,18 @@ async function rematerializePackageLane(
       .filter(Boolean)
       .join('\n'),
   })
-  await persistHealedSchedule(productId, working.schedule, healed.rows)
+  const persistedPkg = await persistHealedSchedule(productId, working.schedule, healed.rows)
+  if (!persistedPkg) {
+    return {
+      productId,
+      lane: 'package',
+      path: supplierRemat.updated ? 'package_supplier_facts' : 'package_rules_gemini',
+      updated: false,
+      beforeIssues,
+      afterIssues: [...beforeIssues, 'pending_write_aborted_race'],
+      ok: false,
+    }
+  }
 
   const after = await prisma.product.findUnique({
     where: { id: productId },

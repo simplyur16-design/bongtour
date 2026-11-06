@@ -13,6 +13,11 @@ import { REGISTER_PRE_PHOTO_BLOCKED_STATUS } from '@/lib/register-pre-photo-pend
 import { collectSupplierRegisterFacts } from '@/lib/register-facts/collect'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { isScheduleSupplierOriginalLocked } from '@/lib/schedule-supplier-original-lock'
+import {
+  commitPendingOnlyProductScheduleWrite,
+  parseProductRawMeta,
+  stampRematRevisionOnRawMeta,
+} from '@/lib/register-pending-write-guard'
 
 const PACKAGE_SUPPLIER_REMAT_META_KEY = 'packageSupplierScheduleRemat'
 
@@ -29,6 +34,7 @@ export type PackageSupplierRematerializeResult = {
     | 'facts_missing'
     | 'schedule_empty'
     | 'product_missing'
+    | 'aborted_race'
 }
 
 /** 템플릿·빈 제목·빈 요약이 일정에 남아 공급사 재수집이 필요한지 */
@@ -173,24 +179,26 @@ export async function rematerializePackageScheduleFromSupplierFacts(
   }
   next.sort((a, b) => Number(a.day) - Number(b.day))
 
-  let rawMeta: Record<string, unknown> = {}
-  try {
-    rawMeta = JSON.parse(String(product.rawMeta ?? '{}')) as Record<string, unknown>
-  } catch {
-    rawMeta = {}
-  }
-  rawMeta[PACKAGE_SUPPLIER_REMAT_META_KEY] = {
-    at: new Date().toISOString(),
-    supplier,
-    days: built.length,
-  }
-
-  await prisma.product.update({
-    where: { id: productId },
-    data: {
-      schedule: JSON.stringify(next),
-      rawMeta: JSON.stringify(rawMeta),
+  const scheduleJson = JSON.stringify(next)
+  const rawMeta = stampRematRevisionOnRawMeta(parseProductRawMeta(product.rawMeta), scheduleJson, {
+    [PACKAGE_SUPPLIER_REMAT_META_KEY]: {
+      at: new Date().toISOString(),
+      supplier,
+      days: built.length,
     },
   })
+
+  // collect 이후 재확인: registered 전환·타 워커 동시 쓰기면 count≠1 → 중단(사진 upstream 금지)
+  const commit = await commitPendingOnlyProductScheduleWrite({
+    productId,
+    expectedSchedule: product.schedule,
+    nextSchedule: scheduleJson,
+    nextRawMeta: JSON.stringify(rawMeta),
+  })
+  if (!commit.ok) {
+    if (commit.reason === 'aborted_status') return { productId, updated: false, reason: 'skipped_status' }
+    if (commit.reason === 'aborted_lock') return { productId, updated: false, reason: 'skipped_locked' }
+    return { productId, updated: false, reason: 'aborted_race' }
+  }
   return { productId, updated: true, reason: 'ok' }
 }

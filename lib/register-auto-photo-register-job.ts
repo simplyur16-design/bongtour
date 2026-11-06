@@ -157,6 +157,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
         productType: true,
         sportsThemeTag: true,
         schedule: true,
+        rawMeta: true,
         destination: true,
         primaryDestination: true,
         title: true,
@@ -195,7 +196,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     })
 
     // 문과장 사진 검수 통과 목록 밖이면 자동 검사를 통과해도 등록 전환하지 않음 (REGRESSION-FREEZE[auto-register-review-pass])
-    const reviewPassed = isAutoRegisterReviewPassed(id)
+    const reviewPassed = isAutoRegisterReviewPassed(id, { rawMeta: p.rawMeta })
     if (!reviewPassed && !gate.reasons.includes('photo_review_pending')) gate.reasons.push('photo_review_pending')
     if (gate.ok && reviewPassed) {
       if (sw.flip) {
