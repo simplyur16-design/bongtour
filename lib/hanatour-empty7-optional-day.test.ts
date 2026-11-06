@@ -31,11 +31,13 @@ describe('hanatour empty7 optional-only day places', () => {
         ],
       },
     ])
+    // Full live card/cms strings must survive fact extract (not abbreviated).
     expect(facts[0]?.places.join(' ')).toMatch(/선월드|혼똔/)
-    expect(facts[0]?.hotels[0]).toMatch(/래디슨/)
+    expect(facts[0]?.places.join(' ')).toMatch(/망고레스토랑|식사권|식사포함/)
+    expect(facts[0]?.places.join(' ')).toMatch(/남부|야경|선셋/)
+    expect(facts[0]?.hotels[0]).toBe('래디슨 블루 리조트 푸꾸옥')
     const sched = hanatourFactDaysToRegisterSchedule(facts)
     expect(sched[0]?.title).toMatch(/선월드|혼똔|야경/)
     expect(sched[0]?.description.length).toBeGreaterThan(10)
-    expect(sched[0]?.description).toMatch(/망고레스토랑|선셋|야경/)
   })
 })

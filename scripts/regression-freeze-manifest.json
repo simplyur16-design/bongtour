@@ -29541,8 +29541,9 @@
           "file": "lib/register-auto-photo-register-job.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[auto-register-review-pass]",
-            "isAutoRegisterReviewPassed(id)",
-            "if (gate.ok && reviewPassed) {"
+            "isAutoRegisterReviewPassed(id",
+            "if (gate.ok && reviewPassed) {",
+            "rawMeta"
           ]
         },
         {
@@ -30700,6 +30701,57 @@
       ],
       "vitestSuites": [
         "lib/fit-itinerary-original-route.test.ts"
+      ]
+    },
+    {
+      "id": "register-pending-revision-1106",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "supplier remat stamps rawMeta.materializedRevision and clears lastReviewedHash; review-pass stale until match — no schema",
+      "checks": [
+        {
+          "file": "lib/register-pending-revision.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pending-revision-1106]",
+            "materializedRevision",
+            "lastReviewedHash",
+            "export function isReviewRevisionStale",
+            "export function stampRematRevisionOnRawMeta"
+          ]
+        },
+        {
+          "file": "lib/register-auto-register-review-pass.ts",
+          "mustInclude": [
+            "isReviewRevisionStale"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-pending-write-guard-1106",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "pending/pre_photo_blocked schedule writes use transaction reread + updateMany count===1 (multi-instance; abort registered race)",
+      "checks": [
+        {
+          "file": "lib/register-pending-write-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pending-write-guard-1106]",
+            "export async function commitPendingOnlyProductScheduleWrite",
+            "updateMany",
+            "count !== 1"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-package-supplier-rematerialize.ts",
+          "mustInclude": [
+            "commitPendingOnlyProductScheduleWrite"
+          ]
+        }
       ]
     }
   ],
