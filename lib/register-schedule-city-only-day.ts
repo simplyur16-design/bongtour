@@ -46,6 +46,26 @@ export function registerScheduleRouteIsCityOnly(routeText: string | null | undef
   return cities > 0
 }
 
+/**
+ * 도시만 있는 이동·경유일 — 서로 다른 도시 2곳 이상만 있는 날(예: '두바이 - 아테네').
+ * 한 도시에 머무는 날('보르도'·'홍콩')은 그 도시 명소 키워드가 필요하므로 여기에 들지 않는다.
+ * REGRESSION-FREEZE[register-pre-photo-bare-city-middle-repeat]: 머무는 도시 1곳 날은 키워드 강제 유지 — manifest
+ */
+export function registerScheduleRouteIsCityOnlyTransit(routeText: string | null | undefined): boolean {
+  if (!registerScheduleRouteIsCityOnly(routeText)) return false
+  const segs = String(routeText ?? '')
+    .trim()
+    .split(SPLIT_RE)
+    .map((x) => x.trim())
+    .filter(Boolean)
+  const cities = new Set<string>()
+  for (const seg of segs) {
+    if (NOISE_SEGMENT_RE.test(seg)) continue
+    if (segmentIsBareCity(seg)) cities.add(seg.toLowerCase())
+  }
+  return cities.size >= 2
+}
+
 /** 자유일정·추천일정 날 — 도시만 있는 날 규칙을 쓰지 않는다(사장님 11/01 19:01: 자유일정 날은 추천일정 사진 유지) */
 const FREE_DAY_TITLE_RE = /추천일정|자유\s*일정/u
 

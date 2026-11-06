@@ -53,7 +53,7 @@ import {
   isRegisterScheduleSameDayKeywordCountryClash,
   registerPrePhotoPlaceDestHay,
 } from '@/lib/register-schedule-cross-continent-keyword-guard'
-import { registerScheduleRouteIsCityOnly } from '@/lib/register-schedule-city-only-day'
+import { registerScheduleRouteIsCityOnlyTransit } from '@/lib/register-schedule-city-only-day'
 import { isOceanCruiseAtSeaRoute, inferOceanCruiseDestinationFromTitle } from '@/lib/register-ocean-cruise-product'
 import {
   imageKeywordMentionsAurora,
@@ -253,7 +253,8 @@ export function registerScheduleDayRequiresPrimaryImageKeyword(
     if (!t) return true
     if (/체크\s*아웃|check[\s-]*out|결제하시면/i.test(t)) return false
     // 사장님 11/01: 도시 이름만 있는 날(경유·이동일)은 키워드·사진을 비운다(도시=명소인 우유니·이과수 등은 제외)
-    if (registerScheduleRouteIsCityOnly(t)) return false
+    // 한 도시에 머무는 날(보르도 반복 등)은 명소 키워드 강제 유지 — 이동·경유(도시 2곳 이상)만 비강제
+    if (registerScheduleRouteIsCityOnlyTransit(t)) return false
     if (registerScheduleRouteIsLodgingOnly(routeText)) return true
     if (!routeTextHasIdentifiableVisitPlace(routeText)) {
       // REGRESSION-FREEZE[register-schedule-city-soft-alt-empty-middle]: activity-only middle → dest soft-alt — manifest
@@ -273,7 +274,8 @@ export function registerScheduleDayRequiresPrimaryImageKeyword(
   }
   if (slot === 'departure') {
     if (registerScheduleRouteIsLodgingOnly(routeText)) return false
-    if (registerScheduleRouteIsCityOnly(routeText)) return false
+    // 출발일 도시 1곳(홍콩 등)은 키워드 강제 유지 — 이동·경유(도시 2곳 이상)만 비강제
+    if (registerScheduleRouteIsCityOnlyTransit(routeText)) return false
     return routeTextHasIdentifiableVisitPlace(routeText)
   }
   return false
