@@ -4432,6 +4432,7 @@
           "mustInclude": [
             "season-curation-hero-slides-v6",
             "season-curation-next-three-months-v6",
+            "SEASON_CURATION_LINKED_PRODUCT_IDS_CACHE_TAG",
             "SEASON_CURATION_CACHE_REVALIDATE_SEC = 1_800",
             "build empty must not poison Data Cache",
             "if (shouldSkipDbAtBuild()) return []",
@@ -4455,7 +4456,8 @@
             "revalidatePath('/m')",
             "revalidatePath('/travel/overseas')",
             "revalidatePath('/business')",
-            "revalidatePath('/business/programs')"
+            "revalidatePath('/business/programs')",
+            "SEASON_CURATION_LINKED_PRODUCT_IDS_CACHE_TAG"
           ]
         },
         {

@@ -15,6 +15,7 @@ import {
 import {
   HOME_SEASON_ENSURE_MONTH_OFFSETS,
   SEASON_CURATION_HERO_CACHE_TAG,
+  SEASON_CURATION_LINKED_PRODUCT_IDS_CACHE_TAG,
   SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG,
   homeSeasonMonthKeysFromBase,
 } from '@/lib/season-curation-content'
@@ -104,6 +105,7 @@ async function tickMonthlyPublishCron() {
     if (!dryRun) {
       safeRevalidateTag(SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG, 'monthly-publish-cron')
       safeRevalidateTag(SEASON_CURATION_HERO_CACHE_TAG, 'monthly-publish-cron')
+      safeRevalidateTag(SEASON_CURATION_LINKED_PRODUCT_IDS_CACHE_TAG, 'monthly-publish-cron')
     }
 
     console.log('[monthly-publish-cron] tick', {

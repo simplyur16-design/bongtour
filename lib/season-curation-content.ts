@@ -68,6 +68,8 @@ async function loadNextThreeMonthsSlidesUncached(): Promise<HomeSeasonPickDTO[]>
 /** `unstable_cache` revalidateTag SSOT (publish cron·수동 무효화). v6: include current KST month */
 export const SEASON_CURATION_HERO_CACHE_TAG = 'season-curation-hero-slides-v6'
 export const SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG = 'season-curation-next-three-months-v6'
+/** 홈 시즌 연결 상품 ID 캐시 — 목록·발행 cron·재검증 경로가 같은 값을 사용한다. */
+export const SEASON_CURATION_LINKED_PRODUCT_IDS_CACHE_TAG = 'season-linked-product-ids-v3'
 
 const HERO_MAX_PER_MONTH = 5
 
@@ -137,8 +139,11 @@ async function loadSeasonLinkedProductIdsUncached(): Promise<string[]> {
 
 const cachedSeasonLinkedProductIds = unstable_cache(
   async () => loadSeasonLinkedProductIdsUncached(),
-  ['season-linked-product-ids-v3'],
-  { revalidate: SEASON_CURATION_CACHE_REVALIDATE_SEC },
+  [SEASON_CURATION_LINKED_PRODUCT_IDS_CACHE_TAG],
+  {
+    revalidate: SEASON_CURATION_CACHE_REVALIDATE_SEC,
+    tags: [SEASON_CURATION_LINKED_PRODUCT_IDS_CACHE_TAG],
+  },
 )
 
 export async function getCachedSeasonLinkedProductIds(): Promise<string[]> {

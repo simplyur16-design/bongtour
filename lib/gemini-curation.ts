@@ -40,6 +40,11 @@ export type GenerateMonthlyCurationErr = {
 
 export type GenerateMonthlyCurationResult = GenerateMonthlyCurationOk | GenerateMonthlyCurationErr
 
+/** generateMonthlyCuration 쓰기 구간 advisory lock 키 (monthKey+pageScope 단위). */
+export function monthlyCurationWriteLockKey(monthKey: string, pageScope: string): string {
+  return `monthly_curation_content:${pageScope}:${monthKey}`
+}
+
 function isMonthKey(v: string): boolean {
   return /^\d{4}-\d{2}$/.test(v)
 }
@@ -407,7 +412,18 @@ export async function generateMonthlyCuration(
   const productById = new Map(products.map((p) => [p.id, p]))
   const createdCards: Array<{ contentId: string; productId: string; row: CurationLlmRow }> = []
 
-  await prisma.$transaction(async (tx) => {
+  // 동시 실행(크론 다중 인스턴스·관리자 수동 생성) 중복 방지 — 스키마 변경 없이
+  // monthKey+pageScope 단위 Postgres 트랜잭션 advisory lock 으로 쓰기 구간을 직렬화하고,
+  // 잠금 획득 후 존재 여부를 다시 확인한다. xact lock 은 커밋/롤백 시 자동 해제(풀러 transaction 모드 호환).
+  const lockKey = monthlyCurationWriteLockKey(monthKey, PAGE_SCOPE_OVERSEAS)
+  const writeOutcome = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`
+    if (!options?.overwrite) {
+      const existingInTx = await tx.monthlyCurationContent.count({
+        where: { monthKey, pageScope: PAGE_SCOPE_OVERSEAS },
+      })
+      if (existingInTx > 0) return { exists: existingInTx }
+    }
     if (options?.overwrite) {
       await tx.monthlyCurationContent.deleteMany({
         where: { monthKey, pageScope: PAGE_SCOPE_OVERSEAS },
@@ -440,7 +456,16 @@ export async function generateMonthlyCuration(
       })
       createdCards.push({ contentId: created.id, productId: r.productId, row: r })
     }
+    return { exists: 0 }
   })
+
+  if (writeOutcome.exists > 0) {
+    return {
+      ok: false,
+      error: `이미 ${monthKey} 해외 시즌 큐레이션이 ${writeOutcome.exists}건 있습니다(동시 생성 감지). 덮어쓰려면 overwrite: true 로 요청하세요.`,
+      code: 'EXISTS',
+    }
+  }
 
   try {
     await mapEventsToCurationCards(createdCards, eventPool, productById)

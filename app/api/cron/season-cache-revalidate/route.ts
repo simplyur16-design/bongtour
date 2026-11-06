@@ -5,6 +5,7 @@ import { OVERSEAS_HUB_SEASON_DESTINATION_HERO_CACHE_TAG } from '@/lib/overseas-h
 import {
   SEASON_CURATION_CURRENT_CYCLE_CACHE_TAG,
   SEASON_CURATION_HERO_CACHE_TAG,
+    SEASON_CURATION_LINKED_PRODUCT_IDS_CACHE_TAG,
   SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG,
 } from '@/lib/season-curation-content'
 
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
 
   const tags = [
     SEASON_CURATION_HERO_CACHE_TAG,
+    SEASON_CURATION_LINKED_PRODUCT_IDS_CACHE_TAG,
     SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG,
     // prior tags — deploy window may still serve v5 Data Cache entries
     'season-curation-hero-slides-v5',
@@ -41,7 +43,7 @@ export async function POST(req: Request) {
     'overseas-hub-season-destination-hero-v11',
     'persona-curated-destinations-v11',
     'persona-curated-destinations-v10',
-    'season-linked-product-ids-v3',
+      SEASON_CURATION_LINKED_PRODUCT_IDS_CACHE_TAG, // prior tag: 'season-linked-product-ids-v3'
     // prior tag — deploy window may still serve v2 Data Cache entries
     'season-linked-product-ids-v2',
   ]

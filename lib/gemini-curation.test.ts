@@ -152,7 +152,9 @@ describe('generateMonthlyCuration', () => {
 
     vi.mocked(prisma.$transaction).mockImplementation(async (cb) => {
       const tx = {
+        $executeRaw: vi.fn().mockResolvedValue(1),
         monthlyCurationContent: {
+          count: vi.fn().mockResolvedValue(0),
           deleteMany: vi.mocked(prisma.monthlyCurationContent.deleteMany),
           create: vi.fn().mockResolvedValue({ id: 'card-1' }),
         },
