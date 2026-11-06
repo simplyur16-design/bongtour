@@ -1,7 +1,7 @@
 /**
  * 매월 21일 00:00 KST — MonthlyCurationContent 자동 발행·과거월 비발행.
  * (1) monthKey < base → isPublished=false
- * (2) m+1/+2/+3 중 isPublished=false & 무결성 통과 → isPublished=true
+ * (2) 당월·m+1/+2/+3 중 isPublished=false & 무결성 통과 → isPublished=true
  * (3) 메인 carousel·PC 히어로 unstable_cache 태그 무효화
  *
  * Dry-run: `MONTHLY_CURATION_PUBLISH_CRON_DRY_RUN=1` (DB 쓰기·revalidateTag 생략, 로그만)
@@ -13,9 +13,10 @@ import {
   resolveValidMonthlyCurationLinkedProductIds,
 } from '@/lib/home-season-pick'
 import {
+  HOME_SEASON_ENSURE_MONTH_OFFSETS,
   SEASON_CURATION_HERO_CACHE_TAG,
   SEASON_CURATION_NEXT_THREE_MONTHS_CACHE_TAG,
-  shiftSeoulYearMonth,
+  homeSeasonMonthKeysFromBase,
 } from '@/lib/season-curation-content'
 
 function isMonthlyPublishDryRun(): boolean {
@@ -56,7 +57,7 @@ async function tickMonthlyPublishCron() {
     const dryRun = isMonthlyPublishDryRun()
     const { prisma } = await import('@/lib/prisma')
     const base = getSeoulYearMonthNow()
-    const monthKeys = [1, 2, 3].map((d) => shiftSeoulYearMonth(base, d))
+    const monthKeys = homeSeasonMonthKeysFromBase(base, HOME_SEASON_ENSURE_MONTH_OFFSETS)
 
     const unpublishWhere = {
       pageScope: 'overseas' as const,

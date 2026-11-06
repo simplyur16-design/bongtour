@@ -9,6 +9,7 @@ import { useSearchParams } from 'next/navigation'
 import {
   formatLinkedEventBadgeLabel,
 } from '@/lib/bong-marketing/curation-event-card-link'
+import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 
 type LinkedCurationEvent = {
   id: string
@@ -41,10 +42,9 @@ function formatLinkedEventBadge(event: LinkedCurationEvent): string {
   return formatLinkedEventBadgeLabel(event)
 }
 
-function defaultNextMonthKey(): string {
-  const d = new Date()
-  d.setMonth(d.getMonth() + 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+/** 관리 기본값: KST 이번 달 (홈 노출 월 SSOT과 맞춤). */
+function defaultTargetMonthKey(): string {
+  return getSeoulYearMonthNow()
 }
 
 function isMonthKey(v: string): boolean {
@@ -55,7 +55,7 @@ export default function MonthlyCurationGenerateClient() {
   const searchParams = useSearchParams()
   const monthFromUrl = searchParams?.get('monthKey')?.trim() ?? ''
   const [targetMonth, setTargetMonth] = useState(() =>
-    isMonthKey(monthFromUrl) ? monthFromUrl : defaultNextMonthKey(),
+    isMonthKey(monthFromUrl) ? monthFromUrl : defaultTargetMonthKey(),
   )
   const [overwrite, setOverwrite] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -166,7 +166,7 @@ export default function MonthlyCurationGenerateClient() {
       <div>
         <h1 className="text-xl font-semibold text-bt-title">월별 시즌 큐레이션 (Gemini)</h1>
         <p className="mt-1 text-sm text-bt-body">
-          다음 달·지정 월 출발 상품을 바탕으로 초안 카드를 생성합니다. 생성 직후에는{' '}
+          이번 달·다음 달·지정 월 출발 상품을 바탕으로 초안 카드를 생성합니다. 홈은 KST 당월과 +1/+2/+3 발행 행을 함께 보여 줍니다. 생성 직후에는{' '}
           <strong className="font-medium">미발행</strong>이며, 검토 후 발행을 켜 주세요.
         </p>
         <p className="mt-2 text-sm text-bt-body">수동 편집·이미지·발행은 아래 「월별 시즌 큐레이션 카드」 섹션에서 할 수 있습니다.</p>
@@ -198,7 +198,7 @@ export default function MonthlyCurationGenerateClient() {
             onClick={() => void runGenerate()}
             className="rounded-lg bg-bt-brand-blue px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            {loading ? '생성 중…' : '다음 달 큐레이션 자동 생성 (Gemini)'}
+            {loading ? '생성 중…' : '선택한 월 큐레이션 자동 생성 (Gemini)'}
           </button>
         </div>
         {message && <p className="mt-3 text-sm text-green-700">{message}</p>}
