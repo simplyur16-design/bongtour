@@ -84,6 +84,7 @@ export type HanatourItnrSchdMain = {
 export type HanatourItnrSchdDay = {
   schdDay?: number
   schdMainInfoList?: HanatourItnrSchdMain[]
+  htlInfoList?: Array<{ htlKoNm?: string | null; htlEnNm?: string | null }>
 }
 
 export type HanatourItnrResponse = {
@@ -174,7 +175,7 @@ const HANATOUR_HIGHLIGHT_NOISE_RE =
 
 /** ITNR meta cards — 유의사항·출입국 안내 등 일정 routeText/title에 넣지 않음. REGRESSION-FREEZE[hanatour-register-detail-collect] */
 const HANATOUR_ITNR_META_CARD_RE =
-  /유의\s*사항|예약\s*시|예약\s*전|참고\s*사항|출입국\s*(?:카드\s*)?정보|여행\s*시\s*유의|두바이\s*및|출입국\s*카드|여행일정\s*변경|사전\s*동의|미팅\s*정보/i
+  /유의\s*사항|예약\s*시|예약\s*전|참고\s*사항|출입국\s*(?:카드\s*)?(?:정보|안내)|여행\s*시\s*유의|두바이\s*및|출입국\s*카드|여행일정\s*변경|사전\s*동의|미팅\s*(?:정보|안내)|공항\s*미팅\s*안내/i
 
 function normalizeHanatourHighlightKey(label: string): string {
   return label
@@ -499,7 +500,7 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
       returnTitle: '숙박 없음(귀국)',
     })
     const description =
-      composeHanatourScheduleVibeDescription(d, maxDay, highlights) ||
+      composeHanatourScheduleVibeDescription(d, maxDay, highlights, d.supplierText) ||
       `${d.day}일차`
     const hotelText = registerScheduleHotelTextFromFactHotels(d.hotels)
     const meals = parseFactMealsListToScheduleFields(d.meals)
@@ -869,7 +870,10 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
       hotels: [],
       meals: [],
       transportNote: null,
+      supplierText: null,
     }
+    const optionalPlaces: string[] = []
+    const supplierBits: string[] = []
     for (const main of dayRow.schdMainInfoList ?? []) {
       const cat = String(main.schdCatgNm ?? '').trim()
       if (isHanatourItnrNonRouteCard(main)) continue
@@ -878,7 +882,14 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
         if (meal) fact.meals.push(meal)
         continue
       }
-      if (cat.includes('선택관광')) continue
+      if (cat.includes('선택관광')) {
+        for (const label of hanatourItnrPlaceLabels(main)) {
+          if (!optionalPlaces.includes(label)) optionalPlaces.push(label)
+        }
+        const sum = stripHanatourHtmlText(String(main.cardCntntPc ?? main.cardCntntMbl ?? '')).slice(0, 280)
+        if (sum.length >= 20) supplierBits.push(sum)
+        continue
+      }
       if (cat.includes('이동') || cat.includes('항공') || cat.includes('도시')) {
         const transport = hanatourItnrTransportLine(main)
         if (transport) {
@@ -892,6 +903,20 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
         continue
       }
       for (const label of labels) fact.places.push(label)
+      const sum = stripHanatourHtmlText(String(main.cardCntntPc ?? main.cardCntntMbl ?? '')).slice(0, 280)
+      if (sum.length >= 20) supplierBits.push(sum)
+    }
+    // htlInfoList — 일차 숙소 후보 (제목 fallback·hotelText)
+    for (const h of dayRow.htlInfoList ?? []) {
+      const nm = String((h as { htlKoNm?: string | null }).htlKoNm ?? '').trim()
+      if (nm && !fact.hotels.includes(nm)) fact.hotels.push(nm)
+    }
+    // 관광지 비었을 때만 선택관광 POI를 route/title에 사용 (원문에만 있는 일차)
+    if (fact.places.length === 0 && optionalPlaces.length > 0) {
+      fact.places.push(...optionalPlaces.slice(0, 7))
+    }
+    if (supplierBits.length) {
+      fact.supplierText = supplierBits.slice(0, 2).join(' ').replace(/\s+/g, ' ').trim().slice(0, 720)
     }
     rows.push(fact)
   }

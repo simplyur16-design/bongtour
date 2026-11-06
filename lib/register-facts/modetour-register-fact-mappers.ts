@@ -181,6 +181,7 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
         hotels: [],
         meals: [],
         transportNote: null,
+        supplierText: null,
       } satisfies RegisterFactScheduleDay)
 
     const placeHeaders = Array.isArray(item.placeHeader)
@@ -224,6 +225,12 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
         if (placeLabel && !row.places.includes(placeLabel)) row.places.push(placeLabel)
         else if (!placeLabel && summary) {
           row.transportNote = row.transportNote ? `${row.transportNote}; ${summary}` : summary
+        }
+        // 관광 요약 문장 — description SSOT supplierText (템플릿 대체용)
+        if (placeLabel && summary && summary.length >= 20 && !/안내\s*사항|선택\s*관광/i.test(svc)) {
+          const prev = String(row.supplierText ?? '').trim()
+          const next = prev ? `${prev} ${summary}` : summary
+          row.supplierText = next.replace(/\s+/g, ' ').trim().slice(0, 720)
         }
       }
       if (/이동|항공|국제선|국내선|보트|스피드/i.test(svc) && summary) {

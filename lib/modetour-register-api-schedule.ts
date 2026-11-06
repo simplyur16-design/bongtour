@@ -362,7 +362,7 @@ export function modetourFactDaysToRegisterSchedule(
     })
     const description = opts?.registerAirHotelFree
       ? ''
-      : composeModetourScheduleVibeDescription(d, maxDay, highlights) ||
+      : composeModetourScheduleVibeDescription(d, maxDay, highlights, d.supplierText) ||
           `${d.day}일차`
     const hotelText =
       d.hotels

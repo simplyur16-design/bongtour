@@ -18,6 +18,8 @@ export type RegisterFactScheduleDay = {
   hotels: string[]
   meals: string[]
   transportNote: string | null
+  /** 공급사 일차 원문 요약(있으면 description SSOT가 템플릿 대신 채택 시도) */
+  supplierText?: string | null
 }
 
 export type RegisterFactFlightLeg = {

@@ -273,6 +273,7 @@ export function naeiltourFactDaysToRegisterSchedule(days: RegisterFactScheduleDa
       maxDay,
       routePlaces,
       joinedBlob,
+      supplierText: d.supplierText,
     })
     const meals = parseFactMealsListToScheduleFields(d.meals)
     return {

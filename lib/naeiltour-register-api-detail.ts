@@ -538,13 +538,16 @@ function extractMealsFromBlock(block: string): string[] {
     return bracket.map((x) => stripNaeiltourHtmlText(x)).filter(Boolean)
   }
   // REGRESSION-FREEZE[naeiltour-schedule-hotel-meal-extract]: 조식 뷔페 등 본문 식사 — manifest
+  // 일정 본문 "조식후 ▶명소" 는 식사로 쓰지 않는다(POI는 places 경로).
   const plain = stripNaeiltourHtmlText(block)
   const out: string[] = []
-  for (const m of plain.matchAll(/(?:조식|중식|석식)[^\n|]{0,60}/g)) {
-    const t = String(m[0] ?? '')
+  for (const m of plain.matchAll(/(?:조식|중식|석식)\s*(?:뷔페|호텔식|한식|현지식|기내식|포함|제공)?[^\n▶|]{0,40}/g)) {
+    let t = String(m[0] ?? '')
       .replace(/\s+/g, ' ')
       .trim()
-    if (t.length >= 2 && !out.includes(t)) out.push(t)
+    t = t.replace(/(?:후|뒤)\s*$/u, '').trim()
+    if (/^(?:조식|중식|석식)\s*(?:후|뒤)?$/u.test(t)) continue
+    if (t.length >= 2 && t.length <= 48 && !out.includes(t)) out.push(t)
   }
   return out.slice(0, 6)
 }
@@ -580,10 +583,29 @@ function parseDateIsoFromStrong(strongText: string): string | null {
   return `${m[1]}-${m[2]!.padStart(2, '0')}-${m[3]!.padStart(2, '0')}`
 }
 
+function extractNaeiltourBodyPlaceLabels(block: string): string[] {
+  const out: string[] = []
+  const push = (raw: string) => {
+    const t = stripNaeiltourHtmlText(raw)
+      .replace(/^▶\s*/, '')
+      .replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (!t || t.length < 2 || t.length > 80) return
+    if (/^(?:조식|중식|석식|호텔|숙박|이동|출발|도착|자유\s*시간)/u.test(t)) return
+    if (!out.includes(t)) out.push(t)
+  }
+  for (const m of block.matchAll(/▶\s*([^<\n]{2,80})/g)) push(m[1] ?? '')
+  for (const m of block.matchAll(/alt="([^"]{2,60})"/gi)) push(m[1] ?? '')
+  for (const m of block.matchAll(/class="[^"]*point[^"]*"[^>]*>\s*([^<]{2,60})/gi)) push(m[1] ?? '')
+  return out
+}
+
 export function parseNaeiltourScheduleDaysFromTab1(html: string | null): NaeiltourParsedScheduleDay[] {
   if (!html?.trim()) return []
   const days: NaeiltourParsedScheduleDay[] = []
-  const chunks = html.split(/<div class="schedule_wrap">/i).slice(1)
+  // Live HTML uses schedule_wrapq; older fixtures keep schedule_wrap.
+  const chunks = html.split(/<div class="schedule_wrapq?">/i).slice(1)
   for (const chunk of chunks) {
     const header = chunk.match(/(\d+)일차[\s\S]*?<strong>\s*([^<]+?)\s*<\/strong>/i)
     if (!header?.[1] || !header[2]) continue
@@ -592,12 +614,12 @@ export function parseNaeiltourScheduleDaysFromTab1(html: string | null): Naeilto
     const strongText = stripNaeiltourHtmlText(header[2]!)
     const dateIso = parseDateIsoFromStrong(strongText)
     const routeRaw = strongText.replace(/^\d{4}\/\d{1,2}\/\d{1,2}\([^)]*\)\s*/, '').trim()
-    const places = dedupeNaeiltourScheduleRoutePlaces(
-      routeRaw
-        .split(/-/)
-        .map((s) => s.trim())
-        .filter(Boolean),
-    ).slice(0, 7)
+    const headerPlaces = routeRaw
+      .split(/-/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+    const bodyPlaces = extractNaeiltourBodyPlaceLabels(chunk)
+    const places = dedupeNaeiltourScheduleRoutePlaces([...headerPlaces, ...bodyPlaces]).slice(0, 7)
     const englishRouteLandmarks = extractEnglishLandmarksFromBlock(chunk)
     const meals = extractMealsFromBlock(chunk)
     const hotel = extractHotelFromBlock(chunk)
