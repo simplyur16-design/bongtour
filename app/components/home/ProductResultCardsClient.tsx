@@ -59,7 +59,7 @@ export default function ProductResultCardsClient({
 }: {
   items: ResultItem[]
   layout: Layout
-  /** 모바일 홈 — 인천·김포 / 지방 / 미확인. 값 없음은 인천이 아님 */
+  /** 모바일 홈 — 기본 인천·김포만. 지방으로 바꾸면 지방만. 미확인은 둘 다 제외 */
   groupByMobileDeparture?: boolean
 }) {
   if (items.length === 0) return null

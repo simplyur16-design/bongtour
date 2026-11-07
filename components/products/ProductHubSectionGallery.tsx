@@ -3,7 +3,7 @@
 import ProductHubGalleryGrid from '@/components/products/ProductHubGalleryGrid'
 import ProductHubPcDoubleScrollRows from '@/components/products/ProductHubPcDoubleScrollRows'
 import type { ResultItem } from '@/components/products/ProductResultsList'
-import MobileDepartureGroupStack from '@/components/products/MobileDepartureGroupStack'
+import { selectMobileDepartureItems, type MobileDeparturePick } from '@/lib/mobile-departure-group'
 
 type Props = {
   items: ResultItem[]
@@ -12,8 +12,8 @@ type Props = {
   rotationSeed: number
   scopeKey: string
   interleaveEsim?: boolean
-  /** 모바일(lg 미만)만 출발공항 그룹. PC 줄은 그대로 */
-  groupByMobileDeparture?: boolean
+  /** 모바일(lg 미만)만 이 출발지로 거른다. PC 줄은 전체 */
+  mobileDeparturePick?: MobileDeparturePick
 }
 
 /**
@@ -28,9 +28,10 @@ export default function ProductHubSectionGallery({
   rotationSeed,
   scopeKey,
   interleaveEsim = false,
-  groupByMobileDeparture = false,
+  mobileDeparturePick,
 }: Props) {
   if (items.length === 0) return null
+  const mobileItems = mobileDeparturePick ? selectMobileDepartureItems(items, mobileDeparturePick) : items
 
   return (
     <div className="mt-4 w-full min-w-0">
@@ -44,27 +45,13 @@ export default function ProductHubSectionGallery({
         />
       </div>
       <div className="lg:hidden">
-        {groupByMobileDeparture ? (
-          <MobileDepartureGroupStack
-            items={items}
-            renderItems={(groupItems, group) => (
-              <ProductHubGalleryGrid
-                items={groupItems}
-                formatWon={formatWon}
-                seasonalPickIds={seasonalPickIds}
-                rotationSeed={rotationSeed}
-                scopeKey={`${scopeKey}-${group}`}
-                interleaveEsim={interleaveEsim}
-              />
-            )}
-          />
-        ) : (
+        {mobileItems.length === 0 ? null : (
           <ProductHubGalleryGrid
-            items={items}
+            items={mobileItems}
             formatWon={formatWon}
             seasonalPickIds={seasonalPickIds}
             rotationSeed={rotationSeed}
-            scopeKey={scopeKey}
+            scopeKey={mobileDeparturePick ? `${scopeKey}-${mobileDeparturePick}` : scopeKey}
             interleaveEsim={interleaveEsim}
           />
         )}

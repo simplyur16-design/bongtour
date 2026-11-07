@@ -1,8 +1,8 @@
 /**
- * 모바일 홈·검색 출발 그룹.
- * 기본 그룹 = 인천(ICN)·김포(GMP). 지방 = 청주·대구·부산(김해)·제주.
+ * 모바일 홈·검색 출발 선택.
+ * 기본 선택 = 인천(ICN)·김포(GMP)만. 지방 = 청주·대구·부산(김해)·제주만.
  * 실제 출발공항 값만 사용한다. 제목 추론 금지.
- * 공항이 없거나 모르면 unknown — 인천으로 넣지 않는다.
+ * 공항이 없거나 모르면 unknown — 인천으로 넣지 않고, 두 선택 어디에도 보여 주지 않는다.
  * REGRESSION-FREEZE[mobile-departure-group-actual-airport]: missing airport is unknown — manifest
  */
 
@@ -14,12 +14,25 @@ export const MOBILE_DEPARTURE_GROUP_ORDER: readonly MobileDepartureGroup[] = [
   'unknown',
 ]
 
-/** 390px 한 줄에 들어가는 그룹 제목 */
+/** 분류 이름. 화면 선택은 capital | regional 두 개뿐 */
 export const MOBILE_DEPARTURE_GROUP_LABEL: Record<MobileDepartureGroup, string> = {
   capital: '인천·김포',
   regional: '청주·대구·부산·제주',
   unknown: '출발 공항 미확인',
 }
+
+/** 모바일 출발지 선택. 기본값은 인천·김포만 */
+export type MobileDeparturePick = 'capital' | 'regional'
+
+export const DEFAULT_MOBILE_DEPARTURE_PICK: MobileDeparturePick = 'capital'
+
+export const MOBILE_DEPARTURE_PICK_OPTIONS: readonly {
+  id: MobileDeparturePick
+  label: string
+}[] = [
+  { id: 'capital', label: '인천·김포' },
+  { id: 'regional', label: '지방' },
+]
 
 function classifyAirportToken(raw: string | null | undefined): 'capital' | 'regional' | null {
   const t = String(raw ?? '').trim()
@@ -65,4 +78,32 @@ export function partitionByMobileDepartureGroup<T extends { mobileDepartureGroup
     else out.unknown.push(item)
   }
   return out
+}
+
+/** 선택한 그룹만. unknown은 인천·김포에도 지방에도 넣지 않는다 */
+export function selectMobileDepartureItems<T extends { mobileDepartureGroup?: MobileDepartureGroup | null }>(
+  items: readonly T[],
+  pick: MobileDeparturePick = DEFAULT_MOBILE_DEPARTURE_PICK,
+): T[] {
+  const parts = partitionByMobileDepartureGroup(items)
+  return pick === 'regional' ? parts.regional : parts.capital
+}
+
+export function mobileDeparturePickView<T extends { mobileDepartureGroup?: MobileDepartureGroup | null }>(
+  items: readonly T[],
+  pick: MobileDeparturePick = DEFAULT_MOBILE_DEPARTURE_PICK,
+): {
+  pick: MobileDeparturePick
+  shown: T[]
+  empty: boolean
+  unknownCount: number
+} {
+  const parts = partitionByMobileDepartureGroup(items)
+  const shown = pick === 'regional' ? parts.regional : parts.capital
+  return {
+    pick,
+    shown,
+    empty: shown.length === 0,
+    unknownCount: parts.unknown.length,
+  }
 }

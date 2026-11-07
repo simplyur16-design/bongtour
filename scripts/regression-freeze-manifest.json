@@ -30708,7 +30708,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "모바일 홈·검색 출발 그룹은 실제 공항만. 빈 공항은 인천이 아님. 검색창 아래 패키지/자유여행 토글 없음",
+      "summary": "모바일 홈·검색은 인천·김포(기본)와 지방 두 선택만. 빈 공항은 어느 쪽에도 안 보임. 패키지/자유여행 토글 없음",
       "checks": [
         {
           "file": "lib/mobile-departure-group.ts",
@@ -30718,7 +30718,9 @@
             "ICN",
             "GMP",
             "청주",
-            "김해"
+            "김해",
+            "DEFAULT_MOBILE_DEPARTURE_PICK",
+            "지방"
           ],
           "mustNotInclude": [
             "inferHomeDepartureAirport",
@@ -30742,6 +30744,18 @@
           "file": "app/components/home/HomeMobileHub.tsx",
           "mustInclude": [
             "groupByMobileDeparture"
+          ]
+        },
+        {
+          "file": "components/products/MobileDepartureGroupStack.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mobile-departure-group-actual-airport]",
+            "인천·김포",
+            "지방",
+            "이 출발지의 상품이 없습니다."
+          ],
+          "mustNotInclude": [
+            "출발 공항 미확인"
           ]
         }
       ],
