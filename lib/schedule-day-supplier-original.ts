@@ -157,6 +157,41 @@ export function buildScheduleDaySupplierOriginalView(day: {
   }
 }
 
+/** 이어진 같은 장소는 한 번만. 구분은 ` - `. */
+export function collapseConsecutiveRouteSegments(route: string): string {
+  const parts = route
+    .split(/\s*-\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const out: string[] = []
+  for (const part of parts) {
+    if (out.length > 0 && out[out.length - 1] === part) continue
+    out.push(part)
+  }
+  return out.join(' - ')
+}
+
+/**
+ * 일차 제목 아래 경로 한 줄.
+ * 공급사 원문 뷰의 routeLine이 있으면 그것을, 없으면 그날 routeText를 쓴다.
+ * 공백·제목과 같은 문구는 숨긴다.
+ * REGRESSION-FREEZE[itinerary-detail-route-under-title]: 제목 아래 경로 한 줄 — manifest
+ */
+export function publicDayTitleRouteLine(day: {
+  title?: string | null
+  routeText?: string | null
+  supplierOriginal?: ScheduleDaySupplierOriginal | null
+}): string | null {
+  const view = buildScheduleDaySupplierOriginalView(day)
+  const source = view ? view.routeLine : scrubInternal(day.routeText ?? null)
+  if (!source) return null
+  const collapsed = collapseConsecutiveRouteSegments(source).trim()
+  if (!collapsed) return null
+  const title = String(day.title ?? '').trim()
+  if (title && collapsed === title) return null
+  return collapsed
+}
+
 /** 토큰 무결성 검사용 — 원문 측 표시 텍스트 전부 */
 export function scheduleDaySupplierOriginalViewText(v: ScheduleDaySupplierOriginalView): string {
   return [

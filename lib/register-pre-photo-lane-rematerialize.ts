@@ -29,11 +29,13 @@ import {
   recordItineraryGenerationStatus,
 } from '@/lib/fit-itinerary-generation-status'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
+import { rematerializePackageScheduleFromSupplierFacts } from '@/lib/register-pre-photo-package-supplier-rematerialize'
+import { commitPendingOnlyProductScheduleWrite } from '@/lib/register-pending-write-guard'
 
 export type RegisterPrePhotoLaneRematerializeResult = {
   productId: string
   lane: 'air_hotel_free' | 'package' | 'theme' | string
-  path: 'fit_sync_master' | 'fit_generate' | 'package_rules_gemini' | 'skipped'
+  path: 'fit_sync_master' | 'fit_generate' | 'package_rules_gemini' | 'package_supplier_facts' | 'skipped'
   updated: boolean
   beforeIssues: RegisterPrePhotoVerifyIssue[]
   afterIssues: RegisterPrePhotoVerifyIssue[]
@@ -48,6 +50,7 @@ function productSelectForRemat() {
     primaryDestination: true,
     countryKey: true,
     originSource: true,
+    originUrl: true,
     schedule: true,
     listingKind: true,
     productType: true,
@@ -69,7 +72,7 @@ async function persistHealedSchedule(
     imageKeyword?: string | null
     imageKeyword2?: string | null
   }>,
-): Promise<void> {
+): Promise<boolean> {
   let scheduleArr: unknown[] = []
   try {
     scheduleArr = JSON.parse(String(scheduleJson ?? '[]')) as unknown[]
@@ -109,10 +112,12 @@ async function persistHealedSchedule(
     }
   }
   next.sort((a, b) => Number((a as { day: number }).day) - Number((b as { day: number }).day))
-  await prisma.product.update({
-    where: { id: productId },
-    data: { schedule: JSON.stringify(next) },
+  const commit = await commitPendingOnlyProductScheduleWrite({
+    productId,
+    expectedSchedule: scheduleJson,
+    nextSchedule: JSON.stringify(next),
   })
+  return commit.ok
 }
 
 async function rematerializeFitLane(
@@ -183,8 +188,8 @@ async function rematerializeFitLane(
       .filter(Boolean)
       .join('\n'),
   })
-  await persistHealedSchedule(productId, product.schedule, healed.rows)
-  updated = true
+  const persisted = await persistHealedSchedule(productId, product.schedule, healed.rows)
+  updated = persisted
 
   const after = await prisma.product.findUnique({
     where: { id: productId },
@@ -223,9 +228,17 @@ async function rematerializePackageLane(
     }
   }
 
-  const supplierKey = normalizeSupplierOrigin(String(product.originSource ?? '')) || 'etc'
-  const dest = product.primaryDestination ?? product.destination
-  const mapped = scheduleRowsForPrePhotoVerify(product.schedule)
+  // 패키지 thin schedule → 공급사 원문 재수집(pending/pre_photo_blocked only). FIT·title/가격 미변경.
+  const supplierRemat = await rematerializePackageScheduleFromSupplierFacts(productId)
+  const productAfter =
+    supplierRemat.updated
+      ? await prisma.product.findUnique({ where: { id: productId }, select: productSelectForRemat() })
+      : product
+  const working = productAfter ?? product
+
+  const supplierKey = normalizeSupplierOrigin(String(working.originSource ?? '')) || 'etc'
+  const dest = working.primaryDestination ?? working.destination
+  const mapped = scheduleRowsForPrePhotoVerify(working.schedule)
   // title/description: ApplyRow는 null 불가 — HealRow null을 undefined로 정규화
   const allocated = applyRegisterScheduleImageKeywordsBySupplier(
     mapped.map((row) => ({
@@ -239,7 +252,7 @@ async function rematerializePackageLane(
     {
       supplierKey,
       productDestination: dest,
-      productTitle: product.title,
+      productTitle: working.title,
       travelScope: 'package',
     },
   )
@@ -247,20 +260,31 @@ async function rematerializePackageLane(
   const withGemini = await fillRegisterScheduleImageKeywordsWithGeminiIfNeeded(allocated, {
     supplierKey,
     productDestination: dest,
-    productTitle: product.title,
+    productTitle: working.title,
     logLabel: `lane-remat:${productId.slice(0, 8)}`,
   })
   const healed = healRegisterPrePhotoSchedule(withGemini, {
     supplierKey,
     productDestination: dest,
-    productTitle: product.title,
+    productTitle: working.title,
     lane: 'package',
-    countryKey: product.countryKey,
-    productHaystack: [product.includedText, String(product.rawMeta ?? '').slice(0, 8000)]
+    countryKey: working.countryKey,
+    productHaystack: [working.includedText, String(working.rawMeta ?? '').slice(0, 8000)]
       .filter(Boolean)
       .join('\n'),
   })
-  await persistHealedSchedule(productId, product.schedule, healed.rows)
+  const persistedPkg = await persistHealedSchedule(productId, working.schedule, healed.rows)
+  if (!persistedPkg) {
+    return {
+      productId,
+      lane: 'package',
+      path: supplierRemat.updated ? 'package_supplier_facts' : 'package_rules_gemini',
+      updated: false,
+      beforeIssues,
+      afterIssues: [...beforeIssues, 'pending_write_aborted_race'],
+      ok: false,
+    }
+  }
 
   const after = await prisma.product.findUnique({
     where: { id: productId },
@@ -282,7 +306,7 @@ async function rematerializePackageLane(
   return {
     productId,
     lane: 'package',
-    path: 'package_rules_gemini',
+    path: supplierRemat.updated ? 'package_supplier_facts' : 'package_rules_gemini',
     updated: true,
     beforeIssues,
     afterIssues,
@@ -349,6 +373,8 @@ export function registerPrePhotoIssuesNeedLaneRematerialize(
       i.includes('keyword2_bare_city') ||
       i.includes('middle_route_empty') ||
       i.includes('free_recommended_itinerary_missing') ||
-      i.includes('fit_keyword_empty'),
+      i.includes('fit_keyword_empty') ||
+      i.includes('description_filler_or_duplicate') ||
+      i.includes('description_repeated_closer'),
   )
 }

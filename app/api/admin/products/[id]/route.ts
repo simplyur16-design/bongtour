@@ -3,6 +3,7 @@ import { registerPublishBlockReasons } from '@/lib/register-auto-register-gate'
 import { after, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { readMaterializedRevision } from '@/lib/register-pending-revision'
 import { requireAdmin } from '@/lib/require-admin'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
 import { isRegisterPrePhotoKeywordPhotoGateStatus } from '@/lib/register-pre-photo-pending-queue'
@@ -233,6 +234,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
     })
     return NextResponse.json({
       ...adminProductJsonWithPromotionRef(product),
+      // 문과장 1106 v4: remat revision 상품 = 등록 전 3축 사람 검수 필요(관리자 화면 버튼 분기용, 읽기 전용)
+      humanReviewRequired: Boolean(readMaterializedRevision(product.rawMeta ?? null)),
       ...supplierDeriv,
       structuredSignalsPreview: buildStructuredSignalsPreviewForAdmin(
         product.rawMeta ?? null,
@@ -267,6 +270,31 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
     }
     const body = (await request.json()) as Record<string, unknown>
+    // 문과장 1106 v3: 3축 사람 검수 기록 — 이 키만 단독으로 받는다(내용 편집과 섞지 않음).
+    // 검수자 = requireAdmin 세션 사람 id(서비스 bearer·개발 mock 거부), 시각·digest 는 서버가 현재 행에서 계산.
+    if (body.humanReviewPass !== undefined) {
+      if (Object.keys(body).length !== 1) {
+        return NextResponse.json({ error: 'humanReviewPass 는 다른 필드와 함께 보낼 수 없습니다.' }, { status: 400 })
+      }
+      const { recordExplicitHumanReviewPass } = await import('@/lib/register-pending-review-stamp')
+      const hp = body.humanReviewPass && typeof body.humanReviewPass === 'object' ? (body.humanReviewPass as Record<string, unknown>) : {}
+      const r = await recordExplicitHumanReviewPass({
+        productId: id,
+        sessionUser: { id: admin.user?.id ?? null, role: admin.user?.role ?? null },
+        inspected: {
+          scheduleSha256: typeof hp.scheduleSha256 === 'string' ? hp.scheduleSha256 : undefined,
+          summaryDescriptionSha256: typeof hp.summaryDescriptionSha256 === 'string' ? hp.summaryDescriptionSha256 : undefined,
+          photoIdentitySha256: typeof hp.photoIdentitySha256 === 'string' ? hp.photoIdentitySha256 : undefined,
+        },
+      })
+      if (r.ok) return NextResponse.json({ ok: true, humanReviewAudit: r.audit })
+      const code =
+        r.reason === 'reviewer_not_human' ? 403
+        : r.reason === 'product_missing' ? 404
+        : r.reason === 'inspected_content_mismatch' || r.reason === 'aborted_concurrent' ? 409
+        : 400
+      return NextResponse.json({ ok: false, reason: r.reason, mismatch: r.mismatch ?? undefined }, { status: code })
+    }
     const willChangeListing =
       body.registrationStatus !== undefined ||
       body.listingKind !== undefined ||
@@ -332,6 +360,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       highlightPointsRaw?: string | null
       highlightPoints?: string | null
     } = {}
+    let registerFlipExpect: import('@/lib/register-pending-review-stamp').RegisterFlipExpect | null = null
     // REGRESSION-FREEZE[pending-pexels-pick-fast-persist]: persist CDN immediately; PhotoPool rehost after() — manifest
     let pendingCoverRehost: PendingCoverRehostJob | null = null
     if (body.flightAdminJson !== undefined || body.flightManualCorrection !== undefined) {
@@ -591,6 +620,20 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             { status: 400 },
           )
         }
+        // 문과장 1106 v4: remat revision 상품은 3축 사람 검수 기록이 '지금 행'과 일치해야만 registered (legacy 무변경)
+        const { checkRegisterFlipHumanReviewGate } = await import('@/lib/register-pending-review-stamp')
+        const flipGate = await checkRegisterFlipHumanReviewGate(id, Object.keys(body))
+        if (flipGate.required && !flipGate.ok) {
+          return NextResponse.json(
+            {
+              error: '사람 검수(일정·요약/설명·사진) 기록이 현재 저장 내용과 일치해야 등록할 수 있습니다. 저장 후 "검수 후 등록"을 다시 누르세요.',
+              missing: { humanReview: true },
+              reason: flipGate.reason,
+            },
+            { status: 409 },
+          )
+        }
+        if (flipGate.required && flipGate.ok) registerFlipExpect = flipGate.expect
         data.autoUnpublishedAt = null
         data.autoUnpublishedReason = null
       }
@@ -926,10 +969,39 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       data.imageReviewRequestedAt = null
     }
     if (Object.keys(data).length > 0) {
-      await prisma.product.update({
-        where: { id },
-        data: data as Prisma.ProductUpdateInput,
-      })
+      if (registerFlipExpect) {
+        // 문과장 1106 v4: 검증한 그 행 그대로일 때만 승인(equality updateMany) — 사이에 일정·사진·rawMeta·상태 변경 시 409
+        const e = registerFlipExpect
+        const flipped = await prisma.product.updateMany({
+          where: {
+            id,
+            registrationStatus: e.registrationStatus,
+            schedule: e.schedule,
+            rawMeta: e.rawMeta,
+            bgImageUrl: e.bgImageUrl,
+            bgImageExternalId: e.bgImageExternalId,
+            bgImageStoragePath: e.bgImageStoragePath,
+            bgImageSourceUrl: e.bgImageSourceUrl,
+          },
+          data: data as Prisma.ProductUpdateManyMutationInput,
+        })
+        if (flipped.count !== 1) {
+          return NextResponse.json(
+            { error: '검수 이후 상품 내용이 바뀌어 등록하지 않았습니다. 새로 불러와 다시 검수하세요.', reason: 'aborted_concurrent' },
+            { status: 409 },
+          )
+        }
+      } else {
+        await prisma.product.update({
+          where: { id },
+          data: data as Prisma.ProductUpdateInput,
+        })
+      }
+      // 문과장 1106 v3: 일정·대표사진이 바뀐 편집은 기존 사람 검수 기록 무효화(재사용 금지)
+      if (data.schedule !== undefined || Object.keys(data).some((k) => k.startsWith('bgImage'))) {
+        const { clearHumanReviewAfterContentEdit } = await import('@/lib/register-pending-review-stamp')
+        await clearHumanReviewAfterContentEdit(id)
+      }
       // REGRESSION-FREEZE[admin-pending-queue-flags]: PATCH schedule/status/bg → queue flags — manifest
       if (
         data.schedule !== undefined ||
@@ -1079,6 +1151,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     })
     return NextResponse.json({
       ...adminProductJsonWithPromotionRef(product),
+      // 문과장 1106 v4: remat revision 상품 = 등록 전 3축 사람 검수 필요(관리자 화면 버튼 분기용, 읽기 전용)
+      humanReviewRequired: Boolean(readMaterializedRevision(product.rawMeta ?? null)),
       ...supplierDerivPatch,
       structuredSignalsPreview: buildStructuredSignalsPreviewForAdmin(
         product.rawMeta ?? null,

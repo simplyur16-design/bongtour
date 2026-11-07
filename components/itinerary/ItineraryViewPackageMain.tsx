@@ -14,6 +14,7 @@ import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { ItineraryExtraInfoBoxes } from '@/components/itinerary/ItineraryExtraInfoBoxes'
 import { ScheduleDayItineraryBlocks } from '@/components/itinerary/ScheduleDayItineraryBlocks'
+import { publicDayTitleRouteLine } from '@/lib/schedule-day-supplier-original'
 import type { FlightStructuredBody } from '@/lib/public-product-extras'
 import {
   departureKeyFactsToHeroSsotItineraryFlightDisplay,
@@ -291,6 +292,8 @@ export function ItineraryViewPackageMain({
           {visibleSchedule.map((day, idx) => {
             const sd = day as ScheduleDay
             const dayNum = Math.floor(Number(sd.day))
+            // REGRESSION-FREEZE[itinerary-detail-route-under-title]: 제목 아래 경로 한 줄 — manifest
+            const routeLine = publicDayTitleRouteLine(sd)
 
             return (
               <section
@@ -303,6 +306,11 @@ export function ItineraryViewPackageMain({
                   <h3 className="text-2xl md:text-3xl font-black fit-tx-primary mb-2">
                     {sd.title || `Day ${day.day}`}
                   </h3>
+                  {routeLine ? (
+                    <p className="text-sm font-medium text-slate-800" data-day-route-line="">
+                      {routeLine}
+                    </p>
+                  ) : null}
                 </div>
                 <ScheduleDayItineraryBlocks
                   day={sd}

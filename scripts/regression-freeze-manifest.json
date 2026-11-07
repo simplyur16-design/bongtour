@@ -362,6 +362,103 @@
   ],
   "staticGuards": [
     {
+      "id": "package-supplier-fact-schedule-rebuild",
+      "tier": ["prebuild", "ci"],
+      "summary": "대기열 힐은 지어낸 귀국 문장이 있으면 공급사 팩트로 일정요약·설명을 다시 만든다. 7사. 원문 보기 유지.",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-package-supplier-rematerialize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[package-supplier-fact-schedule-rebuild]",
+            "packageSupplierFactDaysToSchedule",
+            "ybtourFactDaysToRegisterSchedule",
+            "verygoodtourFactDaysToRegisterSchedule",
+            "lottetourFactDaysToRegisterSchedule",
+            "kyowontourFactDaysToRegisterSchedule",
+            "supplierOriginal"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "registerPrePhotoPackageScheduleLooksThin",
+            "rematerializeRegisterPrePhotoByLane"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-package-supplier-rematerialize-auto.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[package-supplier-fact-schedule-rebuild]",
+            "체크아웃"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-package-supplier-rematerialize-auto.test.ts",
+        "lib/register-pre-photo-package-supplier-rematerialize.test.ts"
+      ]
+    },
+    {
+      "id": "parser-nl-hub-and-return-template",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "NL 출발 허브는 제목+1일차 본문 일치(김해=부산). 불일치면 null+검수 플래그, 인천 기본값 금지. 귀국일 체크아웃 템플릿 생성 금지.",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-package-supplier-rematerialize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[parser-nl-hub-and-return-template]",
+            "resolveSourceDepartureHubDetail",
+            "departureHubConflictReviewFlag",
+            "김해"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-description-characteristic-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[parser-nl-hub-and-return-template]",
+            "귀국일 체크아웃 귀국 템플릿 생성 금지"
+          ],
+          "mustNotInclude": [
+            "체크아웃 후 인천으로 귀국합니다."
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[parser-nl-hub-and-return-template]",
+            "sourceDepartureBody"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[parser-nl-hub-and-return-template]",
+            "supplierTimeline"
+          ]
+        },
+        {
+          "file": "lib/parser-empty7/nl-hub-return.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[parser-nl-hub-and-return-template]",
+            "0016",
+            "김해",
+            "체크아웃"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/parser-empty7/nl-hub-return.test.ts",
+        "lib/parser-empty7/nl-raw-2236.test.ts",
+        "lib/parser-empty7/mt-raw-2236.test.ts",
+        "lib/parser-empty7/parser-raw-source-v2.test.ts",
+        "lib/parser-empty7/noise-poi.test.ts",
+        "lib/parser-empty7/nl-route-full.test.ts"
+      ]
+    },
+    {
       "id": "bongtour-product-title-r5",
       "tier": [
         "prebuild",
@@ -29541,8 +29638,9 @@
           "file": "lib/register-auto-photo-register-job.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[auto-register-review-pass]",
-            "isAutoRegisterReviewPassed(id)",
-            "if (gate.ok && reviewPassed) {"
+            "isAutoRegisterReviewPassed(id",
+            "if (gate.ok && reviewPassed) {",
+            "rawMeta"
           ]
         },
         {
@@ -30700,6 +30798,156 @@
       ],
       "vitestSuites": [
         "lib/fit-itinerary-original-route.test.ts"
+      ]
+    },
+    {
+      "id": "register-pending-revision-1106",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "supplier remat stamps rawMeta.materializedRevision and clears lastReviewedHash; review-pass stale until match — no schema",
+      "checks": [
+        {
+          "file": "lib/register-pending-revision.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pending-revision-1106]",
+            "materializedRevision",
+            "lastReviewedHash",
+            "export function isReviewRevisionStale",
+            "export function stampRematRevisionOnRawMeta"
+          ]
+        },
+        {
+          "file": "lib/register-auto-register-review-pass.ts",
+          "mustInclude": [
+            "isReviewRevisionStale"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-pending-write-guard-1106",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "pending/pre_photo_blocked schedule writes use transaction reread + updateMany count===1 (multi-instance; abort registered race)",
+      "checks": [
+        {
+          "file": "lib/register-pending-write-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pending-write-guard-1106]",
+            "export async function commitPendingOnlyProductScheduleWrite",
+            "updateMany",
+            "count !== 1"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-package-supplier-rematerialize.ts",
+          "mustInclude": [
+            "commitPendingOnlyProductScheduleWrite"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mobile-departure-group-actual-airport",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "모바일 홈·검색은 인천·김포(기본)와 지방 두 선택만. 빈 공항은 어느 쪽에도 안 보임. 패키지/자유여행 토글 없음",
+      "checks": [
+        {
+          "file": "lib/mobile-departure-group.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mobile-departure-group-actual-airport]",
+            "missing airport is unknown",
+            "ICN",
+            "GMP",
+            "청주",
+            "김해",
+            "DEFAULT_MOBILE_DEPARTURE_PICK",
+            "지방"
+          ],
+          "mustNotInclude": [
+            "inferHomeDepartureAirport",
+            "inferDepartureAirportFromHaystack"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mobile-departure-group-actual-airport]",
+            "classifyMobileDepartureGroup"
+          ]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasHubCatalogRoot.tsx",
+          "mustNotInclude": [
+            "OverseasHubTravelTypeChips"
+          ]
+        },
+        {
+          "file": "app/components/home/HomeMobileHub.tsx",
+          "mustInclude": [
+            "groupByMobileDeparture"
+          ]
+        },
+        {
+          "file": "components/products/MobileDepartureGroupStack.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mobile-departure-group-actual-airport]",
+            "인천·김포",
+            "지방",
+            "이 출발지의 상품이 없습니다."
+          ],
+          "mustNotInclude": [
+            "출발 공항 미확인"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/mobile-departure-group.test.ts"
+      ]
+    },
+    {
+      "id": "itinerary-detail-route-under-title",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "패키지 일차 제목 아래 경로 한 줄. 토글 문구는 자세한 일정 보기. 원문 없으면 버튼 없음",
+      "checks": [
+        {
+          "file": "components/itinerary/ScheduleDaySupplierOriginalToggle.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-detail-route-under-title]",
+            "자세한 일정 보기"
+          ],
+          "mustNotInclude": [
+            "원문 보기"
+          ]
+        },
+        {
+          "file": "components/itinerary/ItineraryViewPackageMain.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-detail-route-under-title]",
+            "publicDayTitleRouteLine"
+          ]
+        },
+        {
+          "file": "lib/schedule-day-supplier-original.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-detail-route-under-title]",
+            "export function publicDayTitleRouteLine",
+            "collapseConsecutiveRouteSegments"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/schedule-day-supplier-original.test.ts"
       ]
     }
   ],

@@ -148,7 +148,7 @@ export default async function HomeMobileHub() {
           <h2 id="season-linked-products-heading-m" className={HOME_MOBILE_HUB_SECTION_TITLE_CLASS}>
             시즌 연결 상품
           </h2>
-          <ProductResultCardsClient items={linkedItems} layout="scroll" />
+          <ProductResultCardsClient items={linkedItems} layout="scroll" groupByMobileDeparture />
         </section>
       ) : null}
 

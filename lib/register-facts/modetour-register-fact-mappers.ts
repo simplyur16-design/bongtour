@@ -17,6 +17,10 @@ export type ModetourScheduleItem = {
     itiServiceName?: string | null
     itiPlaceName?: string | null
     itiSummaryDes?: string | null
+    itiServiceCode?: string | null
+    /** 원문 기타단문 본문 한 줄(타임라인 표시 문구) */
+    serviceWITHSummary?: string | null
+    serviceExplaination?: string | null
   }>
   /** B2C API 일부 응답 철자 */
   otherActions?: ModetourScheduleItem['ortherActions']
@@ -181,6 +185,7 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
         hotels: [],
         meals: [],
         transportNote: null,
+        supplierText: null,
       } satisfies RegisterFactScheduleDay)
 
     const placeHeaders = Array.isArray(item.placeHeader)
@@ -201,7 +206,29 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
     const hotel = modetourStripHtmlFromText(String(item.scheduleHotel ?? ''))
     if (hotel && !row.hotels.includes(hotel)) row.hotels.push(hotel)
 
-    for (const act of modetourScheduleItemActions(item)) {
+    // 문과장 1106 v5: 관광 카드가 없는 일차(출발·이동·귀국)만 원문 기타단문 줄을 순서대로 보존 — 출발/도착 공항·환승 사실의 유일한 원문.
+    // 관광 일차는 손대지 않음(기존 출력 불변). 장식 기호(▶)만 제거, 문장은 원문 그대로.
+    const dayActions = modetourScheduleItemActions(item)
+    const hasTourAction = dayActions.some(
+      (a) => /관광/.test(String(a.itiServiceName ?? '')) && String(a.itiPlaceName ?? '').trim().length > 0,
+    )
+    if (!hasTourAction) {
+      for (const act of dayActions) {
+        const code = String(act.itiServiceCode ?? '').trim().toUpperCase()
+        const svcName = String(act.itiServiceName ?? '').trim()
+        if (code !== 'SSCETC' && svcName !== '기타단문') continue
+        if (String(act.itiPlaceName ?? '').trim()) continue
+        const line = modetourStripHtmlFromText(String(act.serviceWITHSummary ?? act.serviceExplaination ?? ''))
+          .replace(/▶/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+        if (!line) continue
+        const tl = (row.supplierTimeline ??= [])
+        if (!tl.includes(line)) tl.push(line)
+      }
+    }
+
+    for (const act of dayActions) {
       const svc = modetourStripHtmlFromText(String(act.itiServiceName ?? ''))
       const place = modetourStripHtmlFromText(String(act.itiPlaceName ?? ''))
       const summary = modetourStripHtmlFromText(String(act.itiSummaryDes ?? ''))
@@ -212,7 +239,13 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
         }
         continue
       }
-      const mealLines = modetourExtractMealLinesFromAction(svc, place, summary)
+      // 문과장 1106: 원문 분류가 관광(콘텐츠)이면 설명문 속 '뷔페식사' 등 단어로 일정 전체를 식사로 옮기지 않는다(장소 유지).
+      // 장소명 자체가 디너(예: '라파인 디너쇼')로 명시된 경우만 석식 슬롯에 그 장소명을 기록.
+      const tourContentAction = /관광/.test(svc) && !/식사|기내식/.test(svc) && !!place
+      if (tourContentAction && /디너|dinner/i.test(place)) {
+        modetourPushMealLines(row, [`석식 ${normalizeModetourFactPlaceLabel(place) || place}`])
+      }
+      const mealLines = tourContentAction ? [] : modetourExtractMealLinesFromAction(svc, place, summary)
       if (mealLines.length > 0) {
         modetourPushMealLines(row, mealLines)
         continue
@@ -224,6 +257,12 @@ export function modetourScheduleItemsToFactDays(items: ModetourScheduleItem[]): 
         if (placeLabel && !row.places.includes(placeLabel)) row.places.push(placeLabel)
         else if (!placeLabel && summary) {
           row.transportNote = row.transportNote ? `${row.transportNote}; ${summary}` : summary
+        }
+        // 관광 요약 문장 — description SSOT supplierText (템플릿 대체용)
+        if (placeLabel && summary && summary.length >= 20 && !/안내\s*사항|선택\s*관광/i.test(svc)) {
+          const prev = String(row.supplierText ?? '').trim()
+          const next = prev ? `${prev} ${summary}` : summary
+          row.supplierText = next.replace(/\s+/g, ' ').trim().slice(0, 720)
         }
       }
       if (/이동|항공|국제선|국내선|보트|스피드/i.test(svc) && summary) {

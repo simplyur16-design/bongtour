@@ -15,7 +15,7 @@ import { attachScheduleDaySupplierOriginalFromFactDays } from '@/lib/schedule-da
 export const NAEILTOUR_SCHEDULE_ROUTE_MAX = 7
 
 const NAEILTOUR_ROUTE_PLACE_NOISE_RE =
-  /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속)|^[★☆◈◎○]|기상\s*악화|결항|대체|불가할|유의|안내|주의|※|→|특전|시차|국가번호|관광\s*시간|쇼핑점|침향|찻집|라텍스/i
+  /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속)|^[★☆◈◎○]|기상\s*악화|결항|대체|불가할|(?<!자)유의|안내|주의|※|→|특전|시차|국가번호|관광\s*시간|쇼핑점|침향|찻집|라텍스/i
 
 const NAEILTOUR_ROUTE_LABEL_TRIM_RE =
   /(?:으로?\s*이동|으로?\s*출발|으로?\s*귀국|로\s*이동|방문|관광|투어|탐방|체험|승차|하차|탑승|도착|출발|미팅|피켓|조식\s*후|중식\s*후|석식\s*후)$/u
@@ -69,11 +69,16 @@ export function dedupeNaeiltourScheduleRoutePlaces(places: readonly string[]): s
       if (!label || isNaeiltourRoutePlaceNoise(label)) continue
       const key = normalizeNaeiltourRoutePlaceKey(label)
       if (!key) continue
+      // 문과장 1106 v3: 부분 포함(includes) 병합은 '다자이후' ⊂ '스타벅스 다자이후 오모테산도점' 처럼 다른 명소를 지움 → 앞부분 일치만 병합,
+      // 병합으로 라벨이 바뀌면 키도 갱신(옛 짧은 키가 뒤 명소를 계속 삼키지 않게).
       const dupIdx = keys.findIndex(
-        (k) => k === key || (k.length >= 4 && key.includes(k)) || (key.length >= 4 && k.includes(key)),
+        (k) => k === key || (k.length >= 4 && key.startsWith(k)) || (key.length >= 4 && k.startsWith(key)),
       )
       if (dupIdx >= 0) {
-        if (label.length > out[dupIdx]!.length) out[dupIdx] = label
+        if (label.length > out[dupIdx]!.length) {
+          out[dupIdx] = label
+          keys[dupIdx] = key
+        }
         continue
       }
       keys.push(key)
@@ -268,12 +273,17 @@ export function naeiltourFactDaysToRegisterSchedule(days: RegisterFactScheduleDa
       fallbacks: [String(d.transportNote ?? '').split(';')[0], d.hotels[0]],
       returnTitle: '귀국',
     })
-    const description = composeNaeiltourScheduleDescription({
-      day: d.day,
-      maxDay,
-      routePlaces,
-      joinedBlob,
-    })
+    // REGRESSION-FREEZE[parser-nl-hub-and-return-template]: 관광 없는 귀국·이동일은 공급사 공항 줄만, 체크아웃 귀국 템플릿 금지 — manifest
+    const timeline = (d.supplierTimeline ?? []).map((l) => l.trim()).filter((l) => l.length > 0 && !/^※/u.test(l))
+    const description = timeline.length
+      ? timeline.join(' → ').slice(0, 720)
+      : composeNaeiltourScheduleDescription({
+          day: d.day,
+          maxDay,
+          routePlaces,
+          joinedBlob,
+          supplierText: d.supplierText,
+        })
     const meals = parseFactMealsListToScheduleFields(d.meals)
     return {
       day: d.day,

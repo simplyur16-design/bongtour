@@ -42,7 +42,7 @@ export type ScheduleDayItineraryBlocksDay = {
   mealSummaryText?: string | null
   meals?: string | null
   routeText?: string | null
-  /** 공급사 원문(일차) — 있으면 '원문 보기' 토글 */
+  /** 공급사 원문(일차) — 있으면 '자세한 일정 보기' 토글 */
   supplierOriginal?: ScheduleDaySupplierOriginal | null
 }
 

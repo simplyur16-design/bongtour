@@ -236,6 +236,40 @@ export async function fetchProductIdsWithDepartureInCalendarMonth(
   return new Set(rows.map((r) => r.productId))
 }
 
+const EARLIEST_OUTBOUND_AIRPORT_CHUNK = 1500
+
+/**
+ * 상품별 가장 이른 예약가능 출발의 outboundDepartureAirport.
+ * 행이 없거나 공항 문자열이 비면 null. 인천으로 채우지 않는다.
+ * REGRESSION-FREEZE[mobile-departure-group-actual-airport]: missing airport is unknown — manifest
+ */
+export async function fetchEarliestOutboundDepartureAirportByProductIds(
+  productIds: string[],
+  baseDate: Date = new Date(),
+): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>()
+  const ids = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))]
+  if (ids.length === 0) return out
+  const minDeparture = getPublicBookableMinDate(baseDate)
+  for (let i = 0; i < ids.length; i += EARLIEST_OUTBOUND_AIRPORT_CHUNK) {
+    const chunk = ids.slice(i, i + EARLIEST_OUTBOUND_AIRPORT_CHUNK)
+    const rows = await prisma.productDeparture.findMany({
+      where: {
+        productId: { in: chunk },
+        departureDate: { gte: minDeparture },
+      },
+      distinct: ['productId'],
+      orderBy: [{ productId: 'asc' }, { departureDate: 'asc' }],
+      select: { productId: true, outboundDepartureAirport: true },
+    })
+    for (const row of rows) {
+      const airport = String(row.outboundDepartureAirport ?? '').trim()
+      out.set(row.productId, airport.length > 0 ? airport : null)
+    }
+  }
+  return out
+}
+
 export async function fetchProductBrowseScheduleByIds(
   productIds: string[]
 ): Promise<Map<string, string | null>> {

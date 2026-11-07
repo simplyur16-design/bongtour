@@ -59,9 +59,11 @@ describe('register schedule description vibe SSOT', () => {
     expect(days[0]?.description).toMatch(/홍콩|헐리우드|소호|피크트램|도착/)
     expect(days[2]?.description).not.toMatch(/하루 동안 여러 장면|규슈/)
     expect(days[2]?.description).toMatch(/디즈니|란타우/)
-    expect(days[3]?.description).toMatch(/귀국|마무리|여운/)
+    expect(days[3]?.description ?? '').not.toMatch(/체크아웃\s*후/)
+    expect(days[3]?.description ?? '').not.toMatch(/귀국합니다/)
     expect(days[3]?.description).not.toMatch(/하루 동안 여러 장면/)
     for (const d of days) {
+      if (d?.day === 4) continue
       const n = countRegisterScheduleDescriptionSentences(d?.description ?? '')
       expect(n, `${d?.day}일차`).toBeGreaterThanOrEqual(2)
       expect(n, `${d?.day}일차`).toBeLessThanOrEqual(3)

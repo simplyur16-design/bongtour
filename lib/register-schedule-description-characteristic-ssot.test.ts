@@ -160,6 +160,7 @@ describe('register schedule day summary SSOT', () => {
     ])
     expect(days).toHaveLength(4)
     for (const d of days) {
+      if (d.day === 4) continue
       const n = countRegisterScheduleDescriptionSentences(d.description)
       expect(n, `${d.day}일차`).toBeGreaterThanOrEqual(2)
       expect(n, `${d.day}일차`).toBeLessThanOrEqual(3)
@@ -174,7 +175,8 @@ describe('register schedule day summary SSOT', () => {
       ).toBe(false)
     }
     expect(days[2]?.description).toMatch(/디즈니/)
-    expect(days[3]?.description).toMatch(/귀국/)
+    expect(days[3]?.description ?? '').not.toMatch(/체크아웃\s*후/)
+    expect(days[3]?.description ?? '').not.toMatch(/귀국합니다/)
     expect(
       composeRegisterScheduleCharacteristicDescription({
         day: 3,

@@ -53,6 +53,7 @@ import type {
   ScheduleEntry,
   StructuredSignalsView,
 } from './_types'
+import { runReviewThenRegister } from './_lib/review-register-action'
 import {
   adminDepartureText,
   buildFlightManualCorrectionForSave,
@@ -1124,19 +1125,11 @@ export default function AdminProductDetailPage({ params }: { params: Promise<{ i
                 if (!id) return
                 setRegistering(true)
                 try {
-                  const res = await fetch(`/api/admin/products/${id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ registrationStatus: 'registered' }),
-                  })
-                  const text = await res.text()
-                  let updated: Product | null = null
-                  try {
-                    updated = text ? (JSON.parse(text) as Product) : null
-                  } catch {
-                    // ignore
-                  }
-                  if (res.ok && updated) setProduct(updated)
+                  // 문과장 1106 v4: 미저장 편집 보류 → (remat 상품) 3축 검수 기록 → 단독 등록 요청
+                  const unsavedEdits = [scheduleDirty ? '일정' : '', optionalToursDirty ? '선택관광' : ''].filter(Boolean)
+                  const outcome = await runReviewThenRegister({ id, product, unsavedEdits })
+                  if (outcome.ok) setProduct(outcome.product)
+                  else alert(outcome.message)
                 } finally {
                   setRegistering(false)
                 }

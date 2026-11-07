@@ -5,6 +5,7 @@ import { ProductResultCard, type ResultItem } from '@/components/products/Produc
 import HorizontalScrollWithArrows from '@/components/ui/HorizontalScrollWithArrows'
 import { MAIN_MENU_PRODUCT_CARD_GRID_CLASS } from '@/lib/hub-main-menu-card-layout'
 import { MOBILE_HUB_COMPACT_CARD_WIDTH_CLASS } from '@/lib/mobile-hub-scroll-layout'
+import MobileDepartureGroupStack from '@/components/products/MobileDepartureGroupStack'
 
 // REGRESSION-FREEZE[home-card-price-from-tilde]: 최저가 표기는 원 뒤 ~ (가격부터) — manifest
 function formatWon(n: number | null): string {
@@ -54,11 +55,20 @@ function ProductResultCardsScroll({ items }: { items: ResultItem[] }) {
 export default function ProductResultCardsClient({
   items,
   layout,
+  groupByMobileDeparture = false,
 }: {
   items: ResultItem[]
   layout: Layout
+  /** 모바일 홈 — 기본 인천·김포만. 지방으로 바꾸면 지방만. 미확인은 둘 다 제외 */
+  groupByMobileDeparture?: boolean
 }) {
   if (items.length === 0) return null
   if (layout === 'grid') return <ProductResultCardsGrid items={items} />
-  return <ProductResultCardsScroll items={items} />
+  if (!groupByMobileDeparture) return <ProductResultCardsScroll items={items} />
+  return (
+    <MobileDepartureGroupStack
+      items={items}
+      renderItems={(groupItems) => <ProductResultCardsScroll items={groupItems} />}
+    />
+  )
 }

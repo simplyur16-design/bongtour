@@ -1,7 +1,6 @@
 'use client'
 
 import OverseasHubCatalogGallery from '@/app/components/travel/overseas/OverseasHubCatalogGallery'
-import OverseasHubTravelTypeChips from '@/app/components/travel/overseas/OverseasHubTravelTypeChips'
 import type { ResultItem } from '@/components/products/ProductResultsList'
 import { filterOverseasHubCatalogByUrl } from '@/lib/overseas-hub-client-catalog-filter'
 import {
@@ -210,7 +209,7 @@ export default function OverseasHubCatalogRoot({
           {sectionsBusy && sections.length === 0 ? (
             <p className="mt-10 text-center text-sm text-slate-500">불러오는 중…</p>
           ) : null}
-          <OverseasHubTravelTypeChips />
+          {/* REGRESSION-FREEZE[mobile-departure-group-actual-airport]: 검색창 아래 패키지/자유여행 토글 없음 — manifest */}
           <OverseasHubCatalogGallery
             sections={sections}
             rotationSeed={rotationSeedRef.current}

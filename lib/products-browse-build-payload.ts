@@ -6,6 +6,7 @@ import {
   attachBrowseDeparturesToProducts,
   buildProductBrowseFindManySelectWithoutDepartures,
   fetchBrowseDeparturesByProductIds,
+  fetchEarliestOutboundDepartureAirportByProductIds,
   fetchProductBrowseScheduleByIds,
   fetchProductIdsWithDepartureInCalendarMonth,
   productBrowseRowsWithEmptyDepartures,
@@ -46,6 +47,7 @@ import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-t
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
 import { applyLocalDepartureDisplayPrefix, resolveDisplayLocalDepartureTags } from '@/lib/local-departure-display-prefix'
+import { classifyMobileDepartureGroup } from '@/lib/mobile-departure-group'
 import {
   resolveBrowseCountryParamToCountryKeySlugs,
   resolveBrowseCountryParamToDbCountries,
@@ -633,16 +635,22 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       .filter(({ product }) => !String(product.bgImageUrl ?? '').trim())
       .map(({ product }) => product.id)
 
-    const [sliceDepartureByProductId, scheduleByProductId] = isHubFullCatalog
-      ? [
-          new Map<string, ProductBrowseIncludedRow['departures']>(),
+    const scopeIsOverseas = (scope ?? '').trim().toLowerCase() === 'overseas'
+    const airportByProductIdPromise = scopeIsOverseas
+      ? fetchEarliestOutboundDepartureAirportByProductIds(sliceProductIds)
+      : Promise.resolve(new Map<string, string | null>())
+    const [sliceDepartureByProductId, scheduleByProductId, airportByProductId] = isHubFullCatalog
+      ? await Promise.all([
+          Promise.resolve(new Map<string, ProductBrowseIncludedRow['departures']>()),
           sliceProductIdsNeedingSchedule.length > 0
-            ? await fetchProductBrowseScheduleByIds(sliceProductIdsNeedingSchedule)
-            : new Map<string, string | null>(),
-        ]
+            ? fetchProductBrowseScheduleByIds(sliceProductIdsNeedingSchedule)
+            : Promise.resolve(new Map<string, string | null>()),
+          airportByProductIdPromise,
+        ])
       : await Promise.all([
           fetchBrowseDeparturesByProductIds(sliceProductIds),
           fetchProductBrowseScheduleByIds(sliceProductIdsNeedingSchedule),
+          airportByProductIdPromise,
         ])
 
     // REGRESSION-FREEZE[airline-variant-group]: 카드 항공사별 가격·대표가 = 상한 없는 실제 예약가능 회차 — manifest
@@ -854,6 +862,12 @@ export async function productsBrowseBuildPayload(queryKey: string) {
         : {}),
       sportsThemeTags: normalizeSportsThemeTagsForBrowse(p.sportsThemeTag),
       departureAirportLabelDisplay: homeDepartureAirportDisplayText(p.departureAirportLabel),
+      // REGRESSION-FREEZE[mobile-departure-group-actual-airport]: browse group uses stored airport — manifest
+      mobileDepartureGroup: classifyMobileDepartureGroup({
+        departureAirportLabel: p.departureAirportLabel,
+        localDepartureTags: p.localDepartureTag,
+        outboundDepartureAirport: airportByProductId.get(p.id) ?? null,
+      }),
       ...(() => {
         if (isHubFullCatalog) return {}
         const memberCount = duplicateMembersByKeptId.get(p.id)?.length ?? 1

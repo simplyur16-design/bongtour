@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * 일차 카드 '원문 보기' — 기본 닫힘, 클릭 시 공급사 원문(저장값 그대로) 펼침.
+ * 일차 카드 '자세한 일정 보기' — 기본 닫힘, 클릭 시 공급사 원문(저장값 그대로) 펼침.
  * 원문이 저장되지 않은 일차는 아무것도 렌더하지 않는다.
+ * REGRESSION-FREEZE[itinerary-detail-route-under-title]: 버튼 문구 자세한 일정 보기 — manifest
  * JSX 대신 createElement — vitest(jsx: preserve)에서도 실제 컴포넌트로 토큰 무결성 테스트를 돌리기 위함.
  */
 import { createElement as h, useId, useState } from 'react'
@@ -28,14 +29,6 @@ export function ScheduleDaySupplierOriginalToggle({ day, defaultOpen = false }: 
   const view = buildScheduleDaySupplierOriginalView(day)
   if (!view) return null
 
-  const route = view.routeLine
-    ? h(
-        'p',
-        { className: 'mb-2 rounded-lg bg-[#EFEDF8] px-3 py-1.5 text-xs sm:text-sm fit-tx-primary' },
-        h('span', { className: 'mr-1.5 font-semibold' }, '경로'),
-        view.routeLine,
-      )
-    : null
   const items =
     view.items.length > 0
       ? h(
@@ -100,7 +93,7 @@ export function ScheduleDaySupplierOriginalToggle({ day, defaultOpen = false }: 
         className:
           'flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-left text-sm font-semibold fit-tx-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2f8fc7]',
       },
-      h('span', null, '원문 보기'),
+      h('span', null, '자세한 일정 보기'),
       h('span', { 'aria-hidden': true, className: `text-xs transition-transform ${open ? 'rotate-180' : ''}` }, '▼'),
     ),
     h(
@@ -112,7 +105,6 @@ export function ScheduleDaySupplierOriginalToggle({ day, defaultOpen = false }: 
         hidden: !open,
         className: 'border-t border-[#DAD4EE] px-4 py-3',
       },
-      route,
       items,
       hotel,
       meals,

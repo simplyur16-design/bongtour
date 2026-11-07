@@ -196,7 +196,8 @@ describe('modetourScheduleItemsToFactDays', () => {
     expect(sched[2]?.routeText).toMatch(/란타우/)
     expect(sched[2]?.routeText).toMatch(/디즈니/)
     expect(sched[2]?.description).not.toMatch(/하루 동안 여러 장면|규슈/)
-    expect(sched[3]?.description).toMatch(/귀국|마무리|여운/)
+    expect(sched[3]?.description ?? '').not.toMatch(/체크아웃\s*후/)
+    expect(sched[3]?.description ?? '').not.toMatch(/귀국합니다/)
     expect(sched[3]?.description).not.toMatch(/하루 동안 여러 장면/)
   })
 

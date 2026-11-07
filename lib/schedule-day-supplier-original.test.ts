@@ -5,6 +5,7 @@ import {
   attachScheduleDaySupplierOriginalFromFactDays,
   buildScheduleDaySupplierOriginalView,
   parseScheduleDaySupplierOriginal,
+  publicDayTitleRouteLine,
   scheduleDaySupplierOriginalViewText,
   type ScheduleDaySupplierOriginal,
 } from '@/lib/schedule-day-supplier-original'
@@ -39,6 +40,27 @@ const TOKEN_RE = /[0-9A-Za-z가-힣ぁ-んァ-ン一-龥]+/g
 const tokens = (s: string) => s.match(TOKEN_RE) ?? []
 const decode = (html: string) =>
   html.replace(/<[^>]+>/g, '\n').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+
+describe('publicDayTitleRouteLine', () => {
+  it('hides empty or title-identical routes and collapses consecutive duplicate places', () => {
+    expect(publicDayTitleRouteLine({ title: '제목', routeText: '   ' })).toBeNull()
+    expect(publicDayTitleRouteLine({ title: '같은제목', routeText: '같은제목' })).toBeNull()
+    expect(publicDayTitleRouteLine({ title: '같은제목', routeText: '  같은제목  ' })).toBeNull()
+    expect(
+      publicDayTitleRouteLine({
+        title: '제목',
+        routeText: '간사이 국제공항 - 아라시야마 - 아라시야마 - 교토',
+      }),
+    ).toBe('간사이 국제공항 - 아라시야마 - 교토')
+    expect(
+      publicDayTitleRouteLine({
+        title: '제목',
+        routeText: '간사이 국제공항 - 아라시야마 - 아라시야마 - 교토',
+        supplierOriginal: ORIG,
+      }),
+    ).toBe('간사이 국제공항 - 아라시야마 - 교토')
+  })
+})
 
 describe('schedule-day-supplier-original', () => {
   it('view: 조식/중식/석식 labels, empty meal hidden, routeText shown when different from title', () => {
@@ -80,7 +102,9 @@ describe('schedule-day-supplier-original', () => {
   it('toggle: accessible button, closed by default (aria-expanded=false + hidden panel), no dates', () => {
     const html = renderToStaticMarkup(createElement(ScheduleDaySupplierOriginalToggle, { day: DAY }))
     expect(html).toContain('<button type="button" aria-expanded="false"')
-    expect(html).toContain('원문 보기')
+    expect(html).toContain('자세한 일정 보기')
+    expect(html).not.toContain('원문 보기')
+    expect(html).not.toContain('>경로<')
     expect(html).toMatch(/role="region"[^>]*hidden=""/)
     expect(html).not.toMatch(/20\d\d[.\-/]\s?\d{1,2}[.\-/]\s?\d{1,2}|\d{1,2}월\s?\d{1,2}일|\([월화수목금토일]\)/)
     expect(html).not.toContain('2026-10-30')
@@ -93,7 +117,6 @@ describe('schedule-day-supplier-original', () => {
     const html = renderToStaticMarkup(createElement(ScheduleDaySupplierOriginalToggle, { day: DAY, defaultOpen: true }))
     const shown = tokens(decode(html))
     const src = [
-      DAY.routeText,
       ...ORIG.items.flatMap((i) => [i.label, i.name, i.text]),
       ORIG.hotelText,
       ORIG.lunchText,

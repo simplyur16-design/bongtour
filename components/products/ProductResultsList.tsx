@@ -102,6 +102,11 @@ export type ResultItem = {
   sportsThemeTags?: SportsThemeTag[]
   /** browse API — 지방·제주 출발 공항 라벨 (인천·김포는 null) */
   departureAirportLabelDisplay?: string | null
+  /**
+   * 모바일 홈·검색 출발 그룹. 값 없음은 unknown(인천 아님).
+   * REGRESSION-FREEZE[mobile-departure-group-actual-airport]: missing airport is unknown — manifest
+   */
+  mobileDepartureGroup?: 'capital' | 'regional' | 'unknown' | null
   /** browse API — 항공사별 최저가 줄(싼 순 상위 3) · 완전 같은 상품 묶음 수 (REGRESSION-FREEZE[airline-variant-group]) */
   airlinePriceLines?: CardAirlinePriceLine[]
   airlinePriceMoreCount?: number

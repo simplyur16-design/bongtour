@@ -5,8 +5,9 @@
  */
 import { isAirlineCarrierImageKeyword, isHotelLodgingImageKeyword } from '@/lib/pexels-place-name-keyword'
 import { splitRouteTextPlaceSegments } from '@/lib/register-schedule-llm-image-keyword-fallback'
+// 문과장 1106: '유의'(주의) 부분일치가 고유명사 '자유의 여신상'(자유+의)을 지우던 오탐 — (?<!자) 만 예외, 나머지 유의 문구는 그대로 노이즈
 const ROUTE_PLACE_NOISE_START_RE =
-  /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속)|^[★☆◈◎○]|기상\s*악화|결항|대체|불가할|유의|안내|주의|※|→|특전|시차|국가번호|관광\s*시간|쇼핑점|침향|찻집|라텍스/i
+  /^(?:호텔\s*조식|조식\s*후|중식|석식|자유\s*시간|체크\s*인|체크\s*아웃|공항\s*도착|공항\s*출발|출발|도착|이동|탑승|귀국|투숙|미팅|피켓|입국\s*수속|출국\s*수속)|^[★☆◈◎○]|기상\s*악화|결항|대체|불가할|(?<!자)유의|안내|주의|※|→|특전|시차|국가번호|관광\s*시간|쇼핑점|침향|찻집|라텍스/i
 
 /** 비행·이동 소요 시간 블록 — place 슬롯 아님 */
 const ROUTE_FLIGHT_DURATION_BLOCK_RE =
