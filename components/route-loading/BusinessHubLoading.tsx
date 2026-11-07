@@ -5,7 +5,7 @@ import { PulseBlock, PulseLine, RouteLoadingShell } from '@/components/route-loa
 export default function BusinessHubLoading() {
   return (
     <RouteLoadingShell>
-      <Header />
+      <Header logoPriority={false} />
       <PulseBlock className="h-56 w-full sm:h-72" />
       <div className={`${SITE_CONTENT_CLASS} space-y-8 py-10`}>
         <div className="space-y-3">

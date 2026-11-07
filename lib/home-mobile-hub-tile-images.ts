@@ -31,6 +31,33 @@ function publicFileExists(urlPath: string): boolean {
 }
 
 /**
+ * 모바일 허브 타일 전용. 번들이 `/images/home-hub/base/*`(데스크톱 원본)를 주면
+ * 같은 파일명의 `mobile/` 형제가 있을 때만 그 경로로 바꾼다. 원격·Ncloud URL은 그대로.
+ * REGRESSION-FREEZE[speed-home-responsive-images]: base training → mobile sibling — manifest
+ */
+export function preferMobileHubLocalVariant(src: string): string {
+  const t = src.trim()
+  const m = /^\/images\/home-hub\/base\/([^/?#]+)$/.exec(t)
+  if (!m) return t
+  const mobile = `/images/home-hub/mobile/${m[1]}`
+  return publicFileExists(mobile) ? mobile : t
+}
+
+/**
+ * 로컬 허브 원본 + 모바일 형제가 둘 다 있을 때 native `srcset`.
+ * 폭 디스크립터는 저장 파일 실측(training 1181 / base 1600). 다른 키는 폭을 추정하지 않는다.
+ * REGRESSION-FREEZE[speed-home-responsive-images]: training srcset only — manifest
+ */
+export function homeHubTrainingSrcSet(src: string): string | null {
+  const t = src.trim()
+  if (t !== '/images/home-hub/base/training.webp' && t !== '/images/home-hub/mobile/training.webp') return null
+  const mobile = '/images/home-hub/mobile/training.webp'
+  const base = '/images/home-hub/base/training.webp'
+  if (!publicFileExists(mobile) || !publicFileExists(base)) return null
+  return `${mobile} 1181w, ${base} 1600w`
+}
+
+/**
  * 모바일 홈 `HomeMobileHub` 주요 서비스 카드 배경 URL.
  *
  * `home-hub-active.json` 의 `mobileMainServiceTiles[key]` 를 우선한다.

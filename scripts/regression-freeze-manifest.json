@@ -31212,6 +31212,33 @@
         "lib/supplier-sweep-registration-status.test.ts",
         "lib/modetour-same-product-event.test.ts"
       ]
+    },
+    {
+      "id": "speed-home-responsive-images",
+      "tier": ["prebuild", "ci"],
+      "summary": "홈 모바일 타일은 base 원본 대신 있는 mobile 형제. 로딩 헤더 로고는 high priority 아님. Pexels srcset은 작성 w 이하.",
+      "checks": [
+        {
+          "file": "app/components/home/HomeMobileHub.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[speed-home-responsive-images]",
+            "preferMobileHubLocalVariant"
+          ]
+        },
+        {
+          "file": "components/route-loading/HomePageLoading.tsx",
+          "mustInclude": ["logoPriority={false}"]
+        },
+        {
+          "file": "components/route-loading/ProductsBrowseLoading.tsx",
+          "mustInclude": ["logoPriority={false}"]
+        },
+        {
+          "file": "app/components/SafeImage.tsx",
+          "mustInclude": ["nativeSrcSet"]
+        }
+      ],
+      "vitestSuites": ["lib/responsive-home-image.test.ts"]
     }
   ],
   "vitestSuites": [
