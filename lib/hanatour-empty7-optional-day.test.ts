@@ -40,4 +40,23 @@ describe('hanatour empty7 optional-only day places', () => {
     expect(sched[0]?.title).toMatch(/선월드|혼똔|야경/)
     expect(sched[0]?.description.length).toBeGreaterThan(10)
   })
+
+  it('CMS 상세보기 카드 본문은 supplierText로 쓰지 않는다', () => {
+    const facts = hanatourItnrSchdToFactDays([
+      {
+        schdDay: 3,
+        schdMainInfoList: [
+          {
+            schdCatgNm: '관광지',
+            cardNm: '자이승전망대',
+            cardCntntPc:
+              '테렐지 국립공원 내 자이승전망대 상세보기 이전 다음 울란바토르에서 이어지는 전망 구간입니다.',
+            cmsInfoList: [{ cmsCntntNm: '자이승전망대' }],
+          },
+        ],
+      },
+    ])
+    expect(facts[0]?.supplierText ?? null).toBeNull()
+    expect(facts[0]?.places.join(' ')).toMatch(/자이승/)
+  })
 })

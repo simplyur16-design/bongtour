@@ -869,6 +869,16 @@ export function hanatourItnrPlaceLabels(main: HanatourItnrSchdMain): string[] {
   return out
 }
 
+/** CMS 카드 본문. 상세보기·FAQ·안내 크롬은 일차 요약이 아니다.
+ * REGRESSION-FREEZE[register-schedule-mongolia-image-keyword]: 카드 크롬을 description에 넣지 않음 — manifest
+ */
+function hanatourCardDaySummary(main: HanatourItnrSchdMain): string | null {
+  const sum = stripHanatourHtmlText(String(main.cardCntntPc ?? main.cardCntntMbl ?? '')).slice(0, 280)
+  if (sum.length < 20) return null
+  if (/상세\s*보기|이전\s*다음|\bFAQ\b|안내\s*사항|꼭\s*한번/u.test(sum)) return null
+  return sum
+}
+
 export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]): RegisterFactScheduleDay[] {
   const rows: RegisterFactScheduleDay[] = []
   for (const dayRow of schdInfoList) {
@@ -896,8 +906,8 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
         for (const label of hanatourItnrPlaceLabels(main)) {
           if (!optionalPlaces.includes(label)) optionalPlaces.push(label)
         }
-        const sum = stripHanatourHtmlText(String(main.cardCntntPc ?? main.cardCntntMbl ?? '')).slice(0, 280)
-        if (sum.length >= 20) supplierBits.push(sum)
+        const sum = hanatourCardDaySummary(main)
+        if (sum) supplierBits.push(sum)
         continue
       }
       if (cat.includes('이동') || cat.includes('항공') || cat.includes('도시')) {
@@ -913,8 +923,8 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
         continue
       }
       for (const label of labels) fact.places.push(label)
-      const sum = stripHanatourHtmlText(String(main.cardCntntPc ?? main.cardCntntMbl ?? '')).slice(0, 280)
-      if (sum.length >= 20) supplierBits.push(sum)
+      const sum = hanatourCardDaySummary(main)
+      if (sum) supplierBits.push(sum)
     }
     // htlInfoList — 일차 숙소 후보 (제목 fallback·hotelText)
     for (const h of dayRow.htlInfoList ?? []) {
