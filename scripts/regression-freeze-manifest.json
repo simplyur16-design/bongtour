@@ -31139,6 +31139,79 @@
         "lib/bongsim/fulfillment/esim-paid-sms-pipeline.test.ts",
         "lib/bongsim/admin/esim-qr-notify-hold-admin.test.ts"
       ]
+    },
+    {
+      "id": "supplier-sweep-pending-same-event",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "modetour·verygoodtour·ybtour 일일 sweep는 registered에 pending·pre_photo_blocked만 더한다. 모두투어 SD1·과거 행사는 같은 productCode2·상품명일 때만 현재 번호의 공급사 가격을 쓴다.",
+      "checks": [
+        {
+          "file": "lib/modetour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
+            "MODETOUR_SWEEP_REGISTRATION_STATUSES = ['registered', 'pending', 'pre_photo_blocked']",
+            "const SWEEP_DEFAULT_LIMIT = 200",
+            "createSupplierSweepPacer('modetour')",
+            "RULE_A_WINDOW_DAYS"
+          ],
+          "mustNotInclude": [
+            "registrationStatus: { notIn"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
+            "VERYGOODTOUR_SWEEP_REGISTRATION_STATUSES = ['registered', 'pending', 'pre_photo_blocked']",
+            "const SWEEP_DEFAULT_LIMIT = 200",
+            "createSupplierSweepPacer('verygoodtour')",
+            "RULE_A_WINDOW_DAYS"
+          ],
+          "mustNotInclude": [
+            "registrationStatus: { notIn"
+          ]
+        },
+        {
+          "file": "lib/ybtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
+            "YBTOUR_SWEEP_REGISTRATION_STATUSES = ['registered', 'pending', 'pre_photo_blocked']",
+            "const SWEEP_DEFAULT_LIMIT = 200",
+            "createSupplierSweepPacer('ybtour')",
+            "RULE_A_WINDOW_DAYS"
+          ],
+          "mustNotInclude": [
+            "registrationStatus: { notIn"
+          ]
+        },
+        {
+          "file": "lib/modetour-same-product-event.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
+            "verifyModetourSameProductEvent",
+            "product_code2_mismatch",
+            "product_name_mismatch",
+            "itinerary_mismatch",
+            "GetOtherDepartureDates 응답만"
+          ]
+        },
+        {
+          "file": "lib/modetour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
+            "lookupModetourSameProductFutureDepartures",
+            "modetourCalendarNeedsSameProductLookup",
+            "기존 경로가 비었을 때만 현재 행사"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/supplier-sweep-registration-status.test.ts",
+        "lib/modetour-same-product-event.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

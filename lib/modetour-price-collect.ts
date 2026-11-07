@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[modetour-sweep-e2e-recheck]: API→E2E 폴백·stale 미래출발 검증 — manifest
  * REGRESSION-FREEZE[single-departure-modetour-collect]: 단일출발 GetProductDetailInfo 우선 — manifest
+ * REGRESSION-FREEZE[supplier-sweep-pending-same-event]: SD1·과거만 → 동일 상품 현재 행사 — manifest
  */
 import {
   mapScrapedRowsToInputs,
@@ -16,6 +17,10 @@ import {
   parseModetourPackageProductNoFromUrl,
 } from '@/lib/modetour-departures'
 import { resolveModetourDetailByOriginCode } from '@/lib/modetour-origin-code-resolve'
+import {
+  lookupModetourSameProductFutureDepartures,
+  modetourCalendarNeedsSameProductLookup,
+} from '@/lib/modetour-same-product-event'
 import {
   isModetourSd1NotFoundError,
   ModetourB2cApiError,
@@ -295,6 +300,7 @@ export async function collectModetourPriceInputsWithE2eFallback(
     if (singleHit) return singleHit
   }
 
+  let onlyPastCalendar = false
   if (!options?.singleDeparture) {
     try {
       const api = await collectModetourApiDepartureInputs(apiOriginUrl, fromYmd, toYmd)
@@ -311,6 +317,16 @@ export async function collectModetourPriceInputsWithE2eFallback(
           ...resolveMeta,
         }
       }
+      const departureDates = api.inputs
+        .map((row) => departureInputToYmd(row.departureDate))
+        .filter((d): d is string => d != null)
+      const windowStart = fromYmd <= toYmd ? fromYmd : toYmd
+      onlyPastCalendar = modetourCalendarNeedsSameProductLookup({
+        singleDeparture: false,
+        sd1: false,
+        departureDates,
+        windowStartYmd: windowStart,
+      })
     } catch (err) {
       if (isModetourSd1NotFoundError(err)) {
         apiFailedSd1 = true
@@ -348,6 +364,50 @@ export async function collectModetourPriceInputsWithE2eFallback(
         apiFailedSd1 = true
       } else {
         throw err
+      }
+    }
+  }
+
+  // 자유여행 SD1은 기존 GetProductDetailInfo 단건·풀 API가 먼저다.
+  // 그 전에 같은 상품 조회를 하면 단건 응답을 소비해 가격이 비고, 이어서 풀 수집 결과가 없으면 filter가 깨진다.
+  // 기존 경로가 비었을 때만 현재 행사 조회.
+  // REGRESSION-FREEZE[supplier-sweep-pending-same-event]: 기존 경로가 비었을 때만 현재 행사 — manifest
+  const storedNoForSibling = resolvedProductNo ?? storedProductNo
+  const lookupSameProduct =
+    !options?.singleDeparture && Boolean(storedNoForSibling) && (apiFailedSd1 || onlyPastCalendar)
+  if (lookupSameProduct && storedNoForSibling) {
+    const sibling = await lookupModetourSameProductFutureDepartures({
+      storedProductNo: storedNoForSibling,
+      fromYmd,
+      toYmd,
+      deps: {
+        fetchCalendar: async (productNo) => {
+          try {
+            const api = await collectModetourApiDepartureInputs(
+              `https://www.modetour.com/package/${productNo}`,
+              fromYmd,
+              toYmd,
+            )
+            return { inputs: api.inputs, sd1: false }
+          } catch (err) {
+            if (isModetourSd1NotFoundError(err)) return { inputs: [], sd1: true }
+            throw err
+          }
+        },
+      },
+    })
+    if (sibling) {
+      return {
+        inputs: sibling.inputs,
+        sourceDates: sibling.sourceDates,
+        source: 'api',
+        apiFailedSd1: false,
+        e2eAttempted: false,
+        e2eModalOpenFailed: false,
+        e2eError: null,
+        resolvedDetailUrl: sibling.detailUrl,
+        resolvedProductNo: sibling.productNo,
+        detailResolveSource: 'origin-code-redirect',
       }
     }
   }

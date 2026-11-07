@@ -224,6 +224,48 @@ describe('collectModetourPriceInputsWithE2eFallback', () => {
     expect(collectModetourDepartureInputsForDateRange).not.toHaveBeenCalled()
   })
 
+  it('airHotel SD1 group row is not intercepted by same-product lookup', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      text: async () =>
+        JSON.stringify({
+          errorMessages: [{ errorCode: '상품이 존재하지 않습니다. [SD1]' }],
+          isOK: false,
+        }),
+    } as Response)
+
+    fetchModetourGroupDetailInfo.mockResolvedValueOnce({
+      groupNumber: 102323588,
+      departureDate: ymdFromToday(50),
+      sellingPriceAdultTotalAmount: 579900,
+    })
+    fetchModetourGroupDetailInfo.mockResolvedValueOnce({
+      productCode2: 'OTHERCODE1',
+      productName: '다른 상품',
+      groupName: '다른 상품',
+      groupNumber: 999999999,
+      departureDate: ymdFromToday(40),
+      sellingPriceAdultTotalAmount: 1,
+    })
+
+    const out = await collectModetourPriceInputsWithE2eFallback(
+      'https://www.modetour.com/package/102323588',
+      FROM_YMD,
+      TO_YMD,
+      { airHotel: true, originCode: 'ADA920TWB4' },
+    )
+
+    expect(out.source).toBe('api')
+    expect(out.inputs).toHaveLength(1)
+    expect(out.inputs[0]?.adultPrice).toBe(579900)
+    expect(out.resolvedProductNo).toBe('102323588')
+    expect(out.e2eAttempted).toBe(false)
+    expect(fetchModetourGroupDetailInfo).toHaveBeenCalledTimes(1)
+    expect(scrapeLiveCalendar).not.toHaveBeenCalled()
+    expect(collectModetourDepartureInputsForDateRange).not.toHaveBeenCalled()
+  })
+
   it('airHotel uses full API collector when lightweight returns zero rows', async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
