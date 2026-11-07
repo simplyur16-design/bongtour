@@ -31048,6 +31048,34 @@
         "lib/register-auto-photo-missing-day.test.ts",
         "lib/fit-itinerary-keyword-no-cross-day.test.ts"
       ]
+    },
+    {
+      "id": "register-ingest-esim-yield-count-fallback",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "야간 수집 eSIM 양보 COUNT는 outbox 풀 실패 시 DATABASE_URL 풀로 같은 SELECT를 1회 재시도하고, 둘 다 실패하면 skip -1과 코드 로그만 남긴다",
+      "checks": [
+        {
+          "file": "lib/register-listing-ingest-cron-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-esim-yield-count-fallback]",
+            "[register-ingest] esim yield count failed code=",
+            "getPgPool",
+            "SELECT COUNT(*)::int AS n",
+            "processed_at IS NULL",
+            "pending: -1"
+          ],
+          "mustNotInclude": [
+            "getBongsimFulfillOutboxPool",
+            "SET statement_timeout"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-listing-ingest-cron-gate.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

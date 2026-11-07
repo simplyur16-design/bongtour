@@ -15,9 +15,14 @@ import { REGISTER_PRE_PHOTO_INGEST_OPERATOR_NIGHT_TOTAL } from "@/lib/register-p
 // REGRESSION-FREEZE[register-pre-photo-heal-cron-always]: heal independent of ingest — manifest
 
 const countPendingEsimQrNotify = vi.fn();
+const mainPoolQuery = vi.fn();
 
 vi.mock("@/lib/bongsim/fulfillment/esim-qr-notify-outbox", () => ({
   countPendingEsimQrNotify: (...args: unknown[]) => countPendingEsimQrNotify(...args),
+}));
+
+vi.mock("@/lib/bongsim/db/pool", () => ({
+  getPgPool: () => ({ query: (...args: unknown[]) => mainPoolQuery(...args) }),
 }));
 
 describe("isRegisterListingIngestCronEnabled", () => {
@@ -79,6 +84,8 @@ describe("night ingest process role + yield", () => {
     __resetRegisterIngestEsimYieldSkipCountForTest();
     countPendingEsimQrNotify.mockReset();
     countPendingEsimQrNotify.mockResolvedValue(0);
+    mainPoolQuery.mockReset();
+    mainPoolQuery.mockRejectedValue(new Error("main pool down"));
   });
 
   it("role=web + ENABLE=1 → night ingest not registered", () => {
@@ -113,6 +120,55 @@ describe("night ingest process role + yield", () => {
     expect(r.skip).toBe(true);
     expect(r.pending).toBe(-1);
     expect(getRegisterIngestEsimYieldSkipCount()).toBe(1);
+  });
+
+  it("outbox count ok does not touch the main pool", async () => {
+    countPendingEsimQrNotify.mockResolvedValue(0);
+    const r = await registerIngestShouldYieldToEsimSms();
+    expect(r).toEqual({ skip: false, pending: 0 });
+    expect(mainPoolQuery).not.toHaveBeenCalled();
+    expect(getRegisterIngestEsimYieldSkipCount()).toBe(0);
+  });
+
+  it("outbox throw + main pool 0 does not skip", async () => {
+    countPendingEsimQrNotify.mockRejectedValue(Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" }));
+    mainPoolQuery.mockResolvedValue({ rows: [{ n: 0 }] });
+    const r = await registerIngestShouldYieldToEsimSms();
+    expect(r).toEqual({ skip: false, pending: 0 });
+    expect(mainPoolQuery).toHaveBeenCalledTimes(1);
+    expect(String(mainPoolQuery.mock.calls[0]?.[0])).toContain("SELECT COUNT(*)::int AS n");
+    expect(mainPoolQuery.mock.calls[0]?.[1]).toEqual(["EsimQrNotify"]);
+    expect(getRegisterIngestEsimYieldSkipCount()).toBe(0);
+  });
+
+  it("outbox throw + main pool pending > 0 skips", async () => {
+    countPendingEsimQrNotify.mockRejectedValue(new Error("outbox down"));
+    mainPoolQuery.mockResolvedValue({ rows: [{ n: "4" }] });
+    const r = await registerIngestShouldYieldToEsimSms();
+    expect(r).toEqual({ skip: true, pending: 4 });
+    expect(getRegisterIngestEsimYieldSkipCount()).toBe(1);
+  });
+
+  it("both counts throw → skip -1 and the log has no postgres URL", async () => {
+    const secretUrl = "postgres://user:secret@db.example:5432/postgres?sslmode=require";
+    countPendingEsimQrNotify.mockRejectedValue(
+      Object.assign(new Error(`outbox ${secretUrl}`), { code: "ECONNREFUSED" }),
+    );
+    mainPoolQuery.mockRejectedValue(new Error(`main ${secretUrl}`));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const r = await registerIngestShouldYieldToEsimSms();
+      expect(r).toEqual({ skip: true, pending: -1 });
+      expect(getRegisterIngestEsimYieldSkipCount()).toBe(1);
+      const line = warn.mock.calls.map((args) => args.map(String).join(" ")).join("\n");
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(line).toContain("[register-ingest] esim yield count failed code=ECONNREFUSED");
+      expect(line).not.toMatch(/postgres(?:ql)?:\/\//i);
+      expect(line).not.toContain("secret");
+      expect(line).not.toContain("db.example");
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("REGISTER_INGEST_YIELD_TO_ESIM=0 disables yield", async () => {

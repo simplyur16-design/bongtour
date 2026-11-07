@@ -74,9 +74,57 @@ function recordYieldSkip(): void {
   ingestYieldSkipCount += 1
 }
 
+/** yield COUNT 전용. drain/발송 SQL과 동일한 읽기 전용 COUNT. */
+const ESIM_YIELD_COUNT_SQL = `SELECT COUNT(*)::int AS n
+       FROM bongsim_outbox
+      WHERE topic = $1 AND processed_at IS NULL`
+const ESIM_YIELD_COUNT_TOPIC = 'EsimQrNotify'
+
+/** 로그에 접속 문자열이 남지 않게 한다. */
+export function redactRegisterIngestLogText(raw: string): string {
+  return raw.replace(/postgres(?:ql)?:\/\/\S+/gi, '[redacted]')
+}
+
+function esimYieldCountErrorCode(err: unknown): string {
+  if (err && typeof err === 'object' && 'code' in err && (err as { code?: unknown }).code != null) {
+    const code = String((err as { code: unknown }).code).trim()
+    if (code) return redactRegisterIngestLogText(code).slice(0, 40)
+  }
+  return err instanceof Error ? err.name : 'Error'
+}
+
+function esimYieldCountErrorMessage(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err)
+  return redactRegisterIngestLogText(message).replace(/\s+/g, ' ').trim().slice(0, 160)
+}
+
+function logEsimYieldCountFailed(err: unknown, fallbackErr?: unknown): void {
+  const fallback = fallbackErr ? ` fallback=${esimYieldCountErrorCode(fallbackErr)}` : ''
+  const detail = fallbackErr
+    ? `${esimYieldCountErrorMessage(err)} ${esimYieldCountErrorMessage(fallbackErr)}`
+    : esimYieldCountErrorMessage(err)
+  console.warn(
+    `[register-ingest] esim yield count failed code=${esimYieldCountErrorCode(err)}${fallback} ${detail}`.trim(),
+  )
+}
+
+/**
+ * outbox 풀 COUNT가 실패했을 때만. 앱이 이미 쓰는 DATABASE_URL 풀(getPgPool)로 같은 SELECT를 1회.
+ * REGRESSION-FREEZE[register-ingest-esim-yield-count-fallback]: 메인 풀 COUNT 1회 — manifest
+ */
+async function countPendingEsimQrNotifyOnMainPool(): Promise<number> {
+  const { getPgPool } = await import('@/lib/bongsim/db/pool')
+  const pool = getPgPool()
+  if (!pool) throw new Error('main_pool_unavailable')
+  const r = await pool.query<{ n: number | string }>(ESIM_YIELD_COUNT_SQL, [ESIM_YIELD_COUNT_TOPIC])
+  const n = Number(r.rows[0]?.n ?? 0)
+  return Number.isFinite(n) ? n : 0
+}
+
 /**
  * eSIM QR 문자 대기 중이면 수집 tick 양보.
  * REGISTER_INGEST_YIELD_TO_ESIM=0 이면 끔(기본 켬). 쿼리 실패 시 안전하게 건너뜀.
+ * REGRESSION-FREEZE[register-ingest-esim-yield-count-fallback]: outbox 실패 시 메인 풀 — manifest
  */
 export async function registerIngestShouldYieldToEsimSms(): Promise<{
   skip: boolean
@@ -85,18 +133,25 @@ export async function registerIngestShouldYieldToEsimSms(): Promise<{
   if (process.env.REGISTER_INGEST_YIELD_TO_ESIM === '0') {
     return { skip: false, pending: 0 }
   }
+  let pending: number
   try {
     const { countPendingEsimQrNotify } = await import(
       '@/lib/bongsim/fulfillment/esim-qr-notify-outbox'
     )
-    const pending = await countPendingEsimQrNotify()
-    if (pending > 0) {
+    pending = await countPendingEsimQrNotify()
+  } catch (outboxErr) {
+    try {
+      pending = await countPendingEsimQrNotifyOnMainPool()
+      logEsimYieldCountFailed(outboxErr)
+    } catch (mainErr) {
+      logEsimYieldCountFailed(outboxErr, mainErr)
       recordYieldSkip()
-      return { skip: true, pending }
+      return { skip: true, pending: -1 }
     }
-    return { skip: false, pending: 0 }
-  } catch {
-    recordYieldSkip()
-    return { skip: true, pending: -1 }
   }
+  if (pending > 0) {
+    recordYieldSkip()
+    return { skip: true, pending }
+  }
+  return { skip: false, pending: 0 }
 }
