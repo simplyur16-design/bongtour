@@ -10,6 +10,8 @@ import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import type { ResultItem } from '@/components/products/ProductResultsList'
 import { applyLocalDepartureDisplayPrefix, resolveDisplayLocalDepartureTags } from '@/lib/local-departure-display-prefix'
+import { classifyMobileDepartureGroup, type MobileDepartureGroup } from '@/lib/mobile-departure-group'
+import { fetchEarliestOutboundDepartureAirportByProductIds } from '@/lib/product-browse-full-include'
 
 function startOfTodayKst(): Date {
   const seoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
@@ -46,7 +48,7 @@ function toResultItem(p: {
   departures: { adultPrice: number | null; departureDate: Date }[]
   prices: { adult: number }[]
   priceFrom: number | null
-}): ResultItem {
+}, mobileDepartureGroup: MobileDepartureGroup): ResultItem {
   const scheduleRows = getScheduleFromProduct(p as Parameters<typeof getScheduleFromProduct>[0])
   const coverUrl = getFinalCoverImageUrl({
     bgImageUrl: p.bgImageUrl,
@@ -67,6 +69,7 @@ function toResultItem(p: {
     bgImageUrl: p.bgImageUrl,
     coverImageUrl: coverUrl,
     effectivePricePerPersonKrw: computeEffectivePricePerPersonKrwFromRow(p),
+    mobileDepartureGroup,
   }
 }
 
@@ -146,13 +149,23 @@ async function loadSeasonLinkedProductsMobileUncached(): Promise<ResultItem[]> {
   })
 
   const merged = [...orderedLinked, ...orderedRelated].slice(0, 8)
-  return merged.map(({ p }) => toResultItem(p))
+  const airports = await fetchEarliestOutboundDepartureAirportByProductIds(merged.map(({ p }) => p.id))
+  return merged.map(({ p }) =>
+    toResultItem(
+      p,
+      classifyMobileDepartureGroup({
+        departureAirportLabel: p.departureAirportLabel,
+        localDepartureTags: p.localDepartureTag,
+        outboundDepartureAirport: airports.get(p.id) ?? null,
+      }),
+    ),
+  )
 }
 
 export async function getCachedSeasonLinkedProductItemsForMobile(): Promise<ResultItem[]> {
   const run = unstable_cache(
     () => loadSeasonLinkedProductsMobileUncached(),
-    ['season-linked-products-mobile-v1'],
+    ['season-linked-products-mobile-v2'],
     { revalidate: 21_600 },
   )
   return run()

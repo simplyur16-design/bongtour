@@ -3,6 +3,7 @@
 import ProductHubGalleryGrid from '@/components/products/ProductHubGalleryGrid'
 import ProductHubPcDoubleScrollRows from '@/components/products/ProductHubPcDoubleScrollRows'
 import type { ResultItem } from '@/components/products/ProductResultsList'
+import MobileDepartureGroupStack from '@/components/products/MobileDepartureGroupStack'
 
 type Props = {
   items: ResultItem[]
@@ -11,6 +12,8 @@ type Props = {
   rotationSeed: number
   scopeKey: string
   interleaveEsim?: boolean
+  /** 모바일(lg 미만)만 출발공항 그룹. PC 줄은 그대로 */
+  groupByMobileDeparture?: boolean
 }
 
 /**
@@ -25,6 +28,7 @@ export default function ProductHubSectionGallery({
   rotationSeed,
   scopeKey,
   interleaveEsim = false,
+  groupByMobileDeparture = false,
 }: Props) {
   if (items.length === 0) return null
 
@@ -40,14 +44,30 @@ export default function ProductHubSectionGallery({
         />
       </div>
       <div className="lg:hidden">
-        <ProductHubGalleryGrid
-          items={items}
-          formatWon={formatWon}
-          seasonalPickIds={seasonalPickIds}
-          rotationSeed={rotationSeed}
-          scopeKey={scopeKey}
-          interleaveEsim={interleaveEsim}
-        />
+        {groupByMobileDeparture ? (
+          <MobileDepartureGroupStack
+            items={items}
+            renderItems={(groupItems, group) => (
+              <ProductHubGalleryGrid
+                items={groupItems}
+                formatWon={formatWon}
+                seasonalPickIds={seasonalPickIds}
+                rotationSeed={rotationSeed}
+                scopeKey={`${scopeKey}-${group}`}
+                interleaveEsim={interleaveEsim}
+              />
+            )}
+          />
+        ) : (
+          <ProductHubGalleryGrid
+            items={items}
+            formatWon={formatWon}
+            seasonalPickIds={seasonalPickIds}
+            rotationSeed={rotationSeed}
+            scopeKey={scopeKey}
+            interleaveEsim={interleaveEsim}
+          />
+        )}
       </div>
     </div>
   )

@@ -43,6 +43,7 @@ export default function OverseasHubCatalogGallery({
             }
             rotationSeed={rotationSeed}
             scopeKey={`overseas-${section.key}`}
+            groupByMobileDeparture
           />
         </section>
       ))}

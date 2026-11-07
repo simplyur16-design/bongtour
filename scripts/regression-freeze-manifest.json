@@ -30701,6 +30701,53 @@
       "vitestSuites": [
         "lib/fit-itinerary-original-route.test.ts"
       ]
+    },
+    {
+      "id": "mobile-departure-group-actual-airport",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "모바일 홈·검색 출발 그룹은 실제 공항만. 빈 공항은 인천이 아님. 검색창 아래 패키지/자유여행 토글 없음",
+      "checks": [
+        {
+          "file": "lib/mobile-departure-group.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mobile-departure-group-actual-airport]",
+            "missing airport is unknown",
+            "ICN",
+            "GMP",
+            "청주",
+            "김해"
+          ],
+          "mustNotInclude": [
+            "inferHomeDepartureAirport",
+            "inferDepartureAirportFromHaystack"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mobile-departure-group-actual-airport]",
+            "classifyMobileDepartureGroup"
+          ]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasHubCatalogRoot.tsx",
+          "mustNotInclude": [
+            "OverseasHubTravelTypeChips"
+          ]
+        },
+        {
+          "file": "app/components/home/HomeMobileHub.tsx",
+          "mustInclude": [
+            "groupByMobileDeparture"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/mobile-departure-group.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
