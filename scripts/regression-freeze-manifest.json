@@ -30949,6 +30949,36 @@
       "vitestSuites": [
         "lib/schedule-day-supplier-original.test.ts"
       ]
+    },
+    {
+      "id": "naeiltour-sweep-pending-departures",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 일일 출발 재수집은 registered만이 아니라 pending·pre_photo_blocked 도 program_process 로 적재한다. 마감 행은 기존처럼 제외.",
+      "checks": [
+        {
+          "file": "lib/naeiltour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-sweep-pending-departures]",
+            "NAEILTOUR_SWEEP_REGISTRATION_STATUSES",
+            "'pending'",
+            "'pre_photo_blocked'",
+            "'registered'"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-departures.ts",
+          "mustInclude": [
+            "NAEILTOUR_PROGRAM_LIST_PACE_MS = 280"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/naeiltour-sweep.test.ts",
+        "lib/naeiltour-program-process-keep-future.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

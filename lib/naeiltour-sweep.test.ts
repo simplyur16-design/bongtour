@@ -26,7 +26,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { sweepDueNaeiltourProducts } from '@/lib/naeiltour-sweep'
+import { NAEILTOUR_SWEEP_REGISTRATION_STATUSES, sweepDueNaeiltourProducts } from '@/lib/naeiltour-sweep'
 
 describe('naeiltour-sweep', () => {
   const prisma = {
@@ -82,6 +82,15 @@ describe('naeiltour-sweep', () => {
     expect(r.updated).toBe(0)
     expect(r.skipped).toBe(1)
     expect(productUpdate).toHaveBeenCalled()
+  })
+
+  it('pending and pre_photo_blocked stay in the automatic sweep query', async () => {
+    productFindMany.mockResolvedValue([])
+    await sweepDueNaeiltourProducts(prisma, { limit: 10, prismaRead: prisma })
+    const where = productFindMany.mock.calls[0]?.[0]?.where
+    expect(where.registrationStatus).toEqual({ in: [...NAEILTOUR_SWEEP_REGISTRATION_STATUSES] })
+    expect(where.registrationStatus.in).toEqual(expect.arrayContaining(['registered', 'pending', 'pre_photo_blocked']))
+    expect(where.originSource).toBe('naeiltour')
   })
 
   it('due 없음 → no-op', async () => {
