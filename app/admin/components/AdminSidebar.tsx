@@ -34,7 +34,6 @@ import {
   Megaphone,
   Plane,
   MapPin,
-  Quote,
   Menu,
   X,
 } from 'lucide-react'
@@ -65,7 +64,6 @@ const navEntries: NavEntry[] = [
       { href: '/admin/marketing/packages', label: '패키지', icon: Package },
       { href: '/admin/marketing/airtel', label: '자유여행', icon: Plane },
       { href: '/admin/marketing/curation-events', label: '이벤트 검토 (임시)', icon: CalendarDays },
-      { href: '/admin/marketing/hooks', label: '후킹 라이브러리', icon: Quote },
     ],
   },
   { type: 'link', href: '/admin/image-assets-upload', label: '이미지 업로드 · 출처(iStock)', icon: Images },
