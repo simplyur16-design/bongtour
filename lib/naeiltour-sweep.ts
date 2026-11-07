@@ -48,6 +48,17 @@ function safeRevalidateProductListingCaches(): void {
 
 const SWEEP_DEFAULT_LIMIT = 200
 
+/**
+ * 자동 재수집 대상. 등록 완료뿐 아니라 등록대기·사진전 검수도 포함한다.
+ * pre_photo_blocked·pending 을 빼면 공급사에 미래 출발이 있어도 ProductDeparture 가 비어 있는 채로 남는다.
+ * REGRESSION-FREEZE[naeiltour-sweep-pending-departures]: pending·pre_photo_blocked 도 program_process — manifest
+ */
+export const NAEILTOUR_SWEEP_REGISTRATION_STATUSES = ['registered', 'pending', 'pre_photo_blocked'] as const
+
+function naeiltourSweepStatusWhere() {
+  return { registrationStatus: { in: [...NAEILTOUR_SWEEP_REGISTRATION_STATUSES] } }
+}
+
 export type NaeiltourSweepResult = {
   processed: number
   updated: number
@@ -87,7 +98,7 @@ async function findSweepProducts(
     const row = await prisma.product.findFirst({
       where: {
         id: options.productId.trim(),
-        registrationStatus: 'registered',
+        ...naeiltourSweepStatusWhere(),
         originSource: 'naeiltour',
       },
       select,
@@ -99,7 +110,7 @@ async function findSweepProducts(
     const code = options.originCode.trim()
     const row = await prisma.product.findFirst({
       where: {
-        registrationStatus: 'registered',
+        ...naeiltourSweepStatusWhere(),
         originSource: 'naeiltour',
         originCode: { equals: code, mode: 'insensitive' },
       },
@@ -111,7 +122,7 @@ async function findSweepProducts(
   const cutoff = supplierDailySweepDueCutoff()
   return prisma.product.findMany({
     where: {
-      registrationStatus: 'registered',
+      ...naeiltourSweepStatusWhere(),
       originSource: 'naeiltour',
       OR: [...supplierDailySweepDueOr(cutoff)],
     },
