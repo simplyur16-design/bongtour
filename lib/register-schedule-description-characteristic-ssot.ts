@@ -353,10 +353,9 @@ function synthesizeFromRoute(opts: {
   const isFirst = day === 1
   const sentences: string[] = []
 
+  // REGRESSION-FREEZE[parser-nl-hub-and-return-template]: 귀국일 체크아웃 귀국 템플릿 생성 금지 — manifest
   if (isLast && facets[0] === 'return' && pois.length <= 1) {
-    sentences.push('체크아웃 후 인천으로 귀국합니다.')
-    sentences.push(FACET_CLOSER.return)
-    return sentences.join(' ')
+    return ''
   }
 
   if (isFirst && (facets.includes('arrival') || /인천|김포|출발|입국/i.test(blob))) {
@@ -433,7 +432,7 @@ export function composeRegisterScheduleDaySummary(opts: {
     opts.maxDay,
   )
   if (accepted) return accepted
-  return capAtSentenceBoundary(
+  const synthesized = capAtSentenceBoundary(
     synthesizeFromRoute({
       day: opts.day,
       maxDay: opts.maxDay,
@@ -441,6 +440,20 @@ export function composeRegisterScheduleDaySummary(opts: {
       joinedBlob: opts.joinedBlob,
     }),
   )
+  if (synthesized) return synthesized
+  // 허브만 있는 귀국일: 체크아웃 귀국 템플릿 대신 짧은 공급사 문장을 남기고, 없으면 비운다.
+  const isLast = opts.maxDay >= 2 && opts.day === opts.maxDay
+  const raw = String(opts.supplierText ?? '').replace(/\s+/g, ' ').trim()
+  if (
+    isLast &&
+    pickRoutePois(opts.routePlaces).length <= 1 &&
+    raw &&
+    !/체크아웃\s*후/u.test(raw) &&
+    !GENERIC_VIBE_RE.test(raw)
+  ) {
+    return capAtSentenceBoundary(raw)
+  }
+  return ''
 }
 
 /** @deprecated 이름 호환 — composeRegisterScheduleDaySummary 와 동일 */

@@ -1,0 +1,2 @@
+# Supplier fixture captures are exact bytes, including CRLF. Never renormalize them.
+tests/fixtures/parser-empty7-1106/** -text

@@ -7,6 +7,9 @@
  * 2026-10-31 2차(47): 1차 20 + rework2 통과 26 + #32(12:14 새 사진 37519014 통과). #46 은 등록 직후 실화면 캡처 조건. 보류: #16(slug 결정 대기).
  * REGRESSION-FREEZE[auto-register-review-pass]: FLIP 이어도 검수 통과 목록 밖 상품은 등록 전환 안 함 — manifest
  */
+import { isReviewRevisionStale, readMaterializedRevision } from '@/lib/register-pending-revision'
+import { verifyHumanReviewAudit, type ReviewEvidenceRow } from '@/lib/register-review-audit'
+
 export const AUTO_REGISTER_REVIEW_PASS_IDS: readonly string[] = [
   // 1차 통과(10:31) 19개 — #14 hn-0123 은 D2-2(17177476)/D4-2(38015799) 2차 통과(11:37) 후 포함, #46 vg-0091 은 12:14 조건부 허용
   'cmv4piesd003214itc6pwjvj2', // #2 pkg-hn-0168
@@ -62,6 +65,28 @@ export const AUTO_REGISTER_REVIEW_PASS_IDS: readonly string[] = [
 
 const PASS = new Set(AUTO_REGISTER_REVIEW_PASS_IDS)
 
-export function isAutoRegisterReviewPassed(productId: string): boolean {
-  return PASS.has(productId)
+/**
+ * 문과장 3축 검수 통과 id + (옵션) remat revision 일치.
+ * supplier remat 후 rawMeta.materializedRevision ≠ lastReviewedHash 이면 재검수 전 등록 금지.
+ */
+export function isAutoRegisterReviewPassed(
+  productId: string,
+  opts?: { rawMeta?: string | null; schedule?: string | null; row?: ReviewEvidenceRow },
+): boolean {
+  if (!PASS.has(productId)) return false
+  // 문과장 1106 v3: 실제 등록 잡은 현재 행 전체를 넘긴다 → remat 이후면 3축 사람 검수 감사(일정·요약/설명·사진·revision·검수자) 전부 일치해야 통과.
+  // remat revision 이 없는 기존 상품(legacy)은 목록 통과 의미 그대로 유지.
+  if (opts?.row) {
+    if (opts.row.id !== productId) return false
+    if (!readMaterializedRevision(opts.row.rawMeta)) return true
+    return verifyHumanReviewAudit(productId, opts.row).ok
+  }
+  if (
+    opts &&
+    Object.prototype.hasOwnProperty.call(opts, 'rawMeta') &&
+    isReviewRevisionStale(opts.rawMeta, Object.prototype.hasOwnProperty.call(opts, 'schedule') ? opts.schedule : undefined)
+  ) {
+    return false
+  }
+  return true
 }

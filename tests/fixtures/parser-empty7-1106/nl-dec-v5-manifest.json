@@ -1,0 +1,37 @@
+{
+  "0014": {
+    "raw": "evidence-tree/source-re-read-2236/pkg-nl-0014-raw-euckr.bin",
+    "rawSha": "bd82d250f700f619d1ce67b97f8ebd2f74ba3216a57aff54d79866bbbed1daec",
+    "rawBytes": 275363,
+    "decoded": "evidence-tree/scratch/nl-dec-v5/pkg-nl-0014.cp949-decoded.html",
+    "decodedSha": "eb2b26e4cecb4e7f95b87023ac12e6e036fbdeeaaf28feb464a7de6ecd9b3296"
+  },
+  "0016": {
+    "raw": "evidence-tree/source-re-read-2236/pkg-nl-0016-raw-euckr.bin",
+    "rawSha": "bcebcdef468156fbc36d63c4e1a4b2226fe10b162bdd0da2270121588585efcd",
+    "rawBytes": 274420,
+    "decoded": "evidence-tree/scratch/nl-dec-v5/pkg-nl-0016.cp949-decoded.html",
+    "decodedSha": "665af088d1b2ac6e960646058f891f386f6eb3f87e680adb331531b2b7467e52"
+  },
+  "0017": {
+    "raw": "evidence-tree/source-re-read-2236/pkg-nl-0017-raw-euckr.bin",
+    "rawSha": "e13390761341165c47324aac5adb8f510a29bbcac427977e244e1d6c6ee04947",
+    "rawBytes": 286109,
+    "decoded": "evidence-tree/scratch/nl-dec-v5/pkg-nl-0017.cp949-decoded.html",
+    "decodedSha": "8e59f0ca1bd3e6de8a0cf556ed8bcba8bb88f08acd64b6873da39536b6545fe1"
+  },
+  "0019": {
+    "raw": "evidence-tree/raw-preserve/raw/refetch-1106/pkg-nl-0019_page_961da52f.bin",
+    "rawSha": "8097d131d920f7a3ce67d4b2cb02f7939f097c041cd7bb00a6c165bb0405c534",
+    "rawBytes": 254029,
+    "decoded": "evidence-tree/scratch/nl-dec-v5/pkg-nl-0019.cp949-decoded.html",
+    "decodedSha": "252a6b2068eda683a65181942a8eee42a3635d507b813356a0f8f5f9d4dcdac0"
+  },
+  "0020": {
+    "raw": "evidence-tree/raw-preserve/raw/refetch-1106/pkg-nl-0020_page_75680135.bin",
+    "rawSha": "0fb5bae18914e4d4ba68978ec53e9ed451ea17ab424d83aa898d62595288ba0e",
+    "rawBytes": 263446,
+    "decoded": "evidence-tree/scratch/nl-dec-v5/pkg-nl-0020.cp949-decoded.html",
+    "decodedSha": "ef51933633196e7c59148d0f74226d9df023386619120673c6e94c88f3000483"
+  }
+}
