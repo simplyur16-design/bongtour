@@ -4,6 +4,7 @@
  *
  * REGRESSION-FREEZE[modetour-sweep-e2e-recheck]: API→E2E·7일 재확인·stale 미래출발 정리 — manifest
  * REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]: due = lastPriceObservedAt — manifest
+ * REGRESSION-FREEZE[supplier-sweep-pending-same-event]: pending·pre_photo_blocked 포함, 그 외 상태 제외 — manifest
  *
  * SD1/API 0건: E2E로 6개월 지평 재확인. 둘 다 실패 시 지평 내 출발 삭제 후 auto_unpublished(자유여행 제외).
  * 수집 성공 시 `rawMeta.modetourNextPriceRecheckYmd` = KST 오늘 + 7일.
@@ -62,6 +63,19 @@ function safeRevalidateProductListingCaches(): void {
 }
 
 const SWEEP_DEFAULT_LIMIT = 200
+
+/**
+ * 일일 sweep 대상. registered 에 pending·pre_photo_blocked 만 더한다.
+ * 제외(스키마·코드에 있는 값): on_hold, rejected, auto_unpublished, null, ''.
+ * deleted / inactive / hidden 은 Product.registrationStatus 값이 아니며 포함하지 않는다.
+ * 호출 상한·간격·180일 창은 그대로. 추가 호출 수는 due 건수에 따름(DB 미측정).
+ * REGRESSION-FREEZE[supplier-sweep-pending-same-event]: pending·pre_photo_blocked 포함 — manifest
+ */
+export const MODETOUR_SWEEP_REGISTRATION_STATUSES = ['registered', 'pending', 'pre_photo_blocked'] as const
+
+function modetourSweepRegistrationWhere(): { registrationStatus: { in: string[] } } {
+  return { registrationStatus: { in: [...MODETOUR_SWEEP_REGISTRATION_STATUSES] } }
+}
 /** 연속 e2e defer 이 횟수 이상이면 ingest-digest 집계에 포함 */
 const MODETOUR_E2E_DEFER_DIGEST_THRESHOLD = 3
 
@@ -182,7 +196,7 @@ async function findSweepProducts(
     const row = await prisma.product.findFirst({
       where: {
         id: options.productId.trim(),
-        registrationStatus: 'registered',
+        ...modetourSweepRegistrationWhere(),
         originSource: 'modetour',
       },
       select,
@@ -194,7 +208,7 @@ async function findSweepProducts(
     const code = options.originCode.trim()
     const row = await prisma.product.findFirst({
       where: {
-        registrationStatus: 'registered',
+        ...modetourSweepRegistrationWhere(),
         originSource: 'modetour',
         originCode: { equals: code, mode: 'insensitive' },
       },
@@ -207,7 +221,7 @@ async function findSweepProducts(
     const forcedNo = options.productNo.trim()
     const rows = await prisma.product.findMany({
       where: {
-        registrationStatus: 'registered',
+        ...modetourSweepRegistrationWhere(),
         originSource: 'modetour',
       },
       select,
@@ -220,7 +234,7 @@ async function findSweepProducts(
   const cutoff = supplierDailySweepDueCutoff()
   const rows = await prisma.product.findMany({
     where: {
-      registrationStatus: 'registered',
+      ...modetourSweepRegistrationWhere(),
       originSource: 'modetour',
       OR: [...supplierDailySweepDueOr(cutoff)],
     },
