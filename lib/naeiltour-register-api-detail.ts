@@ -630,6 +630,25 @@ function extractNaeiltourBodyPlaceLabels(block: string): string[] {
   return found.sort((a, b) => a.at - b.at).map((x) => x.t)
 }
 
+const NAEILTOUR_KR_HUB_SRC = '인천|김포|김해|부산|대구|청주|제주|무안|양양'
+
+/** 일정 본문 h2 중 공항 출발·도착 줄. 헤더 strong(도시-도시)은 포함하지 않는다. */
+function extractNaeiltourMovementLines(block: string): string[] {
+  const out: string[] = []
+  for (const m of block.matchAll(/<h2>\s*(?:<img[^>]*>\s*)?([^<]{2,160})<\/h2>/gi)) {
+    const t = stripNaeiltourHtmlText(m[1] ?? '').replace(/\s+/g, ' ').trim()
+    if (!t || t.length > 80) continue
+    if (!/(?:공항).{0,16}(?:출발|도착)|(?:출발|도착).{0,8}공항/u.test(t)) continue
+    if (!out.includes(t)) out.push(t)
+  }
+  return out
+}
+
+function naeiltourDay1DepartureBody(lines: readonly string[]): string | null {
+  const re = new RegExp(`(?:${NAEILTOUR_KR_HUB_SRC})\\s*(?:국제\\s*)?공항[^\\n]{0,16}출발`, 'u')
+  return lines.find((l) => re.test(l)) ?? null
+}
+
 export function parseNaeiltourScheduleDaysFromTab1(html: string | null): NaeiltourParsedScheduleDay[] {
   if (!html?.trim()) return []
   const days: NaeiltourParsedScheduleDay[] = []
@@ -657,6 +676,10 @@ export function parseNaeiltourScheduleDaysFromTab1(html: string | null): Naeilto
     const meals = extractMealsFromBlock(chunk)
     const hotel = extractHotelFromBlock(chunk)
     const transportNote = joinNaeiltourScheduleRouteText(places)
+    // REGRESSION-FREEZE[parser-nl-hub-and-return-template]: 본문 공항 출발 줄·관광 없는 날의 공급사 이동 줄 — manifest
+    const movementLines = extractNaeiltourMovementLines(chunk)
+    const sourceDepartureBody = day === 1 ? naeiltourDay1DepartureBody(movementLines) : null
+    const supplierTimeline = bodyPlaces.length === 0 && movementLines.length > 0 ? movementLines : undefined
     days.push({
       day,
       places,
@@ -665,6 +688,8 @@ export function parseNaeiltourScheduleDaysFromTab1(html: string | null): Naeilto
       transportNote,
       englishRouteLandmarks,
       dateIso,
+      sourceDepartureBody,
+      ...(supplierTimeline ? { supplierTimeline } : {}),
     })
   }
   return days.sort((a, b) => a.day - b.day)

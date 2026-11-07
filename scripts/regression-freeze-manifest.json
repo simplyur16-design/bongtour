@@ -362,6 +362,66 @@
   ],
   "staticGuards": [
     {
+      "id": "parser-nl-hub-and-return-template",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "NL 출발 허브는 제목+1일차 본문 일치(김해=부산). 불일치면 null+검수 플래그, 인천 기본값 금지. 귀국일 체크아웃 템플릿 생성 금지.",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-package-supplier-rematerialize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[parser-nl-hub-and-return-template]",
+            "resolveSourceDepartureHubDetail",
+            "departureHubConflictReviewFlag",
+            "김해"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-description-characteristic-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[parser-nl-hub-and-return-template]",
+            "귀국일 체크아웃 귀국 템플릿 생성 금지"
+          ],
+          "mustNotInclude": [
+            "체크아웃 후 인천으로 귀국합니다."
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[parser-nl-hub-and-return-template]",
+            "sourceDepartureBody"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-schedule.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[parser-nl-hub-and-return-template]",
+            "supplierTimeline"
+          ]
+        },
+        {
+          "file": "lib/parser-empty7/nl-hub-return.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[parser-nl-hub-and-return-template]",
+            "0016",
+            "김해",
+            "체크아웃"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/parser-empty7/nl-hub-return.test.ts",
+        "lib/parser-empty7/nl-raw-2236.test.ts",
+        "lib/parser-empty7/mt-raw-2236.test.ts",
+        "lib/parser-empty7/parser-raw-source-v2.test.ts",
+        "lib/parser-empty7/noise-poi.test.ts",
+        "lib/parser-empty7/nl-route-full.test.ts"
+      ]
+    },
+    {
       "id": "bongtour-product-title-r5",
       "tier": [
         "prebuild",

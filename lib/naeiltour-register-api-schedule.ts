@@ -273,13 +273,17 @@ export function naeiltourFactDaysToRegisterSchedule(days: RegisterFactScheduleDa
       fallbacks: [String(d.transportNote ?? '').split(';')[0], d.hotels[0]],
       returnTitle: '귀국',
     })
-    const description = composeNaeiltourScheduleDescription({
-      day: d.day,
-      maxDay,
-      routePlaces,
-      joinedBlob,
-      supplierText: d.supplierText,
-    })
+    // REGRESSION-FREEZE[parser-nl-hub-and-return-template]: 관광 없는 귀국·이동일은 공급사 공항 줄만, 체크아웃 귀국 템플릿 금지 — manifest
+    const timeline = (d.supplierTimeline ?? []).map((l) => l.trim()).filter((l) => l.length > 0 && !/^※/u.test(l))
+    const description = timeline.length
+      ? timeline.join(' → ').slice(0, 720)
+      : composeNaeiltourScheduleDescription({
+          day: d.day,
+          maxDay,
+          routePlaces,
+          joinedBlob,
+          supplierText: d.supplierText,
+        })
     const meals = parseFactMealsListToScheduleFields(d.meals)
     return {
       day: d.day,

@@ -44,29 +44,84 @@ export type PackageSupplierRematerializeResult = {
 const KR_DEPARTURE_HUB_RE = /^(인천|김포|김해|부산|대구|청주|제주|무안|양양)/u
 const normHub = (h: string) => (h === '김해' ? '부산' : h)
 
+export type SourceDepartureHubResolution = {
+  hub: string | null
+  /** 제목과 1일차 본문(본문이 없으면 헤더) 출발 허브가 다름. 인천으로 메우지 않고 검수 대상으로 남긴다. */
+  conflict: boolean
+  titleHub: string | null
+  bodyHub: string | null
+  headerHub: string | null
+}
+
+function hubLeading(text: string): string | null {
+  const m = KR_DEPARTURE_HUB_RE.exec(String(text ?? '').trim())
+  return m ? normHub(m[1]!) : null
+}
+
+/** 1일차 본문 출발 줄. 헤더(strong / places[0])는 본문이 아니다. */
+function day1BodyDepartureHub(
+  day1: import('@/lib/register-facts/types').RegisterFactScheduleDay | undefined,
+): string | null {
+  const explicit = hubLeading(String(day1?.sourceDepartureBody ?? ''))
+  if (explicit) return explicit
+  for (const line of day1?.supplierTimeline ?? []) {
+    if (!/출발/u.test(line)) continue
+    const h = hubLeading(line)
+    if (h) return h
+  }
+  return null
+}
+
+/** 본문 출발 줄이 없을 때만 쓰는 헤더·교통 첫 구간 */
+function day1HeaderDepartureHub(
+  day1: import('@/lib/register-facts/types').RegisterFactScheduleDay | undefined,
+): string | null {
+  const fromPlace = hubLeading(String(day1?.places?.[0] ?? ''))
+  if (fromPlace) return fromPlace
+  const seg = String(day1?.transportNote ?? '')
+    .split(';')
+    .map((x) => x.trim())
+    .find((x) => x.includes(' - '))
+  return hubLeading(String(seg ?? '').split(' - ')[0] ?? '')
+}
+
 /**
- * 문과장 1106: 원문 출발지(상품 제목 + 1일차 원문 헤더/교통)로만 출발·귀국 틀 문장을 고친다.
- * 원문 출발지가 없거나 서로 다르면(예: 헤더 인천 vs 제목 [부산출발]) 틀 문장을 지우고 지어내지 않는다.
+ * REGRESSION-FREEZE[parser-nl-hub-and-return-template]: 제목+1일차 본문이 같으면 그 허브(김해=부산).
+ * 둘이 다르면 null + conflict. 어느 쪽도 없으면 헤더만 사용. 인천 기본값 없음. — manifest
  */
+export function resolveSourceDepartureHubDetail(
+  productTitle: string | null | undefined,
+  day1: import('@/lib/register-facts/types').RegisterFactScheduleDay | undefined,
+): SourceDepartureHubResolution {
+  const titleHub = hubLeading(registerScheduleDepartureHub(String(productTitle ?? ''), '') ?? '')
+  const bodyHub = day1BodyDepartureHub(day1)
+  const headerHub = day1HeaderDepartureHub(day1)
+  if (titleHub && bodyHub) {
+    if (titleHub === bodyHub) return { hub: titleHub, conflict: false, titleHub, bodyHub, headerHub }
+    return { hub: null, conflict: true, titleHub, bodyHub, headerHub }
+  }
+  if (bodyHub) return { hub: bodyHub, conflict: false, titleHub, bodyHub, headerHub }
+  if (titleHub) {
+    if (headerHub && headerHub !== titleHub) return { hub: null, conflict: true, titleHub, bodyHub: null, headerHub }
+    return { hub: titleHub, conflict: false, titleHub, bodyHub: null, headerHub }
+  }
+  return { hub: headerHub, conflict: false, titleHub: null, bodyHub: null, headerHub }
+}
+
+/** rawMeta.departureHubConflict — 불일치일 때만 검수 플래그. 일치·단일 근거면 null. */
+export function departureHubConflictReviewFlag(
+  d: SourceDepartureHubResolution,
+): { reviewRequired: true; titleHub: string | null; bodyHub: string | null; headerHub: string | null } | null {
+  if (!d.conflict) return null
+  return { reviewRequired: true, titleHub: d.titleHub, bodyHub: d.bodyHub, headerHub: d.headerHub }
+}
+
+/** 문과장 1106: 확정된 출발 허브만. 불일치·부재는 null (인천으로 채우지 않음). */
 export function resolveSourceDepartureHub(
   productTitle: string | null | undefined,
   day1: import('@/lib/register-facts/types').RegisterFactScheduleDay | undefined,
 ): string | null {
-  const hubs = new Set<string>()
-  const fromTitle = registerScheduleDepartureHub(String(productTitle ?? ''), '')
-  if (fromTitle) hubs.add(normHub(fromTitle))
-  const first = String(day1?.places?.[0] ?? '').trim()
-  const m1 = KR_DEPARTURE_HUB_RE.exec(first)
-  if (m1) hubs.add(normHub(m1[1]!))
-  else {
-    const seg = String(day1?.transportNote ?? '')
-      .split(';')
-      .map((x) => x.trim())
-      .find((x) => x.includes(' - '))
-    const m2 = KR_DEPARTURE_HUB_RE.exec(String(seg ?? '').split(' - ')[0]!.trim())
-    if (m2) hubs.add(normHub(m2[1]!))
-  }
-  return hubs.size === 1 ? [...hubs][0]! : null
+  return resolveSourceDepartureHubDetail(productTitle, day1).hub
 }
 
 /** 1일차 원문 교통 구간('출발 - 도착')의 도착 도시 — 출발 틀 문장 도착지 검증용(원문 값만) */
@@ -213,10 +268,12 @@ export async function rematerializePackageScheduleFromSupplierFacts(
   }
   const built0 = factDaysToSchedule(supplier, bundle.scheduleDays, product.title)
   if (!built0?.length) return { productId, updated: false, reason: 'schedule_empty' }
-  const hub = resolveSourceDepartureHub(product.title, bundle.scheduleDays.find((d) => Number(d.day) === 1))
+  const day1Fact = bundle.scheduleDays.find((d) => Number(d.day) === 1)
+  const departure = resolveSourceDepartureHubDetail(product.title, day1Fact)
+  const hub = departure.hub
   // 같은 일차 중복 행은 첫 행만 (Map 마지막-승리로 footer 묻은 행 채택 방지)
   const seenBuilt = new Set<number>()
-  const built = applySourceDepartureHubToScheduleRows(built0, hub, sourceDay1ArrivalCities(bundle.scheduleDays.find((d) => Number(d.day) === 1))).filter((r) => {
+  const built = applySourceDepartureHubToScheduleRows(built0, hub, sourceDay1ArrivalCities(day1Fact)).filter((r) => {
     const d = Number(r.day)
     if (seenBuilt.has(d)) return false
     seenBuilt.add(d)
@@ -257,6 +314,8 @@ export async function rematerializePackageScheduleFromSupplierFacts(
       supplier,
       days: built.length,
     },
+    // 제목과 1일차 본문 출발지가 다르면 허브는 null. 검수자가 rawMeta 에서 볼 수 있게 남긴다.
+    departureHubConflict: departureHubConflictReviewFlag(departure),
   })
 
   // collect 이후 재확인: registered 전환·타 워커 동시 쓰기면 count≠1 → 중단(사진 upstream 금지)
