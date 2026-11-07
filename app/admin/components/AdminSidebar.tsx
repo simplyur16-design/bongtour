@@ -20,7 +20,6 @@ import {
   Inbox,
   ChevronLeft,
   ChevronRight,
-  CalendarDays,
   Images,
   Users,
   Star,
@@ -54,13 +53,6 @@ const navEntries: NavEntry[] = [
   { type: 'link', href: '/admin/staff', label: '직원 권한 관리', icon: ShieldCheck },
   { type: 'link', href: '/admin/home-hub-card-images', label: '메인 허브 이미지', icon: Images },
   { type: 'link', href: '/admin/og-images', label: 'OG 이미지 (공유)', icon: Share2 },
-  {
-    type: 'group',
-    label: '마케팅',
-    items: [
-      { href: '/admin/marketing/curation-events', label: '이벤트 검토 (임시)', icon: CalendarDays },
-    ],
-  },
   { type: 'link', href: '/admin/image-assets-upload', label: '이미지 업로드 · 출처(iStock)', icon: Images },
   { type: 'link', href: '/admin/bongsim/country-heroes', label: '봉심 eSIM 국가 히어로', icon: Smartphone },
   {
@@ -71,7 +63,6 @@ const navEntries: NavEntry[] = [
       { href: '/admin/bongsim/coupon-report', label: '할인 리포트', icon: BarChart3 },
       { href: '/admin/bongsim/payments', label: '결제 내역', icon: CreditCard },
       { href: '/admin/bongsim/products', label: '상품 관리', icon: Package },
-      { href: '/admin/bongsim/monthly-curation', label: '월별 큐레이션(Gemini)', icon: CalendarDays },
     ],
   },
   {
@@ -88,7 +79,7 @@ const navEntries: NavEntry[] = [
   { type: 'link', href: '/admin/products', label: '상품 목록', icon: List },
   { type: 'link', href: '/admin/products/geo-audit', label: '상품 지리 검수', icon: MapPin },
   { type: 'link', href: '/admin/products/master-integrity', label: '마스터 정합', icon: ShieldCheck },
-  { type: 'link', href: '/admin/season-curation', label: '시즌 추천 여행지', icon: MapPin },
+  { type: 'link', href: '/admin/season-curation', label: '큐레이션', icon: MapPin },
   { type: 'link', href: '/admin/registration-stats', label: '등록 현황', icon: BarChart3 },
   { type: 'link', href: '/admin/inquiries', label: '문의 접수', icon: Inbox },
   { type: 'link', href: '/admin/reviews', label: '회원 여행 후기', icon: Star },

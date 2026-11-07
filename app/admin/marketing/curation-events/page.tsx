@@ -1,14 +1,19 @@
-import { Suspense } from 'react'
-import CurationEventsAdminClient from '@/app/admin/marketing/components/CurationEventsAdminClient'
+import { redirect } from 'next/navigation'
 
-export const dynamic = 'force-dynamic'
+type Search = Record<string, string | string[] | undefined>
 
-export default function CurationEventsAdminPage() {
-  return (
-    <div className="mx-auto max-w-6xl p-4">
-      <Suspense fallback={<p className="text-sm text-bt-body/70">불러오는 중…</p>}>
-        <CurationEventsAdminClient />
-      </Suspense>
-    </div>
-  )
+/** 북마크 — 통합 큐레이션의 이벤트 후보 탭. status 쿼리는 유지한다. */
+export default async function CurationEventsAdminPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Search>
+}) {
+  const sp = (await searchParams) ?? {}
+  const q = new URLSearchParams()
+  q.set('tab', 'events')
+  for (const [key, value] of Object.entries(sp)) {
+    if (key === 'tab' || value == null) continue
+    q.set(key, Array.isArray(value) ? value[0] ?? '' : value)
+  }
+  redirect(`/admin/season-curation?${q.toString()}`)
 }
