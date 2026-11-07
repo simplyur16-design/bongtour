@@ -11,6 +11,7 @@ import { deferOrTerminalOutboxAfterFailure } from '@/lib/bongsim/fulfillment/out
 import {
   ESIM_QR_NOTIFY_FRESH_PENDING_SQL,
   esimQrNotifyHoldAfterHours,
+  esimQrNotifyPendingCountSql,
   isEsimQrNotifyDryRun,
 } from '@/lib/bongsim/fulfillment/esim-qr-notify-policy'
 import { shouldDrainOrderPaidInThisProcess } from '@/lib/instrumentation-process-role'
@@ -551,19 +552,6 @@ export async function countPendingEsimQrNotify(): Promise<number> {
   if (!pool) return 0
   await applyEsimQrNotifyAgeHold(pool)
   const hours = esimQrNotifyHoldAfterHours()
-  const r = await pool.query<{ n: number }>(
-    `SELECT COUNT(*)::int AS n
-       FROM bongsim_outbox
-      WHERE topic = $1
-        AND ${ESIM_QR_NOTIFY_FRESH_PENDING_SQL}
-        AND (
-          $2::int IS NULL
-          OR (
-            NULLIF(payload->>'_enqueued_at', '') IS NOT NULL
-            AND (payload->>'_enqueued_at')::timestamptz >= now() - ($2::int * interval '1 hour')
-          )
-        )`,
-    [ESIM_QR_NOTIFY_TOPIC, hours],
-  )
+  const r = await pool.query<{ n: number }>(esimQrNotifyPendingCountSql(), [ESIM_QR_NOTIFY_TOPIC, hours])
   return r.rows[0]?.n ?? 0
 }

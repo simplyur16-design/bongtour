@@ -23,6 +23,25 @@ export function esimQrNotifyHoldAfterHours(): number | null {
   return n
 }
 
+/**
+ * countPendingEsimQrNotify 와 야간 수집 폴백이 같이 쓰는 읽기 전용 COUNT.
+ * $2 가 null(보류 시간 기본값)이면 나이 조건은 빠진다. 이미 보류·종결된 행은 항상 뺀다.
+ * 보류 UPDATE 는 넣지 않는다.
+ */
+export function esimQrNotifyPendingCountSql(): string {
+  return `SELECT COUNT(*)::int AS n
+       FROM bongsim_outbox
+      WHERE topic = $1
+        AND ${ESIM_QR_NOTIFY_FRESH_PENDING_SQL}
+        AND (
+          $2::int IS NULL
+          OR (
+            NULLIF(payload->>'_enqueued_at', '') IS NOT NULL
+            AND (payload->>'_enqueued_at')::timestamptz >= now() - ($2::int * interval '1 hour')
+          )
+        )`
+}
+
 export function isEsimQrNotifyDryRun(): boolean {
   return process.env.BONGSIM_ESIM_QR_NOTIFY_DRY_RUN === '1'
 }

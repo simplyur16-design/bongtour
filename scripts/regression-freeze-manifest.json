@@ -31055,7 +31055,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "야간 수집 eSIM 양보 COUNT는 outbox 풀 실패 시 DATABASE_URL 풀로 같은 SELECT를 1회 재시도하고, 둘 다 실패하면 skip -1과 코드 로그만 남긴다",
+      "summary": "야간 수집 eSIM 양보 COUNT는 outbox 풀 실패 시 DATABASE_URL 풀로 같은 SELECT를 1회 재시도하고, 둘 다 실패하면 skip -1과 코드 로그만 남긴다. 폴백 SELECT는 보류·종결 제외와 보류 시간 파라미터를 countPending과 같이 쓴다.",
       "checks": [
         {
           "file": "lib/register-listing-ingest-cron-gate.ts",
@@ -31063,13 +31063,26 @@
             "REGRESSION-FREEZE[register-ingest-esim-yield-count-fallback]",
             "[register-ingest] esim yield count failed code=",
             "getPgPool",
-            "SELECT COUNT(*)::int AS n",
-            "processed_at IS NULL",
+            "esimQrNotifyPendingCountSql",
             "pending: -1"
           ],
           "mustNotInclude": [
             "getBongsimFulfillOutboxPool",
-            "SET statement_timeout"
+            "SET statement_timeout",
+            "applyEsimQrNotifyAgeHold"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-policy.ts",
+          "mustInclude": [
+            "esimQrNotifyPendingCountSql",
+            "SELECT COUNT(*)::int AS n",
+            "processed_at IS NULL",
+            "_outbox_hold",
+            "_enqueued_at"
+          ],
+          "mustNotInclude": [
+            "applyEsimQrNotifyAgeHold"
           ]
         }
       ],

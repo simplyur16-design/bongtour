@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { toHeldEsimQrNotifyRow } from "@/lib/bongsim/admin/esim-qr-notify-hold-admin";
 import {
+  ESIM_QR_NOTIFY_FRESH_PENDING_SQL,
   ESIM_QR_NOTIFY_TICK_SEND_CAP,
   esimQrNotifyHoldAfterHours,
+  esimQrNotifyPendingCountSql,
   esimQrNotifyRowNeedsAgeHold,
   isEsimQrNotifyDryRun,
   maskEsimNotifyPhone,
@@ -18,6 +20,15 @@ describe("esim qr notify safeguards", () => {
     expect(esimQrNotifyHoldAfterHours()).toBeNull();
     expect(isEsimQrNotifyDryRun()).toBe(false);
     expect(ESIM_QR_NOTIFY_TICK_SEND_CAP).toBe(24);
+  });
+
+  it("pending count SQL excludes held and terminal rows and does not update", () => {
+    const sql = esimQrNotifyPendingCountSql();
+    expect(sql.startsWith("SELECT COUNT(*)::int AS n")).toBe(true);
+    expect(sql).toContain(ESIM_QR_NOTIFY_FRESH_PENDING_SQL);
+    expect(sql).toContain("payload->>'_enqueued_at'");
+    expect(sql).not.toContain("UPDATE");
+    expect(sql).not.toContain("jsonb_set");
   });
 
   it("does not hold a fresh stamped row when the age gate is on", () => {

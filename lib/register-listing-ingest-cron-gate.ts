@@ -74,10 +74,7 @@ function recordYieldSkip(): void {
   ingestYieldSkipCount += 1
 }
 
-/** yield COUNT 전용. drain/발송 SQL과 동일한 읽기 전용 COUNT. */
-const ESIM_YIELD_COUNT_SQL = `SELECT COUNT(*)::int AS n
-       FROM bongsim_outbox
-      WHERE topic = $1 AND processed_at IS NULL`
+/** yield COUNT 전용. 보류 UPDATE 없이 countPending 과 같은 읽기 SELECT. */
 const ESIM_YIELD_COUNT_TOPIC = 'EsimQrNotify'
 
 /** 로그에 접속 문자열이 남지 않게 한다. */
@@ -114,9 +111,15 @@ function logEsimYieldCountFailed(err: unknown, fallbackErr?: unknown): void {
  */
 async function countPendingEsimQrNotifyOnMainPool(): Promise<number> {
   const { getPgPool } = await import('@/lib/bongsim/db/pool')
+  const { esimQrNotifyHoldAfterHours, esimQrNotifyPendingCountSql } = await import(
+    '@/lib/bongsim/fulfillment/esim-qr-notify-policy'
+  )
   const pool = getPgPool()
   if (!pool) throw new Error('main_pool_unavailable')
-  const r = await pool.query<{ n: number | string }>(ESIM_YIELD_COUNT_SQL, [ESIM_YIELD_COUNT_TOPIC])
+  const r = await pool.query<{ n: number | string }>(esimQrNotifyPendingCountSql(), [
+    ESIM_YIELD_COUNT_TOPIC,
+    esimQrNotifyHoldAfterHours(),
+  ])
   const n = Number(r.rows[0]?.n ?? 0)
   return Number.isFinite(n) ? n : 0
 }
