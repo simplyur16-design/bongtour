@@ -11,6 +11,7 @@ type Body = {
   buyer_email?: unknown;
   reason_category?: unknown;
   reason_memo?: unknown;
+  idempotency_key?: unknown;
 };
 
 export async function POST(req: Request) {
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
     const buyer_email = typeof body.buyer_email === "string" ? body.buyer_email : null;
     const reason_category = typeof body.reason_category === "string" ? body.reason_category : "";
     const reason_memo = typeof body.reason_memo === "string" ? body.reason_memo : "";
+    const idempotency_key = typeof body.idempotency_key === "string" ? body.idempotency_key : null;
     const adminId = (admin.user as { id?: string }).id?.trim() || admin.user.role || "admin";
 
     const result = await adminGrantComplimentaryEsim({
@@ -46,6 +48,7 @@ export async function POST(req: Request) {
       reason_category,
       reason_memo,
       admin_id: String(adminId),
+      idempotency_key,
     });
 
     if (!result.ok) {

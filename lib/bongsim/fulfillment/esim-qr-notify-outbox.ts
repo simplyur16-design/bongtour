@@ -8,6 +8,11 @@ import {
   getPgPool,
 } from '@/lib/bongsim/db/pool'
 import { deferOrTerminalOutboxAfterFailure } from '@/lib/bongsim/fulfillment/outbox-defer'
+import {
+  ESIM_QR_NOTIFY_FRESH_PENDING_SQL,
+  esimQrNotifyHoldAfterHours,
+  isEsimQrNotifyDryRun,
+} from '@/lib/bongsim/fulfillment/esim-qr-notify-policy'
 import { shouldDrainOrderPaidInThisProcess } from '@/lib/instrumentation-process-role'
 
 export const ESIM_QR_NOTIFY_TOPIC = 'EsimQrNotify'
@@ -155,6 +160,7 @@ export async function enqueueEsimQrNotify(
 
   const dedupe = esimQrNotifyDedupeKey(payload.order_id, payload.topup_row_id)
   const forceResend = Boolean(opts?.forceResend)
+  const storedPayload = { ...payload, _enqueued_at: new Date().toISOString() }
   const r = await pool.query<{ id: string }>(
     `WITH pending AS (
        SELECT COUNT(*)::int AS n
@@ -188,7 +194,7 @@ export async function enqueueEsimQrNotify(
          ELSE bongsim_outbox.locked_at
        END
      RETURNING id`,
-    [ESIM_QR_NOTIFY_TOPIC, JSON.stringify(payload), dedupe, ESIM_QR_NOTIFY_GAP_MS, forceResend],
+    [ESIM_QR_NOTIFY_TOPIC, JSON.stringify(storedPayload), dedupe, ESIM_QR_NOTIFY_GAP_MS, forceResend],
   )
 
   return { enqueued: Boolean(r.rows[0]?.id) }
@@ -259,12 +265,38 @@ async function deferNotifyFailure(
 export type ProcessEsimQrNotifyResult =
   | { outcome: 'empty' }
   | { outcome: 'processed'; order_id: string }
+  | { outcome: 'dry_run'; order_id?: string }
   | { outcome: 'deferred' | 'terminal' | 'error'; order_id?: string }
+
+/** 나이 기준이 켜져 있으면 오래된 미발송을 보류한다. processed_at·terminal은 쓰지 않는다. */
+export async function applyEsimQrNotifyAgeHold(pool: NonNullable<ReturnType<typeof getBongsimFulfillOutboxPool>>): Promise<void> {
+  const hours = esimQrNotifyHoldAfterHours()
+  if (hours == null) return
+  await pool.query(
+    `UPDATE bongsim_outbox
+        SET payload = jsonb_set(
+              COALESCE(payload, '{}'::jsonb),
+              '{_outbox_hold}',
+              jsonb_build_object('active', true, 'reason', 'age', 'held_at', to_jsonb(now()::text)),
+              true
+            )
+      WHERE topic = $1
+        AND processed_at IS NULL
+        AND COALESCE(payload->'_outbox_defer'->>'terminal', 'false') <> 'true'
+        AND COALESCE(payload->'_outbox_hold'->>'active', 'false') <> 'true'
+        AND (
+          NULLIF(payload->>'_enqueued_at', '') IS NULL
+          OR (payload->>'_enqueued_at')::timestamptz < now() - ($2::int * interval '1 hour')
+        )`,
+    [ESIM_QR_NOTIFY_TOPIC, hours],
+  )
+}
 
 export async function processNextEsimQrNotifyOutbox(): Promise<ProcessEsimQrNotifyResult> {
   // REGRESSION-FREEZE[bongsim-fulfill-outbox-own-pool]: notify drain uses outbox pool — manifest
   const pool = getBongsimFulfillOutboxPool()
   if (!pool) return { outcome: 'error' }
+  await applyEsimQrNotifyAgeHold(pool)
 
   const client = await pool.connect()
   let pickedId: string | null = null
@@ -277,7 +309,7 @@ export async function processNextEsimQrNotifyOutbox(): Promise<ProcessEsimQrNoti
       `SELECT id, payload
          FROM bongsim_outbox
         WHERE topic = $1
-          AND processed_at IS NULL
+          AND ${ESIM_QR_NOTIFY_FRESH_PENDING_SQL}
           AND available_at <= now()
         ORDER BY available_at ASC
         LIMIT 1
@@ -342,6 +374,20 @@ export async function processNextEsimQrNotifyOutbox(): Promise<ProcessEsimQrNoti
 
   if (!pickedId || !parsed) return { outcome: 'error' }
 
+  // REGRESSION-FREEZE[esim-qr-notify-hold-dry-run]: dry-run은 Solapi 없이 리스만 해제 — manifest
+  if (isEsimQrNotifyDryRun()) {
+    const poolDry = getBongsimFulfillOutboxPool()
+    if (poolDry) {
+      await poolDry.query(
+        `UPDATE bongsim_outbox
+            SET locked_at = NULL, available_at = now()
+          WHERE id = $1 AND processed_at IS NULL`,
+        [pickedId],
+      )
+    }
+    return { outcome: 'dry_run', order_id: parsed.order_id }
+  }
+
   try {
     const { sendQueuedEsimQrCustomerNotify } = await import('@/lib/bongsim/fulfillment/esim-delivery')
     await sendQueuedEsimQrCustomerNotify(parsed)
@@ -403,6 +449,9 @@ export async function drainEsimQrNotifyOutboxBestEffort(maxRounds = 24): Promise
     if (r.outcome === 'processed') {
       processed += 1
       await sleep(ESIM_QR_NOTIFY_GAP_MS)
+      continue
+    }
+    if (r.outcome === 'dry_run') {
       continue
     }
     if (r.outcome === 'deferred' || r.outcome === 'terminal') {
@@ -500,11 +549,21 @@ export async function awaitEsimQrNotifyDrain(maxRounds = 40): Promise<{
 export async function countPendingEsimQrNotify(): Promise<number> {
   const pool = getBongsimFulfillOutboxPool()
   if (!pool) return 0
+  await applyEsimQrNotifyAgeHold(pool)
+  const hours = esimQrNotifyHoldAfterHours()
   const r = await pool.query<{ n: number }>(
     `SELECT COUNT(*)::int AS n
        FROM bongsim_outbox
-      WHERE topic = $1 AND processed_at IS NULL`,
-    [ESIM_QR_NOTIFY_TOPIC],
+      WHERE topic = $1
+        AND ${ESIM_QR_NOTIFY_FRESH_PENDING_SQL}
+        AND (
+          $2::int IS NULL
+          OR (
+            NULLIF(payload->>'_enqueued_at', '') IS NOT NULL
+            AND (payload->>'_enqueued_at')::timestamptz >= now() - ($2::int * interval '1 hour')
+          )
+        )`,
+    [ESIM_QR_NOTIFY_TOPIC, hours],
   )
   return r.rows[0]?.n ?? 0
 }

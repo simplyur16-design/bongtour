@@ -8,6 +8,7 @@
  */
 import { drainOrderPaidOutboxBestEffort } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 import { drainEsimQrNotifyOutboxBestEffort } from "@/lib/bongsim/fulfillment/esim-qr-notify-outbox";
+import { ESIM_QR_NOTIFY_TICK_SEND_CAP } from "@/lib/bongsim/fulfillment/esim-qr-notify-policy";
 import { shouldRunFulfillmentCrons } from "@/lib/instrumentation-process-role";
 
 const CRON_EXPR = "* * * * *";
@@ -152,7 +153,7 @@ async function drainFulfillOutboxes(): Promise<{ processed: number; deferred: nu
   await unlockStaleFulfillOutboxes();
   // REGRESSION-FREEZE[bongsim-sms-never-drop-on-kick-error]: 문자(EsimQrNotify) 먼저 — OrderPaid 발급 backlog에 SMS 밀리지 않게 — manifest
   // REGRESSION-FREEZE[bongsim-esim-qr-notify-serialize]: cron also drains EsimQrNotify — manifest
-  const notify = await drainEsimQrNotifyOutboxBestEffort(24);
+  const notify = await drainEsimQrNotifyOutboxBestEffort(ESIM_QR_NOTIFY_TICK_SEND_CAP);
   await drainOrderPaidOutboxBestEffort(16);
   return notify;
 }

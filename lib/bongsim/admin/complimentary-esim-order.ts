@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { isEsimCapableSimKind } from "@/lib/bongsim/catalog/active-product-sql";
 import type { BongsimOrderV1 } from "@/lib/bongsim/contracts/order.v1";
 import { prepareCatalogCheckoutLines } from "@/lib/bongsim/data/checkout-create-order";
+import { COMPLIMENTARY_GRANT_DEDUPE_WINDOW_MINUTES } from "@/lib/bongsim/fulfillment/esim-qr-notify-policy";
 import { ensureOrderPaidOutboxDrainAfterEnqueue } from "@/lib/bongsim/fulfillment/process-order-paid-outbox";
 import { classifyBongsimPgError, getPgPool, healBongsimPgPoolForCatalog } from "@/lib/bongsim/db/pool";
 import { isValidBuyerPhoneInput, normalizeBuyerPhone } from "@/lib/bongsim/phone/normalize-buyer-phone";
@@ -92,7 +93,12 @@ function fallbackComplimentaryEmail(phoneDigits: string): string {
 }
 
 export type AdminGrantComplimentaryEsimResult =
-  | { ok: true; order: BongsimOrderV1["order"]; fulfillment_started: boolean }
+  | {
+      ok: true;
+      order: BongsimOrderV1["order"];
+      fulfillment_started: boolean;
+      idempotent_replay?: boolean;
+    }
   | {
       ok: false;
       reason:
@@ -281,6 +287,50 @@ export async function adminGrantComplimentaryEsimBulk(input: {
   };
 }
 
+function normalizeComplimentaryIdempotencyKey(raw: string | null | undefined): string | null {
+  const key = (raw ?? "").trim();
+  if (!key || key.length > 120) return null;
+  if (!/^[A-Za-z0-9:_-]+$/.test(key)) return null;
+  return key;
+}
+
+async function findComplimentaryGrantReplay(
+  pool: NonNullable<ReturnType<typeof getPgPool>>,
+  input: { idempotency_key: string | null; buyer_phone: string; option_api_id: string; reason_category: string },
+): Promise<{ order_id: string; order_number: string; idempotency_key: string } | null> {
+  if (input.idempotency_key) {
+    const byKey = await pool.query<{ order_id: string; order_number: string; idempotency_key: string }>(
+      `SELECT order_id::text AS order_id, order_number, idempotency_key
+         FROM bongsim_order
+        WHERE idempotency_key = $1
+          AND checkout_channel = $2
+        LIMIT 1`,
+      [input.idempotency_key, COMPLIMENTARY_ESIM_CHECKOUT_CHANNEL],
+    );
+    if (byKey.rows[0]) return byKey.rows[0];
+  }
+  const recent = await pool.query<{ order_id: string; order_number: string; idempotency_key: string }>(
+    `SELECT o.order_id::text AS order_id, o.order_number, o.idempotency_key
+       FROM bongsim_order o
+       JOIN bongsim_order_line l ON l.order_id = o.order_id
+      WHERE o.checkout_channel = $1
+        AND o.buyer_tel = $2
+        AND l.option_api_id = $3
+        AND o.consents->'complimentary_esim'->>'reason_category' = $4
+        AND o.paid_at > now() - ($5::int * interval '1 minute')
+      ORDER BY o.paid_at DESC
+      LIMIT 1`,
+    [
+      COMPLIMENTARY_ESIM_CHECKOUT_CHANNEL,
+      input.buyer_phone,
+      input.option_api_id,
+      input.reason_category,
+      COMPLIMENTARY_GRANT_DEDUPE_WINDOW_MINUTES,
+    ],
+  );
+  return recent.rows[0] ?? null;
+}
+
 export async function adminGrantComplimentaryEsim(input: {
   option_api_id: string;
   quantity: number;
@@ -290,6 +340,7 @@ export async function adminGrantComplimentaryEsim(input: {
   reason_memo: string;
   admin_id: string;
   skip_outbox_drain?: boolean;
+  idempotency_key?: string | null;
 }): Promise<AdminGrantComplimentaryEsimResult> {
   const pool = getPgPool();
   if (!pool) return { ok: false, reason: "db_unconfigured", message: "DB 미연결" };
@@ -321,6 +372,30 @@ export async function adminGrantComplimentaryEsim(input: {
     emailRaw && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRaw)
       ? emailRaw
       : fallbackComplimentaryEmail(buyer_phone);
+
+  const clientIdempotencyKey = normalizeComplimentaryIdempotencyKey(input.idempotency_key);
+  const replay = await findComplimentaryGrantReplay(pool, {
+    idempotency_key: clientIdempotencyKey,
+    buyer_phone,
+    option_api_id,
+    reason_category,
+  });
+  if (replay) {
+    return {
+      ok: true,
+      idempotent_replay: true,
+      fulfillment_started: false,
+      order: synthesizeComplimentaryGrantOrder({
+        order_id: replay.order_id,
+        order_number: replay.order_number,
+        buyer_email: buyer_email || fallbackComplimentaryEmail(buyer_phone),
+        idempotency_key: replay.idempotency_key,
+        subtotal_krw: 0,
+        discount_krw: 0,
+        prepared: [],
+      }),
+    };
+  }
 
   let client: import("pg").PoolClient;
   try {
@@ -433,7 +508,7 @@ export async function adminGrantComplimentaryEsim(input: {
     };
 
     orderNumber = makeOrderNumber();
-    const idempotency_key = `admin_complimentary_${randomUUID()}`;
+    const idempotency_key = clientIdempotencyKey ?? `admin_complimentary_${randomUUID()}`;
     idempotencyForResponse = idempotency_key;
     const paymentRef = `complimentary_${orderNumber}_${Date.now()}`;
 

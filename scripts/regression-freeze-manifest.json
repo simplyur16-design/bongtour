@@ -31048,6 +31048,56 @@
         "lib/register-auto-photo-missing-day.test.ts",
         "lib/fit-itinerary-keyword-no-cross-day.test.ts"
       ]
+    },
+    {
+      "id": "esim-qr-notify-hold-dry-run",
+      "tier": ["prebuild", "ci"],
+      "summary": "오래된 EsimQrNotify는 삭제·종결 없이 보류하고 양보 카운트에서 빼며, dry-run은 Solapi 없이 미처리로 남긴다. 무상 재클릭은 같은 주문을 반환한다.",
+      "checks": [
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-qr-notify-hold-dry-run]",
+            "BONGSIM_ESIM_QR_NOTIFY_HOLD_AFTER_HOURS",
+            "BONGSIM_ESIM_QR_NOTIFY_DRY_RUN",
+            "ESIM_QR_NOTIFY_TICK_SEND_CAP = 24"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-qr-notify-hold-dry-run]",
+            "applyEsimQrNotifyAgeHold",
+            "outcome: 'dry_run'",
+            "ESIM_QR_NOTIFY_FRESH_PENDING_SQL"
+          ],
+          "mustNotInclude": [
+            "dry_run processed_at = now()"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/esim-qr-notify/held/route.ts",
+          "mustInclude": [
+            "requireAdmin",
+            "listHeldEsimQrNotify",
+            "releaseHeldEsimQrNotify"
+          ]
+        },
+        {
+          "file": "lib/bongsim/admin/complimentary-esim-order.ts",
+          "mustInclude": [
+            "findComplimentaryGrantReplay",
+            "idempotent_replay",
+            "COMPLIMENTARY_GRANT_DEDUPE_WINDOW_MINUTES"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/fulfillment/esim-qr-notify-policy.test.ts",
+        "lib/bongsim/admin/complimentary-esim-idempotency.test.ts",
+        "lib/bongsim/fulfillment/esim-paid-sms-pipeline.test.ts",
+        "lib/bongsim/admin/esim-qr-notify-hold-admin.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
