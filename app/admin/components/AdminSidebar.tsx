@@ -31,8 +31,6 @@ import {
   CreditCard,
   IdCard,
   ShieldCheck,
-  Megaphone,
-  Plane,
   MapPin,
   Menu,
   X,
@@ -60,9 +58,6 @@ const navEntries: NavEntry[] = [
     type: 'group',
     label: '마케팅',
     items: [
-      { href: '/admin/marketing', label: '개요', icon: Megaphone },
-      { href: '/admin/marketing/packages', label: '패키지', icon: Package },
-      { href: '/admin/marketing/airtel', label: '자유여행', icon: Plane },
       { href: '/admin/marketing/curation-events', label: '이벤트 검토 (임시)', icon: CalendarDays },
     ],
   },

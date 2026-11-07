@@ -9109,38 +9109,6 @@
       ]
     },
     {
-      "id": "marketing-blog-shortcut-cta",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "마케팅 블로그 — 본문 「바로가기」 웹 URL 링크 삽입·라벨 SSOT",
-      "checks": [
-        {
-          "file": "lib/bong-marketing/cta-url-builder.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[marketing-blog-shortcut-cta]",
-            "BLOG_SHORTCUT_LINK_LABEL",
-            "바로가기",
-            "upsertBlogShortcutMarkdown",
-            "appendBlogProductCtaMarkdown"
-          ]
-        },
-        {
-          "file": "app/admin/marketing/components/MarketingBlogDetailClient.tsx",
-          "mustInclude": [
-            "REGRESSION-FREEZE[marketing-blog-shortcut-cta]",
-            "본문에 바로가기 삽입",
-            "upsertBlogShortcutMarkdown",
-            "직접 URL 붙이기"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/bong-marketing/cta-url-builder.test.ts"
-      ]
-    },
-    {
       "id": "simplyur-trip-inbox-ssot",
       "tier": [
         "ci"
@@ -9317,35 +9285,6 @@
       ],
       "vitestSuites": [
         "lib/simplyur/trip-inbox/parse-text.test.ts"
-      ]
-    },
-    {
-      "id": "marketing-content-track-product-gate",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "콘텐츠 자동화 — 패키지/자유여행 listingKind 게이트 (추천·블로그·카드뉴스 linkedProduct)",
-      "checks": [
-        {
-          "file": "lib/bong-marketing/marketing-content-track-product.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[marketing-content-track-product-gate]",
-            "isPackageMarketingProduct",
-            "isAirtelMarketingProduct",
-            "pickLinkedProductIdForMarketingTrack"
-          ]
-        },
-        {
-          "file": "app/api/admin/marketing/blog/from-recommendation/route.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[marketing-content-track-product-gate]",
-            "resolveLinkedProductIdsForMarketingTrack"
-          ]
-        }
-      ],
-      "vitestSuites": [
-        "lib/bong-marketing/marketing-content-track-product.test.ts"
       ]
     },
     {
