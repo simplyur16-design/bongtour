@@ -257,12 +257,6 @@ export default function CurationEventsAdminClient() {
             Gemini 수집 이벤트를 검토·승인하면 추천 카드 🌐 태그에 노출됩니다. (임시 페이지 — PR 가-7-β에서 본체 통합 예정)
           </p>
         </div>
-        <Link
-          href="/admin/marketing/trip-recommendations"
-          className="rounded-lg border border-bt-border-strong px-3 py-1.5 text-sm hover:bg-bt-surface-soft"
-        >
-          ← 콘텐츠 자동화
-        </Link>
       </div>
 
       <div className="flex flex-wrap gap-2">
