@@ -61,6 +61,10 @@ export type ScheduleDay = {
   dinnerText?: string | null
   mealSummaryText?: string | null
   meals?: string | null
+  /** 일정 동선. 공개 화면은 제목 아래 한 줄로만 표시 */
+  routeText?: string | null
+  /** 공급사 원문. 없으면 자세한 일정 버튼을 그리지 않음 */
+  supplierOriginal?: import('@/lib/schedule-day-supplier-original').ScheduleDaySupplierOriginal | null
 }
 
 export type TravelProduct = {

@@ -30911,6 +30911,44 @@
       "vitestSuites": [
         "lib/mobile-departure-group.test.ts"
       ]
+    },
+    {
+      "id": "itinerary-detail-route-under-title",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "패키지 일차 제목 아래 경로 한 줄. 토글 문구는 자세한 일정 보기. 원문 없으면 버튼 없음",
+      "checks": [
+        {
+          "file": "components/itinerary/ScheduleDaySupplierOriginalToggle.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-detail-route-under-title]",
+            "자세한 일정 보기"
+          ],
+          "mustNotInclude": [
+            "원문 보기"
+          ]
+        },
+        {
+          "file": "components/itinerary/ItineraryViewPackageMain.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-detail-route-under-title]",
+            "publicDayTitleRouteLine"
+          ]
+        },
+        {
+          "file": "lib/schedule-day-supplier-original.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-detail-route-under-title]",
+            "export function publicDayTitleRouteLine",
+            "collapseConsecutiveRouteSegments"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/schedule-day-supplier-original.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
