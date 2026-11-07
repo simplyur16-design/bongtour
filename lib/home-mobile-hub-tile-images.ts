@@ -31,30 +31,56 @@ function publicFileExists(urlPath: string): boolean {
 }
 
 /**
- * 모바일 허브 타일 전용. 번들이 `/images/home-hub/base/*`(데스크톱 원본)를 주면
- * 같은 파일명의 `mobile/` 형제가 있을 때만 그 경로로 바꾼다. 원격·Ncloud URL은 그대로.
- * REGRESSION-FREEZE[speed-home-responsive-images]: base training → mobile sibling — manifest
+ * 같은 파일명은 같은 사진의 파생본이 아니다.
+ * 이 표에 적힌 base URL만, 기록된 url이 그 원본의 반응형 후보이고 파일이 있을 때 고른다.
+ * 표는 비어 있다. `base/training.webp`(협업 사진)와 `mobile/training.webp`(다른 그림)를 묶지 않는다.
+ * REGRESSION-FREEZE[speed-home-responsive-images]: unproven same-name mobile sibling keeps the original — manifest
  */
-export function preferMobileHubLocalVariant(src: string): string {
-  const t = src.trim()
-  const m = /^\/images\/home-hub\/base\/([^/?#]+)$/.exec(t)
-  if (!m) return t
-  const mobile = `/images/home-hub/mobile/${m[1]}`
-  return publicFileExists(mobile) ? mobile : t
+export type SameOriginalMobileVariant = {
+  url: string
+  width: number
 }
 
-/**
- * 로컬 허브 원본 + 모바일 형제가 둘 다 있을 때 native `srcset`.
- * 폭 디스크립터는 저장 파일 실측(training 1181 / base 1600). 다른 키는 폭을 추정하지 않는다.
- * REGRESSION-FREEZE[speed-home-responsive-images]: training srcset only — manifest
- */
-export function homeHubTrainingSrcSet(src: string): string | null {
+export const SAME_ORIGINAL_MOBILE_BY_BASE: Readonly<Record<string, SameOriginalMobileVariant>> = Object.freeze({})
+
+const TRAINING_BASE_URL = '/images/home-hub/base/training.webp'
+/** 기존 원본 `base/training.webp`의 가로. 다른 그림인 mobile 형제의 가로를 쓰지 않는다. */
+const TRAINING_BASE_WIDTH = 1600
+
+export function selectProvenMobileHubVariant(
+  src: string,
+  provenByBase: Readonly<Record<string, SameOriginalMobileVariant>>,
+  fileExists: (url: string) => boolean,
+): string {
   const t = src.trim()
-  if (t !== '/images/home-hub/base/training.webp' && t !== '/images/home-hub/mobile/training.webp') return null
-  const mobile = '/images/home-hub/mobile/training.webp'
-  const base = '/images/home-hub/base/training.webp'
-  if (!publicFileExists(mobile) || !publicFileExists(base)) return null
-  return `${mobile} 1181w, ${base} 1600w`
+  if (isRemoteUrl(t)) return t
+  const proven = provenByBase[t]
+  if (!proven?.url || proven.url === t) return t
+  return fileExists(proven.url) ? proven.url : t
+}
+
+export function selectProvenTrainingSrcSet(
+  src: string,
+  provenByBase: Readonly<Record<string, SameOriginalMobileVariant>>,
+  fileExists: (url: string) => boolean,
+): string | null {
+  const t = src.trim()
+  const proven = provenByBase[TRAINING_BASE_URL]
+  if (t !== TRAINING_BASE_URL && t !== proven?.url) return null
+  if (!proven?.url || proven.url === TRAINING_BASE_URL) return null
+  if (!Number.isInteger(proven.width) || proven.width < 1 || proven.width >= TRAINING_BASE_WIDTH) return null
+  if (!fileExists(proven.url) || !fileExists(TRAINING_BASE_URL)) return null
+  return `${proven.url} ${proven.width}w, ${TRAINING_BASE_URL} ${TRAINING_BASE_WIDTH}w`
+}
+
+/** 원격·Ncloud URL과, 동일 원본 증거가 없는 로컬 경로는 그대로 둔다. */
+export function preferMobileHubLocalVariant(src: string): string {
+  return selectProvenMobileHubVariant(src, SAME_ORIGINAL_MOBILE_BY_BASE, publicFileExists)
+}
+
+/** 동일 원본으로 기록된 training 후보가 없으면 srcset을 만들지 않는다. */
+export function homeHubTrainingSrcSet(src: string): string | null {
+  return selectProvenTrainingSrcSet(src, SAME_ORIGINAL_MOBILE_BY_BASE, publicFileExists)
 }
 
 /**

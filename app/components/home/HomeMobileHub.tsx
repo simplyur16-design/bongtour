@@ -71,7 +71,7 @@ export default async function HomeMobileHub() {
     const fallbackStatic = (card.imageSrc ?? '').trim()
     const resolved =
       fromBundle || (mobileDefault ?? '').trim() || fallbackStatic || ''
-    // REGRESSION-FREEZE[speed-home-responsive-images]: 모바일 타일은 base 원본 대신 mobile 형제 — manifest
+    // REGRESSION-FREEZE[speed-home-responsive-images]: 동일 원본 증거 없는 mobile 형제는 고르지 않고 기존 URL 유지 — manifest
     const preferred = resolved ? preferMobileHubLocalVariant(resolved) : ''
     const bgSrc = preferred.length > 0 ? preferred : null
     const imagePending = hubPhotoCardIsPending(bgSrc)
