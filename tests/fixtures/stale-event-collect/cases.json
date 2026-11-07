@@ -1,0 +1,73 @@
+{
+  "windowStartYmd": "2026-11-07",
+  "note": "가격은 공급사 응답을 대신하는 픽스처 값이다. 추정가를 넣지 않는다. pkg-mt-0338·0305·0306 의 저장 행사번호는 제공된 확인에 없어서, 현재 번호와 다른 과거 번호로만 둔다. pkg-vg 는 참좋은여행(verygoodtour)이다.",
+  "modetour": [
+    {
+      "productId": "pkg-mt-0275",
+      "storedProductNo": "107812752",
+      "liveProductNo": "107812951",
+      "productCode2": "MTPKG0275",
+      "productName": "모두투어 pkg-mt-0275",
+      "departureDate": "2026-11-11",
+      "supplierAdultPrice": 1102750
+    },
+    {
+      "productId": "pkg-mt-0338",
+      "storedProductNo": "100033800",
+      "liveProductNo": "107054290",
+      "productCode2": "MTPKG0338",
+      "productName": "모두투어 pkg-mt-0338",
+      "departureDate": "2026-11-12",
+      "supplierAdultPrice": 1103380
+    },
+    {
+      "productId": "fit-mt-0069",
+      "storedProductNo": "103564170",
+      "liveProductNo": "103564211",
+      "productCode2": "MTFIT0069",
+      "productName": "모두투어 fit-mt-0069",
+      "departureDate": "2026-12-01",
+      "supplierAdultPrice": 1100690
+    },
+    {
+      "productId": "pkg-mt-0305",
+      "storedProductNo": "100030500",
+      "liveProductNo": "114035019",
+      "productCode2": "MTPKG0305",
+      "productName": "모두투어 pkg-mt-0305",
+      "departureDate": "2027-01-02",
+      "supplierAdultPrice": 1103050
+    },
+    {
+      "productId": "pkg-mt-0306",
+      "storedProductNo": "100030600",
+      "liveProductNo": "114035234",
+      "productCode2": "MTPKG0306",
+      "productName": "모두투어 pkg-mt-0306",
+      "departureDate": "2027-01-02",
+      "supplierAdultPrice": 1103060
+    }
+  ],
+  "verygoodtour": [
+    {
+      "productId": "pkg-vg-0045",
+      "seedProCode": "UPP639-261003ET13",
+      "liveProCode": "UPP639-261110ET13",
+      "masterCode": "UPP639",
+      "departureDate": "2026-11-11",
+      "supplierAdultPrice": 1100450,
+      "tourNights": 3,
+      "tourDays": 5
+    },
+    {
+      "productId": "pkg-vg-0039",
+      "seedProCode": "EPM017-261019LO",
+      "liveProCode": "EPM017-270331LO",
+      "masterCode": "EPM017",
+      "departureDate": "2027-03-31",
+      "supplierAdultPrice": 1100390,
+      "tourNights": 4,
+      "tourDays": 6
+    }
+  ]
+}

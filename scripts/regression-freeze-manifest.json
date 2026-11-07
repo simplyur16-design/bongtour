@@ -31048,6 +31048,170 @@
         "lib/register-auto-photo-missing-day.test.ts",
         "lib/fit-itinerary-keyword-no-cross-day.test.ts"
       ]
+    },
+    {
+      "id": "register-ingest-esim-yield-count-fallback",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "야간 수집 eSIM 양보 COUNT는 outbox 풀 실패 시 DATABASE_URL 풀로 같은 SELECT를 1회 재시도하고, 둘 다 실패하면 skip -1과 코드 로그만 남긴다. 폴백 SELECT는 보류·종결 제외와 보류 시간 파라미터를 countPending과 같이 쓴다.",
+      "checks": [
+        {
+          "file": "lib/register-listing-ingest-cron-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-ingest-esim-yield-count-fallback]",
+            "[register-ingest] esim yield count failed code=",
+            "getPgPool",
+            "esimQrNotifyPendingCountSql",
+            "pending: -1"
+          ],
+          "mustNotInclude": [
+            "getBongsimFulfillOutboxPool",
+            "SET statement_timeout",
+            "applyEsimQrNotifyAgeHold"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-policy.ts",
+          "mustInclude": [
+            "esimQrNotifyPendingCountSql",
+            "SELECT COUNT(*)::int AS n",
+            "processed_at IS NULL",
+            "_outbox_hold",
+            "_enqueued_at"
+          ],
+          "mustNotInclude": [
+            "applyEsimQrNotifyAgeHold"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-listing-ingest-cron-gate.test.ts"
+      ]
+    },
+    {
+      "id": "esim-qr-notify-hold-dry-run",
+      "tier": ["prebuild", "ci"],
+      "summary": "오래된 EsimQrNotify는 삭제·종결 없이 보류하고 양보 카운트에서 빼며, dry-run은 Solapi 없이 미처리로 남긴다. 무상 재클릭은 같은 주문을 반환한다.",
+      "checks": [
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-qr-notify-hold-dry-run]",
+            "BONGSIM_ESIM_QR_NOTIFY_HOLD_AFTER_HOURS",
+            "BONGSIM_ESIM_QR_NOTIFY_DRY_RUN",
+            "ESIM_QR_NOTIFY_TICK_SEND_CAP = 24"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-qr-notify-outbox.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-qr-notify-hold-dry-run]",
+            "applyEsimQrNotifyAgeHold",
+            "outcome: 'dry_run'",
+            "ESIM_QR_NOTIFY_FRESH_PENDING_SQL"
+          ],
+          "mustNotInclude": [
+            "dry_run processed_at = now()"
+          ]
+        },
+        {
+          "file": "app/api/admin/bongsim/esim-qr-notify/held/route.ts",
+          "mustInclude": [
+            "requireAdmin",
+            "listHeldEsimQrNotify",
+            "releaseHeldEsimQrNotify"
+          ]
+        },
+        {
+          "file": "lib/bongsim/admin/complimentary-esim-order.ts",
+          "mustInclude": [
+            "findComplimentaryGrantReplay",
+            "idempotent_replay",
+            "COMPLIMENTARY_GRANT_DEDUPE_WINDOW_MINUTES"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/fulfillment/esim-qr-notify-policy.test.ts",
+        "lib/bongsim/admin/complimentary-esim-idempotency.test.ts",
+        "lib/bongsim/fulfillment/esim-paid-sms-pipeline.test.ts",
+        "lib/bongsim/admin/esim-qr-notify-hold-admin.test.ts"
+      ]
+    },
+    {
+      "id": "supplier-sweep-pending-same-event",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "modetour·verygoodtour·ybtour 일일 sweep는 registered에 pending·pre_photo_blocked만 더한다. 모두투어 SD1·과거 행사는 같은 productCode2·상품명일 때만 현재 번호의 공급사 가격을 쓴다.",
+      "checks": [
+        {
+          "file": "lib/modetour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
+            "MODETOUR_SWEEP_REGISTRATION_STATUSES = ['registered', 'pending', 'pre_photo_blocked']",
+            "const SWEEP_DEFAULT_LIMIT = 200",
+            "createSupplierSweepPacer('modetour')",
+            "RULE_A_WINDOW_DAYS"
+          ],
+          "mustNotInclude": [
+            "registrationStatus: { notIn"
+          ]
+        },
+        {
+          "file": "lib/verygoodtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
+            "VERYGOODTOUR_SWEEP_REGISTRATION_STATUSES = ['registered', 'pending', 'pre_photo_blocked']",
+            "const SWEEP_DEFAULT_LIMIT = 200",
+            "createSupplierSweepPacer('verygoodtour')",
+            "RULE_A_WINDOW_DAYS"
+          ],
+          "mustNotInclude": [
+            "registrationStatus: { notIn"
+          ]
+        },
+        {
+          "file": "lib/ybtour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
+            "YBTOUR_SWEEP_REGISTRATION_STATUSES = ['registered', 'pending', 'pre_photo_blocked']",
+            "const SWEEP_DEFAULT_LIMIT = 200",
+            "createSupplierSweepPacer('ybtour')",
+            "RULE_A_WINDOW_DAYS"
+          ],
+          "mustNotInclude": [
+            "registrationStatus: { notIn"
+          ]
+        },
+        {
+          "file": "lib/modetour-same-product-event.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
+            "verifyModetourSameProductEvent",
+            "product_code2_mismatch",
+            "product_name_mismatch",
+            "itinerary_mismatch",
+            "GetOtherDepartureDates 응답만"
+          ]
+        },
+        {
+          "file": "lib/modetour-price-collect.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
+            "lookupModetourSameProductFutureDepartures",
+            "modetourCalendarNeedsSameProductLookup",
+            "기존 경로가 비었을 때만 현재 행사"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/supplier-sweep-registration-status.test.ts",
+        "lib/modetour-same-product-event.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

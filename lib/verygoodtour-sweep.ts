@@ -3,6 +3,7 @@
  * instrumentation: `lib/instrumentation-verygoodtour-sweep-cron.ts` (KST 08:00).
  *
  * REGRESSION-FREEZE[verygoodtour-sweep-e2e-recheck]: HXR→E2E·7일 재확인·stale 미래출발 정리 — manifest
+ * REGRESSION-FREEZE[supplier-sweep-pending-same-event]: pending·pre_photo_blocked 포함, 그 외 상태 제외 — manifest
  * REGRESSION-FREEZE[supplier-sweep-due-last-price-observed]: due = lastPriceObservedAt — manifest
  * REGRESSION-FREEZE[sweep-sold-out-honor-db-future-guard]: sold-out 마커는 DB 가드 존중 — manifest
  */
@@ -56,6 +57,18 @@ function safeRevalidateProductListingCaches(): void {
 }
 
 const SWEEP_DEFAULT_LIMIT = 200
+
+/**
+ * 제외: on_hold, rejected, auto_unpublished, null, ''.
+ * deleted / inactive / hidden 은 Product.registrationStatus 값이 아니다.
+ * 상한 200·간격·180일 창 유지. 추가 호출은 due 건수만큼이며 DB 건수는 미측정.
+ * REGRESSION-FREEZE[supplier-sweep-pending-same-event]: pending·pre_photo_blocked 포함 — manifest
+ */
+export const VERYGOODTOUR_SWEEP_REGISTRATION_STATUSES = ['registered', 'pending', 'pre_photo_blocked'] as const
+
+function verygoodtourSweepRegistrationWhere(): { registrationStatus: { in: string[] } } {
+  return { registrationStatus: { in: [...VERYGOODTOUR_SWEEP_REGISTRATION_STATUSES] } }
+}
 
 export type VerygoodtourSweepResult = {
   processed: number
@@ -127,7 +140,7 @@ async function findSweepProducts(
     const row = await prisma.product.findFirst({
       where: {
         id: options.productId.trim(),
-        registrationStatus: 'registered',
+        ...verygoodtourSweepRegistrationWhere(),
         originSource: 'verygoodtour',
       },
       select,
@@ -139,7 +152,7 @@ async function findSweepProducts(
     const code = options.originCode.trim()
     const row = await prisma.product.findFirst({
       where: {
-        registrationStatus: 'registered',
+        ...verygoodtourSweepRegistrationWhere(),
         originSource: 'verygoodtour',
         originCode: { equals: code, mode: 'insensitive' },
       },
@@ -151,7 +164,7 @@ async function findSweepProducts(
   const cutoff = supplierDailySweepDueCutoff()
   const rows = await prisma.product.findMany({
     where: {
-      registrationStatus: 'registered',
+      ...verygoodtourSweepRegistrationWhere(),
       originSource: 'verygoodtour',
       OR: [...supplierDailySweepDueOr(cutoff)],
     },
