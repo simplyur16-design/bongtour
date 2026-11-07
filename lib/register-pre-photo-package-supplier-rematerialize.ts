@@ -4,8 +4,12 @@
  * pending / pre_photo_blocked 만.
  */
 import { hanatourFactDaysToRegisterSchedule } from '@/lib/hanatour-register-api-detail'
+import { kyowontourFactDaysToRegisterSchedule } from '@/lib/kyowontour-register-api-schedule'
+import { lottetourFactDaysToRegisterSchedule } from '@/lib/lottetour-register-api-schedule'
 import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
 import { naeiltourFactDaysToRegisterSchedule } from '@/lib/naeiltour-register-api-schedule'
+import { verygoodtourFactDaysToRegisterSchedule } from '@/lib/verygoodtour-register-api-schedule'
+import { ybtourFactDaysToRegisterSchedule } from '@/lib/ybtour-register-api-schedule'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { prisma } from '@/lib/prisma'
 import { isBrokenRegisterScheduleDescription } from '@/lib/register-pre-photo-guards'
@@ -154,6 +158,9 @@ export function applySourceDepartureHubToScheduleRows<T extends { day: number; d
   })
 }
 
+/** 원문에 없는 귀국 틀. 하루만 있어도 공급사 팩트 재구성 대상이다. */
+const INVENTED_RETURN_DESCRIPTION_RE = /체크아웃\s*후[^.。]{0,24}귀국합니다/u
+
 /** 템플릿·빈 제목·빈 요약이 일정에 남아 공급사 재수집이 필요한지 */
 export function registerPrePhotoPackageScheduleLooksThin(
   rows: readonly {
@@ -165,6 +172,8 @@ export function registerPrePhotoPackageScheduleLooksThin(
 ): boolean {
   const days = rows.filter((r) => Number(r.day) > 0)
   if (days.length < 1) return true
+  // REGRESSION-FREEZE[package-supplier-fact-schedule-rebuild]: 지어낸 귀국 문장 하루 → 공급사 팩트 재구성 — manifest
+  if (days.some((row) => INVENTED_RETURN_DESCRIPTION_RE.test(String(row.description ?? '')))) return true
   let thin = 0
   for (const row of days) {
     const title = String(row.title ?? '').trim()
@@ -196,7 +205,8 @@ function splitRouteLen(routeText: string | null | undefined): number {
     .filter((s) => s.length >= 2).length
 }
 
-function factDaysToSchedule(
+/** 공급사 팩트 일차 → 우리 일정요약·일정설명. 가격·Product.title 은 만들지 않는다. */
+export function packageSupplierFactDaysToSchedule(
   supplier: CanonicalOverseasSupplierKey,
   days: import('@/lib/register-facts/types').RegisterFactScheduleDay[],
   productTitle: string | null,
@@ -208,9 +218,50 @@ function factDaysToSchedule(
       return hanatourFactDaysToRegisterSchedule(days)
     case 'naeiltour':
       return naeiltourFactDaysToRegisterSchedule(days)
+    case 'ybtour':
+      return ybtourFactDaysToRegisterSchedule(days)
+    case 'verygoodtour':
+      return verygoodtourFactDaysToRegisterSchedule(days)
+    case 'lottetour':
+      return lottetourFactDaysToRegisterSchedule(days)
+    case 'kyowontour':
+      return kyowontourFactDaysToRegisterSchedule(days)
     default:
       return null
   }
+}
+
+/** 기존 행의 사진·원문 보기를 유지한 채 공급사 팩트로 요약·설명을 바꾼다. */
+export function mergePackageSupplierScheduleRows(
+  existing: readonly Record<string, unknown>[],
+  built: readonly Record<string, unknown>[],
+): Record<string, unknown>[] {
+  const byDay = new Map(built.map((r) => [Number(r.day), r]))
+  const baseRows: Record<string, unknown>[] = existing.length
+    ? existing.map((r) => ({ ...r }))
+    : built.map((r) => ({ day: r.day }))
+  const next: Record<string, unknown>[] = baseRows.map((row) => {
+    const day = Number(row.day) || 0
+    const u = byDay.get(day)
+    if (!u) return { ...row }
+    return {
+      ...row,
+      title: u.title ?? row.title,
+      description: u.description ?? row.description,
+      routeText: u.routeText ?? row.routeText,
+      hotelText: u.hotelText ?? row.hotelText,
+      breakfastText: u.breakfastText ?? row.breakfastText,
+      lunchText: u.lunchText ?? row.lunchText,
+      dinnerText: u.dinnerText ?? row.dinnerText,
+      mealSummaryText: u.mealSummaryText ?? row.mealSummaryText,
+      supplierOriginal: u.supplierOriginal ?? row.supplierOriginal,
+    }
+  })
+  for (const u of built) {
+    if (!next.some((r) => Number(r.day) === Number(u.day))) next.push({ ...u })
+  }
+  next.sort((a, b) => Number(a.day) - Number(b.day))
+  return next
 }
 
 /**
@@ -256,9 +307,7 @@ export async function rematerializePackageScheduleFromSupplierFacts(
   }
 
   const supplier = normalizeSupplierOrigin(String(product.originSource ?? '')) as CanonicalOverseasSupplierKey | null
-  if (!supplier || !['modetour', 'hanatour', 'naeiltour'].includes(supplier)) {
-    return { productId, updated: false, reason: 'skipped_supplier' }
-  }
+  if (!supplier) return { productId, updated: false, reason: 'skipped_supplier' }
 
   const bundle = await collectSupplierRegisterFacts(supplier, originUrl, {
     originCode: product.originCode,
@@ -266,7 +315,7 @@ export async function rematerializePackageScheduleFromSupplierFacts(
   if (!bundle?.scheduleDays?.length) {
     return { productId, updated: false, reason: 'facts_missing' }
   }
-  const built0 = factDaysToSchedule(supplier, bundle.scheduleDays, product.title)
+  const built0 = packageSupplierFactDaysToSchedule(supplier, bundle.scheduleDays, product.title)
   if (!built0?.length) return { productId, updated: false, reason: 'schedule_empty' }
   const day1Fact = bundle.scheduleDays.find((d) => Number(d.day) === 1)
   const departure = resolveSourceDepartureHubDetail(product.title, day1Fact)
@@ -280,32 +329,7 @@ export async function rematerializePackageScheduleFromSupplierFacts(
     return true
   })
 
-  const byDay = new Map(built.map((r) => [Number(r.day), r]))
-  const baseRows: Array<Record<string, unknown>> = scheduleArr.length
-    ? scheduleArr
-    : built.map((r) => ({ day: r.day }) as Record<string, unknown>)
-  const next: Array<Record<string, unknown>> = baseRows.map((row) => {
-    const day = Number(row.day) || 0
-    const u = byDay.get(day)
-    if (!u) return row
-    return {
-      ...row,
-      title: u.title ?? row.title,
-      description: u.description ?? row.description,
-      routeText: u.routeText ?? row.routeText,
-      hotelText: u.hotelText ?? row.hotelText,
-      breakfastText: u.breakfastText ?? row.breakfastText,
-      lunchText: u.lunchText ?? row.lunchText,
-      dinnerText: u.dinnerText ?? row.dinnerText,
-      mealSummaryText: u.mealSummaryText ?? row.mealSummaryText,
-    }
-  })
-  for (const u of built) {
-    if (!next.some((r) => Number(r.day) === Number(u.day))) {
-      next.push({ ...(u as unknown as Record<string, unknown>) })
-    }
-  }
-  next.sort((a, b) => Number(a.day) - Number(b.day))
+  const next = mergePackageSupplierScheduleRows(scheduleArr, built as unknown as Record<string, unknown>[])
 
   const scheduleJson = JSON.stringify(next)
   const rawMeta = stampRematRevisionOnRawMeta(parseProductRawMeta(product.rawMeta), scheduleJson, {

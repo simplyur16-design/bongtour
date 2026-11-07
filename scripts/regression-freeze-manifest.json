@@ -362,6 +362,43 @@
   ],
   "staticGuards": [
     {
+      "id": "package-supplier-fact-schedule-rebuild",
+      "tier": ["prebuild", "ci"],
+      "summary": "대기열 힐은 지어낸 귀국 문장이 있으면 공급사 팩트로 일정요약·설명을 다시 만든다. 7사. 원문 보기 유지.",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-package-supplier-rematerialize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[package-supplier-fact-schedule-rebuild]",
+            "packageSupplierFactDaysToSchedule",
+            "ybtourFactDaysToRegisterSchedule",
+            "verygoodtourFactDaysToRegisterSchedule",
+            "lottetourFactDaysToRegisterSchedule",
+            "kyowontourFactDaysToRegisterSchedule",
+            "supplierOriginal"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "registerPrePhotoPackageScheduleLooksThin",
+            "rematerializeRegisterPrePhotoByLane"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-package-supplier-rematerialize-auto.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[package-supplier-fact-schedule-rebuild]",
+            "체크아웃"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-pre-photo-package-supplier-rematerialize-auto.test.ts",
+        "lib/register-pre-photo-package-supplier-rematerialize.test.ts"
+      ]
+    },
+    {
       "id": "parser-nl-hub-and-return-template",
       "tier": [
         "prebuild",
