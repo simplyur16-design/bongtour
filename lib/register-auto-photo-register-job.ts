@@ -10,7 +10,9 @@
  * - 공급사 원문 칸은 쓰지 않음. 쓰는 칸: registrationStatus·autoUnpublished*·autoRegisterBlockReason·autoRegisterCheckedAt·needsImageReview.
  * REGRESSION-FREEZE[register-auto-register-gate]: 기본 꺼짐, 통과만 registered, 실패는 사유만 — manifest
  */
+import { logAutoPhotoAttempt, providerErrorClass } from '@/lib/auto-photo-attempt-log'
 import { isAutoRegisterReviewPassed } from '@/lib/register-auto-register-review-pass'
+import { autoPhotoFillRequest, scheduleHasMissingEligiblePhotoSlot } from '@/lib/register-auto-photo-missing-day'
 import { prisma } from '@/lib/prisma'
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import { REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE } from '@/lib/register-pre-photo-pending-queue-query'
@@ -116,34 +118,81 @@ export async function runAutoPhotoRegisterJob(opts?: {
 
   const ids = await prisma.product.findMany({
     where: REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE,
-    select: { id: true, registerPhotosReady: true, bgImageUrl: true },
+    select: { id: true, bgImageUrl: true, schedule: true },
     orderBy: { updatedAt: 'asc' },
     take: limit,
   })
 
-  for (const { id, registerPhotosReady, bgImageUrl } of ids) {
+  for (const { id, bgImageUrl, schedule } of ids) {
     result.scanned++
-    // 03·04: 사진 채움(기존 process-images 재사용, 서비스 Bearer)
-    // 대표 사진이 이미 있는 상품은 자동 채움으로 덮어쓰지 않음(사장님 10/31: 기존 대표사진 보호)
+    // 03·04: 사진 채움. 대표가 있어도 당일 키워드가 있는 빈 일차만 채운다.
+    // pre_photo_blocked 는 위 큐 조건에서 빠진다. queueReady 는 여기서 바꾸지 않는다.
+    // REGRESSION-FREEZE[auto-photo-missing-day-fill]: missing-day-only — manifest
     const hasMainPhoto = String(bgImageUrl ?? '').trim() !== ''
-    if (sw.fill && !registerPhotosReady && !hasMainPhoto) {
+    const missingDay = scheduleHasMissingEligiblePhotoSlot(schedule)
+    if (sw.fill && missingDay) {
+      const attemptAt = new Date().toISOString()
       const secret = getAdminServiceBearerSecret()
       if (!secret) {
+        logAutoPhotoAttempt({
+          productId: id,
+          day: null,
+          gate: 'service-auth',
+          providerErrorClass: 'MissingServiceAuth',
+          attemptAt,
+          result: 'failed',
+        })
         result.fillFailed++
       } else {
         try {
           const res = await f(`${appOrigin(env)}/api/travel/process-images`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-            body: JSON.stringify({ productId: id, photoChain: 'v2' }),
+            body: JSON.stringify({ productId: id, ...autoPhotoFillRequest(hasMainPhoto) }),
           })
           const j = (await res.json().catch(() => ({}))) as { success?: boolean }
-          if (res.ok && j.success) result.filled++
-          else result.fillFailed++
-        } catch {
+          if (res.ok && j.success) {
+            logAutoPhotoAttempt({
+              productId: id,
+              day: null,
+              gate: 'process-images',
+              providerErrorClass: null,
+              attemptAt,
+              result: 'filled',
+            })
+            result.filled++
+          } else {
+            logAutoPhotoAttempt({
+              productId: id,
+              day: null,
+              gate: 'process-images',
+              providerErrorClass: res.ok ? 'FillRejected' : `Http${res.status}`,
+              attemptAt,
+              result: 'failed',
+            })
+            result.fillFailed++
+          }
+        } catch (err) {
+          logAutoPhotoAttempt({
+            productId: id,
+            day: null,
+            gate: 'process-images',
+            providerErrorClass: providerErrorClass(err),
+            attemptAt,
+            result: 'failed',
+          })
           result.fillFailed++
         }
-        await refreshRegisterPrePhotoQueueFlagsForProductId(id).catch(() => {})
+        await refreshRegisterPrePhotoQueueFlagsForProductId(id).catch((err) => {
+          logAutoPhotoAttempt({
+            productId: id,
+            day: null,
+            gate: 'queue-flag-refresh',
+            providerErrorClass: providerErrorClass(err),
+            attemptAt: new Date().toISOString(),
+            result: 'failed',
+          })
+        })
       }
       await sleep(gapMs)
     }
