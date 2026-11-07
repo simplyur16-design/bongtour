@@ -16,6 +16,7 @@ import {
 } from '@/lib/fit-itinerary-generation-status'
 import { futureDepartureWhere } from '@/lib/product-future-departure'
 import { fitItineraryBackfillStatusWhere, isFitItineraryBackfillStatus } from '@/lib/fit-itinerary-backfill-status'
+import { logAutoPhotoAttempt, providerErrorClass } from '@/lib/auto-photo-attempt-log'
 
 const CRON_EXPR = '0 * * * *'
 const INTER_MS = 1500
@@ -159,7 +160,17 @@ async function runPackageFreeDayItineraryBackfill(): Promise<void> {
     if (!targets.length) return
     let ok = 0
     for (const t of targets) {
-      const r = await rematerializeRegisterPrePhotoByLane(t.id).catch(() => null)
+      const r = await rematerializeRegisterPrePhotoByLane(t.id).catch((err) => {
+        logAutoPhotoAttempt({
+          productId: t.id,
+          day: null,
+          gate: 'fit-itinerary-backfill',
+          providerErrorClass: providerErrorClass(err),
+          attemptAt: new Date().toISOString(),
+          result: 'failed',
+        })
+        return null
+      })
       const still = !r || r.afterIssues.some((i) => i.includes('free_recommended_itinerary_missing'))
       if (!still) ok++
       console.log(`[free-day-itinerary-backfill] ${t.slug ?? t.id}: ${still ? 'FAIL' : 'OK'}`)

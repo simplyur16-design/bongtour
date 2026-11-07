@@ -189,8 +189,8 @@ describe('fit gemini 1101 — 추천일정 장소 키워드 출처', () => {
   })
 })
 
-describe('fit gemini 1101 — 관광지 없는 날 키워드 폴백', () => {
-  it("cityKey 'it' 대신 앞선 날 추천일정 장소를 쓴다", () => {
+describe('fit gemini 1101 — 관광지 없는 날 키워드', () => {
+  it('앞선 날 장소와 상품 도시를 가져오지 않고 비운다', () => {
     const { rows } = mergeScheduleWithFitKeywords(
       [],
       [
@@ -212,9 +212,11 @@ describe('fit gemini 1101 — 관광지 없는 날 키워드 폴백', () => {
       ],
       { cityNameKo: '밀라노', cityKey: 'it', productTitle: '[에어텔전용] 이탈리아 9일', primaryDestination: '밀라노', destination: '밀라노' },
     )
-    expect(rows[1]!.imageKeyword).not.toBe('It')
     expect(rows[0]!.imageKeyword).toBe('Lake Como')
-    expect(rows[1]!.imageKeyword).toBe('Lake Como')
+    expect(rows[1]!.imageKeyword).toBe('')
+    expect(rows[1]!.imageKeyword).not.toBe('Lake Como')
+    expect(String(rows[1]!.imageKeyword).toLowerCase()).not.toBe('milano')
+    expect(String(rows[1]!.imageKeyword).toLowerCase()).not.toBe('it')
   })
 })
 

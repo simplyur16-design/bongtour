@@ -30677,7 +30677,10 @@
             "REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]",
             "maxFitDay",
             "collectFitDayEnglishPlaceNames(fitDay)",
-            "fitTripPlaceFallbackKeyword(sortedDays, dayNum, usedLower)"
+            "당일 장소가 없으면 앞선 날·상품 도시로 채우지 않는다"
+          ],
+          "mustNotInclude": [
+            "fitTripPlaceFallbackKeyword"
           ]
         },
         {
@@ -30948,6 +30951,72 @@
       ],
       "vitestSuites": [
         "lib/schedule-day-supplier-original.test.ts"
+      ]
+    },
+    {
+      "id": "auto-photo-missing-day-fill",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "대표 사진은 유지하고 당일 키워드가 있는 빈 일차만 채운다. 차단 상품은 큐에 넣지 않는다. FIT 키워드는 앞선 날·상품 도시로 채우지 않고 stale imageKeyword2 를 지운다",
+      "checks": [
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auto-photo-missing-day-fill]",
+            "scheduleHasMissingEligiblePhotoSlot",
+            "autoPhotoFillRequest",
+            "REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE",
+            "logAutoPhotoAttempt"
+          ],
+          "mustNotInclude": [
+            "registrationStatus: 'pre_photo_blocked'"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auto-photo-missing-day-fill]",
+            "fillMissingOnly",
+            "preserveHero",
+            "processImagesProductUpdate"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-merge-schedule-keywords.ts",
+          "mustInclude": [
+            "pickFitDaySecondaryImageKeyword",
+            "imageKeyword2: kw2"
+          ],
+          "mustNotInclude": [
+            "fitTripPlaceFallbackKeyword"
+          ]
+        },
+        {
+          "file": "lib/fit-itinerary-pick-day-image-keyword.ts",
+          "mustInclude": [
+            "collectFitDayOwnPlaceKeywordCandidates",
+            "export function pickFitDaySecondaryImageKeyword"
+          ]
+        },
+        {
+          "file": "lib/auto-photo-attempt-log.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[auto-photo-missing-day-fill]",
+            "providerErrorClass"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-fit-itinerary-backfill.ts",
+          "mustInclude": [
+            "logAutoPhotoAttempt"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-auto-photo-missing-day.test.ts",
+        "lib/fit-itinerary-keyword-no-cross-day.test.ts"
       ]
     }
   ],
