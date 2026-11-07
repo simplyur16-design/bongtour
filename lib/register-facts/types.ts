@@ -20,6 +20,13 @@ export type RegisterFactScheduleDay = {
   transportNote: string | null
   /** 공급사 일차 원문 요약(있으면 description SSOT가 템플릿 대신 채택 시도) */
   supplierText?: string | null
+  /** 문과장 1106: 관광지 카드 없이 원문 schdCatgNm=선택관광 카드로만 places 를 채운 일차 */
+  optionalTourOnly?: boolean
+  /**
+   * 문과장 1106 v5: 관광 카드가 하나도 없는 이동·출발·귀국 일차에서만 — 원문 기타단문(SSCETC) 줄(serviceWITHSummary) 순서 그대로.
+   * 지어낸 문장 없음. 관광 일차에는 채우지 않는다(기존 출력 불변).
+   */
+  supplierTimeline?: string[]
 }
 
 export type RegisterFactFlightLeg = {

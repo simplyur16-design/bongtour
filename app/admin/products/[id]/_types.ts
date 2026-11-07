@@ -71,6 +71,9 @@ export type Product = {
   bgImagePhotographer?: string | null
   bgImageSourceUrl?: string | null
   bgImageExternalId?: string | null
+  bgImageStoragePath?: string | null
+  /** 문과장 1106 v4: remat revision 상품 — 등록 전 3축 사람 검수 필요 (API 읽기 전용) */
+  humanReviewRequired?: boolean
   bgImageIsGenerated?: boolean
   needsImageReview?: boolean
   imageReviewRequestedAt?: string | null

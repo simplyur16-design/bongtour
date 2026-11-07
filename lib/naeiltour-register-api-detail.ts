@@ -545,6 +545,9 @@ function extractMealsFromBlock(block: string): string[] {
     let t = String(m[0] ?? '')
       .replace(/\s+/g, ' ')
       .trim()
+    // 문과장 1106: '조식후 전용차량을…' 같은 일정 문장은 식사가 아님
+    if (/^(?:조식|중식|석식)\s*(?:후|뒤)\s*\S/u.test(t)) continue
+    if (/^(?:조식|중식|석식)\s+\S.*(?:이동|미팅|출발|도착|관광|체크|투어)/u.test(t)) continue
     t = t.replace(/(?:후|뒤)\s*$/u, '').trim()
     if (/^(?:조식|중식|석식)\s*(?:후|뒤)?$/u.test(t)) continue
     if (t.length >= 2 && t.length <= 48 && !out.includes(t)) out.push(t)
@@ -584,8 +587,9 @@ function parseDateIsoFromStrong(strongText: string): string | null {
 }
 
 function extractNaeiltourBodyPlaceLabels(block: string): string[] {
-  const out: string[] = []
-  const push = (raw: string) => {
+  // 문과장 1106 v3: 세 경로(▶·see 헤딩·명소 카드)를 원문 위치 순서로 합친다(경로별 순서 뒤섞임 방지)
+  const found: { at: number; t: string }[] = []
+  const push = (raw: string, at = 0) => {
     const t = stripNaeiltourHtmlText(raw)
       .replace(/^▶\s*/, '')
       .replace(/&amp;/g, '&')
@@ -593,12 +597,37 @@ function extractNaeiltourBodyPlaceLabels(block: string): string[] {
       .trim()
     if (!t || t.length < 2 || t.length > 80) return
     if (/^(?:조식|중식|석식|호텔|숙박|이동|출발|도착|자유\s*시간)/u.test(t)) return
-    if (!out.includes(t)) out.push(t)
+    const prev = found.find((x) => x.t === t)
+    if (!prev) found.push({ at, t })
+    else if (at < prev.at) prev.at = at
   }
-  for (const m of block.matchAll(/▶\s*([^<\n]{2,80})/g)) push(m[1] ?? '')
-  for (const m of block.matchAll(/alt="([^"]{2,60})"/gi)) push(m[1] ?? '')
-  for (const m of block.matchAll(/class="[^"]*point[^"]*"[^>]*>\s*([^<]{2,60})/gi)) push(m[1] ?? '')
-  return out
+  for (const m of block.matchAll(/▶\s*([^<\n]{2,80})/g)) push(m[1] ?? '', m.index ?? 0)
+  // 문과장 1106: img alt(포인트/important/close/배너)는 아이콘 캡션 — 장소로 쓰지 않음.
+  // 실제 관광지는 <h2><img icon_schedule_see …/>이름 [English]</h2> (원문 구조). 식당(food)·이동(bus)·안내(dot)는 제외.
+  for (const m of block.matchAll(/<h2>\s*<img[^>]*icon_schedule_see[^>]*>\s*([^<]{2,80})<\/h2>/gi)) {
+    const raw = stripNaeiltourHtmlText(m[1] ?? '').replace(/&amp;/g, '&').trim()
+    // 한글명 뒤 영문 병기만 떼어냄 (원문 h3 <span>English</span> 와 동일 구조)
+    const ko = /^(.*[가-힣)\]])\s+[A-Za-z][A-Za-z0-9 .,'&()-]*$/u.exec(raw)
+    push(ko ? ko[1]! : raw, m.index ?? 0)
+  }
+  // 문과장 1106 v3: 아이콘이 dot 이어도 h2 바로 뒤에 원문 명소 카드(<ul class="desc"><li><h3>이름[<span>영문</span>]</h3>)가 붙은 경우만,
+  // h2 줄(<br> 단위) 중 카드 이름으로 시작하는(또는 카드 이름이 그 줄로 시작하는) 줄을 장소로 쓴다.
+  // 카드가 없거나 어느 줄도 카드 이름과 맞지 않으면 무시(일반 안내·이동·식사 문구는 들어오지 않음).
+  for (const m of block.matchAll(
+    /<h2>\s*<img[^>]*icon_schedule_(?:dot|see)[^>]*>((?:(?!<\/?h2)[\s\S]){2,400}?)<\/h2>\s*<ul class="desc">\s*<li[^>]*>\s*<h3>([^<]{2,40})(?:<span>|<\/h3>)/gi,
+  )) {
+    const card = stripNaeiltourHtmlText(m[2] ?? '').replace(/&amp;/g, '&').trim()
+    if (!card) continue
+    const lines = String(m[1] ?? '')
+      .split(/<br\s*\/?>/i)
+      .map((x) => stripNaeiltourHtmlText(x).replace(/&amp;/g, '&').replace(/^[▶\s-]+/u, '').trim())
+      .filter((x) => x.length >= 2)
+    const hit = lines.find((x) => x.startsWith(card) || (x.length >= 4 && card.startsWith(x)))
+    if (!hit) continue
+    const ko = /^(.*[가-힣)\]])\s+[A-Za-z][A-Za-z0-9 .,'&()-]*$/u.exec(hit)
+    push(ko ? ko[1]! : hit, m.index ?? 0)
+  }
+  return found.sort((a, b) => a.at - b.at).map((x) => x.t)
 }
 
 export function parseNaeiltourScheduleDaysFromTab1(html: string | null): NaeiltourParsedScheduleDay[] {
@@ -606,11 +635,15 @@ export function parseNaeiltourScheduleDaysFromTab1(html: string | null): Naeilto
   const days: NaeiltourParsedScheduleDay[] = []
   // Live HTML uses schedule_wrapq; older fixtures keep schedule_wrap.
   const chunks = html.split(/<div class="schedule_wrapq?">/i).slice(1)
+  // 문과장 1106: live tab1 은 같은 일정을 PC/모바일/인쇄 3벌로 반복 — 일차별 첫 블록만 사용(뒤 블록은 footer까지 붙음)
+  const seenDays = new Set<number>()
   for (const chunk of chunks) {
     const header = chunk.match(/(\d+)일차[\s\S]*?<strong>\s*([^<]+?)\s*<\/strong>/i)
     if (!header?.[1] || !header[2]) continue
     const day = Number(header[1])
     if (!Number.isFinite(day) || day <= 0) continue
+    if (seenDays.has(day)) continue
+    seenDays.add(day)
     const strongText = stripNaeiltourHtmlText(header[2]!)
     const dateIso = parseDateIsoFromStrong(strongText)
     const routeRaw = strongText.replace(/^\d{4}\/\d{1,2}\/\d{1,2}\([^)]*\)\s*/, '').trim()
@@ -619,7 +652,7 @@ export function parseNaeiltourScheduleDaysFromTab1(html: string | null): Naeilto
       .map((s) => s.trim())
       .filter(Boolean)
     const bodyPlaces = extractNaeiltourBodyPlaceLabels(chunk)
-    const places = dedupeNaeiltourScheduleRoutePlaces([...headerPlaces, ...bodyPlaces]).slice(0, 7)
+    const places = dedupeNaeiltourScheduleRoutePlaces([...headerPlaces, ...bodyPlaces]).slice(0, 12)
     const englishRouteLandmarks = extractEnglishLandmarksFromBlock(chunk)
     const meals = extractMealsFromBlock(chunk)
     const hotel = extractHotelFromBlock(chunk)

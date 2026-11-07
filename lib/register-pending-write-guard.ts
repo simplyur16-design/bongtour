@@ -40,6 +40,8 @@ export async function commitPendingOnlyProductScheduleWrite(args: {
   expectedSchedule: string | null | undefined
   nextSchedule: string
   nextRawMeta?: string | null
+  /** 문과장 1106: nextRawMeta 를 만든 시점의 rawMeta — 다르면(잠금 추가·타 워커 갱신) count0 abort (lost update/lock TOCTOU 방지) */
+  expectedRawMeta?: string | null
   prismaClient?: typeof prisma
 }): Promise<PendingOnlyWriteResult> {
   const db = args.prismaClient ?? prisma
@@ -70,12 +72,16 @@ export async function commitPendingOnlyProductScheduleWrite(args: {
       id: string
       registrationStatus: { in: string[] }
       schedule?: string | null
+      rawMeta?: string | null
     } = {
       id: productId,
       registrationStatus: { in: [...PENDING_HEAL_WRITE_STATUSES] },
     }
     if (args.expectedSchedule !== undefined) {
       where.schedule = args.expectedSchedule == null ? null : String(args.expectedSchedule)
+    }
+    if (args.expectedRawMeta !== undefined) {
+      where.rawMeta = args.expectedRawMeta == null ? null : String(args.expectedRawMeta)
     }
 
     const data: { schedule: string; rawMeta?: string | null } = {

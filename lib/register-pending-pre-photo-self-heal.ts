@@ -86,6 +86,18 @@ export type HealPendingPrePhotoOpts = {
   probeImageUrls?: boolean
   dryRun?: boolean
   productId?: string
+  /** 문과장 1106 v4: 패키지 thin remat 실패 관찰용(테스트 probe·운영 보고). 입력값은 넘기지 않음. */
+  onRematError?: (e: RegisterPrePhotoHealRematError) => void
+}
+
+/** 문과장 1106 v4: remat 실패 — 상품 id 와 오류 종류만(본문·URL·자격증명 등 민감 입력 없음) */
+export type RegisterPrePhotoHealRematError = { productId: string; errorName: string; errorCode: string | null }
+
+export function summarizeRegisterPrePhotoHealRematError(productId: string, e: unknown): RegisterPrePhotoHealRematError {
+  const o = e && typeof e === 'object' ? (e as { name?: unknown; code?: unknown }) : {}
+  const name = typeof o.name === 'string' && o.name ? o.name.slice(0, 60) : typeof e
+  const code = typeof o.code === 'string' || typeof o.code === 'number' ? String(o.code).slice(0, 40) : null
+  return { productId, errorName: name, errorCode: code }
 }
 
 export type HealPendingPrePhotoResult = {
@@ -98,6 +110,9 @@ export type HealPendingPrePhotoResult = {
   skippedPhotosReady: number
   skippedUnchanged: number
   failed: number
+  /** 문과장 1106 v4: thin remat 예외 수(예전엔 .catch(() => null) 로 조용히 삼킴) — 힐 자체는 기존처럼 계속 */
+  rematFailed: number
+  rematErrorsSample: RegisterPrePhotoHealRematError[]
   ingestPerGeo: 1
   ingestSkipped: 'listing_collect_not_in_this_job'
   notesSample: RegisterPrePhotoHealNote[]
@@ -194,6 +209,8 @@ export async function healPendingRegisterPrePhoto(
   let skippedPhotosReady = 0
   let skippedUnchanged = 0
   let failed = 0
+  let rematFailed = 0
+  const rematErrorsSample: RegisterPrePhotoHealRematError[] = []
 
   for (const product of products) {
     try {
@@ -233,7 +250,19 @@ export async function healPendingRegisterPrePhoto(
           '@/lib/register-pre-photo-package-supplier-rematerialize'
         )
         if (registerPrePhotoPackageScheduleLooksThin(thinProbe)) {
-          const remat = await rematerializeRegisterPrePhotoByLane(product.id).catch(() => null)
+          const remat = await rematerializeRegisterPrePhotoByLane(product.id).catch((e: unknown) => {
+            // 문과장 1106 v4: 조용히 삼키지 않음 — 집계·로그(id·오류 종류만)·probe. 이전과 같이 remat 없이 힐 계속(상품 실패로 승격하지 않음).
+            rematFailed += 1
+            const info = summarizeRegisterPrePhotoHealRematError(product.id, e)
+            if (rematErrorsSample.length < 24) rematErrorsSample.push(info)
+            console.error('[register-pre-photo-self-heal] package remat failed', JSON.stringify(info))
+            try {
+              opts?.onRematError?.(info)
+            } catch {
+              /* probe 오류는 힐에 영향 없음 */
+            }
+            return null
+          })
           if (remat?.updated) {
             const reloaded = await prisma.product.findUnique({
               where: { id: product.id },
@@ -938,6 +967,8 @@ export async function healPendingRegisterPrePhoto(
     skippedPhotosReady,
     skippedUnchanged,
     failed,
+    rematFailed,
+    rematErrorsSample,
     ingestPerGeo: 1,
     ingestSkipped: 'listing_collect_not_in_this_job',
     notesSample,

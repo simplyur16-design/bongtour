@@ -164,6 +164,11 @@ export async function runAutoPhotoRegisterJob(opts?: {
         duration: true,
         countryKey: true,
         bgImageUrl: true,
+        bgImageExternalId: true,
+        bgImageStoragePath: true,
+        originSource: true,
+        originCode: true,
+        originUrl: true,
         bgImageSource: true,
         bgImageIsGenerated: true,
         bgImageAiPrompt: true,
@@ -196,12 +201,38 @@ export async function runAutoPhotoRegisterJob(opts?: {
     })
 
     // 문과장 사진 검수 통과 목록 밖이면 자동 검사를 통과해도 등록 전환하지 않음 (REGRESSION-FREEZE[auto-register-review-pass])
-    const reviewPassed = isAutoRegisterReviewPassed(id, { rawMeta: p.rawMeta })
+    const reviewPassed = isAutoRegisterReviewPassed(id, {
+      rawMeta: p.rawMeta,
+      schedule: p.schedule,
+      row: {
+        id,
+        schedule: p.schedule ?? null,
+        rawMeta: p.rawMeta ?? null,
+        originSource: p.originSource ?? null,
+        originCode: p.originCode ?? null,
+        originUrl: p.originUrl ?? null,
+        bgImageUrl: p.bgImageUrl ?? null,
+        bgImageExternalId: p.bgImageExternalId ?? null,
+        bgImageStoragePath: p.bgImageStoragePath ?? null,
+        bgImageSourceUrl: p.bgImageSourceUrl ?? null,
+      },
+    })
     if (!reviewPassed && !gate.reasons.includes('photo_review_pending')) gate.reasons.push('photo_review_pending')
     if (gate.ok && reviewPassed) {
       if (sw.flip) {
         const upd = await prisma.product.updateMany({
-          where: { id, OR: [{ registrationStatus: null }, { registrationStatus: '' }, { registrationStatus: 'pending' }] },
+          // 문과장 1106: 검수 판단에 쓴 일정·rawMeta 그대로일 때만 전환 (판단 후 remat 커밋되면 count0)
+          where: {
+            id,
+            OR: [{ registrationStatus: null }, { registrationStatus: '' }, { registrationStatus: 'pending' }],
+            schedule: p.schedule ?? null,
+            rawMeta: p.rawMeta ?? null,
+            // v3: 판단 후 대표사진이 바뀌면 전환 금지
+            bgImageUrl: p.bgImageUrl ?? null,
+            bgImageExternalId: p.bgImageExternalId ?? null,
+            bgImageStoragePath: p.bgImageStoragePath ?? null,
+            bgImageSourceUrl: p.bgImageSourceUrl ?? null,
+          },
           data: {
             registrationStatus: 'registered',
             autoUnpublishedAt: null,

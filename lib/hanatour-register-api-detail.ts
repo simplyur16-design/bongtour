@@ -473,7 +473,10 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
   return attachScheduleDaySupplierOriginalFromFactDays(days, 'hanatour', days.map((d) => {
     const places = dedupeHanatourFactDayPlaces(d.places)
     const highlights = selectHanatourScheduleHighlights(places)
-    const firstTransport = (d.transportNote ?? '').split(';').map((s) => s.trim()).find(Boolean) ?? ''
+    // 문과장 1106: transportNote '인천; 인천 - 푸꾸옥; 푸꾸옥' — 출발/도착이 모두 있는 구간(원문 depCityNm→arriveCityNm)을 우선
+    const transportSegs = (d.transportNote ?? '').split(';').map((s) => s.trim()).filter(Boolean)
+    // 1일차만 (귀국일 제목 '숙박 없음(귀국)' 유지)
+    const firstTransport = (d.day === 1 ? transportSegs.find((s) => s.includes(' - ')) : undefined) ?? transportSegs[0] ?? ''
     const joinedBlob = [firstTransport, ...places, ...d.hotels].filter(Boolean).join(' ')
     const dayKind = classifyHanatourScheduleCardDayKind(d.day, maxDay, joinedBlob)
     let routeText = sanitizeRegisterScheduleRouteText(
@@ -488,7 +491,7 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
       routeText = /인천|ICN|김포|GMP/u.test(joinedBlob) ? '인천' : '인천'
     }
     // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
-    const title = composeRegisterScheduleDayTitleFromRoute({
+    const title0 = composeRegisterScheduleDayTitleFromRoute({
       day: d.day,
       maxDay,
       routeText,
@@ -499,9 +502,16 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
       ],
       returnTitle: '숙박 없음(귀국)',
     })
-    const description =
-      composeHanatourScheduleVibeDescription(d, maxDay, highlights, d.supplierText) ||
+    // 문과장 1106: 설명 원천이 없는 날은 원문 도시간이동(depCityNm - arriveCityNm) 구간만으로 문장화 — 도시/호텔/식사 추가 생성 금지
+    const transportLeg = /^([^\s-][^-;]{0,20}?)\s+-\s+([^\s-][^-;]{0,20})$/u.exec(firstTransport)
+    const vibe0 = composeHanatourScheduleVibeDescription(d, maxDay, highlights, d.supplierText)
+    const description0 =
+      (vibe0 && vibe0 !== `${d.day}일차` ? vibe0 : '') ||
+      (transportLeg ? `${transportLeg[1]!.trim()}에서 출발해 ${transportLeg[2]!.trim()}에 도착합니다.` : '') ||
       `${d.day}일차`
+    // 문과장 1106: 관광지 없이 원문 선택관광 카드로만 채운 일차 — 포함 일정으로 오인 금지(원문 분류 표기)
+    const title = d.optionalTourOnly ? `[선택관광] ${title0}` : title0
+    const description = d.optionalTourOnly ? `[선택관광] ${description0}` : description0
     const hotelText = registerScheduleHotelTextFromFactHotels(d.hotels)
     const meals = parseFactMealsListToScheduleFields(d.meals)
     return {
@@ -913,7 +923,9 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
     }
     // 관광지 비었을 때만 선택관광 POI를 route/title에 사용 (원문에만 있는 일차)
     if (fact.places.length === 0 && optionalPlaces.length > 0) {
+      // 문과장 1106: 원문 schdCatgNm=선택관광 — 포함 일정처럼 보이지 않도록 원문 구분 표기 유지
       fact.places.push(...optionalPlaces.slice(0, 7))
+      fact.optionalTourOnly = true
     }
     if (supplierBits.length) {
       fact.supplierText = supplierBits.slice(0, 2).join(' ').replace(/\s+/g, ' ').trim().slice(0, 720)

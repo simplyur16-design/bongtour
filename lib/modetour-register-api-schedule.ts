@@ -348,6 +348,8 @@ export function modetourFactDaysToRegisterSchedule(
             : null,
         MODETOUR_SCHEDULE_HIGHLIGHT_MAX,
       )
+    // 문과장 1106 v5: 관광 카드 없는 이동·출발·귀국 일차 — 원문 기타단문 줄(공지 ※ 제외)만 사용, 템플릿 문장 대신.
+    const timeline = (d.supplierTimeline ?? []).filter((l) => !/^※/.test(l))
     // REGRESSION-FREEZE[register-schedule-day-title-ssot]: short title from route — manifest
     const title = composeRegisterScheduleDayTitleFromRoute({
       day: d.day,
@@ -355,6 +357,7 @@ export function modetourFactDaysToRegisterSchedule(
       routeText,
       fallbacks: [
         sanitizeRegisterScheduleRouteText(highlights.join(' - '), MODETOUR_SCHEDULE_HIGHLIGHT_MAX),
+        timeline[0],
         firstTransport,
         normalizeModetourScheduleHotelText(d.hotels[0], opts),
       ],
@@ -362,7 +365,9 @@ export function modetourFactDaysToRegisterSchedule(
     })
     const description = opts?.registerAirHotelFree
       ? ''
-      : composeModetourScheduleVibeDescription(d, maxDay, highlights, d.supplierText) ||
+      : timeline.length > 0
+        ? timeline.join(' → ').slice(0, 720)
+        : composeModetourScheduleVibeDescription(d, maxDay, highlights, d.supplierText) ||
           `${d.day}일차`
     const hotelText =
       d.hotels

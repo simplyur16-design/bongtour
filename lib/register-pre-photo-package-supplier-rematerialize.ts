@@ -14,6 +14,10 @@ import { collectSupplierRegisterFacts } from '@/lib/register-facts/collect'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { isScheduleSupplierOriginalLocked } from '@/lib/schedule-supplier-original-lock'
 import {
+  fixDepartureTemplateSentence,
+  registerScheduleDepartureHub,
+} from '@/lib/register-schedule-day-summary-finalize'
+import {
   commitPendingOnlyProductScheduleWrite,
   parseProductRawMeta,
   stampRematRevisionOnRawMeta,
@@ -35,6 +39,64 @@ export type PackageSupplierRematerializeResult = {
     | 'schedule_empty'
     | 'product_missing'
     | 'aborted_race'
+}
+
+const KR_DEPARTURE_HUB_RE = /^(인천|김포|김해|부산|대구|청주|제주|무안|양양)/u
+const normHub = (h: string) => (h === '김해' ? '부산' : h)
+
+/**
+ * 문과장 1106: 원문 출발지(상품 제목 + 1일차 원문 헤더/교통)로만 출발·귀국 틀 문장을 고친다.
+ * 원문 출발지가 없거나 서로 다르면(예: 헤더 인천 vs 제목 [부산출발]) 틀 문장을 지우고 지어내지 않는다.
+ */
+export function resolveSourceDepartureHub(
+  productTitle: string | null | undefined,
+  day1: import('@/lib/register-facts/types').RegisterFactScheduleDay | undefined,
+): string | null {
+  const hubs = new Set<string>()
+  const fromTitle = registerScheduleDepartureHub(String(productTitle ?? ''), '')
+  if (fromTitle) hubs.add(normHub(fromTitle))
+  const first = String(day1?.places?.[0] ?? '').trim()
+  const m1 = KR_DEPARTURE_HUB_RE.exec(first)
+  if (m1) hubs.add(normHub(m1[1]!))
+  else {
+    const seg = String(day1?.transportNote ?? '')
+      .split(';')
+      .map((x) => x.trim())
+      .find((x) => x.includes(' - '))
+    const m2 = KR_DEPARTURE_HUB_RE.exec(String(seg ?? '').split(' - ')[0]!.trim())
+    if (m2) hubs.add(normHub(m2[1]!))
+  }
+  return hubs.size === 1 ? [...hubs][0]! : null
+}
+
+/** 1일차 원문 교통 구간('출발 - 도착')의 도착 도시 — 출발 틀 문장 도착지 검증용(원문 값만) */
+export function sourceDay1ArrivalCities(
+  day1: import('@/lib/register-facts/types').RegisterFactScheduleDay | undefined,
+): string[] {
+  return String(day1?.transportNote ?? '')
+    .split(';')
+    .map((x) => x.trim())
+    .filter((x) => x.includes(' - '))
+    .map((x) => x.split(' - ').slice(-1)[0]!.trim())
+    .filter((x) => x.length >= 2 && x.length <= 20)
+}
+
+export function applySourceDepartureHubToScheduleRows<T extends { day: number; description?: string | null }>(
+  rows: T[],
+  hub: string | null,
+  knownArrivalCities: readonly string[] = [],
+): T[] {
+  const maxDay = rows.reduce((m, r) => Math.max(m, Number(r.day) || 0), 0)
+  return rows.map((r) => {
+    const day = Number(r.day) || 0
+    if (day !== 1 && !(maxDay >= 2 && day === maxDay)) return r
+    const desc = String(r.description ?? '').trim()
+    if (!desc) return r
+    const sents = desc.split(/(?<=[.!?])\s+/u).map((x) => x.trim()).filter(Boolean)
+    const fixed = sents.map((x) => fixDepartureTemplateSentence(x, hub, knownArrivalCities)).filter((x): x is string => Boolean(x))
+    const next = fixed.join(' ').trim() || `${day}일차`
+    return next === desc ? r : { ...r, description: next }
+  })
 }
 
 /** 템플릿·빈 제목·빈 요약이 일정에 남아 공급사 재수집이 필요한지 */
@@ -149,8 +211,17 @@ export async function rematerializePackageScheduleFromSupplierFacts(
   if (!bundle?.scheduleDays?.length) {
     return { productId, updated: false, reason: 'facts_missing' }
   }
-  const built = factDaysToSchedule(supplier, bundle.scheduleDays, product.title)
-  if (!built?.length) return { productId, updated: false, reason: 'schedule_empty' }
+  const built0 = factDaysToSchedule(supplier, bundle.scheduleDays, product.title)
+  if (!built0?.length) return { productId, updated: false, reason: 'schedule_empty' }
+  const hub = resolveSourceDepartureHub(product.title, bundle.scheduleDays.find((d) => Number(d.day) === 1))
+  // 같은 일차 중복 행은 첫 행만 (Map 마지막-승리로 footer 묻은 행 채택 방지)
+  const seenBuilt = new Set<number>()
+  const built = applySourceDepartureHubToScheduleRows(built0, hub, sourceDay1ArrivalCities(bundle.scheduleDays.find((d) => Number(d.day) === 1))).filter((r) => {
+    const d = Number(r.day)
+    if (seenBuilt.has(d)) return false
+    seenBuilt.add(d)
+    return true
+  })
 
   const byDay = new Map(built.map((r) => [Number(r.day), r]))
   const baseRows: Array<Record<string, unknown>> = scheduleArr.length
@@ -194,6 +265,7 @@ export async function rematerializePackageScheduleFromSupplierFacts(
     expectedSchedule: product.schedule,
     nextSchedule: scheduleJson,
     nextRawMeta: JSON.stringify(rawMeta),
+    expectedRawMeta: product.rawMeta,
   })
   if (!commit.ok) {
     if (commit.reason === 'aborted_status') return { productId, updated: false, reason: 'skipped_status' }
