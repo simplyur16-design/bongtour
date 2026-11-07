@@ -23,6 +23,8 @@ import { photoMatchGate, sortByMatchGateScore, type MatchGateContext } from '@/l
 import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-preserve'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
+import { logAutoPhotoAttempt } from '@/lib/auto-photo-attempt-log'
+import { missingDayFillAction, processImagesProductUpdate } from '@/lib/register-auto-photo-missing-day'
 import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import { registerSupplierTripDays, trimRegisterScheduleToSupplierDays } from '@/lib/register-schedule-supplier-day-count'
@@ -395,6 +397,8 @@ export async function POST(req: Request) {
     const productId = body.productId ?? body.id
     const debugMode = body.debug === true
     const photoChainV2 = isPhotoChainV2Enabled(body)
+    const fillMissingOnly = body.fillMissingOnly === true
+    const preserveHeroRequested = body.preserveHero === true
     if (productId == null) {
       return jsonWithLeakGuard({ success: false, error: 'productId 필요' }, 'travel.process-images.no-id', {
         status: 400,
@@ -737,8 +741,18 @@ export async function POST(req: Request) {
       destination
 
     let mainPhoto: PhotoResult
-    const poolMain = poolBySlot.get(-1)
-    if (poolMain) {
+    const existingHeroUrl = String(product.bgImageUrl ?? '').trim()
+    // REGRESSION-FREEZE[auto-photo-missing-day-fill]: 기존 대표 URL·출처는 유지 — manifest
+    const preserveHero = preserveHeroRequested && existingHeroUrl.length > 0
+    const poolMain = preserveHero ? undefined : poolBySlot.get(-1)
+    if (preserveHero) {
+      mainPhoto = {
+        url: existingHeroUrl,
+        source: String(product.bgImageSource ?? 'existing'),
+        photographer: '',
+        originalLink: '',
+      }
+    } else if (poolMain) {
       mainPhoto = toPoolResult(poolMain)
       cacheHitCount++
       console.log(`[POOL] 메인 사진 사용`)
@@ -796,7 +810,9 @@ export async function POST(req: Request) {
         }
       }
     }
-    mainPhoto = await sealProductCoverPhoto(prisma, destination, mainPhoto, mainQuery, mainPhoto.source)
+    if (!preserveHero) {
+      mainPhoto = await sealProductCoverPhoto(prisma, destination, mainPhoto, mainQuery, mainPhoto.source)
+    }
     usage.mark(mainPhoto)
 
     const maxItineraryDay =
@@ -853,6 +869,34 @@ export async function POST(req: Request) {
           fallbackUsed: false,
         })
         continue
+      }
+      if (fillMissingOnly && sched) {
+        const action = missingDayFillAction(sched, scheduleMaxDay)
+        if (action === 'keep') {
+          const src = sched.imageSource
+          putSlot(n, {
+            photo: {
+              url: String(sched.imageUrl),
+              source: src?.source || 'existing',
+              photographer: src?.photographer || sched.imagePhotographer || '',
+              originalLink: src?.originalLink || sched.imageSourcePageUrl || '',
+              ...(src?.externalId ? { externalId: src.externalId } : {}),
+            },
+            imageKeyword: sched.imageKeyword || `day_${dayNum}`,
+          })
+          continue
+        }
+        if (action === 'skip') {
+          logAutoPhotoAttempt({
+            productId: String(product.id),
+            day: dayNum,
+            gate: 'missing-day-skip',
+            providerErrorClass: null,
+            attemptAt: new Date().toISOString(),
+            result: 'skipped',
+          })
+          continue
+        }
       }
       const itRow = itineraryRows.find((r) => r.day === dayNum) ?? itineraryRows[n] ?? null
 
@@ -1332,13 +1376,15 @@ export async function POST(req: Request) {
       bestCover && bestCover.imageUrl
         ? coverCandidates.find((c) => c.meta === bestCover)?.photo ?? mainPhoto
         : mainPhoto
-    bgPhoto = await sealProductCoverPhoto(
-      prisma,
-      destination,
-      bgPhoto,
-      (bestCover?.imageKeyword || 'cover').toString().slice(0, 80),
-      bgPhoto.source
-    )
+    if (!preserveHero) {
+      bgPhoto = await sealProductCoverPhoto(
+        prisma,
+        destination,
+        bgPhoto,
+        (bestCover?.imageKeyword || 'cover').toString().slice(0, 80),
+        bgPhoto.source
+      )
+    }
 
     const scheduleStrFinal = await stringifyScheduleWithPexelsRehost(
       product.id as string,
@@ -1350,10 +1396,11 @@ export async function POST(req: Request) {
     await prisma.product.update({
       where: { id: product.id as string },
       data: await gatedAutoCoverUpdateData(product, bgPhoto, mainQuery, {
-        bgImageUrl: bgPhoto.url,
-        bgImageRehostSearchLabel: mainQuery.slice(0, 120),
-        schedule: scheduleStrFinal,
-        ...bgMeta,
+        ...processImagesProductUpdate(preserveHero, scheduleStrFinal, {
+          bgImageUrl: bgPhoto.url,
+          bgImageRehostSearchLabel: mainQuery.slice(0, 120),
+          ...bgMeta,
+        }),
       }),
     })
 

@@ -13,7 +13,7 @@ import {
   isNonLandmarkSpaShoppingLoungeImageKeyword,
 } from '@/lib/pexels-place-name-keyword'
 import { isBrokenRegisterLandmarkKeyword } from '@/lib/register-pre-photo-guards'
-import { persistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
+import { persistScheduleImageKeyword, tryPersistScheduleImageKeyword } from '@/lib/schedule-image-keyword-persist'
 import { resolveTravelSubjectEnForMedia } from '@/lib/pexels-keyword'
 
 export type FitItineraryActivityForKeyword = {
@@ -262,6 +262,33 @@ export function collectFitDayImageKeywordCandidates(
   return out
 }
 
+/** 그날 활동·일차 메타만. 상품 도시 fallback 은 넣지 않는다. */
+function collectFitDayOwnPlaceKeywordCandidates(day: FitItineraryDayForKeyword): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  const push = (kw: string | null | undefined) => {
+    const k = String(kw ?? '').trim()
+    if (!k) return
+    const lower = k.toLowerCase()
+    if (seen.has(lower)) return
+    seen.add(lower)
+    out.push(k)
+  }
+  const activities = [...(day.activities ?? [])].sort((a, b) => a.order - b.order)
+  for (const cat of KEYWORD_CATEGORY_ORDER) {
+    for (const act of activities) {
+      if (act.category !== cat) continue
+      push(keywordFromActivity(act, { fromAttraction: cat === 'attraction' }))
+    }
+  }
+  for (const act of activities) {
+    if (act.category === 'shopping') push(keywordFromActivity(act, { fromAttraction: false }))
+    else if (act.category === 'meal') push(keywordFromMealLandmarkLocation(act))
+  }
+  push(keywordFromDayMeta(day))
+  return out
+}
+
 /** 여러 일차에 걸쳐 중복 키워드 회피 — 예시 일정 SSOT 추출용 */
 /** 그날 activities location 의 괄호 영문 장소 이름(식사 제외) — 사진 키워드 출처 표시용 */
 export function collectFitDayEnglishPlaceNames(day: FitItineraryDayForKeyword): string[] {
@@ -277,11 +304,12 @@ export function collectFitDayEnglishPlaceNames(day: FitItineraryDayForKeyword): 
 
 export function pickFitDayImageKeywordDistinct(
   day: FitItineraryDayForKeyword,
-  fallbackCtx: FitDayImageKeywordFallbackContext,
+  _fallbackCtx: FitDayImageKeywordFallbackContext,
   usedLower: Set<string>,
 ): string {
   // 도시명을 떼고 'Duomo Di'처럼 전치사로 끝난 키워드는 쓰지 않는다(REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101])
-  const raw = collectFitDayImageKeywordCandidates(day, fallbackCtx).filter(
+  // 상품 도시·다른 날 장소는 쓰지 않는다. 그날 장소가 없으면 빈 문자열.
+  const raw = collectFitDayOwnPlaceKeywordCandidates(day).filter(
     (kw) => !/\s(?:di|de|del|della|des|du|da|of|the|la|le|al|alla|von|van)$/i.test(kw.trim()),
   )
   // 깨진 후보('It' = cityKey 폴백)보다 성한 후보 먼저 — REGRESSION-FREEZE[fit-gemini-recommended-itinerary-1101]
@@ -292,14 +320,28 @@ export function pickFitDayImageKeywordDistinct(
   for (const kw of candidates) {
     if (!isWeakFitDayImageKeyword(kw) && !usedLower.has(kw.toLowerCase())) return kw
   }
-  for (const kw of sound) {
-    if (!usedLower.has(kw.toLowerCase())) return kw
-  }
-  if (sound[0]) return sound[0]
   for (const kw of candidates) {
-    if (!usedLower.has(kw.toLowerCase())) return kw
+    if (!isWeakFitDayImageKeyword(kw)) return kw
   }
-  return candidates[0] ?? buildFitDayImageKeywordFallback(fallbackCtx, day)
+  return ''
+}
+
+/** 그날 다른 장소. 없으면 null (이전 날 imageKeyword2 를 남기지 않음). */
+export function pickFitDaySecondaryImageKeyword(
+  day: FitItineraryDayForKeyword,
+  primaryKw: string,
+): string | null {
+  const primary = primaryKw.trim().toLowerCase()
+  if (!primary) return null
+  for (const name of collectFitDayEnglishPlaceNames(day)) {
+    const persisted = tryPersistScheduleImageKeyword(name)
+    const kw = persisted.ok ? persisted.value.trim() : ''
+    if (!kw || kw.toLowerCase() === primary) continue
+    if (isWeakFitDayImageKeyword(kw)) continue
+    if (isBrokenRegisterLandmarkKeyword(kw, { allowHotelLodging: true })) continue
+    return kw
+  }
+  return null
 }
 
 export function areFitDayImageKeywordsUniform(dayKeywords: Record<number, string>): boolean {
@@ -315,7 +357,9 @@ export function pickFitDayImageKeyword(
   day: FitItineraryDayForKeyword,
   fallbackCtx: FitDayImageKeywordFallbackContext,
 ): string {
-  return pickFitDayImageKeywordDistinct(day, fallbackCtx, new Set())
+  const kw = pickFitDayImageKeywordDistinct(day, fallbackCtx, new Set())
+  if (kw) return kw
+  return buildFitDayImageKeywordFallback(fallbackCtx, day)
 }
 
 /**
