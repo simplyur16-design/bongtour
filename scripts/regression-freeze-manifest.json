@@ -31112,7 +31112,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[supplier-sweep-pending-same-event]",
             "lookupModetourSameProductFutureDepartures",
-            "modetourCalendarNeedsSameProductLookup"
+            "modetourCalendarNeedsSameProductLookup",
+            "기존 경로가 비었을 때만 현재 행사"
           ]
         }
       ],

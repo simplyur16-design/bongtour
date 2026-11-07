@@ -336,6 +336,42 @@ export async function collectModetourPriceInputsWithE2eFallback(
     }
   }
 
+  if (options?.airHotel && collectOriginUrl) {
+    const singleHit = await tryGroupDetailSingle()
+    if (singleHit) return singleHit
+  }
+
+  if (options?.airHotel && canonicalUrl) {
+    try {
+      const full = await collectModetourDepartureInputsForDateRange(canonicalUrl, fromYmd, toYmd, {
+        skipBaselineMatch: true,
+      })
+      const priced = pricedInputsInWindow(full, fromYmd, toYmd)
+      if (priced.length > 0) {
+        return {
+          inputs: priced,
+          sourceDates: sourceDatesFromInputs(priced, fromYmd, toYmd),
+          source: 'api',
+          apiFailedSd1,
+          e2eAttempted: false,
+          e2eModalOpenFailed: false,
+          e2eError: null,
+          ...resolveMeta,
+        }
+      }
+    } catch (err) {
+      if (isModetourSd1NotFoundError(err)) {
+        apiFailedSd1 = true
+      } else {
+        throw err
+      }
+    }
+  }
+
+  // 자유여행 SD1은 기존 GetProductDetailInfo 단건·풀 API가 먼저다.
+  // 그 전에 같은 상품 조회를 하면 단건 응답을 소비해 가격이 비고, 이어서 풀 수집 결과가 없으면 filter가 깨진다.
+  // 기존 경로가 비었을 때만 현재 행사 조회.
+  // REGRESSION-FREEZE[supplier-sweep-pending-same-event]: 기존 경로가 비었을 때만 현재 행사 — manifest
   const storedNoForSibling = resolvedProductNo ?? storedProductNo
   const lookupSameProduct =
     !options?.singleDeparture && Boolean(storedNoForSibling) && (apiFailedSd1 || onlyPastCalendar)
@@ -372,38 +408,6 @@ export async function collectModetourPriceInputsWithE2eFallback(
         resolvedDetailUrl: sibling.detailUrl,
         resolvedProductNo: sibling.productNo,
         detailResolveSource: 'origin-code-redirect',
-      }
-    }
-  }
-
-  if (options?.airHotel && collectOriginUrl) {
-    const singleHit = await tryGroupDetailSingle()
-    if (singleHit) return singleHit
-  }
-
-  if (options?.airHotel && canonicalUrl) {
-    try {
-      const full = await collectModetourDepartureInputsForDateRange(canonicalUrl, fromYmd, toYmd, {
-        skipBaselineMatch: true,
-      })
-      const priced = pricedInputsInWindow(full, fromYmd, toYmd)
-      if (priced.length > 0) {
-        return {
-          inputs: priced,
-          sourceDates: sourceDatesFromInputs(priced, fromYmd, toYmd),
-          source: 'api',
-          apiFailedSd1,
-          e2eAttempted: false,
-          e2eModalOpenFailed: false,
-          e2eError: null,
-          ...resolveMeta,
-        }
-      }
-    } catch (err) {
-      if (isModetourSd1NotFoundError(err)) {
-        apiFailedSd1 = true
-      } else {
-        throw err
       }
     }
   }
