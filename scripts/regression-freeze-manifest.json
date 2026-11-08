@@ -362,6 +362,24 @@
   ],
   "staticGuards": [
     {
+      "id": "curation-events-tab-copy",
+      "tier": ["prebuild", "ci"],
+      "summary": "이벤트 후보 탭 안내가 통합 전 예정 문구로 남아 있지 않음",
+      "checks": [
+        {
+          "file": "app/admin/marketing/components/CurationEventsAdminClient.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[curation-events-tab-copy]",
+            "큐레이션의 이벤트 후보 탭"
+          ],
+          "mustNotInclude": [
+            "임시 페이지 — PR 가-7-β에서 본체 통합 예정",
+            "가-7-β"
+          ]
+        }
+      ]
+    },
+    {
       "id": "package-supplier-fact-schedule-rebuild",
       "tier": ["prebuild", "ci"],
       "summary": "대기열 힐은 지어낸 귀국 문장이 있으면 공급사 팩트로 일정요약·설명을 다시 만든다. 7사. 원문 보기 유지.",

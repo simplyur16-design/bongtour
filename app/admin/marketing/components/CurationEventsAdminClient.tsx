@@ -254,7 +254,8 @@ export default function CurationEventsAdminClient() {
         <div>
           <h1 className="text-xl font-semibold text-bt-title">해외 이벤트 검토</h1>
           <p className="mt-1 text-sm text-bt-body/70">
-            Gemini 수집 이벤트를 검토·승인하면 추천 카드 🌐 태그에 노출됩니다. (임시 페이지 — PR 가-7-β에서 본체 통합 예정)
+            {/* REGRESSION-FREEZE[curation-events-tab-copy]: 이벤트 후보 탭 위치 안내 — manifest */}
+            Gemini 수집 이벤트를 검토·승인하면 추천 카드 🌐 태그에 노출됩니다. (큐레이션의 이벤트 후보 탭)
           </p>
         </div>
       </div>
