@@ -77,7 +77,10 @@ function authSignaturePlain(input: {
   }
 }
 
-/** 승인 응답 결제보안 — `authSignature` 검증 (샘플 WelStdPayUtil::makeSignatureAuth, 2016+) */
+/**
+ * 승인 응답 결제보안 — `authSignature` 검증 (샘플 WelStdPayUtil::makeSignatureAuth, 2016+).
+ * REGRESSION-FREEZE[esim-callback-auth-amount-gate]: 틀린 authSignature는 승인하지 않음 — manifest
+ */
 export function verifyWelcomepayAuthSignature(input: {
   mid: string;
   authTimestamp: string;
