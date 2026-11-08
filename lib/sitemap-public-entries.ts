@@ -39,18 +39,9 @@ export function sitemapStaticPaths(): Array<{ path: string; priority: number }> 
   ]
 }
 
-export function latestContentUpdatedAt(dates: Array<Date | null | undefined>): Date | undefined {
-  let max = Number.NEGATIVE_INFINITY
-  for (const date of dates) {
-    const time = date instanceof Date ? date.getTime() : Number.NaN
-    if (Number.isFinite(time) && time > max) max = time
-  }
-  return Number.isFinite(max) ? new Date(max) : undefined
-}
-
 type SitemapProduct = { id: string; slug: string | null; updatedAt: Date }
 
-/** 정적 URL lastmod는 상품 updatedAt의 최신값만. 요청 시각은 쓰지 않는다. */
+/** 정적 URL에는 lastModified를 넣지 않는다. 페이지 파일 수정 시각이 없기 때문이다. */
 // REGRESSION-FREEZE[seo-design-public-fixes]: sitemap lastmod — manifest
 export function buildPublicSitemapEntries(input: {
   origin: string
@@ -58,13 +49,8 @@ export function buildPublicSitemapEntries(input: {
   trainingPrograms: SitemapProduct[]
 }): MetadataRoute.Sitemap {
   const origin = input.origin.replace(/\/$/, '')
-  const contentUpdatedAt = latestContentUpdatedAt([
-    ...input.products.map((p) => p.updatedAt),
-    ...input.trainingPrograms.map((p) => p.updatedAt),
-  ])
   const staticEntries: MetadataRoute.Sitemap = sitemapStaticPaths().map(({ path, priority }) => ({
     url: path ? `${origin}${path}` : `${origin}/`,
-    ...(contentUpdatedAt ? { lastModified: contentUpdatedAt } : {}),
     changeFrequency: 'weekly',
     priority,
   }))

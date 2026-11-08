@@ -8,8 +8,8 @@ import {
 } from '@/lib/sitemap-public-entries'
 
 describe('seo-design-public-fixes', () => {
-  // REGRESSION-FREEZE[seo-design-public-fixes]: sitemap lastmod는 상품 updatedAt — manifest
-  it('uses the newest product updatedAt for static urls and lists esim help', () => {
+  // REGRESSION-FREEZE[seo-design-public-fixes]: static sitemap urls omit lastmod — manifest
+  it('omits lastmod on static urls and keeps each product updatedAt', () => {
     const older = new Date('2026-01-02T00:00:00.000Z')
     const newer = new Date('2026-06-03T00:00:00.000Z')
     const entries = buildPublicSitemapEntries({
@@ -19,15 +19,19 @@ describe('seo-design-public-fixes', () => {
     })
     const home = entries.find((entry) => entry.url === 'https://bongtour.com/')
     const help = entries.find((entry) => entry.url === 'https://bongtour.com/travel/esim/help/setup-guide')
+    const privacy = entries.find((entry) => entry.url === 'https://bongtour.com/privacy')
     const product = entries.find((entry) => entry.url === 'https://bongtour.com/products/pkg-hn-0001')
-    expect(home?.lastModified).toEqual(newer)
-    expect(help?.lastModified).toEqual(newer)
+    const training = entries.find((entry) => entry.url === 'https://bongtour.com/business/programs/train-1')
+    expect(home?.lastModified).toBeUndefined()
+    expect(help?.lastModified).toBeUndefined()
+    expect(privacy?.lastModified).toBeUndefined()
     expect(product?.lastModified).toEqual(older)
+    expect(training?.lastModified).toEqual(newer)
     for (const path of SITEMAP_ESIM_HELP_PATHS) {
       expect(entries.some((entry) => entry.url === `https://bongtour.com${path}`)).toBe(true)
     }
     const empty = buildPublicSitemapEntries({ origin: 'https://bongtour.com', products: [], trainingPrograms: [] })
-    expect(empty[0]?.lastModified).toBeUndefined()
+    expect(empty.every((entry) => entry.lastModified == null)).toBe(true)
   })
 
   it('products browse title is absolute and twitter has an image', () => {

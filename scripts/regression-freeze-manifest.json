@@ -31156,15 +31156,16 @@
     {
       "id": "seo-design-public-fixes",
       "tier": ["prebuild", "ci"],
-      "summary": "사이트맵 lastmod는 상품 updatedAt, eSIM 도움말 URL, TouristTrip에 가격 없음, 터치 44px·메가메뉴 탭",
+      "summary": "정적 sitemap URL은 lastmod를 비우고, 상품·연수 행만 updatedAt을 쓴다. 메가메뉴는 입력 종류를 가른다.",
       "checks": [
         {
           "file": "lib/sitemap-public-entries.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[seo-design-public-fixes]",
             "/travel/esim/help/setup-guide",
-            "latestContentUpdatedAt"
-          ]
+            "정적 URL에는 lastModified를 넣지 않는다"
+          ],
+          "mustNotInclude": ["latestContentUpdatedAt", "contentUpdatedAt"]
         },
         {
           "file": "app/components/seo/ProductJsonLd.tsx",
@@ -31176,7 +31177,15 @@
         },
         {
           "file": "components/top-nav/OverseasMegaMenuHoverTrigger.tsx",
-          "mustInclude": ["onTapMega", "min-h-11", "(hover: hover) and (pointer: fine)"]
+          "mustInclude": ["aria-expanded", "min-h-11", "onDecide"]
+        },
+        {
+          "file": "lib/mega-menu-interaction.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-design-public-fixes]",
+            "(hover: hover) and (pointer: fine)",
+            "detail === 0"
+          ]
         },
         {
           "file": "lib/kakao-consult-href.ts",
@@ -31187,7 +31196,7 @@
           "mustInclude": ["kakaoConsultHref", "min-h-11"]
         }
       ],
-      "vitestSuites": ["lib/seo-design-fixes.test.ts"]
+      "vitestSuites": ["lib/seo-design-fixes.test.ts", "lib/mega-menu-interaction.test.ts"]
     }
   ],
   "vitestSuites": [
