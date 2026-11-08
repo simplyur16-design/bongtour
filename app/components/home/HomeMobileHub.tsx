@@ -8,7 +8,7 @@ import { HOME_MOBILE_HUB_SECTION_TITLE_CLASS } from '@/lib/home-mobile-hub-secti
 import { MAIN_HUB_FOUR_CARDS, type HubFourCardKey } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import type { MobileMainServiceTileKey } from '@/lib/home-hub-resolve-images'
-import { resolveMobileMainTileBgSrc } from '@/lib/home-mobile-hub-tile-images'
+import { preferMobileHubLocalVariant, resolveMobileMainTileBgSrc } from '@/lib/home-mobile-hub-tile-images'
 import { hubPhotoCardIsPending } from '@/lib/home-hub-photo-card-pending'
 import { getHubFourPhotosBundle } from '@/lib/home-hub-four-photo-bundle'
 import { HUB_FOUR_PHOTO_CARD_HOVER_RING_CLASS } from '@/lib/home-hub-four-accent-classes'
@@ -71,7 +71,9 @@ export default async function HomeMobileHub() {
     const fallbackStatic = (card.imageSrc ?? '').trim()
     const resolved =
       fromBundle || (mobileDefault ?? '').trim() || fallbackStatic || ''
-    const bgSrc = resolved.length > 0 ? resolved : null
+    // REGRESSION-FREEZE[speed-home-responsive-images]: 동일 원본 증거 없는 mobile 형제는 고르지 않고 기존 URL 유지 — manifest
+    const preferred = resolved ? preferMobileHubLocalVariant(resolved) : ''
+    const bgSrc = preferred.length > 0 ? preferred : null
     const imagePending = hubPhotoCardIsPending(bgSrc)
     return {
       href: card.href,

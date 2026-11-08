@@ -40,8 +40,9 @@ export default function SafeImage({
   style,
   loading: loadingProp,
   onError: onErrorProp,
+  nativeSrcSet,
   ...rest
-}: ImageProps) {
+}: ImageProps & { nativeSrcSet?: string | null }) {
   const [error, setError] = useState(false)
 
   useEffect(() => {
@@ -116,6 +117,7 @@ export default function SafeImage({
         {...(priority ? { fetchPriority: 'high' as const } : {})}
         decoding="async"
         {...(sizesAttr ? { sizes: sizesAttr } : {})}
+        {...(nativeSrcSet ? { srcSet: nativeSrcSet } : {})}
         className={imgClassName}
         style={mergedStyle}
         onError={(e) => {

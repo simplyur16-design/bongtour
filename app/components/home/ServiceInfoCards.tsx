@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import SafeImage from '@/app/components/SafeImage'
 import { homeHubCardImageSrc } from '@/lib/home-hub-images'
+import { homeHubTrainingSrcSet } from '@/lib/home-mobile-hub-tile-images'
+import { pexelsResponsiveSrcSet } from '@/lib/responsive-image-srcset'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 
 /** 목업·SSOT 전용 — 라이브 hub JSON / overseas 폴더와 분리 */
@@ -60,6 +62,7 @@ export default function ServiceInfoCards({ oceanWarm = false }: { oceanWarm?: bo
                   fill
                   className="object-cover object-center"
                   sizes="(max-width:768px) 100vw, 50vw"
+                  nativeSrcSet={pexelsResponsiveSrcSet(privateImg) ?? undefined}
                 />
               </div>
               <div
@@ -95,6 +98,7 @@ export default function ServiceInfoCards({ oceanWarm = false }: { oceanWarm?: bo
                   fill
                   className="object-cover object-[center_38%]"
                   sizes="(max-width:768px) 100vw, 50vw"
+                  nativeSrcSet={homeHubTrainingSrcSet(trainingImg) ?? undefined}
                 />
               </div>
               <div

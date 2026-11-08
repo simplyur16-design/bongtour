@@ -7,7 +7,7 @@ export default function ProductDetailLoading() {
   return (
     <RouteLoadingShell>
       <div className="hidden md:block">
-        <Header />
+        <Header logoPriority={false} />
         <div className={`${SITE_CONTENT_CLASS} py-6`}>
           <div className="mb-4 flex flex-wrap gap-2">
             <PulseLine className="h-4 w-16" />
@@ -32,7 +32,7 @@ export default function ProductDetailLoading() {
         </div>
       </div>
       <div className="md:hidden">
-        <Header />
+        <Header logoPriority={false} />
         <div className="px-4 py-4 space-y-4">
           <PulseLine className="h-7 w-full" />
           <PulseBlock className="aspect-[4/3] w-full" />
