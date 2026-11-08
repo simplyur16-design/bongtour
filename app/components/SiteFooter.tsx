@@ -250,7 +250,7 @@ export default function SiteFooter() {
             <button
               type="button"
               onClick={openBiz}
-              className="w-full rounded-lg border border-bt-bg-lavender/30 bg-white/5 px-3 py-2.5 text-left text-sm font-semibold text-bt-trust-beige hover:bg-white/10 active:bg-white/15"
+              className="flex min-h-11 w-full items-center rounded-lg border border-white/40 bg-white/10 px-3 py-2.5 text-left text-sm font-semibold text-white hover:bg-white/15 active:bg-white/20"
             >
               사업자 정보 확인
             </button>
@@ -268,7 +268,7 @@ export default function SiteFooter() {
             </p>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <KakaoChannelConsultLink className="w-full text-xs sm:w-auto" />
-              <p className="text-xs leading-relaxed text-bt-bg-lavender/70">
+              <p className="text-xs leading-relaxed text-white/90">
                 급한 문의는 <span className="text-bt-bg-lavender">전화</span>
                 <span className="text-bt-bg-lavender/40"> · </span>
                 자료 첨부가 필요한 경우 <span className="text-bt-bg-lavender">이메일</span>을 이용해 주세요

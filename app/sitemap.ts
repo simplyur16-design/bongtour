@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { getSiteOrigin } from '@/lib/site-metadata'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
-import { publicProductPath } from '@/lib/product-public-path'
-import { OVERSEAS_TRAINING_LISTING_KIND, trainingProgramPublicPath } from '@/lib/overseas-training-program-query'
+import { OVERSEAS_TRAINING_LISTING_KIND } from '@/lib/overseas-training-program-query'
 import { shouldSkipSitemapDbAtBuild } from '@/lib/sitemap-build'
+import { buildPublicSitemapEntries } from '@/lib/sitemap-public-entries'
 
 /**
  * 요청 시 DB 조회 — `revalidate` ISR 은 빌드 시점(DB 생략) 정적 결과가 굳어 상품 URL 0건으로 남았다.
@@ -14,40 +14,9 @@ export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = getSiteOrigin()
-  const now = new Date()
-
-  const staticPaths = [
-    { path: '', priority: 1 },
-    { path: '/products', priority: 0.9 },
-    { path: '/travel/overseas', priority: 0.85 },
-    { path: '/travel/air-hotel', priority: 0.85 },
-    { path: '/travel/overseas/private-trip', priority: 0.8 },
-    { path: '/travel/esim', priority: 0.85 },
-    { path: '/travel/esim/catalog', priority: 0.8 },
-    { path: '/travel/esim/recommend', priority: 0.8 },
-    { path: '/travel/esim/guide', priority: 0.7 },
-    { path: '/travel/esim/devices', priority: 0.7 },
-    { path: '/travel/esim/policy', priority: 0.55 },
-    { path: '/air-ticketing', priority: 0.8 },
-    { path: '/quote/private', priority: 0.75 },
-    { path: '/inquiry', priority: 0.75 },
-    { path: '/support', priority: 0.75 },
-    { path: '/charter-bus', priority: 0.7 },
-    { path: '/business', priority: 0.65 },
-    { path: '/business/programs', priority: 0.65 },
-    { path: '/privacy', priority: 0.4 },
-    { path: '/terms', priority: 0.4 },
-  ]
-
-  const staticEntries: MetadataRoute.Sitemap = staticPaths.map(({ path, priority }) => ({
-    url: path ? `${origin}${path}` : `${origin}/`,
-    lastModified: now,
-    changeFrequency: 'weekly',
-    priority,
-  }))
 
   if (shouldSkipSitemapDbAtBuild()) {
-    return staticEntries
+    return buildPublicSitemapEntries({ origin, products: [], trainingPrograms: [] })
   }
 
   let registered: { id: string; slug: string | null; updatedAt: Date }[] = []
@@ -78,22 +47,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
   } catch (e) {
     console.error('[sitemap] DB unavailable — static URLs only', e)
-    return staticEntries
+    return buildPublicSitemapEntries({ origin, products: [], trainingPrograms: [] })
   }
 
-  const productEntries: MetadataRoute.Sitemap = registered.map((p) => ({
-    url: `${origin}${publicProductPath(p)}`,
-    lastModified: p.updatedAt,
-    changeFrequency: 'weekly' as const,
-    priority: 0.7,
-  }))
-
-  const trainingEntries: MetadataRoute.Sitemap = trainingPrograms.map((p) => ({
-    url: `${origin}${trainingProgramPublicPath(p)}`,
-    lastModified: p.updatedAt,
-    changeFrequency: 'weekly' as const,
-    priority: 0.65,
-  }))
-
-  return [...staticEntries, ...productEntries, ...trainingEntries]
+  return buildPublicSitemapEntries({ origin, products: registered, trainingPrograms })
 }
