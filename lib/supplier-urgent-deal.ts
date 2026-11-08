@@ -69,6 +69,24 @@ export function isUrgentDealDeparture(
   return row.adultPrice < row.baselineAdultPrice
 }
 
+/**
+ * 이미 저장된 urgent 출발일(YYYY-MM-DD)을 카드 링크·표시에 쓸지.
+ * 하한은 `isUrgentDealDeparture`의 `ymd < todayYmd`와 같다. 30일 창은 저장 시점에만 적용한다.
+ * REGRESSION-FREEZE[urgent-expired-departure-link]: 오늘(KST) 미만 긴급일은 공개 카드에서 제외 — manifest
+ */
+export function storedUrgentDealYmdIsStillPublic(ymd: string, todayYmd: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false
+  return isUrgentDealDeparture(
+    {
+      departureDate: new Date(`${ymd}T00:00:00.000Z`),
+      adultPrice: SUPPLIER_URGENT_DEAL_MIN_PRICE_KRW,
+      baselineAdultPrice: SUPPLIER_URGENT_DEAL_MIN_PRICE_KRW + 1,
+    },
+    todayYmd,
+    '9999-12-31',
+  )
+}
+
 export function pickNearestUrgentDealDeparture(
   rows: UrgentDealDepartureRow[],
   todayYmd: string = kstTodayYmd(),

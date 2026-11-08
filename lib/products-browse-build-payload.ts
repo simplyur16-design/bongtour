@@ -39,8 +39,9 @@ import { buildCaptionLookupMapFromPublicUrls, lookupCaptionFromMap } from '@/lib
 import { resolvePublicImageSourceUserLabel } from '@/lib/public-image-overlay-ssot'
 import { resolvePublicProductHeroSeoKeywordOverlay } from '@/lib/public-product-hero-seo-keyword'
 import { toSeoulYmd } from '@/lib/public-bookable-date'
+import { kstTodayYmd } from '@/lib/calendar-ymd'
 import { departureDateToYmd } from '@/lib/modetour-urgent-deal'
-import { urgentDealPricePairForDisplay } from '@/lib/supplier-urgent-deal'
+import { storedUrgentDealYmdIsStillPublic, urgentDealPricePairForDisplay } from '@/lib/supplier-urgent-deal'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { matchProductToOverseasNode } from '@/lib/match-overseas-product'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
@@ -898,6 +899,8 @@ export async function productsBrowseBuildPayload(queryKey: string) {
                 ? (p.departures ?? []).find((d) => departureDateToYmd(d.departureDate) === ymd)
                 : null
             if (!ymd) return { hasUrgentDeal: true as const }
+            // REGRESSION-FREEZE[urgent-expired-departure-link]: 지난 urgentDealNextDate 는 카드에 안 싣는다 — manifest
+            if (!storedUrgentDealYmdIsStillPublic(ymd, kstTodayYmd())) return {}
             const pricePair = dep
               ? urgentDealPricePairForDisplay(dep.baselineAdultPrice, dep.adultPrice)
               : null

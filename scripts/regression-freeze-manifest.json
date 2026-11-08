@@ -8343,6 +8343,39 @@
       ]
     },
     {
+      "id": "urgent-expired-departure-link",
+      "tier": ["prebuild", "ci"],
+      "summary": "오늘(KST)보다 이전인 저장된 긴급모객 출발일은 카드 링크와 긴급 표시에 쓰지 않는다.",
+      "checks": [
+        {
+          "file": "lib/supplier-urgent-deal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[urgent-expired-departure-link]",
+            "export function storedUrgentDealYmdIsStillPublic",
+            "return isUrgentDealDeparture("
+          ]
+        },
+        {
+          "file": "lib/product-detail-card-preview-from-item.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[urgent-expired-departure-link]",
+            "storedUrgentDealYmdIsStillPublic(urgentYmd, kstTodayYmd())"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[urgent-expired-departure-link]",
+            "if (!storedUrgentDealYmdIsStillPublic(ymd, kstTodayYmd())) return {}"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/urgent-expired-date.test.ts",
+        "lib/supplier-urgent-deal.test.ts"
+      ]
+    },
+    {
       "id": "supplier-urgent-deal-baseline",
       "tier": [
         "prebuild",
