@@ -1,6 +1,6 @@
 import {
-  buildOffersNode,
   buildProductJsonLdData,
+  buildTouristTripJsonLd,
   type ProductJsonLdAggregateOffer,
   type ProductJsonLdBreadcrumbItem,
   type ProductJsonLdItineraryItem,
@@ -30,7 +30,7 @@ type Props = {
 /**
  * 상품 상세: Product(+offers 필수) + 선택적 BreadcrumbList / TouristTrip(Product와 함께만).
  * REGRESSION-FREEZE[product-jsonld-requires-offers]: omit Product when no offers — manifest
- * REGRESSION-FREEZE[product-jsonld-requires-offers]: TouristTrip only with Product/offers — manifest
+ * REGRESSION-FREEZE[product-jsonld-requires-offers]: TouristTrip only with Product, no price offers — manifest
  * REGRESSION-FREEZE[product-jsonld-canonical-url]: Product.url = publicProductPath — manifest
  */
 export default function ProductJsonLd({
@@ -72,38 +72,13 @@ export default function ProductJsonLd({
 
   const touristTripLd =
     productData && itinerary && itinerary.length > 0
-      ? {
-          '@context': 'https://schema.org',
-          '@type': 'TouristTrip',
+      ? buildTouristTripJsonLd({
           name,
           description,
           url,
-          ...(img ? { image: [img] } : {}),
-          // Only emit with Product (valid offers) — never orphan commercial schema without offers.
-          offers: buildOffersNode(offers!, url),
-          itinerary: {
-            '@type': 'ItemList',
-            itemListElement: itinerary.map((day) => {
-              const city = (day.city ?? '').trim()
-              return {
-                '@type': 'ListItem',
-                position: day.dayNumber,
-                item: {
-                  '@type': 'TouristAttraction',
-                  name: day.title,
-                  ...(city
-                    ? {
-                        address: {
-                          '@type': 'PostalAddress',
-                          addressLocality: city,
-                        },
-                      }
-                    : {}),
-                },
-              }
-            }),
-          },
-        }
+          imageUrl: img,
+          itinerary,
+        })
       : null
 
   return (

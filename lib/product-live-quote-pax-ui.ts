@@ -3,7 +3,7 @@ export const PAX_STEP_DECREMENT_GLYPH = '-'
 export const PAX_STEP_INCREMENT_GLYPH = '+'
 
 export const PAX_STEP_BUTTON_CLASS =
-  'inline-flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-lg border-2 border-[#1F1B2D] bg-white text-xl font-black leading-none text-[#1F1B2D] shadow-sm transition-colors hover:bg-[#EFEDF8] active:bg-[#FAFAFC] disabled:pointer-events-none disabled:border-[#DAD4EE] disabled:bg-[#FAFAFC] disabled:text-[#1F1B2D]/30'
+  'inline-flex h-11 w-11 shrink-0 select-none items-center justify-center rounded-lg border-2 border-[#1F1B2D] bg-white text-xl font-black leading-none text-[#1F1B2D] shadow-sm transition-colors hover:bg-[#EFEDF8] active:bg-[#FAFAFC] disabled:pointer-events-none disabled:border-[#DAD4EE] disabled:bg-[#FAFAFC] disabled:text-[#1F1B2D]/30'
 
 export const STICKY_PAX_ROWS = [
   { key: 'adult' as const, label: '\uC131\uC778', ageLine: '\uB9CC 12\uC138 \uC774\uC0C1', minVal: 1 },

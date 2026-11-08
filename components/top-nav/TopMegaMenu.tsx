@@ -7,6 +7,13 @@ import OverseasMegaMenuHoverTrigger from '@/components/top-nav/OverseasMegaMenuH
 import RegionHoverTabs from '@/components/top-nav/RegionHoverTabs'
 import CountryCityMegaPanel from '@/components/top-nav/CountryCityMegaPanel'
 import { useVisibleMegaMenuRegions } from '@/components/top-nav/use-local-departure-tab-visibility'
+import {
+  decideMegaMenu,
+  matchesFineHover,
+  pointerTypeFromEvent,
+  type MegaGesturePointer,
+  type MegaMenuEvent,
+} from '@/lib/mega-menu-interaction'
 
 const CLOSE_DELAY_MS = 220
 
@@ -20,6 +27,7 @@ export default function TopMegaMenu() {
 
   const openTimerRef = useRef<number | null>(null)
   const closeTimerRef = useRef<number | null>(null)
+  const gestureRef = useRef<MegaGesturePointer>(null)
   const navRef = useRef<HTMLDivElement>(null)
 
   const clearOpen = () => {
@@ -41,17 +49,32 @@ export default function TopMegaMenu() {
     closeTimerRef.current = window.setTimeout(() => setMegaMenuOpen(false), CLOSE_DELAY_MS)
   }
 
-  const onHoverMegaEnter = useCallback(() => {
-    clearClose()
-    clearOpen()
-    setMegaMenuOpen(true)
-  }, [])
+  const fineHoverNow = () =>
+    matchesFineHover(typeof window === 'undefined' ? undefined : (query) => window.matchMedia(query))
 
-  const onFocusMega = useCallback(() => {
-    clearClose()
-    clearOpen()
-    setMegaMenuOpen(true)
-  }, [])
+  const dispatchMega = (event: MegaMenuEvent) => {
+    const decision = decideMegaMenu(gestureRef.current, event)
+    gestureRef.current = decision.gesturePointer
+    if (decision.effect === 'open') {
+      clearClose()
+      clearOpen()
+      setMegaMenuOpen(true)
+    } else if (decision.effect === 'toggle') {
+      clearClose()
+      clearOpen()
+      setMegaMenuOpen((open) => !open)
+    } else if (decision.effect === 'arm-close') {
+      scheduleClose()
+    }
+  }
+
+  const onSurfacePointerLeave = (event: { pointerType: string }) => {
+    dispatchMega({
+      kind: 'pointerleave',
+      pointerType: pointerTypeFromEvent(event.pointerType),
+      fineHover: fineHoverNow(),
+    })
+  }
 
 
   const onHoverRegion = useCallback((id: string) => {
@@ -78,17 +101,17 @@ export default function TopMegaMenu() {
     <div ref={navRef} className="relative w-full">
       <div
         className="flex w-full flex-col items-stretch"
-        onMouseLeave={scheduleClose}
+        onPointerLeave={onSurfacePointerLeave}
       >
         <div className="min-h-[3.1rem] w-full min-w-0 lg:min-h-[3.25rem]">
-          <OverseasMegaMenuHoverTrigger onHoverMegaEnter={onHoverMegaEnter} onFocusMega={onFocusMega} />
+          <OverseasMegaMenuHoverTrigger expanded={isMegaMenuOpen} onDecide={dispatchMega} />
         </div>
 
         {isMegaMenuOpen && activeRegion && activeRegion.countryGroups && (
           <div
             className="absolute left-1/2 top-full z-[60] mt-0 w-screen max-w-none -translate-x-1/2 border border-slate-200 border-l-4 border-l-teal-600 bg-white shadow-[0_16px_40px_-12px_rgba(0,0,0,0.12)]"
             onMouseEnter={clearClose}
-            onMouseLeave={scheduleClose}
+            onPointerLeave={onSurfacePointerLeave}
           >
             <RegionHoverTabs
               regions={visibleRegions}
