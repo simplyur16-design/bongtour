@@ -29232,7 +29232,7 @@
           "file": "app/api/travel/process-images/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-day-photo-ai-label]",
-            "heroOut.bundle.heroGeneratedPrompt",
+            "routeDaySlotHero()",
             "...(photo.aiLabel ? photo.aiLabel : {})"
           ]
         },
@@ -31069,6 +31069,50 @@
       "vitestSuites": [
         "lib/supplier-sweep-registration-status.test.ts",
         "lib/modetour-same-product-event.test.ts"
+      ]
+    },
+    {
+      "id": "register-photo-day-confirmed-place",
+      "tier": ["prebuild", "ci"],
+      "summary": "일차 풀·hero 사진은 그날 장소 관문을 통과해야 한다. 자유·추천은 추천 장소, 출국은 예정지, 귀국은 마지막 체류지, 일정 없는 크루즈·기차는 그 구간 사진만 허용한다. 방향이 없으면 도시를 만들지 않고, 고르지 못한 기존 사진은 지우지 않는다. 예시 생성은 수동 승인만 되며 자동 호출하지 않는다. 다른 활동의 이미 쓴 URL은 다시 고르지 않는다.",
+      "checks": [
+        {
+          "file": "lib/register-photo-day-confirmed-place.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-day-confirmed-place]",
+            "dayAllowsPlacePhoto",
+            "dayPoolOrHeroAllowed",
+            "explicitSameSightPlace",
+            "pickDayStockCandidate",
+            "no_confirmed_sightseeing",
+            "travelMovePhotoPlace",
+            "transportOnlyPhotoContext",
+            "transportExampleGenerationPolicy",
+            "blocksAutomaticDayPhotoGeneration",
+            "manual_example_only",
+            "dayPhotoContextFromFacts",
+            "selectScheduleDayPhoto",
+            "keepExisting ? (item.imageUrl ?? null)",
+            "routeDaySlotHero"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "dayPoolOrHeroAllowed",
+            "pickDayStockCandidate",
+            "keptDayImagesWhenConfirmedPlaceSkipped",
+            "preserveExistingPhotoIdx",
+            "daySelectionPersistSlice",
+            "blocksAutomaticDayPhotoGeneration",
+            "photoContextSearchQuery",
+            "no_verified_real_photo",
+            "selectScheduleDayPhoto"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-photo-day-confirmed-place.test.ts"
       ]
     },
     {
