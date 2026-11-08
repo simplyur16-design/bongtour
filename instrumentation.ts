@@ -127,10 +127,6 @@ export async function register() {
         '@/lib/instrumentation-master-integrity-cron'
       )
       startInstrumentationMasterIntegrityCron()
-      const { startInstrumentationPublishReminderCron } = await import(
-        '@/lib/instrumentation-publish-reminder-cron'
-      )
-      startInstrumentationPublishReminderCron()
       const { startInstrumentationPriceFreshnessCron } = await import(
         '@/lib/instrumentation-price-freshness-cron'
       )
