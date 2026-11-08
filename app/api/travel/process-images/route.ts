@@ -20,15 +20,26 @@ import {
 } from '@/lib/photo-pool'
 import { photoCandidateText, photoSubjectBlockReason } from '@/lib/register-photo-subject-filter'
 import { photoMatchGate, sortByMatchGateScore, type MatchGateContext } from '@/lib/register-photo-match-gate'
+import {
+  blocksAutomaticDayPhotoGeneration,
+  dayConfirmedPlaceText,
+  dayPhotoFactsFromScheduleFields,
+  dayPoolOrHeroAllowed,
+  explicitSameSightPlace,
+  keptDayImagesWhenConfirmedPlaceSkipped,
+  photoContextSearchQuery,
+  pickDayStockCandidate,
+  selectScheduleDayPhoto,
+  routeDaySlotHero,
+  daySelectionPersistSlice,
+} from '@/lib/register-photo-day-confirmed-place'
 import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-preserve'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
 import { logAutoPhotoAttempt } from '@/lib/auto-photo-attempt-log'
 import { missingDayFillAction, processImagesProductUpdate } from '@/lib/register-auto-photo-missing-day'
-import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import { registerSupplierTripDays, trimRegisterScheduleToSupplierDays } from '@/lib/register-schedule-supplier-day-count'
-import { resolveDayHeroWithFallback, saveDayHeroResult } from '@/lib/itinerary-day-hero-image'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
 import { recordAssetUsage } from '@/lib/asset-usage-log'
 import { requireAdmin } from '@/lib/require-admin'
@@ -89,9 +100,10 @@ const LOG_PREFIX = '[DEBUG]'
 /** schedule JSON 한 항목 — imageKeyword는 검색에 쓴 대표 명소/구문(캐시 키·추적용) */
 type ScheduleEntry = {
   day: number
-  title?: string
-  description?: string
+  title?: string | null
+  description?: string | null
   routeText?: string | null
+  supplierOriginal?: { items?: Array<{ name?: string | null; text?: string | null }> } | null
   imageKeyword?: string
   imageKeyword2?: string
   imageUrl?: string | null
@@ -162,6 +174,14 @@ function createPhotoUsage() {
   const urls = new Set<string>()
   const links = new Set<string>()
   const ids = new Set<string>()
+  const placeByKey = new Map<string, string>()
+  const keysOf = (p: { url: string; originalLink?: string; externalId?: string }) => {
+    const keys = [normAssetUrl(p.url)]
+    const ol = p.originalLink ?? ''
+    if (ol) keys.push(normAssetUrl(ol))
+    if (p.externalId) keys.push(`id:${p.externalId}`)
+    return keys
+  }
   return {
     isUsed(p: { url: string; originalLink?: string; externalId?: string }): boolean {
       if (urls.has(normAssetUrl(p.url))) return true
@@ -170,13 +190,54 @@ function createPhotoUsage() {
       if (p.externalId && ids.has(p.externalId)) return true
       return false
     },
-    mark(p: { url: string; originalLink?: string; externalId?: string }) {
+    mark(p: { url: string; originalLink?: string; externalId?: string }, confirmedText?: string) {
       urls.add(normAssetUrl(p.url))
       const ol = p.originalLink ?? ''
       if (ol) links.add(normAssetUrl(ol))
       if (p.externalId) ids.add(p.externalId)
+      if (confirmedText) {
+        for (const key of keysOf(p)) placeByKey.set(key, confirmedText)
+      }
+    },
+    sameSight(p: { url: string; originalLink?: string; externalId?: string }, thisDay: string): boolean {
+      for (const key of keysOf(p)) {
+        const prev = placeByKey.get(key)
+        if (prev && explicitSameSightPlace(prev, thisDay)) return true
+      }
+      return false
     },
   }
+}
+
+function confirmedTextForScheduleDay(sched: ScheduleEntry | undefined): string {
+  const orig = (sched as { supplierOriginal?: { items?: Array<{ name?: string | null; text?: string | null }> } } | undefined)
+    ?.supplierOriginal
+  const supplierOriginalText =
+    orig?.items
+      ?.map((item) => [item.name, item.text].filter(Boolean).join(' '))
+      .filter(Boolean)
+      .join('\n') || null
+  return dayConfirmedPlaceText({
+    title: sched?.title,
+    description: sched?.description,
+    routeText: sched?.routeText,
+    supplierOriginalText,
+    imageKeyword: sched?.imageKeyword,
+    imageKeyword2: sched?.imageKeyword2,
+  })
+}
+
+function scheduleDayPhotoFacts(sched: ScheduleEntry | undefined) {
+  return dayPhotoFactsFromScheduleFields({
+    title: sched?.title,
+    description: sched?.description,
+    routeText: sched?.routeText,
+    imageKeyword: sched?.imageKeyword,
+    imageKeyword2: sched?.imageKeyword2,
+    imageCandidateOrigin: sched?.imageCandidateOrigin,
+    supplierOriginal: (sched as { supplierOriginal?: { items?: Array<{ name?: string | null; text?: string | null }> } } | undefined)
+      ?.supplierOriginal,
+  })
 }
 
 function scheduleMetaForProcessImages(
@@ -293,16 +354,6 @@ function pexelsToResult(p: PexelsPhotoObject): PhotoResult {
 
 function photoFromPoolSave(saved: PoolPhotoRecord | null): PhotoResult | null {
   return saved ? toPoolResult(saved) : null
-}
-
-function retainScheduleImageUrl(
-  resolved: string | null | undefined,
-  existing: string | null | undefined
-): string | null {
-  if (resolved) return resolved
-  const prev = existing != null ? String(existing).trim() : ''
-  if (!prev) return null
-  return isExternalHttpProductImageUrl(prev) ? null : prev
 }
 
 async function sealProductCoverPhoto(
@@ -652,7 +703,7 @@ export async function POST(req: Request) {
       return photoFromPoolSave(saved)
     }
     const chainAccept = (extra?: (c: ChainCandidate) => boolean, gateCtx?: MatchGateContext) => (c: ChainCandidate) => {
-      // v2 관문: 이미 쓴 사진도 그날 일정 장소면 다시 쓸 수 있다(고를 때 안 쓴 사진 먼저) — 중복 피하려 일정 밖 장소로 넘어가지 않음
+      // 관문 없는 슬롯은 이미 쓴 URL을 다시 고르지 않는다. 관문이 있는 날은 pick에서 같은 관광지일 때만 재사용한다.
       if (!gateCtx && usage.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId })) return false
       // REGRESSION-FREEZE[register-photo-subject-filter]: 약한 일치·얼굴·간판·무관 사물·다른 도시 후보 탈락 — manifest
       const why = photoSubjectBlockReason(
@@ -692,7 +743,8 @@ export async function POST(req: Request) {
       label: string,
       extra?: (c: ChainCandidate) => boolean,
       cityMatch?: DayCityMatch,
-      gateCtx?: MatchGateContext
+      gateCtx?: MatchGateContext,
+      reuseDayText?: string
     ): Promise<PhotoResult | null> => {
       const isMainSlot = slot === 'main'
       const r = await findStockPhotoByChain(query, {
@@ -706,8 +758,18 @@ export async function POST(req: Request) {
           // v2 관문: 일차 장소명 일치·풍경/명소 사진을 먼저, 같은 점수대에서는 이 상품에서 아직 안 쓴 사진 먼저
           if (!gateCtx) return ranked[0] ?? null
           const sorted = sortByMatchGateScore(ranked, gateCtx)
-          const fresh = sorted.filter((c) => !usage.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId }))
-          return fresh[0] ?? sorted[0] ?? null
+          return pickDayStockCandidate(
+            sorted,
+            (c) => usage.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId }),
+            (c) =>
+              Boolean(
+                reuseDayText &&
+                  usage.sameSight(
+                    { url: c.url, originalLink: c.originalLink, externalId: c.externalId },
+                    reuseDayText,
+                  ),
+              ),
+          )
         },
       })
       newFetchCount++
@@ -822,10 +884,9 @@ export async function POST(req: Request) {
     const slotCountRaw = Math.max(scheduleArr.length, SCHEDULE_PHOTOS, maxItineraryDay)
     const slotCount = supplierDays ? Math.min(slotCountRaw, Math.max(supplierDays, scheduleArr.length)) : slotCountRaw
     const workingSchedule = trimRegisterScheduleToSupplierDays(padSchedule(scheduleArr, slotCount), supplierDays).rows
-    const usedHeroPlaceKeys = new Set<string>()
-
     const schedulePhotos: { photo: PhotoResult; imageKeyword: string }[] = []
     const manualSlotIdx = new Set<number>()
+    const preserveExistingPhotoIdx = new Set<number>()
     /** v2: 일차 칸 번호에 맞춰 넣는다(빈 일차가 있어도 뒤 일차 사진이 당겨지지 않게) */
     const putSlot = (n: number, x: { photo: PhotoResult; imageKeyword: string }) => {
       if (photoChainV2) schedulePhotos[n] = x
@@ -874,6 +935,14 @@ export async function POST(req: Request) {
         const action = missingDayFillAction(sched, scheduleMaxDay)
         if (action === 'keep') {
           const src = sched.imageSource
+          usage.mark(
+            {
+              url: String(sched.imageUrl),
+              originalLink: src?.originalLink || sched.imageSourcePageUrl || '',
+              ...(src?.externalId ? { externalId: src.externalId } : {}),
+            },
+            confirmedTextForScheduleDay(sched),
+          )
           putSlot(n, {
             photo: {
               url: String(sched.imageUrl),
@@ -929,6 +998,16 @@ export async function POST(req: Request) {
         continue
       }
 
+      const confirmedDayText = confirmedTextForScheduleDay(sched)
+      // 제목·설명·동선·supplierOriginal·자유일 키워드는 입력만 읽는다. 문장은 고치지 않는다.
+      // 방향이 없는 날만 검색을 건너뛰고 기존 사진을 유지한다. 예정지·체류지·교통 구간은 아래에서 조건부 검색한다.
+      const keptExisting = sched ? keptDayImagesWhenConfirmedPlaceSkipped(sched) : null
+      if (keptExisting?.skipped) {
+        console.log(`[GATE] day ${dayNum} 확인된 관광 없음 — 기존 사진 유지, 풀·hero 생략`)
+        preserveExistingPhotoIdx.add(n)
+        continue
+      }
+
       const poolRec = poolBySlot.get(n)
       /** v2 관문: 이 일차 장소(키워드·도시) 또는 상품 목적지 도시가 설명에 있어야 하고, 다른 도시 판정은 이 일차 글 기준 */
       const dayGateCtx: MatchGateContext = {
@@ -954,156 +1033,75 @@ export async function POST(req: Request) {
       let selectedSemanticKey = normalizeSemanticPoiKey(keywordUsed)
       let fallbackUsed = false
       let fallbackReason: string | undefined
+      const dayFacts = scheduleDayPhotoFacts(sched)
 
-      if (poolRec) {
-        const cand = toPoolResult(poolRec)
-        if (!usage.isUsed(cand)) {
-          photo = cand
-          keywordUsed = poolRec.attractionName?.trim() || keywordUsed
-          selectedOrigin = 'pool'
-          if (photoChainV2) photo.cityMatch = 'pool'
-          selectedSemanticKey = normalizeSemanticPoiKey(poolRec.attractionName || `pool_${n}`)
-          usage.mark(photo)
-          usedSemanticKeys.add(normalizeSemanticPoiKey(poolRec.attractionName || `pool_${n}`))
-        }
-      }
-
-      if (!photo) {
-        const heroOut = await resolveDayHeroWithFallback(
-          {
-            productId: product.id as string,
-            dayNum,
-            destination,
-            productTitle: typeof product.title === 'string' ? product.title : null,
-            city: itRow?.city ?? null,
-            poiNamesRaw: itRow?.poiNamesRaw ?? null,
-            summaryTextRaw: itRow?.summaryTextRaw ?? null,
-            rawBlock: itRow?.rawBlock ?? null,
-            scheduleTitle: sched?.title ?? null,
-            scheduleDescription: sched?.description ?? null,
-            scheduleRouteText: sched?.routeText ?? null,
-            scheduleImageKeyword: sched?.imageKeyword ?? null,
-            usedHeroPlaceKeys,
-          },
-          prisma,
-          usage
-        )
-        photo = heroOut.photo
-        if (photoChainV2 && photo && heroOut.bundle.heroImageSource !== 'gemini') {
-          const g = photoMatchGate(
-            {
-              pageUrl: photo.originalLink,
-              photographer: photo.photographer,
-              originalLink: photo.originalLink,
-              externalId: photo.externalId,
-            },
-            dayGateCtx
-          )
-          if (!g.ok) {
-            console.log(`[GATE] day ${dayNum} hero 제외 ${g.reason}`)
-            photo = null
+      const picked = await selectScheduleDayPhoto({
+        facts: dayFacts,
+        existing: {
+          imageUrl: sched?.imageUrl ?? null,
+          imageUrl2: sched?.imageUrl2 ?? null,
+          title: sched?.title ?? null,
+          description: sched?.description ?? null,
+          routeText: sched?.routeText ?? null,
+        },
+        isUsed: (candidate) => usage.isUsed(candidate),
+        sameSightReuse: (candidate) => usage.sameSight(candidate, confirmedDayText),
+        loadPool: async () => {
+          if (!poolRec) return null
+          const cand = toPoolResult(poolRec)
+          return {
+            ...cand,
+            altText: [poolRec.attractionName, poolRec.cityName].filter(Boolean).join(' '),
+            label: poolRec.attractionName,
+            pageUrl: poolRec.sourceUrl,
           }
-        }
-        if (photo) {
-        if (photoChainV2 && photo) {
-          photo = {
-            ...photo,
-            cityMatch: 'keyword',
-            aiLabel: dayPhotoAiLabel(photo, heroOut.bundle.heroGeneratedPrompt ?? null, keywordUsed),
-          }
-        }
-        keywordUsed = heroOut.bundle.heroPlaceQuery || heroOut.bundle.heroPlaceName
-        selectedOrigin = `hero-${heroOut.bundle.heroImageSource}`
-        selectedSemanticKey = heroOut.semanticKey
-        fallbackUsed = heroOut.bundle.heroFallbackUsed
-        fallbackReason = heroOut.bundle.heroImageSelectionReason.slice(0, 200)
-        usedHeroPlaceKeys.add(heroOut.semanticKey)
-        usedSemanticKeys.add(heroOut.semanticKey)
-        newFetchCount++
-        const bundleToSave = { ...heroOut.bundle, heroImageUrl: heroOut.photo.url }
-        await saveDayHeroResult(prisma, product.id as string, dayNum, bundleToSave)
-        console.log(`[HERO] day ${dayNum} ${heroOut.bundle.heroImageSource} → ${photo.url.slice(0, 80)}…`)
-        if (photoChainV2 && heroOut.bundle.heroImageSource === 'gemini') {
-          // v2: AI 는 마지막 — Pexels·Unsplash 를 먼저 본다
+        },
+        loadHero: async () => routeDaySlotHero(),
+        loadChain: async () => {
+          // REGRESSION-FREEZE[register-photo-no-city-substitute]: v2 일차 사진은 그날 키워드로만 — 상품 도시(mainQuery) 대체 검색 금지 — manifest
+          const scopedQuery = photoContextSearchQuery(dayFacts)
+          const chainKw =
+            scopedQuery ||
+            normalizeToPlaceName(sched?.imageKeyword ?? '') ||
+            (/^day \d+$/.test(keywordUsed) ? '' : normalizeToPlaceName(keywordUsed)) ||
+            normalizeToPlaceName(firstMatchingScheduleSpotEn(String(sched?.routeText ?? '')) ?? '')
+          if (!chainKw || !photoChainV2) return null
           const stock = await runChain(
-            `day${dayNum}-before-ai`,
-            keywordUsed,
+            `day${dayNum}`,
+            chainKw,
             `${destination}_${dayNum}`,
             (c) => normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url) && dayCityOk(c),
             'meta',
-            dayGateCtx
+            dayGateCtx,
+            confirmedDayText,
           )
-          if (stock) {
-            photo = stock
-            selectedOrigin = `chain-${stock.source.toLowerCase()}`
-            usage.mark(stock)
-          }
-        }
-        }
+          if (!stock) return null
+          return { ...stock, altText: stock.originalLink, pageUrl: stock.originalLink, label: chainKw }
+        },
+      })
+      photo = picked.photo
+      if (picked.stage === 'pool' && photo) {
+        keywordUsed = poolRec?.attractionName?.trim() || keywordUsed
+        selectedOrigin = 'pool'
+        if (photoChainV2) photo.cityMatch = 'pool'
+        selectedSemanticKey = normalizeSemanticPoiKey(poolRec?.attractionName || `pool_${n}`)
+        usage.mark(photo, confirmedDayText)
+        usedSemanticKeys.add(selectedSemanticKey)
+      } else if (picked.stage === 'chain' && photo) {
+        fallbackUsed = true
+        selectedOrigin = `chain-${photo.source.toLowerCase()}`
+        usage.mark(photo, confirmedDayText)
+      } else if (picked.stage === 'kept') {
+        fallbackReason = picked.unresolvedReason ?? 'no_verified_real_photo'
       }
 
-      if (!photo && photoChainV2) {
-        // REGRESSION-FREEZE[register-photo-no-city-substitute]: v2 일차 사진은 그날 키워드로만 — 상품 도시(mainQuery) 대체 검색 금지 — manifest
-        // 키워드가 비면 그날 동선의 명소(사전 영문)로 — 상품 도시로 바꾸지 않음
-        const chainKw =
-          normalizeToPlaceName(sched?.imageKeyword ?? '') ||
-          (/^day \d+$/.test(keywordUsed) ? '' : normalizeToPlaceName(keywordUsed)) ||
-          normalizeToPlaceName(firstMatchingScheduleSpotEn(String(sched?.routeText ?? '')) ?? '')
-        const stock = !chainKw ? null : await runChain(
-          `day${dayNum}`,
-          chainKw,
-          `${destination}_${dayNum}`,
-          (c) => normAssetUrl(c.url) !== normAssetUrl(mainPhoto.url) && dayCityOk(c),
-          'meta',
-          dayGateCtx
-        )
-        if (stock) {
-          photo = stock
-          fallbackUsed = true
-          selectedOrigin = `chain-${stock.source.toLowerCase()}`
-          usage.mark(stock)
-        }
-        // 일차 키워드로 장소 일치 사진이 없으면 비워 둔다(상품 대표 장소·목적지로 바꿔 찾지 않음)
-      }
-
-      if (!photo && photoChainV2) {
-        // 사장님 11/01: 재고 사진(Pexels → Unsplash)이 없으면 그날 장소로 실사풍 AI 생성('AI 생성 이미지' 표시).
-        // 장소가 없거나 생성 실패면 '사진 필요'로 비워 둔다.
-        const dayAiKw = /^day \d+$/.test(keywordUsed) ? sched?.imageKeyword ?? '' : keywordUsed
-        const aiPrompt = buildRegisterDayAiPhotoPrompt({ keyword: dayAiKw, routeText: sched?.routeText ?? null, destination })
-        if (aiPrompt) {
-          try {
-            const buf = await generateImageWithGemini({ prompt: aiPrompt, aspectRatio: '16:9' })
-            if (buf) {
-              const saved = await savePhotoToPool(prisma, buf, destination, `${destination}_${dayNum}`, 'Gemini', {
-                convertToWebpFirst: true,
-              })
-              const fromPool = photoFromPoolSave(saved)
-              if (fromPool) {
-                photo = {
-                  ...fromPool,
-                  source: fromPool.source || 'Gemini',
-                  cityMatch: 'keyword',
-                  aiLabel: dayPhotoAiLabel({ source: 'Gemini', url: fromPool.url }, aiPrompt, dayAiKw || `day ${dayNum}`),
-                }
-                usage.mark(photo)
-                selectedOrigin = 'v2-ai-gemini'
-                fallbackUsed = true
-                fallbackReason = 'v2-stock-none-ai-generated'
-                console.log(`[AI] day ${dayNum} 재고 사진 없음 → 제미나이 생성(AI 표시)`)
-              }
-            }
-          } catch (e) {
-            console.warn(`[AI] day ${dayNum} 생성 실패 — 사진 필요`, e instanceof Error ? e.message.slice(0, 120) : '')
-          }
-        }
-      }
-      if (!photo && photoChainV2) {
+      if (!photo && photoChainV2 && !blocksAutomaticDayPhotoGeneration(dayFacts)) {
         // v2: 설명 없는 대체 검색·풀 재사용(장소 확인 불가)은 쓰지 않는다 → '사진 필요'로 비워 둔다
-        fallbackReason = 'v2-no-verified-candidate'
+        fallbackReason = picked.stage === 'kept' ? picked.unresolvedReason ?? 'v2-no-verified-candidate' : 'v2-no-verified-candidate'
       }
-      if (!photo && !photoChainV2) {
+      if (!photo && !photoChainV2 && !blocksAutomaticDayPhotoGeneration(dayFacts)) {
         const fallbackKw =
+          photoContextSearchQuery(dayFacts) ||
           normalizeToPlaceName(keywordUsed) ||
           normalizeToPlaceName(sched?.imageKeyword ?? '') ||
           mainQuery
@@ -1157,11 +1155,26 @@ export async function POST(req: Request) {
                 : 'fallback-duplicate-url-skipped'
           }
         }
+        if (
+          photo &&
+          !dayPoolOrHeroAllowed(
+            {
+              altText: photo.originalLink,
+              pageUrl: photo.originalLink,
+              originalLink: photo.originalLink,
+              externalId: photo.externalId,
+              photographer: photo.photographer,
+            },
+            confirmedDayText,
+          ).ok
+        ) {
+          photo = null
+        }
         if (photo) {
           fallbackUsed = true
           selectedOrigin = 'fallback'
           selectedSemanticKey = normalizeSemanticPoiKey(keywordUsed)
-          usage.mark(photo)
+          usage.mark(photo, confirmedDayText)
           usedSemanticKeys.add(normalizeSemanticPoiKey(keywordUsed))
         }
       }
@@ -1212,10 +1225,14 @@ export async function POST(req: Request) {
               dayCityOk(c),
             'meta',
             // 정책 재시도도 같은 관문(그날 일정 요약 장소·사람 주인공·차량)
-            dayGateCtx
+            dayGateCtx,
+            confirmedDayText,
           )
-          if (retry) {
-            usage.mark(retry)
+          if (retry && dayPoolOrHeroAllowed(
+            { altText: retry.originalLink, pageUrl: retry.originalLink, originalLink: retry.originalLink, externalId: retry.externalId, photographer: retry.photographer },
+            confirmedDayText,
+          ).ok) {
+            usage.mark(retry, confirmedDayText)
             const sealedRetry = await sealProductCoverPhoto(prisma, destination, retry, keywordUsed, retry.source)
             verdict = await verdictOf(sealedRetry)
             if (verdict.ok) {
@@ -1268,6 +1285,7 @@ export async function POST(req: Request) {
       const sched = workingSchedule[n]
       const kw2 = typeof sched?.imageKeyword2 === 'string' ? sched.imageKeyword2.trim() : ''
       if (!kw2) continue
+      if (preserveExistingPhotoIdx.has(n)) continue
       if (photoChainV2 && sched && (isRegisterScheduleNoPlacePhotoDay(sched, scheduleMaxDay) || registerScheduleDayIsCityOnlyPhotoSkip(sched))) continue
       const existing2 = sched?.imageUrl2 ? String(sched.imageUrl2).trim() : ''
       if (existing2) continue
@@ -1279,7 +1297,21 @@ export async function POST(req: Request) {
           primaryUrl == null || normAssetUrl(c.url) !== normAssetUrl(String(primaryUrl))
         )
         if (!stock2) continue
-        usage.mark(stock2)
+        if (
+          !dayPoolOrHeroAllowed(
+            {
+              altText: stock2.originalLink,
+              pageUrl: stock2.originalLink,
+              originalLink: stock2.originalLink,
+              externalId: stock2.externalId,
+              photographer: stock2.photographer,
+            },
+            confirmedTextForScheduleDay(sched),
+          ).ok
+        ) {
+          continue
+        }
+        usage.mark(stock2, confirmedTextForScheduleDay(sched))
         const sealed2 = await sealProductCoverPhoto(prisma, destination, stock2, kw2, stock2.source)
         scheduleSecondaryPhotos[n] = { photo: sealed2, imageKeyword: kw2 }
         continue
@@ -1304,7 +1336,21 @@ export async function POST(req: Request) {
       const fromPool = photoFromPoolSave(saved)
       if (!fromPool) continue
       let photo: PhotoResult = fromPool
-      usage.mark(photo)
+      if (
+        !dayPoolOrHeroAllowed(
+          {
+            altText: photo.originalLink,
+            pageUrl: photo.originalLink,
+            originalLink: photo.originalLink,
+            externalId: photo.externalId,
+            photographer: photo.photographer,
+          },
+          confirmedTextForScheduleDay(sched),
+        ).ok
+      ) {
+        continue
+      }
+      usage.mark(photo, confirmedTextForScheduleDay(sched))
       photo = await sealProductCoverPhoto(prisma, destination, photo, kw2, photo.source)
       scheduleSecondaryPhotos[n] = { photo, imageKeyword: kw2 }
     }
@@ -1318,18 +1364,22 @@ export async function POST(req: Request) {
       const photo = slot?.photo
       const secondary = scheduleSecondaryPhotos[i]
       const photo2 = secondary?.photo
+      const keepExisting = preserveExistingPhotoIdx.has(i)
+      const persisted = daySelectionPersistSlice(item, { imageUrl: photo?.url ?? null, imageUrl2: photo2?.url ?? null }, keepExisting)
       return {
         day: item.day,
-        title: item.title,
-        description: item.description,
+        title: persisted.title,
+        description: persisted.description,
+        routeText: persisted.routeText,
+        supplierOriginal: persisted.supplierOriginal,
         imageKeyword: resolveScheduleImageKeywordForDb(
           item.imageKeyword,
           slot?.imageKeyword,
           `day_${item.day ?? i + 1}`,
         ),
         imageKeyword2: item.imageKeyword2,
-        imageUrl: retainScheduleImageUrl(photo?.url, item.imageUrl),
-        imageUrl2: retainScheduleImageUrl(photo2?.url, item.imageUrl2),
+        imageUrl: persisted.imageUrl,
+        imageUrl2: persisted.imageUrl2,
         imagePhotographer: photo?.photographer ?? item.imagePhotographer ?? null,
         imageSourcePageUrl: photo?.originalLink ?? item.imageSourcePageUrl ?? null,
         imageSource: photo
