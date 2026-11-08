@@ -8376,6 +8376,43 @@
       ]
     },
     {
+      "id": "ybtour-url-departure-floor",
+      "tier": ["prebuild", "ci"],
+      "summary": "노랑풍선 상세는 공개 예약 하한 이후의 유효 ?departure= 회차만 고르고, 상담 originCode는 상품 식별자로 둔다.",
+      "checks": [
+        {
+          "file": "lib/public-default-departure-selection.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-url-departure-floor]",
+            "export function pickPublicUrlDepartureRow",
+            "ymd < getPublicBookableMinYmd(baseDate)",
+            "isDepartureSoldOut"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-url-departure-floor]",
+            "useProductDepartureYmdFromUrl",
+            "pickPublicUrlDepartureRow(mergedPrices, initialDepartureYmd)",
+            "originCode={product.originCode}"
+          ]
+        },
+        {
+          "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-url-departure-floor]",
+            "useProductDepartureYmdFromUrl",
+            "pickPublicUrlDepartureRow(mergedPrices, initialDepartureYmd)",
+            "originCode={product.originCode}"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/ybtour-url-departure.test.ts"
+      ]
+    },
+    {
       "id": "supplier-urgent-deal-baseline",
       "tier": [
         "prebuild",

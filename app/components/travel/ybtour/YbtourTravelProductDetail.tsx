@@ -26,8 +26,10 @@ import {
   pickAnyRowForDateKey,
   pickBookableRowForDateKey,
   pickGloballyCheapestDepartureRowByAdultPrice,
+  pickPublicUrlDepartureRow,
   mergePublicPriceRowsByDate,
 } from '@/lib/public-default-departure-selection'
+import { useProductDepartureYmdFromUrl } from '@/lib/use-product-departure-url-param'
 import {
   advisoryForDepartureRow,
   findPriceRowForDateKey,
@@ -271,6 +273,8 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
   const product = useAirlineFilteredProduct(productInput)
   const filterAirlinePatchRows = useAirlinePatchRowFilter()
   const router = useRouter()
+  // REGRESSION-FREEZE[ybtour-url-departure-floor]: ?departure= 는 공개 예약 하한 이후 회차만 — manifest
+  const initialDepartureYmd = useProductDepartureYmdFromUrl()
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
   const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(() => {
     const row = pickGloballyCheapestDepartureRowByAdultPrice(product.prices ?? [])
@@ -310,12 +314,22 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
 
   useEffect(() => {
     if (departureUserPinned) return
+    const urlRow = pickPublicUrlDepartureRow(mergedPrices, initialDepartureYmd)
+    if (urlRow) {
+      setSelectedDepartureRowId(urlRow.id)
+      setCalendarDateKey(toDateKey(urlRow.date))
+      return
+    }
     if (!defaultDepartureRow) {
       setSelectedDepartureRowId(null)
       return
     }
     setSelectedDepartureRowId((prev) => (prev === defaultDepartureRow.id ? prev : defaultDepartureRow.id))
-  }, [departureUserPinned, defaultDepartureRow?.id])
+    setCalendarDateKey((prev) => {
+      const next = toDateKey(defaultDepartureRow.date)
+      return prev === next ? prev : next
+    })
+  }, [departureUserPinned, defaultDepartureRow?.id, defaultDepartureRow?.date, initialDepartureYmd, mergedPrices])
 
   useEffect(() => {
     if (!selectedDepartureRowId) return

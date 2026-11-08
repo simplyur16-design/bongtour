@@ -90,6 +90,29 @@ export function pickNearestPublicBookableDepartureRow<T extends { date: string; 
   return pickGloballyCheapestDepartureRowByAdultPrice(rows, baseDate)
 }
 
+/**
+ * 카드 `?departure=` — 하나투어 상세와 같이 공개 예약 하한 이후이고,
+ * 그 날짜에 예약가능·매진이 아닌 행이 있을 때만 그 행. 아니면 null(기본 최저가로 되돌림).
+ * REGRESSION-FREEZE[ybtour-url-departure-floor]: URL 출발은 public bookable floor — manifest
+ */
+export function pickPublicUrlDepartureRow<T extends { date: string; id: string }>(
+  rows: T[],
+  urlYmd: string | null | undefined,
+  baseDate: Date = new Date(),
+): T | null {
+  const ymd = String(urlYmd ?? '').trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null
+  if (ymd < getPublicBookableMinYmd(baseDate)) return null
+  const pool = rows.filter((r) => {
+    if (publicDateKeyFromRowDate(r.date) !== ymd) return false
+    if (!isScheduleAdultBookable(r as never)) return false
+    if (isDepartureSoldOut(r as never)) return false
+    return true
+  })
+  if (pool.length === 0) return null
+  return sortByAdultPriceThenDate(pool)[0] ?? null
+}
+
 /** 사용자가 고른 일자 — 그날 예약가능 행만 두고 성인가 최저 → 더 빠른 id */
 export function pickBookableRowForDateKey<T extends { date: string; id: string }>(
   rows: T[],
