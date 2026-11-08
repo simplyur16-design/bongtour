@@ -31212,6 +31212,34 @@
         "lib/supplier-sweep-registration-status.test.ts",
         "lib/modetour-same-product-event.test.ts"
       ]
+    },
+    {
+      "id": "naver-talktalk-entry",
+      "tier": ["prebuild", "ci"],
+      "summary": "상품 상세·모바일 하단·푸터에 네이버 톡톡 프로필 링크. 카카오 상담은 유지.",
+      "checks": [
+        {
+          "file": "lib/main-hub-copy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naver-talktalk-entry]",
+            "https://talk.naver.com/profile/w2r7vau",
+            "https://pf.kakao.com/_xlxjrxlX/chat"
+          ]
+        },
+        {
+          "file": "app/components/detail/ProductLiveQuoteCard.tsx",
+          "mustInclude": ["KakaoChannelConsultLink", "NaverTalkTalkConsultLink"]
+        },
+        {
+          "file": "app/components/MobileStickyBar.tsx",
+          "mustInclude": ["MOBILE_STICKY_KAKAO_HREF", "NAVER_TALK_PROFILE_URL", "min-h-[3rem]"]
+        },
+        {
+          "file": "app/components/SiteFooter.tsx",
+          "mustInclude": ["KakaoChannelConsultLink", "NaverTalkTalkConsultLink"]
+        }
+      ],
+      "vitestSuites": ["lib/naver-talktalk-entry.test.ts"]
     }
   ],
   "vitestSuites": [

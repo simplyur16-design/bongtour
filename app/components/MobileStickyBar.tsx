@@ -10,6 +10,8 @@ import {
   MOBILE_STICKY_KAKAO_LABEL,
   MOBILE_STICKY_PHONE_HREF,
   MOBILE_STICKY_PHONE_LABEL,
+  NAVER_TALK_CONSULT_LABEL,
+  NAVER_TALK_PROFILE_URL,
 } from '@/lib/main-hub-copy'
 import { shouldHideMobileStickyBar } from '@/lib/mobile-sticky-bar-visibility'
 
@@ -42,6 +44,16 @@ export default function MobileStickyBar() {
         >
           <MessageCircle className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
           <span>{MOBILE_STICKY_KAKAO_LABEL}</span>
+        </a>
+        <a
+          href={NAVER_TALK_PROFILE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={NAVER_TALK_CONSULT_LABEL}
+          className={`${SLOT_BASE} bg-[#FEE500] text-[#3C1E1E]`}
+        >
+          <MessageCircle className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
+          <span>{NAVER_TALK_CONSULT_LABEL}</span>
         </a>
         <Link
           href={MOBILE_STICKY_ESIM_HREF}
