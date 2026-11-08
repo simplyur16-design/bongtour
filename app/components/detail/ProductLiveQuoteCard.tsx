@@ -330,7 +330,11 @@ export default function ProductLiveQuoteCard({
       >
         {copy.bookingCta}
       </button>
-      <KakaoChannelConsultLink className="mt-2 w-full" />
+      <KakaoChannelConsultLink
+        className="mt-2 w-full"
+        productCode={String(product.originCode || product.id)}
+        productTitle={product.title}
+      />
     </div>
   )
 }

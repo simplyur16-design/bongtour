@@ -31193,6 +31193,51 @@
         }
       ],
       "vitestSuites": ["lib/responsive-home-image.test.ts"]
+    },
+    {
+      "id": "seo-design-public-fixes",
+      "tier": ["prebuild", "ci"],
+      "summary": "정적 sitemap URL은 lastmod를 비우고, 상품·연수 행만 updatedAt을 쓴다. 메가메뉴는 입력 종류를 가른다.",
+      "checks": [
+        {
+          "file": "lib/sitemap-public-entries.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-design-public-fixes]",
+            "/travel/esim/help/setup-guide",
+            "정적 URL에는 lastModified를 넣지 않는다"
+          ],
+          "mustNotInclude": ["latestContentUpdatedAt", "contentUpdatedAt"]
+        },
+        {
+          "file": "app/components/seo/ProductJsonLd.tsx",
+          "mustInclude": [
+            "buildTouristTripJsonLd",
+            "productData && itinerary"
+          ],
+          "mustNotInclude": ["offers: buildOffersNode"]
+        },
+        {
+          "file": "components/top-nav/OverseasMegaMenuHoverTrigger.tsx",
+          "mustInclude": ["aria-expanded", "min-h-11", "onDecide"]
+        },
+        {
+          "file": "lib/mega-menu-interaction.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-design-public-fixes]",
+            "(hover: hover) and (pointer: fine)",
+            "detail === 0"
+          ]
+        },
+        {
+          "file": "lib/kakao-consult-href.ts",
+          "mustInclude": ["productCode", "productTitle"]
+        },
+        {
+          "file": "components/bongtour/KakaoChannelConsultLink.tsx",
+          "mustInclude": ["kakaoConsultHref", "min-h-11"]
+        }
+      ],
+      "vitestSuites": ["lib/seo-design-fixes.test.ts", "lib/mega-menu-interaction.test.ts"]
     }
   ],
   "vitestSuites": [
