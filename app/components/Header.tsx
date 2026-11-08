@@ -78,9 +78,15 @@ function InstagramGlyphIcon({ className = 'h-7 w-7 sm:h-6 sm:w-6' }: { className
 type HeaderProps = {
   /** 메인 등: 모바일 가로 메뉴(5메뉴 칩 행) 숨김 — 데스크톱 `lg:flex` 내비는 유지 */
   hideMobileNav?: boolean
+  /**
+   * 보이는 헤더만 true. 로딩 폴백의 숨은 헤더는 false — React가 fetchPriority=high마다
+   * `<link rel="preload">`를 또 넣지 않게 한다.
+   * REGRESSION-FREEZE[speed-home-responsive-images]: loading shells pass false — manifest
+   */
+  logoPriority?: boolean
 }
 
-export default function Header({ hideMobileNav = false }: HeaderProps) {
+export default function Header({ hideMobileNav = false, logoPriority = true }: HeaderProps) {
   const pathnameRaw = usePathname()
   const pathname = pathnameRaw ?? ''
   const { data: session, status } = useSession()
@@ -114,7 +120,7 @@ export default function Header({ hideMobileNav = false }: HeaderProps) {
                 width={274}
                 height={78}
                 className="relative z-0 block h-12 w-auto max-h-12 object-contain object-left sm:h-[3.25rem] sm:max-h-[3.25rem] lg:h-[3.35rem] lg:max-h-[3.35rem]"
-                priority
+                {...(logoPriority ? { priority: true as const } : { loading: 'lazy' as const })}
               />
             </Link>
           </div>

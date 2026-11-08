@@ -5,7 +5,7 @@ export default function MyPageLoading() {
   return (
     <RouteLoadingShell>
       <div className="min-h-screen bg-gradient-to-b from-[#EFEDF8]/60 via-white to-[#F5F2EA]">
-        <Header />
+        <Header logoPriority={false} />
         <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 pb-28 pt-6 md:flex-row md:pb-12 md:pt-8">
           <aside className="hidden shrink-0 space-y-2 md:block md:w-56">
             <PulseBlock className="h-10 w-full rounded-xl" />

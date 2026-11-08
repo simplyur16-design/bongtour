@@ -31212,6 +31212,44 @@
         "lib/supplier-sweep-registration-status.test.ts",
         "lib/modetour-same-product-event.test.ts"
       ]
+    },
+    {
+      "id": "speed-home-responsive-images",
+      "tier": ["prebuild", "ci"],
+      "summary": "같은 파일명의 mobile 형제는 동일 원본 증거가 있을 때만 고른다. 증거가 없으면 기존 URL을 유지하고 training srcset에 다른 그림을 섞지 않는다. 로딩 헤더 로고는 high priority 아님. Pexels srcset은 작성 w 이하. Ncloud URL은 그대로.",
+      "checks": [
+        {
+          "file": "app/components/home/HomeMobileHub.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[speed-home-responsive-images]",
+            "preferMobileHubLocalVariant"
+          ]
+        },
+        {
+          "file": "lib/home-mobile-hub-tile-images.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[speed-home-responsive-images]",
+            "SAME_ORIGINAL_MOBILE_BY_BASE"
+          ],
+          "mustNotInclude": [
+            "/images/home-hub/mobile/${",
+            "1181w"
+          ]
+        },
+        {
+          "file": "components/route-loading/HomePageLoading.tsx",
+          "mustInclude": ["logoPriority={false}"]
+        },
+        {
+          "file": "components/route-loading/ProductsBrowseLoading.tsx",
+          "mustInclude": ["logoPriority={false}"]
+        },
+        {
+          "file": "app/components/SafeImage.tsx",
+          "mustInclude": ["nativeSrcSet"]
+        }
+      ],
+      "vitestSuites": ["lib/responsive-home-image.test.ts"]
     }
   ],
   "vitestSuites": [
