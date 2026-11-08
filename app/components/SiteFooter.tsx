@@ -8,6 +8,7 @@ import { COMPANY_FOOTER } from '@/lib/company-footer'
 import { FOOTER_POLICY_LINKS } from '@/lib/main-hub-copy'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
 import KakaoChannelConsultLink from '@/components/bongtour/KakaoChannelConsultLink'
+import NaverTalkTalkConsultLink from '@/components/bongtour/NaverTalkTalkConsultLink'
 
 const FTC_BIZ_VERIFY_HREF =
   'https://www.ftc.go.kr/bizCommPop.do?wrkr_no=2558103455' as const
@@ -268,6 +269,7 @@ export default function SiteFooter() {
             </p>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <KakaoChannelConsultLink className="w-full text-xs sm:w-auto" />
+              <NaverTalkTalkConsultLink className="w-full text-xs sm:w-auto" />
               <p className="text-xs leading-relaxed text-bt-bg-lavender/70">
                 급한 문의는 <span className="text-bt-bg-lavender">전화</span>
                 <span className="text-bt-bg-lavender/40"> · </span>

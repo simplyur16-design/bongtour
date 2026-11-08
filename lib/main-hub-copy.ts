@@ -523,6 +523,12 @@ export const MOBILE_STICKY_KAKAO_LABEL = '카톡 상담'
 
 export const MOBILE_STICKY_KAKAO_HREF = 'https://pf.kakao.com/_xlxjrxlX/chat' as const
 
+/** 네이버 톡톡 프로필. 카카오 상담 입구 옆에 같은 링크로 연다. */
+// REGRESSION-FREEZE[naver-talktalk-entry]: 공개 상담 3곳 href — manifest
+export const NAVER_TALK_PROFILE_URL = 'https://talk.naver.com/profile/w2r7vau' as const
+
+export const NAVER_TALK_CONSULT_LABEL = '네이버 톡톡 상담' as const
+
 export const MOBILE_STICKY_ESIM_LABEL = 'eSIM'
 
 export const MOBILE_STICKY_ESIM_HREF = '/travel/esim' as const
