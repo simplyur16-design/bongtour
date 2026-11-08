@@ -15,7 +15,10 @@ export function scrapeCalendarTodayYmd(timeZone = 'Asia/Seoul'): string {
   }).format(new Date())
 }
 
-/** `YYYY-MM-DD` 문자열에 그레고리력 일수만 가산(타임존 무관·순수 달력). */
+/**
+ * `YYYY-MM-DD` 문자열에 그레고리력 일수만 가산(타임존 무관·순수 달력).
+ * REGRESSION-FREEZE[calendar-add-days-one-impl]: 수집 창·등록 하한의 유일한 일수 가산 — manifest
+ */
 export function addCalendarDaysToYmd(ymd: string, deltaDays: number): string {
   const [y0, m0, d0] = ymd.split('-').map(Number)
   const t = Date.UTC(y0, m0 - 1, d0 + deltaDays)
