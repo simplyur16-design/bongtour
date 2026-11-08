@@ -21207,6 +21207,26 @@
       ]
     },
     {
+      "id": "products-browse-empty-query-key",
+      "tier": ["prebuild", "ci"],
+      "summary": "쿼리 없는 /products 목록은 빈 키로 예외를 내지 않고 기본 browse API를 부른다.",
+      "checks": [
+        {
+          "file": "lib/products-browse-client-fetch.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[products-browse-empty-query-key]",
+            "const requestPath = key ? `/api/products/browse?${key}` : '/api/products/browse'"
+          ],
+          "mustNotInclude": [
+            "목록 요청 키가 비어 있습니다."
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/products-browse-client-fetch.test.ts"
+      ]
+    },
+    {
       "id": "browse-preview-db-take",
       "tier": [
         "prebuild",
