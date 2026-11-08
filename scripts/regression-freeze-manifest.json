@@ -26107,6 +26107,33 @@
       ]
     },
     {
+      "id": "calendar-add-days-one-impl",
+      "tier": ["prebuild", "ci"],
+      "summary": "출발일 수집 창과 등록 하한은 같은 그레고리력 일수 가산을 쓴다. UTC 자정 저장 시각의 표시와 KST 시각 표시는 합치지 않는다.",
+      "checks": [
+        {
+          "file": "lib/scrape-date-bounds.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-add-days-one-impl]",
+            "export function addCalendarDaysToYmd"
+          ]
+        },
+        {
+          "file": "lib/calendar-batch-product-window.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-add-days-one-impl]",
+            "return addCalendarDaysToYmd(ymd, delta)"
+          ],
+          "mustNotInclude": [
+            "setUTCDate(dt.getUTCDate() + delta)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/calendar-add-days-parity.test.ts"
+      ]
+    },
+    {
       "id": "bongtour-ocean-warm-design-l0",
       "tier": [
         "prebuild",

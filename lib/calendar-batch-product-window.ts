@@ -1,5 +1,6 @@
 import { formatDepartureDateYmd } from '@/lib/calendar-batch-cursor'
 import { CALENDAR_BATCH_CHUNK_DAYS } from '@/lib/calendar-batch-seq-state'
+import { addCalendarDaysToYmd } from '@/lib/scrape-date-bounds'
 
 export type ProductBatchWindow = {
   cursorYmd: string | null
@@ -10,11 +11,9 @@ export type ProductBatchWindow = {
   windowEmpty: boolean
 }
 
+/** REGRESSION-FREEZE[calendar-add-days-one-impl]: addCalendarDaysToYmd와 같은 결과 — manifest */
 export function addCalendarDaysYmd(ymd: string, delta: number): string {
-  const [y, m, d] = ymd.split('-').map((x) => parseInt(x, 10))
-  const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
-  dt.setUTCDate(dt.getUTCDate() + delta)
-  return dt.toISOString().slice(0, 10)
+  return addCalendarDaysToYmd(ymd, delta)
 }
 
 export function bootstrapCalendarBatchCursorYmd(params: {
