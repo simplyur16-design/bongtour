@@ -31026,6 +31026,47 @@
       ]
     },
     {
+      "id": "esim-callback-auth-amount-gate",
+      "tier": ["prebuild", "ci"],
+      "summary": "웰컴페이 콜백은 실패 인증코드·틀린 authSignature·주문 합계와 다른 금액을 승인하지 않는다.",
+      "checks": [
+        {
+          "file": "lib/bongsim/welcomepay-payauth.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-callback-auth-amount-gate]",
+            "export function verifyWelcomepayAuthSignature"
+          ]
+        },
+        {
+          "file": "lib/bongsim/welcomepay-callback-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-callback-auth-amount-gate]",
+            "export function isWelcomepayReturnAmountTampered"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/checkout/welcomepay-return/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-callback-auth-amount-gate]",
+            "auth_signature_mismatch",
+            "isWelcomepayReturnAmountTampered"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/process-welcomepay-payment-outcome.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-callback-auth-amount-gate]",
+            "welcomepay_amount_neq_order_total"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/welcomepay-return-gate.test.ts",
+        "app/api/bongsim/checkout/welcomepay-return/route.test.ts",
+        "lib/bongsim/fulfillment/esim-paid-sms-pipeline.test.ts"
+      ]
+    },
+    {
       "id": "supplier-sweep-pending-same-event",
       "tier": [
         "prebuild",

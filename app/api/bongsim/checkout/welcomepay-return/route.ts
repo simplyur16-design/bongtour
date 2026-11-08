@@ -6,6 +6,7 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 // REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]: no request-path TLS probe — manifest
 import {
   isVbankIssuedApproval,
+  isWelcomepayReturnAmountTampered,
   parseWelcomepayPayload,
   pickAmountKrw,
   pickCaptureTid,
@@ -164,6 +165,7 @@ export async function POST(req: Request) {
         authSignature: authSig,
       })
     ) {
+      // REGRESSION-FREEZE[esim-callback-auth-amount-gate]: bad authSignature — manifest
       return fail("auth_signature_mismatch");
     }
   }
@@ -171,12 +173,7 @@ export async function POST(req: Request) {
   const tid = pickCaptureTid(merged);
   if (!tid) return fail("missing_capture_tid");
   const amt = pickAmountKrw(merged);
-  if (
-    amt != null &&
-    Number.isFinite(grandTotalKrw) &&
-    grandTotalKrw > 0 &&
-    amt !== grandTotalKrw
-  ) {
+  if (isWelcomepayReturnAmountTampered(amt, grandTotalKrw)) {
     return fail("amount_mismatch");
   }
   const amountForCapture =

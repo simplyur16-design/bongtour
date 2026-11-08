@@ -200,6 +200,7 @@ export async function processWelcomepayPaymentOutcome(
       return { ok: false, reason: "amount_mismatch" };
     }
     if (toInt(input.amountKrw) !== grand) {
+      // REGRESSION-FREEZE[esim-callback-auth-amount-gate]: webhook amount must equal order total — manifest
       await setLastError("amount_mismatch", "welcomepay_amount_neq_order_total");
       await client.query("COMMIT");
       return { ok: false, reason: "amount_mismatch" };
