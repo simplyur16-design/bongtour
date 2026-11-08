@@ -163,7 +163,7 @@ export default function Header({ hideMobileNav = false, logoPriority = true }: H
             <div className="hidden items-center gap-3 lg:flex">
               <Link
                 href={INQUIRY_HREF}
-                className="rounded-full bg-bt-brand-gold-strong px-4 py-2 text-sm font-medium text-white transition hover:opacity-95"
+                className="inline-flex min-h-11 items-center rounded-full bg-bt-brand-gold-strong px-4 py-2 text-sm font-medium text-white transition hover:opacity-95"
               >
                 상담 신청
               </Link>
@@ -199,7 +199,7 @@ export default function Header({ hideMobileNav = false, logoPriority = true }: H
             <div className="flex items-center gap-2 lg:hidden">
               <Link
                 href={INQUIRY_HREF}
-                className="shrink-0 rounded-full bg-bt-brand-gold-strong px-3.5 py-2 text-sm font-semibold text-white"
+                className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-bt-brand-gold-strong px-3.5 py-2 text-sm font-semibold text-white"
               >
                 상담
               </Link>

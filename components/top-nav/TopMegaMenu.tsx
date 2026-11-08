@@ -53,6 +53,12 @@ export default function TopMegaMenu() {
     setMegaMenuOpen(true)
   }, [])
 
+  const onTapMega = useCallback(() => {
+    clearClose()
+    clearOpen()
+    setMegaMenuOpen((open) => !open)
+  }, [])
+
 
   const onHoverRegion = useCallback((id: string) => {
     setActiveRegionId(id)
@@ -81,7 +87,11 @@ export default function TopMegaMenu() {
         onMouseLeave={scheduleClose}
       >
         <div className="min-h-[3.1rem] w-full min-w-0 lg:min-h-[3.25rem]">
-          <OverseasMegaMenuHoverTrigger onHoverMegaEnter={onHoverMegaEnter} onFocusMega={onFocusMega} />
+          <OverseasMegaMenuHoverTrigger
+            onHoverMegaEnter={onHoverMegaEnter}
+            onFocusMega={onFocusMega}
+            onTapMega={onTapMega}
+          />
         </div>
 
         {isMegaMenuOpen && activeRegion && activeRegion.countryGroups && (

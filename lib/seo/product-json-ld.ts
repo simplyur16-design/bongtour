@@ -94,3 +94,37 @@ export function buildProductJsonLdData(input: {
     offers: buildOffersNode(input.offers, url),
   }
 }
+
+/** TouristTrip에는 가격·offers를 넣지 않는다. Product 스키마의 offers와 분리. */
+export function buildTouristTripJsonLd(input: {
+  name: string
+  description: string
+  url: string
+  imageUrl?: string | null
+  itinerary: Array<{ dayNumber: number; title: string; city?: string | null }>
+}): Record<string, unknown> {
+  const img = input.imageUrl?.trim()
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'TouristTrip',
+    name: input.name,
+    description: input.description,
+    url: input.url,
+    ...(img ? { image: [img] } : {}),
+    itinerary: {
+      '@type': 'ItemList',
+      itemListElement: input.itinerary.map((day) => {
+        const city = (day.city ?? '').trim()
+        return {
+          '@type': 'ListItem',
+          position: day.dayNumber,
+          item: {
+            '@type': 'TouristAttraction',
+            name: day.title,
+            ...(city ? { address: { '@type': 'PostalAddress', addressLocality: city } } : {}),
+          },
+        }
+      }),
+    },
+  }
+}
