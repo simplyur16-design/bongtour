@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { ResultItem } from '@/components/products/ProductResultsList'
 import { kakaoConsultHref } from '@/lib/kakao-consult-href'
 import { productDetailCardPreviewFromResultItem } from '@/lib/product-detail-card-preview-from-item'
@@ -47,6 +47,13 @@ function item(over: Partial<ResultItem>): ResultItem {
 }
 
 describe('ybtour url departure follows the public bookable floor', () => {
+  beforeAll(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(BASE)
+  })
+  afterAll(() => {
+    vi.useRealTimers()
+  })
   const floor = getPublicBookableMinYmd(BASE)
   const yesterday = addDaysUtcYmd(floor, -3)
   const today = '2026-11-08'
