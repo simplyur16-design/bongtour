@@ -8393,7 +8393,7 @@
           "file": "app/components/travel/ybtour/YbtourTravelProductDetail.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-url-departure-floor]",
-            "useProductDepartureYmdFromUrl",
+            "useProductDepartureUrlRead",
             "pickPublicUrlDepartureRow(mergedPrices, initialDepartureYmd)",
             "originCode={product.originCode}"
           ]
@@ -8402,7 +8402,7 @@
           "file": "app/components/travel/ybtour/YbtourMobileProductDetail.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[ybtour-url-departure-floor]",
-            "useProductDepartureYmdFromUrl",
+            "useProductDepartureUrlRead",
             "pickPublicUrlDepartureRow(mergedPrices, initialDepartureYmd)",
             "originCode={product.originCode}"
           ]
