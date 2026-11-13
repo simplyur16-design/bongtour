@@ -140,6 +140,8 @@ export type RegisterScheduleDay = {
   description: string
   /** 그날 방문 장소를 본문 순서대로 ' - '로 연결한 이동경로. 모두투어 페이지의 [조망]/[차창관광] 태그는 (조망)/(차창)로 보존. */
   routeText?: string | null
+  /** 공급사 구조화 도시 칸만(제목·경로 금지) — ItineraryDay.city */
+  cityText?: string | null
   /** 실존하는 장소 명칭만 (Pexels 검색용 영문, 예: Osaka Castle) */
   imageKeyword: string
   /** 일차 썸네일 2번째 — Pexels 검색용 영문 고유명 */

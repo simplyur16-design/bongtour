@@ -1,0 +1,103 @@
+{
+  "source": "papi.ybtour.co.kr event-schedule JSP1089-261121BX00 recorded 2026-11-14 (scheduleDetailTm day 1~3)",
+  "scheduleDetailTm": [
+    {
+      "dayNo": 1,
+      "tmNo": 1,
+      "cityNm": "부산",
+      "tmTitle": "김해국제공항 미팅",
+      "tmContent": "<div style=\"background: rgb(238, 238, 238); padding: 5px 10px; border: 1px solid rgb(204, 204, 204); border-image: none;\"><span style=\"background-color:rgb(238, 238, 238); color:rgb(85, 85, 85)\">■&nbsp;</span><span style=\"background-color:rgb(238, 238, 238); color:rgb(85, 85, 85)\">미팅장소 : 김해국제공항 2층 에어부산 카운터 및 가이드 피켓앞 (출발 3-4일전 문자로 안내 예정)</span><br />\n<span style=\"background-color:rgb(238, 238, 238); color:rgb(85, 85, 85)\">■ 미팅시간 :&nbsp;최소 출발 2시간 전까지는 오셔야 합니다.</span><br />\n<span style=\"background-color:rgb(238, 238, 238); color:rgb(85, 85, 85)\">■ 인 솔 자 : 출발일 이틀전 확정됩니다.&nbsp;(출발 하루전 오후 5~6시 사이에 대표자분께 직접 연락드립니다.)</span></div>\n\n<p>&nbsp;</p>\n\n<p><strong><span style=\"color:rgb(0, 0, 0)\">※&nbsp;유의사항 ※</span></strong><br />\n■ 여권 만료기간은 최소 3개월 이상 남아 있어야 합니다.<br />\n■ 여권 및 비자관계로 인한 문제 발생시, 노랑풍선에서는 책임지지 않습니다.<br />\n(예시 - 사용한 단수여권 / 훼손된 여권 / 관용여권 / 거주여권 등 )<br />\n■ 그룹항공권으로 출발 당일 공항에서 좌석배정 가능합니다.<br />\n■ 액체류/젤류 의 기내 반입은 용기 1개당 100ml 이하 1인당 1L 이하만 가능합니다.<br />\n■ 일본 입국시에는 지문인식 수속을 하셔야 합니다<br />\n■ 준비물 안내 ■<br />\n- 여권, 접는우산, 상비약, 현지에서 쓰실 경비(엔화)<br />\n- 일본은 전압이 110V입니다.<br />\n■ 기타사항&nbsp;</p>\n\n<p>- 일본 호텔내에는 각종 세면도구,드라이기가 비치되어 있습니다.</p>\n\n<p>- 호텔 대욕장 및 온천시설은 남,녀 구분이 되어 있습니다.</p>\n"
+    },
+    {
+      "dayNo": 1,
+      "tmNo": 2,
+      "cityNm": "부산",
+      "tmTitle": "김해국제공항 출발",
+      "tmContent": null
+    },
+    {
+      "dayNo": 1,
+      "tmNo": 3,
+      "cityNm": "마츠야마",
+      "tmTitle": "마츠야마 국제공항 도착",
+      "tmContent": "<p><strong>[공항 - 호텔 이동: 약 50분 소요]</strong></p>\n\n<p><strong>마츠야마 국제 공항 입국 수속 후 <span style=\"color:rgb(0, 0, 255)\">에히메현 제공 무료송영버스 탑승</span>하여 호텔로 이동 (타손님과 함께 버스탑승)</strong></p>\n"
+    },
+    {
+      "dayNo": 1,
+      "tmNo": 4,
+      "cityNm": "마츠야마",
+      "tmTitle": "호텔 이동 후 개별 석식",
+      "tmContent": "<p><span style=\"color:rgb(0, 0, 255)\"><strong>●&nbsp;자유 석식&nbsp;(현금 1000엔 지급)</strong></span></p>\n\n<p>&nbsp;</p>\n\n<p><strong>※호텔은 미확정이며, 출발 7일 전 확정 후 문자로 안내 드립니다.</strong></p>\n"
+    },
+    {
+      "dayNo": 2,
+      "tmNo": 1,
+      "cityNm": "마츠야마",
+      "tmTitle": "호텔 조식 후 오전 반나절 자유",
+      "tmContent": "●여유롭게 조식 후, 자유 일정 진행"
+    },
+    {
+      "dayNo": 2,
+      "tmNo": 2,
+      "cityNm": "마츠야마",
+      "tmTitle": "개별 중식 후 호텔로비 13시 집결 ",
+      "tmContent": "<p><span style=\"color:rgb(0, 0, 255)\"><strong>*가이드와 함께 차량이용 없이 도보관광 (노면전차,열차탑승)</strong></span></p>\n\n<p>*일본정통 시골감성 바이신지역 이동 (열차로 약18분소요)</p>\n\n<p>-열차 대기시간이 있을 수 있습니다. (약 20분 간격 출발)</p>\n\n<p>&nbsp;</p>\n\n<p><strong>● </strong>일본애니 포토감성 바이신지역 기찻길,바닷가 등 <strong>바이신지마치 산책</strong></p>\n\n<p>●&nbsp;미캉파크에서 주스공정 견학&amp; 오렌지 주스 1인1잔 제공<span style=\"color:rgb(255, 0, 0)\"><strong> </strong></span></p>\n\n<p><span style=\"color:rgb(255, 0, 0)\"><strong>&nbsp;&nbsp; (월요일휴관/휴관일은 도고온천마을에서 쥬스제공)</strong></span></p>\n"
+    },
+    {
+      "dayNo": 2,
+      "tmNo": 3,
+      "cityNm": "마츠야마",
+      "tmTitle": "마쓰야마로 이동 (바이신지역→마쓰야마시역)",
+      "tmContent": "<p><strong>●</strong>마쓰야마 도고온천으로 이동</p>\n\n<p>●이사니와신사</p>\n\n<p>●카라쿠리 시계 및 족욕탕, 도고온천본관 외관</p>\n\n<p>●도고온천 아스카노유 온천욕 체험 &nbsp;(*1층욕실만 이용 가능 / 타올 및 세면도구 별도요금)</p>\n"
+    },
+    {
+      "dayNo": 2,
+      "tmNo": 4,
+      "cityNm": "마츠야마",
+      "tmTitle": "개별 석식 후 호텔 이동",
+      "tmContent": "<p><strong>● 오오카이도 번화가 산책 및<span style=\"color:rgb(0, 0, 255)\"> 자유 석식 (현금 1000엔 지급)</span></strong></p>\n"
+    },
+    {
+      "dayNo": 2,
+      "tmNo": 5,
+      "cityNm": "마츠야마",
+      "tmTitle": "호텔 체크인 및 휴식 ",
+      "tmContent": null
+    },
+    {
+      "dayNo": 3,
+      "tmNo": 1,
+      "cityNm": "마츠야마",
+      "tmTitle": "호텔 조식 후 이동",
+      "tmContent": "<p><span style=\"color:rgb(0, 0, 255)\"><strong>※ 가이드 안내에 따라 도보로 이동합니다. (호텔-&gt;마츠야마성입구까지 약10-15분소요)</strong></span></p>\n\n<p><strong>● </strong>일본 100 명성 중 하나인 <strong>마츠야마성&nbsp;관광 (천수각 포함 / 로프웨이 또는 리프트 이용)</strong></p>\n\n<p>●&nbsp;오카이도 번화가 자유 산책</p>\n"
+    },
+    {
+      "dayNo": 3,
+      "tmNo": 2,
+      "cityNm": "마츠야마",
+      "tmTitle": "점심 식사",
+      "tmContent": "<p><strong>● <span style=\"color:rgb(0, 0, 255)\">스시 정식 </span></strong></p>\n\n<p>※ 현지 사정에 의해 변경 될 수 있습니다.</p>\n"
+    },
+    {
+      "dayNo": 3,
+      "tmNo": 3,
+      "cityNm": "마츠야마",
+      "tmTitle": "마츠야마 공항 이동 (에히메현 제공 무료 셔틀버스 탑승)",
+      "tmContent": "<span style=\"color:rgb(0, 0, 255)\"><strong>에히메현제공 무료송영버스로 마츠야마공항으로 이동</strong></span>"
+    },
+    {
+      "dayNo": 3,
+      "tmNo": 4,
+      "cityNm": "마츠야마",
+      "tmTitle": "마츠야마 공항 출발",
+      "tmContent": null
+    },
+    {
+      "dayNo": 3,
+      "tmNo": 5,
+      "cityNm": "부산",
+      "tmTitle": "김해 국제공항 도착 후 해산",
+      "tmContent": null
+    }
+  ]
+}

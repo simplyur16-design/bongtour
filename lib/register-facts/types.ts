@@ -32,6 +32,8 @@ export type RegisterFactScheduleDay = {
    * 지어낸 문장 없음. 관광 일차에는 채우지 않는다(기존 출력 불변).
    */
   supplierTimeline?: string[]
+  /** 공급사 구조화 도시 칸(출발·도착 도시명 등) 원문 순서 — ItineraryDay.city 전용 */
+  cities?: string[]
 }
 
 export type RegisterFactFlightLeg = {

@@ -140,7 +140,8 @@ export function registerScheduleToDayInputs(
       {
         day,
         dateText,
-        city: trimNull(title),
+        // REGRESSION-FREEZE[itinerary-day-city-only]: city = 공급사 도시 칸(cityText)만, 제목·경로 금지 — manifest
+        city: trimNull((s as { cityText?: string | null }).cityText),
         summaryTextRaw: summaryTextRaw || null,
         rawBlock,
         hotelText,

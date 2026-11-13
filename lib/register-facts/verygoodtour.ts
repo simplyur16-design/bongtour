@@ -5,6 +5,7 @@
  * REGRESSION-FREEZE[register-facts-foundation]: PackageDetail fetch·메타 추출 — manifest
  * REGRESSION-FREEZE[register-facts-fetch-resilience]: PackageDetail fetch timeout — manifest
  */
+import { splitItineraryDayCityText } from '@/lib/itinerary-day-city'
 import { supplierTripDurationFromNumbers } from '@/lib/supplier-trip-duration'
 import type {
   RegisterFactFlightLeg,
@@ -71,6 +72,7 @@ function itineraryDaysToFactDays(days: ItineraryDayInput[]): RegisterFactSchedul
       hotels,
       meals,
       transportNote: d.transport?.trim() || null,
+      ...(splitItineraryDayCityText(d.city).length ? { cities: splitItineraryDayCityText(d.city) } : {}),
     }
   })
 }

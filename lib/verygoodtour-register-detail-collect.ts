@@ -4,6 +4,7 @@
  *
  * REGRESSION-FREEZE[verygoodtour-register-detail-collect]: augmentVerygoodtourParsedWithDetailCollect — manifest
  */
+import { splitItineraryDayCityText } from '@/lib/itinerary-day-city'
 import { enrichScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import type { RegisterPastedBlocksInput } from '@/lib/register-llm-blocks-verygoodtour'
@@ -155,6 +156,7 @@ function itineraryDaysToFactDays(days: ItineraryDayInput[]): RegisterFactSchedul
       hotels,
       meals,
       transportNote: d.transport?.trim() || null,
+      ...(splitItineraryDayCityText(d.city).length ? { cities: splitItineraryDayCityText(d.city) } : {}),
     }
   })
 }

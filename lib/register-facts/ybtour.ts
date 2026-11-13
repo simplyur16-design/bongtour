@@ -24,6 +24,7 @@ import {
   registerFactProductKindNote,
 } from '@/lib/register-facts/product-kind'
 import { departureInputToYmd } from '@/lib/scrape-date-bounds'
+import { splitItineraryDayCityText } from '@/lib/itinerary-day-city'
 
 function thinFactDaysFromScheduleDetail(rows: YbtourScheduleDetailRow[]): RegisterFactScheduleDay[] {
   const out: RegisterFactScheduleDay[] = []
@@ -55,12 +56,14 @@ export function ybtourRegisterScheduleToFactDays(days: RegisterScheduleDay[]): R
         ? [d.title.trim()]
         : []
     const meals = [d.breakfastText, d.lunchText, d.dinnerText].map((x) => String(x ?? '').trim()).filter(Boolean)
+    const cities = splitItineraryDayCityText(d.cityText)
     return {
       day: d.day,
       places,
       hotels: d.hotelText?.trim() ? [d.hotelText.trim()] : [],
       meals,
       transportNote: null,
+      ...(cities.length ? { cities } : {}),
     }
   })
 }

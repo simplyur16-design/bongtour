@@ -24,6 +24,8 @@ import {
   extractYbtourSchedulePlacesFromTmRows,
   joinYbtourScheduleRouteText,
   stripYbtourHtmlText,
+  ybtourTmRowsCityText,
+  ybtourTmRowsSupplierOriginal,
 } from '@/lib/ybtour-register-api-schedule'
 
 export { stripYbtourHtmlText } from '@/lib/ybtour-register-api-schedule'
@@ -233,17 +235,26 @@ export function ybtourScheduleBundleToRegisterSchedule(
       { breakfastText: breakfast, lunchText: lunch, dinnerText: dinner },
       [mealBlob, breakfast, lunch, dinner],
     )
+    // REGRESSION-FREEZE[itinerary-day-city-only]: TM cityNm 만 cityText — manifest
+    const supplierOriginal = ybtourTmRowsSupplierOriginal(tmRows, {
+      hotelText,
+      breakfastText: breakfast,
+      lunchText: lunch,
+      dinnerText: dinner,
+    })
     out.push({
       day,
       title,
       description,
       routeText,
+      cityText: ybtourTmRowsCityText(tmRows),
       imageKeyword: '',
       hotelText,
       breakfastText: mealEnriched.breakfastText ?? null,
       lunchText: mealEnriched.lunchText ?? null,
       dinnerText: mealEnriched.dinnerText ?? null,
       mealSummaryText: mealEnriched.mealSummaryText ?? null,
+      ...(supplierOriginal ? { supplierOriginal } : {}),
     })
   }
   return out

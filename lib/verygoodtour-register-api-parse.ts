@@ -3,6 +3,7 @@
  *
  * REGRESSION-FREEZE[verygoodtour-register-api-parse]: collectVerygoodtourRegisterFacts → RegisterParsed — manifest
  */
+import { applyRegisterRouteRawFromFactFlights } from '@/lib/register-facts/route-raw-from-fact-flights'
 import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import { collectVerygoodtourRegisterFacts, parseVerygoodProCodeFromUrl } from '@/lib/register-facts/verygoodtour'
 import { resolvePrefetchedRegisterFactBundle } from '@/lib/register-facts/resolve-prefetched-bundle'
@@ -206,6 +207,8 @@ export async function parseVerygoodtourRegisterFromApi(
   }
 
   parsed = applyRegisterCollectedFlightStructured(parsed, flightStructured)
+  // REGRESSION-FREEZE[register-route-raw-from-fact-flights]: API 등록 경로 routeRaw null 방지 — manifest
+  parsed = applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)
   parsed = finalizeVerygoodRegisterParsedPricing(parsed)
   parsed = finalizeVerygoodRegisterParsedShopping(parsed)
   parsed = await augmentVerygoodtourParsedWithDetailCollect(parsed, { originUrl, travelScope })

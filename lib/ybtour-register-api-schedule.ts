@@ -12,7 +12,12 @@ import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal
 import { expandRegisterScheduleRoutePlaceCandidates, extractRegisterScheduleRoutePlaceLabel, isRegisterScheduleRoutePlaceNoise, sanitizeRegisterScheduleRouteText } from '@/lib/register-schedule-route-place-noise'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
-import { attachScheduleDaySupplierOriginalFromFactDays } from '@/lib/schedule-day-supplier-original'
+import {
+  attachScheduleDaySupplierOriginalFromFactDays,
+  parseScheduleDaySupplierOriginal,
+  type ScheduleDaySupplierOriginal,
+} from '@/lib/schedule-day-supplier-original'
+import { itineraryDayCityFromSupplierCities } from '@/lib/itinerary-day-city'
 
 export const YBTOUR_SCHEDULE_ROUTE_MAX = 7
 
@@ -222,6 +227,19 @@ function extractPlaceFromYbtourTmTitle(title: string): string | null {
   return null
 }
 
+/**
+ * TM 본문 안의 안내 구획(미팅·유의사항·준비물·기타사항) 머리줄 — 이후 줄은 방문지가 아니다.
+ * REGRESSION-FREEZE[ybtour-tm-notice-section-not-route]: 공지·준비물 1일차 혼입 금지 — manifest
+ */
+const YBTOUR_TM_NOTICE_SECTION_HEAD_RE =
+  /^[\s※■□●◆◇▶▷\-–—*]*(?:유의\s*사항|준비물|기타\s*사항|참고\s*사항|안내\s*사항|미팅\s*(?:장소|시간)|인\s*솔\s*자|여권\s*(?:만료|및\s*비자)|꼭\s*확인)/u
+
+export function isYbtourTmNoticeSectionHead(line: string): boolean {
+  return YBTOUR_TM_NOTICE_SECTION_HEAD_RE.test(String(line ?? ''))
+}
+
+const YBTOUR_TM_FREE_MEAL_RE = /^자유\s*(?:조식|중식|석식|식사)(?:\s*\(.*\))?$/u
+
 export type YbtourScheduleTmPlaceRow = {
   tmNo?: number | null
   tmTitle?: string | null
@@ -247,10 +265,11 @@ export function extractYbtourSchedulePlacesFromTmRows(rows: readonly YbtourSched
       for (const line of content.split(/\n+/)) {
         const trimmed = line.trim()
         if (!trimmed) continue
+        if (isYbtourTmNoticeSectionHead(trimmed)) break
         const arrow = trimmed.match(/(?:▶|●|■)\s*(.+)/)
         if (arrow?.[1]) {
           const label = extractRegisterScheduleRoutePlaceLabel(arrow[1]) ?? cleanYbtourRoutePlaceLabel(arrow[1])
-          if (label && !isYbtourRoutePlaceNoise(label)) out.push(label)
+          if (label && !isYbtourRoutePlaceNoise(label) && !YBTOUR_TM_FREE_MEAL_RE.test(label.trim())) out.push(label)
           continue
         }
         const fromLine = extractPlaceFromYbtourTmTitle(trimmed)
@@ -259,6 +278,43 @@ export function extractYbtourSchedulePlacesFromTmRows(rows: readonly YbtourSched
     }
   }
   return dedupeYbtourScheduleRoutePlaces(out)
+}
+
+/** TM cityNm 원문 순서 — ItineraryDay.city 전용 */
+export function ybtourTmRowsCityText(rows: readonly YbtourScheduleTmPlaceRow[]): string | null {
+  const sorted = [...rows].sort((a, b) => Number(a.tmNo ?? 0) - Number(b.tmNo ?? 0))
+  return itineraryDayCityFromSupplierCities(sorted.map((r) => r.cityNm))
+}
+
+/** TM 제목·본문(안내 구획 전까지) 그대로 — Product.schedule[].supplierOriginal */
+export function ybtourTmRowsSupplierOriginal(
+  rows: readonly YbtourScheduleTmPlaceRow[],
+  extras?: { hotelText?: string | null; breakfastText?: string | null; lunchText?: string | null; dinnerText?: string | null },
+): ScheduleDaySupplierOriginal | null {
+  const sorted = [...rows].sort((a, b) => Number(a.tmNo ?? 0) - Number(b.tmNo ?? 0))
+  const items: ScheduleDaySupplierOriginal['items'] = []
+  for (const row of sorted) {
+    const name = stripYbtourHtmlText(String(row.tmTitle ?? '')).trim() || null
+    const lines: string[] = []
+    for (const line of stripYbtourHtmlText(String(row.tmContent ?? '')).split(/\n+/)) {
+      const t = line.trim()
+      if (!t) continue
+      if (isYbtourTmNoticeSectionHead(t)) break
+      lines.push(t)
+    }
+    const text = lines.join('\n').slice(0, 1200) || null
+    if (name || text) items.push({ label: null, name, text })
+  }
+  return parseScheduleDaySupplierOriginal({
+    v: 1,
+    source: 'ybtour',
+    capturedAt: new Date().toISOString(),
+    items,
+    hotelText: extras?.hotelText ?? null,
+    breakfastText: extras?.breakfastText ?? null,
+    lunchText: extras?.lunchText ?? null,
+    dinnerText: extras?.dinnerText ?? null,
+  })
 }
 
 /** 붙여넣기 블록 — ▶·불릿 줄 순서로 routeText 후보 */
@@ -414,6 +470,7 @@ export function ybtourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay[]
       title,
       description,
       routeText,
+      cityText: itineraryDayCityFromSupplierCities(d.cities),
       imageKeyword: '',
       imageKeyword2: null,
       hotelText: registerScheduleHotelTextFromFactHotels(d.hotels),

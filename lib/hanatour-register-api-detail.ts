@@ -30,6 +30,7 @@ import { addDaysUtcYmd } from '@/lib/calendar-ymd'
 import { composeRegisterScheduleRegionVibeDescription } from '@/lib/register-schedule-region-vibe'
 import { composeRegisterScheduleDayTitleFromRoute } from '@/lib/register-schedule-day-title'
 import { attachScheduleDaySupplierOriginalFromFactDays } from '@/lib/schedule-day-supplier-original'
+import { itineraryDayCityFromSupplierCities } from '@/lib/itinerary-day-city'
 
 const HANATOUR_GW_BASE = process.env.HANATOUR_GW_BASE_URL ?? 'https://gw.hanatour.com'
 const HANATOUR_TRP_PRG_MID = 'CHPC0PKG0200M200'
@@ -519,6 +520,7 @@ export function hanatourFactDaysToRegisterSchedule(days: RegisterFactScheduleDay
       title,
       description,
       routeText,
+      cityText: itineraryDayCityFromSupplierCities(d.cities),
       imageKeyword: '',
       hotelText,
       breakfastText: meals.breakfastText ?? null,
@@ -859,6 +861,8 @@ export function hanatourItnrPlaceLabels(main: HanatourItnrSchdMain): string[] {
   for (const row of cms) {
     pushHanatourItnrUniqueLabel(out, String(row.cmsCntntNm ?? ''))
   }
+  // REGRESSION-FREEZE[hanatour-itnr-cms-over-photo-alt]: cms 장소명이 있으면 사진 alt·strong 캡션은 장소로 쓰지 않음(타지역 스톡사진 캡션 혼입) — manifest
+  if (out.length > 0) return out
   const html = String(main.cardCntntPc ?? main.cardCntntMbl ?? '')
   for (const m of html.matchAll(/alt="([^"]{2,48})"/gi)) {
     pushHanatourItnrUniqueLabel(out, m[1])
@@ -894,6 +898,7 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
     }
     const optionalPlaces: string[] = []
     const supplierBits: string[] = []
+    const cities: string[] = []
     for (const main of dayRow.schdMainInfoList ?? []) {
       const cat = String(main.schdCatgNm ?? '').trim()
       if (isHanatourItnrNonRouteCard(main)) continue
@@ -911,6 +916,10 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
         continue
       }
       if (cat.includes('이동') || cat.includes('항공') || cat.includes('도시')) {
+        for (const c of [main.depCityNm, main.arriveCityNm]) {
+          const t = String(c ?? '').trim()
+          if (t && !cities.includes(t)) cities.push(t)
+        }
         const transport = hanatourItnrTransportLine(main)
         if (transport) {
           fact.transportNote = fact.transportNote ? `${fact.transportNote}; ${transport}` : transport
@@ -940,6 +949,7 @@ export function hanatourItnrSchdToFactDays(schdInfoList: HanatourItnrSchdDay[]):
     if (supplierBits.length) {
       fact.supplierText = supplierBits.slice(0, 2).join(' ').replace(/\s+/g, ' ').trim().slice(0, 720)
     }
+    if (cities.length) fact.cities = cities
     rows.push(fact)
   }
   return rows.sort((a, b) => a.day - b.day)

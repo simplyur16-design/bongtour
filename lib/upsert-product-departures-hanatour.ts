@@ -7,6 +7,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { computeDepartureSlotKeyFromDate } from '@/lib/departure-slot-key'
+import { reconcileLegacyYmdDepartureSlots } from '@/lib/departure-legacy-slot-reconcile'
 import { filterDeparturesOnSaleForImport } from '@/lib/departure-booking-status'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { computeBaselineAdultPriceOnUpsert } from '@/lib/supplier-urgent-deal'
@@ -225,7 +226,7 @@ export async function upsertProductDepartures(
 
   const now = new Date()
 
-  const pairs: { dep: DepartureInput; departureDate: Date; departureSlotKey: string }[] = []
+  const collectedPairs: { dep: DepartureInput; departureDate: Date; departureSlotKey: string }[] = []
   for (const d of departures) {
     const departureDate = normalizeDepartureDate(d.departureDate)
     if (!departureDate) continue
@@ -234,8 +235,12 @@ export async function upsertProductDepartures(
       d.supplierPriceKey,
       d.supplierDepartureCodeCandidate,
     )
-    pairs.push({ dep: d, departureDate, departureSlotKey })
+    collectedPairs.push({ dep: d, departureDate, departureSlotKey })
   }
+  if (collectedPairs.length === 0) return 0
+
+  // REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]: 날짜키↔회차코드 전환 시 중복 insert 금지 — manifest
+  const pairs = await reconcileLegacyYmdDepartureSlots(prisma, productId, collectedPairs)
   if (pairs.length === 0) return 0
 
   const productMeta = await prisma.product.findUnique({

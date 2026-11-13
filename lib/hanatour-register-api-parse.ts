@@ -6,6 +6,7 @@
  * REGRESSION-FREEZE[hanatour-register-ssot-freeze]: API-only register parse — manifest
  * REGRESSION-FREEZE[hanatour-register-schedule-image-keyword-apply]: parse 후 ensureHanatourRegisterScheduleImageKeywords — manifest
  */
+import { applyRegisterRouteRawFromFactFlights } from '@/lib/register-facts/route-raw-from-fact-flights'
 import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import { parseDetailBodyStructuredHanatour } from '@/lib/detail-body-parser-hanatour'
 import { applyHanatourBasicInfoBodyExtract } from '@/lib/hanatour-basic-info-body-extract'
@@ -192,6 +193,8 @@ export async function parseHanatourRegisterFromApi(
     parsed,
     buildHanatourFlightStructuredFromFactLegs(bundle.flights),
   )
+  // REGRESSION-FREEZE[register-route-raw-from-fact-flights]: API 등록 경로 routeRaw null 방지 — manifest
+  parsed = applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)
 
   parsed = finalizeHanatourRegisterParsedPricing(parsed)
   parsed = finalizeHanatourRegisterParsedShopping(parsed)

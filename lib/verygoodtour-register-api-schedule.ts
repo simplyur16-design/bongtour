@@ -3,6 +3,7 @@
  * REGRESSION-FREEZE[verygoodtour-schedule-expression]: routeText·description vibe — manifest
  * REGRESSION-FREEZE[verygoodtour-schedule-expression]: PackageDetail itinerary — manifest
  */
+import { itineraryDayCityFromSupplierCities } from '@/lib/itinerary-day-city'
 import { registerScheduleHotelTextFromFactHotels } from '@/lib/register-schedule-hotel-inflight'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import type { RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
@@ -280,6 +281,7 @@ export function verygoodtourFactDaysToRegisterSchedule(days: RegisterFactSchedul
       title,
       description,
       routeText,
+      cityText: itineraryDayCityFromSupplierCities(d.cities),
       imageKeyword: '',
       imageKeyword2: null,
       hotelText: registerScheduleHotelTextFromFactHotels(d.hotels),

@@ -8,6 +8,7 @@
 import type { PrismaClient } from '@prisma/client'
 
 import { computeDepartureSlotKeyFromDate } from '@/lib/departure-slot-key'
+import { reconcileLegacyYmdDepartureSlots } from '@/lib/departure-legacy-slot-reconcile'
 import { filterDeparturesOnSaleForImport } from '@/lib/departure-booking-status'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { seatFieldsFromParsedCalendarPrice } from '@/lib/departure-seat-availability'
@@ -329,7 +330,13 @@ export async function upsertProductDepartures(
   for (const p of pairsRaw) {
     lastByUtc.set(p.departureDate.getTime(), p)
   }
-  const pairs = [...lastByUtc.values()].sort((a, b) => a.departureDate.getTime() - b.departureDate.getTime())
+  // REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]: 날짜키↔회차코드 전환 시 중복 insert 금지 — manifest
+  const pairs = await reconcileLegacyYmdDepartureSlots(
+    prisma,
+    productId,
+    [...lastByUtc.values()].sort((a, b) => a.departureDate.getTime() - b.departureDate.getTime()),
+  )
+  if (pairs.length === 0) return 0
 
   const productInfantFallback = await loadNaeiltourProductInfantFallback(prisma, productId)
 

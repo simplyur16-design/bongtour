@@ -6,6 +6,7 @@
  * REGRESSION-FREEZE[ybtour-register-schedule-image-keyword-apply]: ensureYbtourRegisterScheduleImageKeywords — manifest
  * REGRESSION-FREEZE[ybtour-register-flight-from-fact-legs]: facts legs → flightStructured in api-parse — manifest
  */
+import { applyRegisterRouteRawFromFactFlights } from '@/lib/register-facts/route-raw-from-fact-flights'
 import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import {
   parseYbtourEvCdFromUrl,
@@ -219,6 +220,8 @@ export async function parseYbtourRegisterFromApi(
     parsed,
     buildYbtourFlightStructuredFromFactLegs(bundle.flights, { airlineName: carrierHint }),
   )
+  // REGRESSION-FREEZE[register-route-raw-from-fact-flights]: API 등록 경로 routeRaw null 방지 — manifest
+  parsed = applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)
   if (!String(parsed.airlineName ?? '').trim() && carrierHint) {
     parsed = { ...parsed, airlineName: carrierHint }
   }

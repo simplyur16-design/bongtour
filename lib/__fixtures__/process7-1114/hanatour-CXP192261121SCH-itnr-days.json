@@ -1,0 +1,437 @@
+{
+  "source": "gw.hanatour.com getPkgProdItnrInfo pkgCd=CXP192261121SCH recorded 2026-11-14 (trimmed: days 1,2,4; card html → img alt + strong)",
+  "schdInfoList": [
+    {
+      "schdDay": 1,
+      "schdMainInfoList": [
+        {
+          "schdCatgNm": "텍스트입력",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "관광지",
+          "schdTitlNm": null,
+          "cardNm": "출입국 정보(중국 무비자 시행)",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "출입국 정보"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"큐알\"><strong>출입국 정보</strong>"
+        },
+        {
+          "schdCatgNm": "도시간이동",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": "인천",
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "식사",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": "중식",
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "도시간이동",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": "무이산",
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "텍스트입력",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "관광지",
+          "schdTitlNm": null,
+          "cardNm": "하매민속촌",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "하매민속촌"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"하매민속촌\"><img alt=\"하매민속촌\"><img alt=\"하매민속촌\"><img alt=\"하매민속촌\"><strong>하매민속촌</strong>"
+        },
+        {
+          "schdCatgNm": "식사",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": "석식 특식",
+          "mealCont": "버섯요리",
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "선택관광",
+          "schdTitlNm": null,
+          "cardNm": "인상대홍포쇼",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "인상대홍포쇼"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"인상대홍포\"><img alt=\"인상대홍포\"><img alt=\"인상대홍포\"><img alt=\"인상대홍포\">"
+        },
+        {
+          "schdCatgNm": "텍스트입력",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        }
+      ],
+      "htlInfoList": [
+        {
+          "htlKoNm": "무이산 국무호텔"
+        },
+        {
+          "htlKoNm": "무이산 란우 국제호텔"
+        }
+      ]
+    },
+    {
+      "schdDay": 2,
+      "schdMainInfoList": [
+        {
+          "schdCatgNm": "식사",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": "조식",
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "도시간이동",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": "무이산",
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "관광지",
+          "schdTitlNm": null,
+          "cardNm": "고속열차 이동",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "고속열차 이동"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"고속열차\"><img alt=\"중경 고속열차\"><img alt=\"광주-계림 고속열차 내부\"><strong>고속열차 이동</strong>"
+        },
+        {
+          "schdCatgNm": "도시간이동",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": "샤먼",
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "식사",
+          "schdTitlNm": null,
+          "cardNm": "서우 딤섬",
+          "dtlMealDvNm": "중식 특식",
+          "mealCont": "서우 딤섬",
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "서우 딤섬"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"서우(쑤유) 딤섬\"><img alt=\"서우(쑤유) 딤섬\"><img alt=\"서우(쑤유) 딤섬\"><img alt=\"서우(쑤유) 딤섬\"><strong>서우 딤섬</strong>"
+        },
+        {
+          "schdCatgNm": "관광지",
+          "schdTitlNm": null,
+          "cardNm": "아름다운 해안선의 풍경을 만끽할 수 있는 페리(Ferry) 탑승",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "구랑위 페리"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"고랑서 페리\"><img alt=\"고랑서 페리\"><img alt=\"고랑서 페리 \"><strong>아름다운 해안선의 풍경을 만끽할 수 있는 페리(Ferry) 탑승</strong><strong>구랑위 페리</strong>"
+        },
+        {
+          "schdCatgNm": "관광지",
+          "schdTitlNm": null,
+          "cardNm": "페리타고 떠나는 낭만의 섬, 구랑위",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "구랑위"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"고랑서(구랑위)\"><img alt=\"하문 고랑서 (구랑위)\"><img alt=\"고랑서(구랑위)\"><img alt=\"고랑서(구랑위)\"><img alt=\"고랑서(구랑위)\"><img alt=\"고랑서(구랑위)\"><strong>페리타고 떠나는 낭만의 섬, 구랑위</strong><strong>구랑위</strong>"
+        },
+        {
+          "schdCatgNm": "관광지",
+          "schdTitlNm": null,
+          "cardNm": "숙장화원 & 피아노 박물관",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "숙장화원"
+            },
+            {
+              "cmsCntntNm": "피아노 박물관"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"숙장화원_고랑서\"><img alt=\"숙장화원_고랑서\"><img alt=\"고랑서 구랑위 숙장화원\"><img alt=\"숙장화원_고랑서\"><img alt=\"고랑서 구랑위 숙장화원\"><img alt=\"고랑서 구랑위 숙장화원\"><img alt=\"피아노박물관\"><img alt=\"피아노박물관\"><img alt=\"피아노 박물관_고랑서\"><img alt=\"피아노 박물관_고랑서\"><img alt=\"피아노 박물관_고랑서\"><img alt=\"피아노 박물관_고랑서\"><strong>숙장화원 & 피아노 박물관</strong><strong>숙장화원</strong><strong>피아노 박물관</strong>"
+        },
+        {
+          "schdCatgNm": "관광지",
+          "schdTitlNm": null,
+          "cardNm": "구랑위의 전경을 한눈에, 일광암 전망대",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "일광암 전망대"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"일광암 전망대\"><img alt=\"고랑서 구랑위 일광암\"><img alt=\"일광암 전망대 \"><img alt=\"고랑서 구랑위 일광암\"><img alt=\"고랑서(구랑위)\"><img alt=\"고랑서(구랑위)\"><strong>구랑위의 전경을 한눈에, 일광암 전망대</strong><strong>일광암 전망대</strong>"
+        },
+        {
+          "schdCatgNm": "텍스트입력",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "관광지",
+          "schdTitlNm": null,
+          "cardNm": "활기 넘치는 젊음의 거리, 중산로",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "중산로"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"중산로\"><img alt=\"하문 중산로\"><img alt=\"중산로\"><img alt=\"중산로\"><img alt=\"중산로\"><img alt=\"하문 중산로\"><strong>활기 넘치는 젊음의 거리, 중산로</strong><strong>중산로</strong>"
+        },
+        {
+          "schdCatgNm": "식사",
+          "schdTitlNm": null,
+          "cardNm": "노지청",
+          "dtlMealDvNm": "석식 특식",
+          "mealCont": "노지청 동북요리",
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "노지청"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"노지청\"><img alt=\"노지청\"><img alt=\"노지청\"><img alt=\"노지청\"><img alt=\"노지청\"><strong>노지청</strong>"
+        },
+        {
+          "schdCatgNm": "텍스트입력",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        }
+      ],
+      "htlInfoList": [
+        {
+          "htlKoNm": "호텔 닛코 샤먼"
+        }
+      ]
+    },
+    {
+      "schdDay": 4,
+      "schdMainInfoList": [
+        {
+          "schdCatgNm": "식사",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": "조식",
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "도시간이동",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": "샤먼",
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "관광지",
+          "schdTitlNm": null,
+          "cardNm": "고속열차 이동",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "고속열차 이동"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"고속열차\"><img alt=\"중경 고속열차\"><img alt=\"광주-계림 고속열차 내부\"><strong>고속열차 이동</strong>"
+        },
+        {
+          "schdCatgNm": "도시간이동",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": "무이산",
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "식사",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": "중식",
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "관광지",
+          "schdTitlNm": null,
+          "cardNm": "무이산 제일의 경치, 천유봉",
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [
+            {
+              "cmsCntntNm": "천유봉(天遊峰)"
+            }
+          ],
+          "cardCntntPc": "<img alt=\"무이산 \"><img alt=\"천유봉(무이산)\"><img alt=\"무이산 천유봉\"><strong>무이산 제일의 경치, 천유봉</strong><strong>천유봉(天遊峰)</strong>"
+        },
+        {
+          "schdCatgNm": "식사",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": "석식",
+          "mealCont": "문공연",
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        },
+        {
+          "schdCatgNm": "텍스트입력",
+          "schdTitlNm": null,
+          "cardNm": null,
+          "dtlMealDvNm": null,
+          "mealCont": null,
+          "depCityNm": null,
+          "arriveCityNm": null,
+          "cmsInfoList": [],
+          "cardCntntPc": null
+        }
+      ],
+      "htlInfoList": [
+        {
+          "htlKoNm": "무이산 국무호텔"
+        },
+        {
+          "htlKoNm": "무이산 란우 국제호텔"
+        }
+      ]
+    }
+  ]
+}
