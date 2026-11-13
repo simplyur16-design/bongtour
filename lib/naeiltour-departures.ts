@@ -6,6 +6,7 @@ import { isDepartureOnSaleForImport } from '@/lib/departure-booking-status'
 import {
   fetchNaeiltourText,
   NAEILTOUR_BASE,
+  NAEILTOUR_FETCH_TIMEOUT_MS,
   parseNaeiltourGoodCdFromUrl,
 } from '@/lib/naeiltour-http'
 import { addDaysUtcYmd, kstTodayYmd, RULE_A_WINDOW_DAYS } from '@/lib/product-sales-policy'
@@ -108,10 +109,11 @@ export async function fetchNaeiltourProgramListHtml(args: {
   })
   const referer =
     args.referer?.trim() || `${NAEILTOUR_BASE}/sub/view.asp?good_cd=${encodeURIComponent(goodCd)}`
-  return fetchNaeiltourText(`${NAEILTOUR_BASE}/sub/program_process.asp?${qs.toString()}`, {
-    headers: { referer },
-    signal: AbortSignal.timeout(30_000),
-  })
+  return fetchNaeiltourText(
+    `${NAEILTOUR_BASE}/sub/program_process.asp?${qs.toString()}`,
+    { headers: { referer } },
+    { part: 'program_list', timeoutMs: NAEILTOUR_FETCH_TIMEOUT_MS },
+  )
 }
 
 function monthsInHorizon(fromYmd: string, toYmd: string): string[] {

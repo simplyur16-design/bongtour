@@ -14,9 +14,11 @@ import {
   extractNaeiltourIncludedExcludedFromTab0,
   extractNaeiltourOptionalShoppingFromTab0,
   extractNaeiltourSeatsFromPage,
-  fetchNaeiltourRegisterDetailBundle,
+  fetchNaeiltourRegisterDetailBundleResult,
   naeiltourScheduleEnglishLandmarksByDay,
   parseNaeiltourScheduleDaysFromTab1,
+  resolveNaeiltourOptionalTourCollectStatus,
+  type NaeiltourRegisterDetailFetchOutcome,
 } from '@/lib/naeiltour-register-api-detail'
 import type { RegisterFactPriceRow } from '@/lib/register-facts/types'
 import { registerDepartureInputToParsedPrice } from '@/lib/register-departure-input-to-parsed-price'
@@ -58,6 +60,16 @@ export type NaeiltourRegisterDetailAugmentCtx = {
   originUrl?: string | null
   travelScope?: string | null
   pastedBlocks?: Partial<Pick<RegisterPastedBlocksInput, 'optionalTour' | 'shopping'>> | null
+}
+
+function naeiltourDetailFetchFields(
+  detail: NaeiltourRegisterDetailFetchOutcome,
+): Pick<RegisterParsed, 'naeiltourDetailFetchStatus' | 'naeiltourDetailFetchErrors' | 'optionalTourCollectStatus'> {
+  return {
+    naeiltourDetailFetchStatus: detail.bundle?.fetchStatus ?? null,
+    naeiltourDetailFetchErrors: detail.fetchErrors.length ? detail.fetchErrors : null,
+    optionalTourCollectStatus: resolveNaeiltourOptionalTourCollectStatus(detail.bundle),
+  }
 }
 
 function factPriceRowsToParsedPrices(rows: RegisterFactPriceRow[]): ParsedProductPrice[] {
@@ -177,7 +189,9 @@ export async function parseNaeiltourRegisterFromApi(
     throw new Error('register-facts 수집에 실패했습니다. URL·good_cd를 확인하세요.')
   }
 
-  const detailBundle = await fetchNaeiltourRegisterDetailBundle(originUrl)
+  // collectNaeiltourRegisterFacts가 받은 같은 묶음을 공유 — 추가 요청 없음.
+  const detailResult = await fetchNaeiltourRegisterDetailBundleResult(originUrl)
+  const detailBundle = detailResult.bundle
   const parsedDays = airtelListing
     ? []
     : parseNaeiltourScheduleDaysFromTab1(detailBundle?.tab1Html ?? null)
@@ -247,6 +261,7 @@ export async function parseNaeiltourRegisterFromApi(
     ],
     naeiltourDetailCollectRan: false,
     naeiltourDetailCollectSummary: 'register-facts+view-tabs',
+    ...naeiltourDetailFetchFields(detailResult),
   }
 
   parsed = applyRegisterCollectedFlightStructured(parsed, flightStructured)
@@ -284,9 +299,15 @@ export async function augmentNaeiltourRegisterParsedFromApiCollect(
     return { ...parsed, naeiltourDetailCollectRan: false, naeiltourDetailCollectSummary: 'no-origin-url' }
   }
 
-  const detail = await fetchNaeiltourRegisterDetailBundle(originUrl)
+  const detailResult = await fetchNaeiltourRegisterDetailBundleResult(originUrl)
+  const detail = detailResult.bundle
   if (!detail) {
-    return { ...parsed, naeiltourDetailCollectRan: true, naeiltourDetailCollectSummary: 'fetch-failed' }
+    return {
+      ...parsed,
+      naeiltourDetailCollectRan: true,
+      naeiltourDetailCollectSummary: 'fetch-failed',
+      ...naeiltourDetailFetchFields(detailResult),
+    }
   }
 
   let next = { ...parsed }
@@ -381,5 +402,6 @@ export async function augmentNaeiltourRegisterParsedFromApiCollect(
     eventSeq: next.eventSeq ?? detail.eventSeq,
     naeiltourDetailCollectRan: true,
     naeiltourDetailCollectSummary: 'view-tabs-collect',
+    ...naeiltourDetailFetchFields(detailResult),
   }
 }
