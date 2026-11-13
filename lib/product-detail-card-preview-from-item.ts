@@ -1,7 +1,9 @@
 import type { GalleryProduct } from '@/app/api/gallery/route'
 import type { ResultItem } from '@/components/products/ProductResultsList'
 import type { ProductDetailCardPreview } from '@/lib/product-detail-card-preview'
+import { kstTodayYmd } from '@/lib/calendar-ymd'
 import { publicProductPath } from '@/lib/product-public-path'
+import { storedUrgentDealYmdIsStillPublic } from '@/lib/supplier-urgent-deal'
 
 export function productDetailCardPreviewFromGalleryProduct(
   product: Pick<
@@ -31,13 +33,17 @@ export function productDetailCardPreviewFromResultItem(
   formatWon: (n: number | null) => string,
 ): ProductDetailCardPreview {
   const basePath = publicProductPath({ id: item.id, slug: item.slug ?? null })
+  const urgentYmd = item.urgentDealNextDepartureDate?.trim() ?? ''
+  // REGRESSION-FREEZE[urgent-expired-departure-link]: 지난 urgent 날짜는 ?departure 에 넣지 않음 — manifest
+  const urgentDateExpired =
+    urgentYmd !== '' && !storedUrgentDealYmdIsStillPublic(urgentYmd, kstTodayYmd())
   const href =
-    item.hasUrgentDeal && item.urgentDealNextDepartureDate
-      ? `${basePath}?departure=${encodeURIComponent(item.urgentDealNextDepartureDate)}`
+    item.hasUrgentDeal && urgentYmd !== '' && !urgentDateExpired
+      ? `${basePath}?departure=${encodeURIComponent(urgentYmd)}`
       : basePath
 
   const priceKrw =
-    item.hasUrgentDeal && item.urgentDealCurrentPriceKrw != null
+    item.hasUrgentDeal && !urgentDateExpired && item.urgentDealCurrentPriceKrw != null
       ? item.urgentDealCurrentPriceKrw
       : item.effectivePricePerPersonKrw
 
