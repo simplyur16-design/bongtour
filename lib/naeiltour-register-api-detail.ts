@@ -20,12 +20,15 @@ import type { FlightStructured } from '@/lib/detail-body-parser-types'
 import { createEmptyFlightLeg } from '@/lib/flight-parser-generic'
 import type { RegisterFactScheduleDay } from '@/lib/register-facts/types'
 import {
-  fetchNaeiltourText,
-  fetchNaeiltourViewTabHtml,
+  fetchNaeiltourTextResult,
+  fetchNaeiltourViewTabHtmlResult,
   hiddenInputsFromHtml,
   NAEILTOUR_BASE,
+  NAEILTOUR_VIEW_PAGE_TIMEOUT_MS,
   parseNaeiltourGoodCdFromUrl,
+  type NaeiltourTextFetchResult,
 } from '@/lib/naeiltour-http'
+import type { SupplierFetchErrorKind } from '@/lib/supplier-http/supplier-fetch'
 import { parseFactMealsListToScheduleFields } from '@/lib/register-schedule-meal-parse'
 import {
   dedupeNaeiltourScheduleRoutePlaces,
@@ -33,6 +36,23 @@ import {
 } from '@/lib/naeiltour-register-api-schedule'
 
 const NAEILTOUR_REGISTER_DETAIL_PACE_MS = 280
+
+export type NaeiltourDetailFetchPart = 'page' | 'tab0' | 'tab1'
+
+export type NaeiltourDetailFetchError = {
+  part: NaeiltourDetailFetchPart
+  errorKind: SupplierFetchErrorKind
+  status: number | null
+  attempts: number
+  elapsedMs: number
+  url: string
+}
+
+export type NaeiltourDetailFetchStatus = {
+  page: 'ok' | 'failed'
+  tab0: 'ok' | 'failed'
+  tab1: 'ok' | 'failed'
+}
 
 export type NaeiltourRegisterDetailBundle = {
   originUrl: string
@@ -43,7 +63,19 @@ export type NaeiltourRegisterDetailBundle = {
   goodCd: string
   eventSeq: string | null
   hidden: Record<string, string>
+  fetchStatus: NaeiltourDetailFetchStatus
+  fetchErrors: NaeiltourDetailFetchError[]
 }
+
+/** ok=3구간 모두 성공, partial=탭 일부 실패, page_failed=view.asp 실패, unsellable=판매불가 응답. */
+export type NaeiltourRegisterDetailFetchOutcome = {
+  outcome: 'ok' | 'partial' | 'page_failed' | 'unsellable' | 'invalid_url'
+  bundle: NaeiltourRegisterDetailBundle | null
+  fetchErrors: NaeiltourDetailFetchError[]
+}
+
+/** 선택관광 수집 상태 — tab0 실패면 「없음」으로 지어내지 않는다. */
+export type NaeiltourOptionalTourCollectStatus = 'known' | 'unknown_not_found' | 'unknown_fetch_failed'
 
 export type NaeiltourParsedScheduleDay = RegisterFactScheduleDay & {
   englishRouteLandmarks: string[]
@@ -204,6 +236,16 @@ export function extractNaeiltourOptionalShoppingFromTab0(html: string | null): {
     shoppingSummaryText: shopRaw || null,
     shoppingVisitCount,
   }
+}
+
+// REGRESSION-FREEZE[naeiltour-fetch-resilience]: tab0 수집 실패 → unknown_fetch_failed (없음 발명 금지) — manifest
+export function resolveNaeiltourOptionalTourCollectStatus(
+  bundle: Pick<NaeiltourRegisterDetailBundle, 'fetchStatus' | 'tab0Html'> | null,
+): NaeiltourOptionalTourCollectStatus {
+  if (!bundle || bundle.fetchStatus.tab0 !== 'ok') return 'unknown_fetch_failed'
+  return extractNaeiltourOptionalShoppingFromTab0(bundle.tab0Html).hasOptionalTour == null
+    ? 'unknown_not_found'
+    : 'known'
 }
 
 export function extractNaeiltourTitleFromPage(html: string): string | null {
@@ -704,36 +746,124 @@ export function parseNaeiltourEventSeqFromHtml(html: string): string | null {
   )
 }
 
-export async function fetchNaeiltourRegisterDetailBundle(originUrl: string): Promise<NaeiltourRegisterDetailBundle | null> {
-  const url = originUrl.trim()
-  const goodCd = parseNaeiltourGoodCdFromUrl(url)
-  if (!url || !goodCd || !/naeiltour\.co\.kr/i.test(url)) return null
+/**
+ * 같은 실행(프로세스) 안 상세 묶음 공유 — view.asp·tab0·tab1 본문만.
+ * 출발일·가격(program_process)은 여기 들어오지 않으며 캐시하지 않는다. DB/파일 캐시 없음.
+ * REGRESSION-FREEZE[naeiltour-fetch-resilience]: in-flight 공유·성공만 10분 캐시·실패 즉시 재호출 금지 — manifest
+ */
+const NAEILTOUR_DETAIL_BUNDLE_CACHE_TTL_MS = 10 * 60_000
+/** 실패 결과는 캐시에 넣지 않되, 같은 실행 흐름에서 곧바로 다시 부르지 않도록 짧게 막는다. */
+const NAEILTOUR_DETAIL_BUNDLE_FAILURE_COOLDOWN_MS = 60_000
 
-  const referer = url.includes('#') ? url : `${url}${url.includes('?') ? '' : '?'}`
-  const pageHtml = await fetchNaeiltourText(url.split('#')[0]!, {
-    headers: { referer: NAEILTOUR_BASE },
-    signal: AbortSignal.timeout(45_000),
-  }).catch(() => null)
-  if (!pageHtml) return null
-  // REGRESSION-FREEZE[register-pre-photo-naeiltour-unsellable-no-stub]: 판매불가면 tab 수집·stub 금지 — manifest
-  if (naeiltourDetailHtmlLooksUnsellable(pageHtml)) return null
+type NaeiltourDetailBundleMemo = { expiresAt: number; value: NaeiltourRegisterDetailFetchOutcome }
 
-  await pace()
-  const tab0Html = await fetchNaeiltourViewTabHtml(pageHtml, 0, referer).catch(() => null)
-  await pace()
-  const tab1Html = await fetchNaeiltourViewTabHtml(pageHtml, 1, referer).catch(() => null)
+const detailBundleInFlight = new Map<string, Promise<NaeiltourRegisterDetailFetchOutcome>>()
+const detailBundleCache = new Map<string, NaeiltourDetailBundleMemo>()
+const detailBundleFailureCooldown = new Map<string, NaeiltourDetailBundleMemo>()
 
-  const hidden = hiddenInputsFromHtml(pageHtml)
+export function resetNaeiltourRegisterDetailBundleMemoForTests(): void {
+  detailBundleInFlight.clear()
+  detailBundleCache.clear()
+  detailBundleFailureCooldown.clear()
+}
+
+function detailFetchError(part: NaeiltourDetailFetchPart, r: NaeiltourTextFetchResult): NaeiltourDetailFetchError | null {
+  if (r.ok) return null
   return {
+    part,
+    errorKind: r.errorKind,
+    status: r.status,
+    attempts: r.attempts.length,
+    elapsedMs: r.elapsedMs,
+    url: r.url,
+  }
+}
+
+async function fetchNaeiltourRegisterDetailBundleUncached(
+  url: string,
+  goodCd: string,
+): Promise<NaeiltourRegisterDetailFetchOutcome> {
+  const referer = url.includes('#') ? url : `${url}${url.includes('?') ? '' : '?'}`
+  const page = await fetchNaeiltourTextResult(
+    url.split('#')[0]!,
+    { headers: { referer: NAEILTOUR_BASE } },
+    { part: 'page', timeoutMs: NAEILTOUR_VIEW_PAGE_TIMEOUT_MS },
+  )
+  if (!page.ok) {
+    return { outcome: 'page_failed', bundle: null, fetchErrors: [detailFetchError('page', page)!] }
+  }
+  const pageHtml = page.text
+  // REGRESSION-FREEZE[register-pre-photo-naeiltour-unsellable-no-stub]: 판매불가면 tab 수집·stub 금지 — manifest
+  if (naeiltourDetailHtmlLooksUnsellable(pageHtml)) {
+    return { outcome: 'unsellable', bundle: null, fetchErrors: [] }
+  }
+
+  await pace()
+  const tab0 = await fetchNaeiltourViewTabHtmlResult(pageHtml, 0, referer)
+  await pace()
+  const tab1 = await fetchNaeiltourViewTabHtmlResult(pageHtml, 1, referer)
+
+  const fetchErrors = [detailFetchError('tab0', tab0), detailFetchError('tab1', tab1)].filter(
+    (e): e is NaeiltourDetailFetchError => e != null,
+  )
+  const hidden = hiddenInputsFromHtml(pageHtml)
+  const bundle: NaeiltourRegisterDetailBundle = {
     originUrl: url,
     referer,
     pageHtml,
-    tab0Html,
-    tab1Html,
+    tab0Html: tab0.ok ? tab0.text : null,
+    tab1Html: tab1.ok ? tab1.text : null,
     goodCd: hidden.good_cd?.trim() || goodCd,
     eventSeq: parseNaeiltourEventSeqFromHtml(pageHtml),
     hidden,
+    fetchStatus: { page: 'ok', tab0: tab0.ok ? 'ok' : 'failed', tab1: tab1.ok ? 'ok' : 'failed' },
+    fetchErrors,
   }
+  return { outcome: fetchErrors.length ? 'partial' : 'ok', bundle, fetchErrors }
+}
+
+export async function fetchNaeiltourRegisterDetailBundleResult(
+  originUrl: string,
+): Promise<NaeiltourRegisterDetailFetchOutcome> {
+  const url = originUrl.trim()
+  const goodCd = parseNaeiltourGoodCdFromUrl(url)
+  if (!url || !goodCd || !/naeiltour\.co\.kr/i.test(url)) {
+    return { outcome: 'invalid_url', bundle: null, fetchErrors: [] }
+  }
+  const key = url.split('#')[0]!
+  const now = Date.now()
+  for (const memo of [detailBundleCache, detailBundleFailureCooldown]) {
+    const hit = memo.get(key)
+    if (hit && hit.expiresAt > now) return hit.value
+    if (hit) memo.delete(key)
+  }
+  const pending = detailBundleInFlight.get(key)
+  if (pending) return pending
+
+  const run = fetchNaeiltourRegisterDetailBundleUncached(url, goodCd)
+    .then((value) => {
+      const memo = value.outcome === 'ok' ? detailBundleCache : detailBundleFailureCooldown
+      const ttl =
+        value.outcome === 'ok' ? NAEILTOUR_DETAIL_BUNDLE_CACHE_TTL_MS : NAEILTOUR_DETAIL_BUNDLE_FAILURE_COOLDOWN_MS
+      memo.set(key, { expiresAt: Date.now() + ttl, value })
+      if (value.fetchErrors.length) {
+        console.warn(
+          '[naeiltour-detail-bundle] fetch incomplete',
+          JSON.stringify({ goodCd, outcome: value.outcome, fetchErrors: value.fetchErrors }),
+        )
+      }
+      return value
+    })
+    .finally(() => {
+      detailBundleInFlight.delete(key)
+    })
+  detailBundleInFlight.set(key, run)
+  return run
+}
+
+/** 판매불가·view.asp 실패·URL 오류면 null. 탭 실패는 bundle.fetchStatus/fetchErrors로 표시. */
+export async function fetchNaeiltourRegisterDetailBundle(originUrl: string): Promise<NaeiltourRegisterDetailBundle | null> {
+  return (await fetchNaeiltourRegisterDetailBundleResult(originUrl)).bundle
 }
 
 export function naeiltourParsedScheduleToFactDays(days: NaeiltourParsedScheduleDay[]): RegisterFactScheduleDay[] {
