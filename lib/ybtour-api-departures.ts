@@ -563,8 +563,8 @@ function ybtourEvCdPriceEnrichPauseMs(): number {
 }
 
 function ybtourEvCdPriceEnrichConcurrency(): number {
-  const raw = Number(process.env.YBTOUR_EVCD_PRICE_ENRICH_CONCURRENCY ?? '4')
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 4
+  const raw = Number(process.env.YBTOUR_EVCD_PRICE_ENRICH_CONCURRENCY ?? '1')
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1
 }
 
 function sleepMs(ms: number): Promise<void> {
@@ -658,10 +658,10 @@ export async function collectYbtourApiDepartureInputsForUrl(
   if (!evCd) return { inputs: [], evCd: null, title: null }
 
   const referer = detailUrl.trim() || `https://prdt.ybtour.co.kr/product/detailPackage?evCd=${evCd}`
-  const [price, display] = await Promise.all([
-    fetchYbtourEventPrice(evCd, referer),
-    fetchYbtourEventFirstDisplay(evCd, referer),
-  ])
+  // 가격·display 동시 발사 금지. 기존 sleepMs로 280ms+지터 간격.
+  const price = await fetchYbtourEventPrice(evCd, referer)
+  await sleepMs(280 + Math.floor(Math.random() * 81))
+  const display = await fetchYbtourEventFirstDisplay(evCd, referer)
   if (!price) return { inputs: [], evCd, title: display?.evNm?.trim() || null }
 
   const departureYmd = resolveYbtourDepartureYmdForEvCd(evCd, display)
