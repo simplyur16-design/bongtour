@@ -5,6 +5,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { isWelcomepayReturnAmountTampered } from "@/lib/bongsim/welcomepay-callback-parse";
 import { generateTimestamp } from "@/lib/bongsim/welcomepay";
 
 /** PC payAuth — `authToken`·`timestamp` 알파벳순 NVP 후 SHA-256 (샘플 WelStdPayUtil::makeSignature) */
@@ -92,6 +93,46 @@ export function verifyWelcomepayAuthSignature(input: {
   const got = input.authSignature.trim().toLowerCase();
   const exp = createHash("sha256").update(expected, "utf8").digest("hex");
   return got === exp;
+}
+
+export type WelcomepayPcApprovalGate =
+  | "auth_signature_missing"
+  | "auth_signature_mismatch"
+  | "amount_mismatch";
+
+/**
+ * PC payAuth 응답. 서명이 비어 있으면 검증을 건너뛰지 않고 거절한다.
+ * 금액은 PG가 보낸 값만 쓰고, 없으면 주문 금액으로 채우지 않는다.
+ * REGRESSION-FREEZE[esim-callback-auth-amount-gate]: blank authSignature rejected — manifest
+ */
+export function gateWelcomepayPcApproval(input: {
+  mid: string;
+  authTimestamp: string;
+  moid: string;
+  totPrice: string;
+  authSignature: string;
+  amountKrw: number | null;
+  orderGrandTotalKrw: number;
+}): WelcomepayPcApprovalGate | null {
+  const authSignature = input.authSignature.trim();
+  if (!authSignature) return "auth_signature_missing";
+  const totPrice = input.totPrice.trim();
+  if (
+    !totPrice ||
+    !verifyWelcomepayAuthSignature({
+      mid: input.mid,
+      authTimestamp: input.authTimestamp,
+      moid: input.moid,
+      totPrice,
+      authSignature,
+    })
+  ) {
+    return "auth_signature_mismatch";
+  }
+  if (isWelcomepayReturnAmountTampered(input.amountKrw, input.orderGrandTotalKrw)) {
+    return "amount_mismatch";
+  }
+  return null;
 }
 
 export function pickAuthToken(m: Record<string, string>): string {

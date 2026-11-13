@@ -179,15 +179,12 @@ export function pickAmountKrw(m: Record<string, string>): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** REGRESSION-FREEZE[esim-callback-auth-amount-gate]: PG 금액이 주문 합계와 다르면 승인 거절 — manifest */
+/** REGRESSION-FREEZE[esim-callback-auth-amount-gate]: PG 금액이 없거나 주문 합계와 다르면 승인 거절 — manifest */
 export function isWelcomepayReturnAmountTampered(
   callbackAmtKrw: number | null,
   orderGrandTotalKrw: number,
 ): boolean {
-  return (
-    callbackAmtKrw != null &&
-    Number.isFinite(orderGrandTotalKrw) &&
-    orderGrandTotalKrw > 0 &&
-    callbackAmtKrw !== orderGrandTotalKrw
-  );
+  if (callbackAmtKrw == null || !Number.isFinite(callbackAmtKrw) || callbackAmtKrw <= 0) return true;
+  if (!Number.isFinite(orderGrandTotalKrw) || orderGrandTotalKrw <= 0) return true;
+  return callbackAmtKrw !== orderGrandTotalKrw;
 }

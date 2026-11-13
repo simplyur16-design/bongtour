@@ -83,6 +83,11 @@ export function buildSimplyurEsimQrDeliveredLmsText(input: EsimQrLmsTextInput): 
   lines.push(
     "",
     "Install before you need data. The plan starts when the eSIM first connects in Korea.",
+    "",
+    // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: simplyur LMS CS=USIMSA — manifest
+    "Customer support",
+    `Kakao: ${USIMSA_CX_KAKAO_CHAT_URL}`,
+    USIMSA_CX_CONTACT_URL,
   );
   return lines.join("\n");
 }

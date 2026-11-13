@@ -10,6 +10,7 @@ import {
   buildAdminInquiryShortAlertLine,
   type AdminInquiryLmsBodyInput,
 } from '@/lib/admin-inquiry-lms-content'
+import { isEsimLiveIssuanceAndSmsAllowed } from '@/lib/bongsim/esim-live-fulfillment'
 import { buildEsimQrDeliveredLmsText } from '@/lib/bongsim/notifications/esim-qr-lms'
 import { enqueueSolapiSend, type SolapiSendPriority } from '@/lib/bongsim/notifications/solapi-send-queue'
 
@@ -501,6 +502,12 @@ export async function sendEsimQrDeliveredLmsFallback(p: {
   /** 있으면 기본 Bong투어 본문 대신 사용 (simplyur) */
   text?: string
 }): Promise<SendAdminNotificationResult> {
+  if (!isEsimLiveIssuanceAndSmsAllowed()) {
+    // REGRESSION-FREEZE[esim-sandbox-no-live-issue-sms]: sandbox does not call Solapi — manifest
+    console.error('[sendEsimQrDeliveredLmsFallback] skipped_sandbox', JSON.stringify({ orderId: p.orderId }))
+    return { ok: true }
+  }
+
   const apiKey = process.env.SOLAPI_API_KEY?.trim()
   const apiSecret = process.env.SOLAPI_API_SECRET?.trim()
   const senderPhone = process.env.SOLAPI_FROM_PHONE?.trim()

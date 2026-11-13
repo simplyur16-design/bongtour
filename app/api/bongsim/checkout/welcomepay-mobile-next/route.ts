@@ -12,6 +12,7 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 // REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]: no request-path TLS probe — manifest
 import {
   isVbankIssuedApproval,
+  isWelcomepayReturnAmountTampered,
   parseWelcomepayPayload,
   pickAmountKrw,
   pickCaptureTid,
@@ -25,6 +26,7 @@ import { isPaywelcomeHttpsUrl, welcomepayPayAuthUrl } from "@/lib/bongsim/welcom
 import {
   buildMobilePayApprovalFormBody,
   buildPcPayAuthFormBody,
+  gateWelcomepayPcApproval,
   pickAuthToken,
   pickMid,
   pickMobileTid,
@@ -145,12 +147,7 @@ async function handleWelcomepayMobileNext(req: Request) {
   }
 
   const callbackAmt = pickAmountKrw(incoming);
-  if (
-    callbackAmt != null &&
-    Number.isFinite(grandTotalKrw) &&
-    grandTotalKrw > 0 &&
-    callbackAmt !== grandTotalKrw
-  ) {
+  if (callbackAmt != null && isWelcomepayReturnAmountTampered(callbackAmt, grandTotalKrw)) {
     return fail("amount_mismatch");
   }
 
@@ -168,15 +165,21 @@ async function handleWelcomepayMobileNext(req: Request) {
 
   let target: string;
   let approvalBody: string;
-  if (preq && (isPaywelcomeHttpsUrl(preq) || preq.startsWith("http://localhost"))) {
-    target = preq;
+  let pcPayAuthTimestamp = "";
+  const mobileApprovalUrl =
+    preq && (isPaywelcomeHttpsUrl(preq) || preq.startsWith("http://localhost")) ? preq : "";
+  const usePcPayAuth = mobileApprovalUrl.length === 0;
+  if (mobileApprovalUrl) {
+    target = mobileApprovalUrl;
     if (!pMid || !pTid) {
       return fail("missing_mobile_approval_ids");
     }
     approvalBody = buildMobilePayApprovalFormBody({ pMid, pTid }).toString();
   } else if (authToken && pMid) {
     target = welcomepayPayAuthUrl();
-    approvalBody = buildPcPayAuthFormBody({ mid: pMid, authToken }).toString();
+    const pcBody = buildPcPayAuthFormBody({ mid: pMid, authToken });
+    pcPayAuthTimestamp = pcBody.get("timestamp") ?? "";
+    approvalBody = pcBody.toString();
   } else {
     return fail("missing_approval_target");
   }
@@ -207,8 +210,21 @@ async function handleWelcomepayMobileNext(req: Request) {
   const tid = pickCaptureTid(merged);
   if (!tid) return fail("missing_capture_tid");
   const amt = pickAmountKrw(merged);
-  const amountForCapture =
-    amt != null && Number.isFinite(amt) && amt > 0 ? amt : Number.isFinite(grandTotalKrw) ? grandTotalKrw : undefined;
+  if (usePcPayAuth) {
+    const gate = gateWelcomepayPcApproval({
+      mid: pMid,
+      authTimestamp: pcPayAuthTimestamp,
+      moid: (merged.MOID ?? merged.moid ?? pickOid(merged)).trim(),
+      totPrice: String(merged.TotPrice ?? merged.totPrice ?? merged.price ?? "").trim(),
+      authSignature: merged.authSignature ?? merged.AuthSignature ?? "",
+      amountKrw: amt,
+      orderGrandTotalKrw: grandTotalKrw,
+    });
+    if (gate) return fail(gate);
+  } else if (isWelcomepayReturnAmountTampered(amt, grandTotalKrw)) {
+    return fail("amount_mismatch");
+  }
+  const amountForCapture = amt as number;
 
   if (isVbankIssuedApproval(merged)) {
     const vbank = pickVbankIssueInfo(merged);

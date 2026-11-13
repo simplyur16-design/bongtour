@@ -69,6 +69,11 @@ describe("buildEsimQrDeliveredLmsText", () => {
     expect(text).toContain("Android install");
     expect(text).toContain("/simplyur/en/my-esim");
     expect(text).not.toContain("[Bong투어]");
+    expect(text).toContain("Customer support");
+    expect(text).toContain("https://pf.kakao.com/_fqTkK/chat");
+    expect(text).toContain("https://www.usimsa.com/board/contact-channel/");
+    expect(text).not.toContain("open.kakao.com/o/");
+    expect(text).not.toContain("pf.kakao.com/_xlxjrxlX");
   });
 
   it("still includes order page when LPA is missing", () => {

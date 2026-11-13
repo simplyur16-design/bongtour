@@ -1268,7 +1268,7 @@ export function CheckoutStoreClient({
               >
                 {submitting ? "처리 중…" : "다음: 결제 진행"}
               </button>
-              <EsimSupportFootnote useCheckoutOpenChat className="mt-3 text-center text-xs" />
+              <EsimSupportFootnote className="mt-3 text-center text-xs" />
             </form>
           </div>
         )}

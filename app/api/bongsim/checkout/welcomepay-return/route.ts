@@ -6,7 +6,6 @@ import { getPgPool } from "@/lib/bongsim/db/pool";
 // REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]: no request-path TLS probe — manifest
 import {
   isVbankIssuedApproval,
-  isWelcomepayReturnAmountTampered,
   parseWelcomepayPayload,
   pickAmountKrw,
   pickCaptureTid,
@@ -24,9 +23,9 @@ import {
 import { isPaywelcomeHttpsUrl, welcomepayPayAuthUrl } from "@/lib/bongsim/welcomepay";
 import {
   buildPcPayAuthFormBody,
+  gateWelcomepayPcApproval,
   pickAuthToken,
   pickMid,
-  verifyWelcomepayAuthSignature,
 } from "@/lib/bongsim/welcomepay-payauth";
 
 export const dynamic = "force-dynamic";
@@ -151,33 +150,22 @@ export async function POST(req: Request) {
     return fail(msg);
   }
 
-  const authSig = (merged.authSignature ?? merged.AuthSignature ?? "").trim();
-  if (authSig) {
-    const moid = (merged.MOID ?? merged.moid ?? pickOid(merged)).trim();
-    const totRaw = merged.TotPrice ?? merged.totPrice ?? merged.price ?? "";
-    const totPrice = String(totRaw).trim() || String(grandTotalKrw);
-    if (
-      !verifyWelcomepayAuthSignature({
-        mid: payMid,
-        authTimestamp: payAuthTimestamp,
-        moid,
-        totPrice,
-        authSignature: authSig,
-      })
-    ) {
-      // REGRESSION-FREEZE[esim-callback-auth-amount-gate]: bad authSignature — manifest
-      return fail("auth_signature_mismatch");
-    }
-  }
-
   const tid = pickCaptureTid(merged);
   if (!tid) return fail("missing_capture_tid");
   const amt = pickAmountKrw(merged);
-  if (isWelcomepayReturnAmountTampered(amt, grandTotalKrw)) {
-    return fail("amount_mismatch");
-  }
-  const amountForCapture =
-    amt != null && Number.isFinite(amt) && amt > 0 ? amt : Number.isFinite(grandTotalKrw) ? grandTotalKrw : undefined;
+  const totPrice = String(merged.TotPrice ?? merged.totPrice ?? merged.price ?? "").trim();
+  // REGRESSION-FREEZE[esim-callback-auth-amount-gate]: blank authSignature and missing amount rejected — manifest
+  const gate = gateWelcomepayPcApproval({
+    mid: payMid,
+    authTimestamp: payAuthTimestamp,
+    moid: (merged.MOID ?? merged.moid ?? pickOid(merged)).trim(),
+    totPrice,
+    authSignature: merged.authSignature ?? merged.AuthSignature ?? "",
+    amountKrw: amt,
+    orderGrandTotalKrw: grandTotalKrw,
+  });
+  if (gate) return fail(gate);
+  const amountForCapture = amt as number;
 
   if (isVbankIssuedApproval(merged)) {
     const vbank = pickVbankIssueInfo(merged);
