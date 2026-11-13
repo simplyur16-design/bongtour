@@ -319,6 +319,22 @@ describe("isolated esim paid to sms pipeline", () => {
     expect(notifyRows()[0]?.processed_at).toBeTruthy();
   });
 
+  it("amount tamper does not mark paid, issue, or send SMS", async () => {
+    const paid = await processWelcomepayPaymentOutcome({
+      providerEventId: "pg-tamper-1",
+      paymentAttemptId: "attempt-1",
+      outcome: "captured",
+      amountKrw: 1,
+      rawPayload: { synthetic: true },
+    });
+    expect(paid).toEqual({ ok: false, reason: "amount_mismatch" });
+    expect(state.orderStatus).toBe("awaiting_payment");
+    expect(state.attemptStatus).toBe("redirected");
+    expect(state.outbox).toHaveLength(0);
+    expect(state.issueSuccess).toBe(0);
+    expect(state.solapiSuccess).toBe(0);
+  });
+
   it("duplicate callback keeps one paid transition, one issue, and one SMS", async () => {
     expect(await payOnce()).toEqual({ ok: true, duplicate: false });
     expect(await payOnce()).toEqual({ ok: true, duplicate: true });

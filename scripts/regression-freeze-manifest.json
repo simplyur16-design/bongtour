@@ -21277,6 +21277,26 @@
       ]
     },
     {
+      "id": "products-browse-empty-query-key",
+      "tier": ["prebuild", "ci"],
+      "summary": "쿼리 없는 /products 목록은 빈 키로 예외를 내지 않고 기본 browse API를 부른다.",
+      "checks": [
+        {
+          "file": "lib/products-browse-client-fetch.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[products-browse-empty-query-key]",
+            "const requestPath = key ? `/api/products/browse?${key}` : '/api/products/browse'"
+          ],
+          "mustNotInclude": [
+            "목록 요청 키가 비어 있습니다."
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/products-browse-client-fetch.test.ts"
+      ]
+    },
+    {
       "id": "browse-preview-db-take",
       "tier": [
         "prebuild",
@@ -26177,6 +26197,33 @@
       ]
     },
     {
+      "id": "calendar-add-days-one-impl",
+      "tier": ["prebuild", "ci"],
+      "summary": "출발일 수집 창과 등록 하한은 같은 그레고리력 일수 가산을 쓴다. UTC 자정 저장 시각의 표시와 KST 시각 표시는 합치지 않는다.",
+      "checks": [
+        {
+          "file": "lib/scrape-date-bounds.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-add-days-one-impl]",
+            "export function addCalendarDaysToYmd"
+          ]
+        },
+        {
+          "file": "lib/calendar-batch-product-window.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[calendar-add-days-one-impl]",
+            "return addCalendarDaysToYmd(ymd, delta)"
+          ],
+          "mustNotInclude": [
+            "setUTCDate(dt.getUTCDate() + delta)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/calendar-add-days-parity.test.ts"
+      ]
+    },
+    {
       "id": "bongtour-ocean-warm-design-l0",
       "tier": [
         "prebuild",
@@ -31066,6 +31113,47 @@
         "lib/bongsim/admin/complimentary-esim-idempotency.test.ts",
         "lib/bongsim/fulfillment/esim-paid-sms-pipeline.test.ts",
         "lib/bongsim/admin/esim-qr-notify-hold-admin.test.ts"
+      ]
+    },
+    {
+      "id": "esim-callback-auth-amount-gate",
+      "tier": ["prebuild", "ci"],
+      "summary": "웰컴페이 콜백은 실패 인증코드·틀린 authSignature·주문 합계와 다른 금액을 승인하지 않는다.",
+      "checks": [
+        {
+          "file": "lib/bongsim/welcomepay-payauth.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-callback-auth-amount-gate]",
+            "export function verifyWelcomepayAuthSignature"
+          ]
+        },
+        {
+          "file": "lib/bongsim/welcomepay-callback-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-callback-auth-amount-gate]",
+            "export function isWelcomepayReturnAmountTampered"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/checkout/welcomepay-return/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-callback-auth-amount-gate]",
+            "auth_signature_mismatch",
+            "isWelcomepayReturnAmountTampered"
+          ]
+        },
+        {
+          "file": "lib/bongsim/data/process-welcomepay-payment-outcome.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-callback-auth-amount-gate]",
+            "welcomepay_amount_neq_order_total"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/welcomepay-return-gate.test.ts",
+        "app/api/bongsim/checkout/welcomepay-return/route.test.ts",
+        "lib/bongsim/fulfillment/esim-paid-sms-pipeline.test.ts"
       ]
     },
     {

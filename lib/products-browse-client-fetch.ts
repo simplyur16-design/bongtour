@@ -14,7 +14,8 @@ const inflightByKey = new Map<string, Promise<BrowseOkJson>>()
  */
 export async function fetchProductsBrowseClientJson(queryKey: string): Promise<BrowseOkJson> {
   const key = queryKey.trim()
-  if (!key) throw new Error('목록 요청 키가 비어 있습니다.')
+  // REGRESSION-FREEZE[products-browse-empty-query-key]: 쿼리 없는 /products 는 기본 목록 — manifest
+  const requestPath = key ? `/api/products/browse?${key}` : '/api/products/browse'
 
   const hit = readProductsBrowseClientCache<BrowseOkJson>(key)
   if (hit?.ok && Array.isArray(hit.items) && hit.items.length > 0) return hit
@@ -26,7 +27,7 @@ export async function fetchProductsBrowseClientJson(queryKey: string): Promise<B
     const controller = new AbortController()
     const abortTimer = window.setTimeout(() => controller.abort(), HUB_BROWSE_CLIENT_FETCH_TIMEOUT_MS)
     try {
-      const res = await fetch(`/api/products/browse?${key}`, { signal: controller.signal })
+      const res = await fetch(requestPath, { signal: controller.signal })
       const json = (await res.json()) as BrowseOkJson | { ok: false; error?: string }
       if (!res.ok || !('ok' in json) || json.ok === false) {
         throw new Error(
