@@ -18175,7 +18175,13 @@
       ],
       "summary": "내일투어 MEZZ32084 — full parse incl/excl·opt·shop·flight·잔여석·schedule·imageKeyword live",
       "npmScripts": [
-        "verify:register-naeiltour-mezz32084-live-gate"
+        {
+          "script": "verify:register-naeiltour-mezz32084-live-gate",
+          "tier": [
+            "ci"
+          ],
+          "externalNetworkSkip": true
+        }
       ],
       "checks": [
         {
@@ -18184,7 +18190,35 @@
             "REGRESSION-FREEZE[naeiltour-register-mezz32084-live-gate]",
             "MEZZ32084",
             "parseNaeiltourRegisterFromApi",
-            "assertScheduleImageKeywordSlots"
+            "assertScheduleImageKeywordSlots",
+            "assertNaeiltourMezz32084RegisterParsed",
+            "classifyLiveGateFetchErrors",
+            "LIVE_GATE_EXTERNAL_SKIP_EXIT_CODE",
+            "process.exit(1)"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-mezz32084-gate-assertions.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-register-mezz32084-fixture]",
+            "good_cd=MEZZ32084",
+            "assertScheduleImageKeywordSlots",
+            "assertScheduleRouteAndDescription",
+            "assert.match(parsed.originCode ?? '', /MEZZ32084/i)",
+            "title required",
+            "included >= 2",
+            "excluded >= 1",
+            "assert.equal(parsed.hasOptionalTour, false, 'MEZZ32084 is no-option product')",
+            "'shopping info'",
+            "parsed.minimumDepartureCount >= 10",
+            "flight structured or leg hints",
+            "remaining seats numeric",
+            "seats or min departure text required",
+            "schedule days >= 3",
+            "NAEILTOUR_SCHEDULE_ROUTE_MAX",
+            "description should mention a route place",
+            "imageKeyword2 must be empty",
+            "keyword reuse"
           ]
         },
         {
@@ -18194,6 +18228,82 @@
             "fetchNaeiltourRegisterDetailBundle",
             "scanNaeiltourFlightScheduleEntries",
             "extractNaeiltourAirlineFromHtml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "naeiltour-fetch-resilience",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "내일투어 외부호출 완충 — 래퍼 경유·조회성 재시도 1회(5초+지터)·상세묶음 in-flight 공유/성공만 10분 메모리 캐시·catch→null 무음 금지·tab0 실패=unknown_fetch_failed",
+      "checks": [
+        {
+          "file": "lib/naeiltour-http.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-fetch-resilience]",
+            "supplierFetch(",
+            "maxRetries: 1",
+            "baseDelayMs: 5_000",
+            "throw new SupplierFetchError"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-detail.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[naeiltour-fetch-resilience]",
+            "fetchNaeiltourRegisterDetailBundleResult",
+            "detailBundleInFlight",
+            "value.outcome === 'ok' ? detailBundleCache : detailBundleFailureCooldown",
+            "fetchStatus",
+            "fetchErrors",
+            "unknown_fetch_failed"
+          ],
+          "mustNotInclude": [
+            ".catch(() => null)"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-register-api-parse.ts",
+          "mustInclude": [
+            "fetchNaeiltourRegisterDetailBundleResult",
+            "optionalTourCollectStatus: resolveNaeiltourOptionalTourCollectStatus(detail.bundle)"
+          ]
+        },
+        {
+          "file": "lib/naeiltour-departures.ts",
+          "mustInclude": [
+            "NAEILTOUR_PROGRAM_LIST_PACE_MS = 280"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "live-gate-external-skip",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "live gate 외부장애 SKIP(종료코드 78)은 manifest externalNetworkSkip 항목만 — 4xx·판매불가·값 불일치는 FAIL",
+      "checks": [
+        {
+          "file": "lib/regression-freeze/live-gate-external.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[live-gate-external-skip]",
+            "LIVE_GATE_EXTERNAL_SKIP_EXIT_CODE = 78",
+            "if (allowExternalSkip && status === LIVE_GATE_EXTERNAL_SKIP_EXIT_CODE) return 'skip'",
+            "GITHUB_STEP_SUMMARY"
+          ]
+        },
+        {
+          "file": "scripts/verify-regression-freeze.ts",
+          "mustInclude": [
+            "classifyNestedNpmExit(r.status, true)",
+            "nested.externalNetworkSkip",
+            "externalNetworkSkip: entry.externalNetworkSkip === true",
+            "process.exit(1)"
           ]
         }
       ]
@@ -32017,6 +32127,26 @@
         "lib/bongsim/esim-unavailable-middleware.test.ts",
         "lib/bongsim/data/sellable-destinations.test.ts",
         "lib/bongsim/esim-hide-unavailable-guard.test.ts"
+      ]
+    },
+    {
+      "id": "supplier-fetch-resilience",
+      "tier": [
+        "ci"
+      ],
+      "summary": "공급사 fetch 래퍼 — 타임아웃→재시도 1회(5초 이상 대기)·4xx 재시도 없음·429 Retry-After·실패 종류/시도/소요시간 기록",
+      "files": [
+        "lib/supplier-http/supplier-fetch.test.ts"
+      ]
+    },
+    {
+      "id": "naeiltour-register-mezz32084-fixture",
+      "tier": [
+        "ci"
+      ],
+      "summary": "내일투어 MEZZ32084 녹화 fixture — live gate 확인 항목 전부(포함/불포함·hasOptionalTour=false 등)·상세묶음 1회 수집·부분실패 unknown_fetch_failed·변조 fixture FAIL·SKIP 종료코드 집계",
+      "files": [
+        "lib/naeiltour-register-api-detail.fixture.test.ts"
       ]
     }
   ]

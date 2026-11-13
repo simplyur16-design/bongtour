@@ -2,11 +2,16 @@
  * 교정 회귀 얼림 — manifest SSOT 일괄 실행.
  * npx tsx scripts/verify-regression-freeze.ts --tier prebuild|ci|all
  */
-import { execSync } from 'node:child_process'
+import { execSync, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  appendGithubStepSummary,
+  classifyNestedNpmExit,
+  LIVE_GATE_EXTERNAL_SKIP_EXIT_CODE,
+} from '../lib/regression-freeze/live-gate-external'
 
 const require = createRequire(import.meta.url)
 
@@ -14,6 +19,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '..')
 
 type Tier = 'prebuild' | 'ci' | 'all'
+
+type NestedNpmEntry = { script: string; tier?: Tier[]; requiresDatabase?: boolean; externalNetworkSkip?: boolean }
 
 type Manifest = {
   version: string
@@ -35,8 +42,11 @@ type Manifest = {
       mustInclude?: string[]
       mustNotInclude?: string[]
     }>
-    /** static guard 직후 실행할 npm script (live gate 등) — 문자열 또는 { script, tier, requiresDatabase } */
-    npmScripts?: Array<string | { script: string; tier?: Tier[]; requiresDatabase?: boolean }>
+    /**
+     * static guard 직후 실행할 npm script (live gate 등) — 문자열 또는 { script, tier, requiresDatabase, externalNetworkSkip }.
+     * externalNetworkSkip=true인 항목만 종료코드 78을 외부 장애 SKIP으로 집계한다.
+     */
+    npmScripts?: Array<string | NestedNpmEntry>
     /** static guard에 묶인 vitest 파일 — manifest staticGuards[].vitestSuites 레거시 키도 허용 */
     vitestSuites?: string[]
   }>
@@ -107,8 +117,7 @@ function runNpmScript(script: string, label: string): void {
  * Railway prebuild가 20분+로 늘어나는 것을 막는다.
  * REGRESSION-FREEZE[regression-freeze-npm-script-dedupe]: 동일 script 중복 실행 금지 — manifest
  */
-function createNpmScriptRunner(): (script: string, label: string) => void {
-  const ran = new Set<string>()
+function createNpmScriptRunner(ran: Set<string>): (script: string, label: string) => void {
   return (script: string, label: string) => {
     if (ran.has(script)) {
       console.log(`[regression-freeze] ⊘ skip duplicate npm run ${script} (${label})`)
@@ -135,10 +144,10 @@ function databaseUrlConfigured(): boolean {
  * REGRESSION-FREEZE[regression-freeze-prebuild-npm-tier]: nested string 기본 ci — manifest
  */
 function guardNpmScriptsForTier(
-  guard: { npmScripts?: Array<string | { script: string; tier?: Tier[]; requiresDatabase?: boolean }> },
+  guard: { npmScripts?: Array<string | NestedNpmEntry> },
   runTier: Tier,
-): Array<{ script: string; requiresDatabase?: boolean }> {
-  const out: Array<{ script: string; requiresDatabase?: boolean }> = []
+): Array<{ script: string; requiresDatabase?: boolean; externalNetworkSkip?: boolean }> {
+  const out: Array<{ script: string; requiresDatabase?: boolean; externalNetworkSkip?: boolean }> = []
   for (const entry of guard.npmScripts ?? []) {
     if (typeof entry === 'string') {
       // REGRESSION-FREEZE[regression-freeze-prebuild-npm-tier]: nested string 기본 ci — manifest
@@ -148,10 +157,40 @@ function guardNpmScriptsForTier(
     const script = entry?.script?.trim()
     if (!script) continue
     if (tierMatch(entry.tier ?? ['ci'], runTier)) {
-      out.push({ script, requiresDatabase: entry.requiresDatabase })
+      out.push({
+        script,
+        requiresDatabase: entry.requiresDatabase,
+        externalNetworkSkip: entry.externalNetworkSkip === true,
+      })
     }
   }
   return out
+}
+
+/**
+ * externalNetworkSkip 항목 — 종료코드 78만 SKIP, 그 외 비정상 종료는 FAIL.
+ * REGRESSION-FREEZE[live-gate-external-skip]: 허용 게이트만 SKIP 집계 — manifest
+ */
+function runExternalSkipNpmScript(
+  script: string,
+  label: string,
+  ranScripts: Set<string>,
+  externalSkips: string[],
+): void {
+  if (ranScripts.has(script)) {
+    console.log(`[regression-freeze] ⊘ skip duplicate npm run ${script} (${label})`)
+    return
+  }
+  ranScripts.add(script)
+  console.log(`\n[regression-freeze] ▶ ${label} (npm run ${script}, external SKIP=${LIVE_GATE_EXTERNAL_SKIP_EXIT_CODE})`)
+  const r = spawnSync(`npm run ${script}`, { cwd: ROOT, stdio: 'inherit', env: process.env, shell: true })
+  const verdict = classifyNestedNpmExit(r.status, true)
+  if (verdict === 'skip') {
+    console.warn(`[regression-freeze] ⊘ SKIP[external] ${label}`)
+    externalSkips.push(label)
+    return
+  }
+  if (verdict === 'fail') throw new Error(`exit ${r.status ?? r.signal ?? 'unknown'}`)
 }
 
 function runStaticGuards(
@@ -159,6 +198,8 @@ function runStaticGuards(
   runTier: Tier,
   failures: string[],
   runNpmOnce: (script: string, label: string) => void,
+  ranScripts: Set<string>,
+  externalSkips: string[],
 ): void {
   const guards = manifest.staticGuards.filter((g) => tierMatch(g.tier, runTier))
   for (const guard of guards) {
@@ -189,7 +230,11 @@ function runStaticGuards(
         continue
       }
       try {
-        runNpmOnce(nested.script, `${guard.id} → npm run ${nested.script}`)
+        if (nested.externalNetworkSkip) {
+          runExternalSkipNpmScript(nested.script, `${guard.id} → npm run ${nested.script}`, ranScripts, externalSkips)
+        } else {
+          runNpmOnce(nested.script, `${guard.id} → npm run ${nested.script}`)
+        }
       } catch {
         console.error(`\n[FAIL] regression-freeze nested npm: ${guard.id} (${nested.script})`)
         process.exit(1)
@@ -347,12 +392,14 @@ function main() {
   }
 
   const failures: string[] = []
-  const runNpmOnce = createNpmScriptRunner()
+  const ranScripts = new Set<string>()
+  const externalSkips: string[] = []
+  const runNpmOnce = createNpmScriptRunner(ranScripts)
 
   console.log(`[regression-freeze] manifest=${manifest.version} tier=${runTier}`)
 
   verifyRegressionFreezeMarkers(manifest, failures)
-  runStaticGuards(manifest, runTier, failures, runNpmOnce)
+  runStaticGuards(manifest, runTier, failures, runNpmOnce, ranScripts, externalSkips)
 
   if (failures.length) {
     console.error('\n[FAIL] regression-freeze static/markers')
@@ -386,7 +433,14 @@ function main() {
   }
 
   const vitestLabel = vitestCount > 0 ? ` + ${vitestCount} vitest` : ''
-  console.log(`\n[ok] regression-freeze tier=${runTier} (${scripts.length} npm + static${vitestLabel})`)
+  const skipLabel = externalSkips.length > 0 ? `, ${externalSkips.length} SKIP[external]` : ''
+  console.log(`\n[ok] regression-freeze tier=${runTier} (${scripts.length} npm + static${vitestLabel}${skipLabel})`)
+  if (externalSkips.length > 0) {
+    for (const s of externalSkips) console.warn(`  SKIP[external] ${s}`)
+    appendGithubStepSummary(
+      [`### Regression Freeze: ${externalSkips.length} SKIP[external]`, '', ...externalSkips.map((s) => `- ${s}`), ''].join('\n'),
+    )
+  }
 }
 
 main()

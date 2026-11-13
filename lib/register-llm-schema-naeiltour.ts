@@ -322,6 +322,18 @@ export type RegisterParsed = {
   /** 내부: evtDetailBasicAjax 상세카드 자동수집(미리보기 adapterPrefetchRan) */
   naeiltourDetailCollectRan?: boolean
   naeiltourDetailCollectSummary?: string | null
+  /** 내부: view.asp·tab0·tab1 수집 결과 (실패 무음 금지) */
+  naeiltourDetailFetchStatus?: { page: 'ok' | 'failed'; tab0: 'ok' | 'failed'; tab1: 'ok' | 'failed' } | null
+  naeiltourDetailFetchErrors?: Array<{
+    part: 'page' | 'tab0' | 'tab1'
+    errorKind: string
+    status: number | null
+    attempts: number
+    elapsedMs: number
+    url: string
+  }> | null
+  /** 선택관광 수집 상태 — unknown_fetch_failed면 hasOptionalTour를 비워 둔다 */
+  optionalTourCollectStatus?: 'known' | 'unknown_not_found' | 'unknown_fetch_failed' | null
 }
 
 /** 클라이언트 응답용: 감사·관리자 저장 전용만 제거. DetailCollectRan은 confirm 재수집 스킵용으로 유지.

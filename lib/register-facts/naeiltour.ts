@@ -96,7 +96,12 @@ export async function collectNaeiltourRegisterFacts(originUrl: string): Promise<
       `price_rows=${priceRows.length}`,
       seats.remainingSeatsCount != null ? `remainingSeats=${seats.remainingSeatsCount}` : '',
       seats.minimumDepartureCount != null ? `minDeparture=${seats.minimumDepartureCount}` : '',
-      optShop.hasOptionalTour ? 'hasOptionalTour=1' : 'hasOptionalTour=0',
+      bundle.fetchStatus.tab0 !== 'ok'
+        ? 'hasOptionalTour=unknown_fetch_failed'
+        : optShop.hasOptionalTour
+          ? 'hasOptionalTour=1'
+          : 'hasOptionalTour=0',
+      ...bundle.fetchErrors.map((e) => `fetchError=${e.part}:${e.errorKind}:attempts=${e.attempts}`),
       registerFactProductKindNote(inferNaeiltourRegisterFactProductKind(title ?? '', url)),
     ].filter(Boolean),
   }

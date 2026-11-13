@@ -1,0 +1,109 @@
+/**
+ * 내일투어 MEZZ32084 등록 parse 확인 항목 — live gate와 녹화 fixture 테스트가 같은 검사를 쓴다.
+ * REGRESSION-FREEZE[naeiltour-register-mezz32084-fixture]: live gate 확인 항목 전부 — manifest
+ */
+import assert from 'node:assert/strict'
+import { registerFlightCollectLooksComplete } from '@/lib/register-detail-collect-flight-apply'
+import { resolveScheduleKeywordSlotKind } from '@/lib/schedule-image-keyword-adjacent-poi'
+import { NAEILTOUR_SCHEDULE_ROUTE_MAX } from '@/lib/naeiltour-register-api-schedule'
+import type { RegisterParsed } from '@/lib/register-llm-schema-naeiltour'
+
+export const NAEILTOUR_MEZZ32084_URL =
+  'https://www.naeiltour.co.kr/sub/view.asp?good_cd=MEZZ32084&sub_area_cd=#n'
+
+function normKw(kw: string | null | undefined): string {
+  return String(kw ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
+
+export function assertScheduleImageKeywordSlots(
+  schedule: { day: number; imageKeyword?: string | null; imageKeyword2?: string | null; routeText?: string | null }[],
+): void {
+  const rows = schedule.filter((d) => Number(d.day) > 0).sort((a, b) => a.day - b.day)
+  const maxDay = rows.length ? Math.max(...rows.map((r) => r.day)) : 0
+  const used = new Set<string>()
+
+  for (const row of rows) {
+    const day = Number(row.day)
+    const slot = resolveScheduleKeywordSlotKind(day, maxDay, rows.length)
+    const kw = String(row.imageKeyword ?? '').trim()
+    const kw2 = String(row.imageKeyword2 ?? '').trim()
+
+    if (slot === 'departure' || slot === 'return') {
+      if (slot === 'return' && !kw && /인천|ICN|공항/i.test(String(row.routeText ?? ''))) continue
+      if (slot === 'departure' || kw) {
+        assert.ok(kw.length > 0, `day${day} (${slot}) imageKeyword required`)
+      }
+      assert.equal(kw2, '', `day${day} (${slot}) imageKeyword2 must be empty`)
+    } else {
+      assert.ok(kw.length > 0, `day${day} (middle) imageKeyword required`)
+    }
+
+    for (const k of [kw, kw2].filter(Boolean)) {
+      const nk = normKw(k)
+      assert.ok(nk.length > 0, `day${day} empty keyword`)
+      // 귀국 route가 비면 이전 bare city soft-dup이 허용된다 (암스테르담 재사용).
+      if (slot !== 'return') {
+        assert.ok(!used.has(nk), `day${day} keyword reuse: ${k}`)
+      }
+      used.add(nk)
+    }
+  }
+}
+
+export function assertScheduleRouteAndDescription(
+  schedule: { day: number; routeText?: string | null; description?: string | null }[],
+): void {
+  assert.ok(schedule.length >= 3, `schedule days >= 3 (got ${schedule.length})`)
+  for (const row of schedule) {
+    const route = String(row.routeText ?? '').trim()
+    if (!route) continue
+    const parts = route.split(/\s*-\s*/).filter(Boolean)
+    assert.ok(parts.length >= 1, `day${row.day} routeText empty segments`)
+    assert.ok(
+      parts.length <= NAEILTOUR_SCHEDULE_ROUTE_MAX,
+      `day${row.day} routeText > ${NAEILTOUR_SCHEDULE_ROUTE_MAX} places`,
+    )
+
+    const desc = String(row.description ?? '').trim()
+    assert.ok(desc.length > 0, `day${row.day} description empty`)
+    // description은 routeText 복사가 아니라 특성 vibe 문장이다.
+    assert.ok(desc.length <= 320, `day${row.day} description too long`)
+    const routePlaces = route.split(/\s*-\s*/).map((s) => s.trim()).filter(Boolean)
+    assert.ok(
+      routePlaces.some((place) => desc.includes(place)),
+      `day${row.day} description should mention a route place`,
+    )
+  }
+}
+
+/** live gate main()의 확인 항목 전부 (포함/불포함·선택관광·쇼핑·최소출발·항공·잔여석·일정·imageKeyword). */
+export function assertNaeiltourMezz32084RegisterParsed(parsed: RegisterParsed): void {
+  assert.match(parsed.originCode ?? '', /MEZZ32084/i)
+  assert.ok((parsed.title ?? '').length >= 4, `title required (got ${parsed.title?.slice(0, 60)})`)
+  assert.ok((parsed.includedItems?.length ?? 0) >= 2, `included >= 2 (got ${parsed.includedItems?.length})`)
+  assert.ok((parsed.excludedItems?.length ?? 0) >= 1, `excluded >= 1 (got ${parsed.excludedItems?.length})`)
+  assert.equal(parsed.hasOptionalTour, false, 'MEZZ32084 is no-option product')
+  assert.ok(parsed.hasShopping === true || (parsed.shoppingSummaryText ?? '').includes('쇼핑'), 'shopping info')
+  assert.ok(parsed.minimumDepartureCount != null && parsed.minimumDepartureCount >= 10, 'min departure from page')
+  assert.ok(
+    registerFlightCollectLooksComplete(parsed) ||
+      Boolean(parsed.outboundFlightNo && parsed.inboundFlightNo && parsed.airlineName),
+    'flight structured or leg hints',
+  )
+  if (parsed.remainingSeatsCount != null) {
+    assert.ok(parsed.remainingSeatsCount >= 0, 'remaining seats numeric')
+  } else {
+    assert.ok(
+      ((parsed as { seatsStatusRaw?: string | null }).seatsStatusRaw ?? '').length > 0 ||
+        parsed.minimumDepartureCount != null,
+      'seats or min departure text required',
+    )
+  }
+
+  const schedule = parsed.schedule ?? []
+  assertScheduleRouteAndDescription(schedule)
+  assertScheduleImageKeywordSlots(schedule)
+}
