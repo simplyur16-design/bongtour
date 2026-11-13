@@ -31441,6 +31441,162 @@
         }
       ],
       "vitestSuites": ["lib/seo-design-fixes.test.ts", "lib/mega-menu-interaction.test.ts"]
+    },
+    {
+      "id": "departure-legacy-ymd-slot-reconcile",
+      "tier": ["prebuild", "ci"],
+      "summary": "출발일 동기화: 날짜키(YYYY-MM-DD) 레거시 행과 회차코드 행이 같은 날 중복 생성되지 않게, 단일 회차면 기존 행을 재사용한다. 회차가 여럿이면 건드리지 않는다.",
+      "checks": [
+        {
+          "file": "lib/departure-legacy-slot-reconcile.ts",
+          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "planLegacyYmdSlotReconcile", "skippedAmbiguousYmd"]
+        },
+        {
+          "file": "lib/upsert-product-departures-modetour.ts",
+          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+        },
+        {
+          "file": "lib/upsert-product-departures-ybtour.ts",
+          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+        },
+        {
+          "file": "lib/upsert-product-departures-hanatour.ts",
+          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+        },
+        {
+          "file": "lib/upsert-product-departures-verygoodtour.ts",
+          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+        },
+        {
+          "file": "lib/upsert-product-departures-kyowontour.ts",
+          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+        },
+        {
+          "file": "lib/upsert-product-departures-naeiltour.ts",
+          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+        }
+      ],
+      "vitestSuites": ["lib/departure-legacy-slot-reconcile.test.ts"]
+    },
+    {
+      "id": "hanatour-itnr-cms-over-photo-alt",
+      "tier": ["prebuild", "ci"],
+      "summary": "하나투어 일정 카드: cms 장소명이 있으면 사진 alt 캡션(타 지역 열차 사진 등)을 장소로 쓰지 않는다.",
+      "checks": [
+        {
+          "file": "lib/hanatour-register-api-detail.ts",
+          "mustInclude": ["REGRESSION-FREEZE[hanatour-itnr-cms-over-photo-alt]", "if (out.length > 0) return out"]
+        }
+      ],
+      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+    },
+    {
+      "id": "ybtour-tm-notice-section-not-route",
+      "tier": ["prebuild", "ci"],
+      "summary": "ybtour TM 일정: 기타사항·준비물 등 안내 구획부터는 장소·경로로 쓰지 않고, 자유 식사 문구도 장소에서 뺀다.",
+      "checks": [
+        {
+          "file": "lib/ybtour-register-api-schedule.ts",
+          "mustInclude": ["REGRESSION-FREEZE[ybtour-tm-notice-section-not-route]", "isYbtourTmNoticeSectionHead(trimmed)", "YBTOUR_TM_FREE_MEAL_RE"]
+        }
+      ],
+      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+    },
+    {
+      "id": "verygoodtour-schedule-notice-accordion-not-route",
+      "tier": ["prebuild", "ci"],
+      "summary": "verygoodtour 일정: 필독·유의사항·동반 출국 등 안내 아코디언 제목은 관광지·설명·경로에 넣지 않는다.",
+      "checks": [
+        {
+          "file": "lib/verygoodtour-register-schedule-item-parse.ts",
+          "mustInclude": ["REGRESSION-FREEZE[verygoodtour-schedule-notice-accordion-not-route]", "isVerygoodScheduleNoticeHead"]
+        }
+      ],
+      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+    },
+    {
+      "id": "schedule-photo-step-keeps-supplier-original",
+      "tier": ["prebuild", "ci"],
+      "summary": "사진 단계(process-images)가 schedule 을 다시 쓸 때 등록 때 저장된 supplierOriginal·숙소·식사를 지우지 않는다.",
+      "checks": [
+        {
+          "file": "lib/schedule-stored-day-evidence-preserve.ts",
+          "mustInclude": ["REGRESSION-FREEZE[schedule-photo-step-keeps-supplier-original]", "'supplierOriginal'"]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": ["REGRESSION-FREEZE[schedule-photo-step-keeps-supplier-original]", "parseStoredScheduleRows(product.schedule)", "preserveStoredScheduleDayEvidence(preserveScheduleRouteText("]
+        }
+      ],
+      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+    },
+    {
+      "id": "register-route-raw-from-fact-flights",
+      "tier": ["prebuild", "ci"],
+      "summary": "API 등록 경로: routeRaw 가 비어 있으면 공급사 구조화 항공 구간(편명·출발·도착 도시)으로 원문 근거를 채운다. 기존 값은 덮지 않는다.",
+      "checks": [
+        {
+          "file": "lib/register-facts/route-raw-from-fact-flights.ts",
+          "mustInclude": ["REGRESSION-FREEZE[register-route-raw-from-fact-flights]"]
+        },
+        {
+          "file": "lib/hanatour-register-api-parse.ts",
+          "mustInclude": ["applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"]
+        },
+        {
+          "file": "lib/ybtour-register-api-parse.ts",
+          "mustInclude": ["applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"]
+        },
+        {
+          "file": "lib/modetour-register-api-parse.ts",
+          "mustInclude": ["applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"]
+        },
+        {
+          "file": "lib/verygoodtour-register-api-parse.ts",
+          "mustInclude": ["applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"]
+        }
+      ],
+      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+    },
+    {
+      "id": "itinerary-day-city-only",
+      "tier": ["prebuild", "ci"],
+      "summary": "ItineraryDay.city 에는 공급사 도시 칸(cityText)만 저장한다. 일차 제목·경로 문자열로 채우지 않는다.",
+      "checks": [
+        {
+          "file": "lib/itinerary-day-city.ts",
+          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]"]
+        },
+        {
+          "file": "lib/upsert-itinerary-days-hanatour.ts",
+          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]", "city: trimNull(s.cityText)"],
+          "mustNotInclude": ["city: title || routeText"]
+        },
+        {
+          "file": "lib/upsert-itinerary-days-modetour.ts",
+          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]"],
+          "mustNotInclude": ["city: routeText || null"]
+        },
+        {
+          "file": "lib/upsert-itinerary-days-verygoodtour.ts",
+          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]"],
+          "mustNotInclude": ["city: trimNull(title)"]
+        },
+        {
+          "file": "lib/upsert-itinerary-days-ybtour.ts",
+          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]", "const city = trimNull(s.cityText)"]
+        },
+        {
+          "file": "lib/verygoodtour-itinerary-collector.ts",
+          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]", "row.cityText"],
+          "mustNotInclude": ["city: row.title"]
+        },
+        {
+          "file": "lib/ybtour-register-api-detail.ts",
+          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]", "ybtourTmRowsCityText(tmRows)"]
+        }
+      ],
+      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
     }
   ],
   "vitestSuites": [
