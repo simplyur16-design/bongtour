@@ -29,7 +29,11 @@ import {
   pickPublicUrlDepartureRow,
   mergePublicPriceRowsByDate,
 } from '@/lib/public-default-departure-selection'
-import { useProductDepartureYmdFromUrl } from '@/lib/use-product-departure-url-param'
+import {
+  rejectedDepartureMayReplaceLocation,
+  replaceRejectedDepartureInLocation,
+  useProductDepartureUrlRead,
+} from '@/lib/use-product-departure-url-param'
 import {
   advisoryForDepartureRow,
   findPriceRowForDateKey,
@@ -274,7 +278,8 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
   const filterAirlinePatchRows = useAirlinePatchRowFilter()
   const router = useRouter()
   // REGRESSION-FREEZE[ybtour-url-departure-floor]: ?departure= 는 공개 예약 하한 이후 회차만 — manifest
-  const initialDepartureYmd = useProductDepartureYmdFromUrl()
+  const departureUrl = useProductDepartureUrlRead()
+  const initialDepartureYmd = departureUrl.ymd
   const [departureUserPinned, setDepartureUserPinned] = useState(false)
   const [selectedDepartureRowId, setSelectedDepartureRowId] = useState<string | null>(() => {
     const row = pickGloballyCheapestDepartureRowByAdultPrice(product.prices ?? [])
@@ -320,16 +325,22 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
       setCalendarDateKey(toDateKey(urlRow.date))
       return
     }
-    if (!defaultDepartureRow) {
-      setSelectedDepartureRowId(null)
-      return
+    const selectedYmd = defaultDepartureRow ? toDateKey(defaultDepartureRow.date) : null
+    if (!defaultDepartureRow) setSelectedDepartureRowId(null)
+    else {
+      setSelectedDepartureRowId((prev) => (prev === defaultDepartureRow.id ? prev : defaultDepartureRow.id))
+      setCalendarDateKey((prev) => (prev === selectedYmd ? prev : selectedYmd))
     }
-    setSelectedDepartureRowId((prev) => (prev === defaultDepartureRow.id ? prev : defaultDepartureRow.id))
-    setCalendarDateKey((prev) => {
-      const next = toDateKey(defaultDepartureRow.date)
-      return prev === next ? prev : next
-    })
-  }, [departureUserPinned, defaultDepartureRow?.id, defaultDepartureRow?.date, initialDepartureYmd, mergedPrices])
+    const urlRead = {
+      ready: departureUrl.ready,
+      requestedYmd: initialDepartureYmd,
+      urlRowSelected: false,
+      userPinned: departureUserPinned,
+    }
+    if (rejectedDepartureMayReplaceLocation(urlRead)) {
+      replaceRejectedDepartureInLocation(selectedYmd, urlRead.requestedYmd)
+    }
+  }, [departureUserPinned, departureUrl.ready, defaultDepartureRow?.id, defaultDepartureRow?.date, initialDepartureYmd, mergedPrices])
 
   useEffect(() => {
     if (!selectedDepartureRowId) return

@@ -8,6 +8,12 @@ import {
   pickPublicUrlDepartureRow,
 } from '@/lib/public-default-departure-selection'
 import { addDaysUtcYmd, kstTodayYmd } from '@/lib/calendar-ymd'
+import {
+  alignRejectedDepartureSearch,
+  parseProductDepartureYmdFromSearch,
+  rejectedDepartureMayReplaceLocation,
+  replaceRejectedDepartureInLocation,
+} from '@/lib/use-product-departure-url-param'
 
 const BASE = new Date('2026-11-08T03:00:00.000Z')
 const ORIGIN = 'AVP4539-260712RS00'
@@ -101,5 +107,84 @@ describe('ybtour url departure follows the public bookable floor', () => {
     )
     expect(preview.href).toBe('/products/pkg-yb-0012')
     expect(pickPublicUrlDepartureRow(rows, expired, BASE)).toBeNull()
+  })
+
+  it('aligns a rejected departure query to the selected date without dropping other params', () => {
+    expect(alignRejectedDepartureSearch('?departure=2026-11-01&utm=a', '2026-11-15')).toBe(
+      '?departure=2026-11-15&utm=a',
+    )
+    expect(alignRejectedDepartureSearch('?utm=a&departure=2026-11-01', null)).toBe('?utm=a')
+    expect(alignRejectedDepartureSearch('?departure=2026-11-01', null)).toBe('')
+    expect(alignRejectedDepartureSearch('?departure=2026-11-15&utm=a', '2026-11-15')).toBeNull()
+    expect(alignRejectedDepartureSearch('?utm=a', '2026-11-15')).toBeNull()
+    expect(alignRejectedDepartureSearch('?departure=not-a-date&utm=a', '2026-11-15')).toBeNull()
+  })
+})
+
+describe('departure url replace waits until the read rejects the request', () => {
+  const gate = (over: {
+    ready?: boolean
+    requestedYmd?: string | null
+    urlRowSelected?: boolean
+    userPinned?: boolean
+  }) =>
+    rejectedDepartureMayReplaceLocation({
+      ready: true,
+      requestedYmd: '2026-11-01',
+      urlRowSelected: false,
+      userPinned: false,
+      ...over,
+    })
+
+  it('keeps a valid future departure through the initial null read', () => {
+    expect(gate({ ready: false, requestedYmd: null })).toBe(false)
+    expect(gate({ ready: false, requestedYmd: '2026-12-20' })).toBe(false)
+    expect(gate({ requestedYmd: '2026-12-20', urlRowSelected: true })).toBe(false)
+  })
+
+  it('does not invent a departure when the query is absent or not a date', () => {
+    expect(parseProductDepartureYmdFromSearch('')).toBeNull()
+    expect(parseProductDepartureYmdFromSearch('?utm=a')).toBeNull()
+    expect(parseProductDepartureYmdFromSearch('?departure=not-a-date&utm=a')).toBeNull()
+    expect(gate({ requestedYmd: null })).toBe(false)
+    expect(gate({ requestedYmd: parseProductDepartureYmdFromSearch('?departure=not-a-date') })).toBe(false)
+  })
+
+  it('normalizes a ready rejected date without a history push', () => {
+    expect(gate({ requestedYmd: '2026-11-01' })).toBe(true)
+    expect(gate({ userPinned: true })).toBe(false)
+    const state = { nav: 1 }
+    const calls: { push: unknown[][]; replace: unknown[][] } = { push: [], replace: [] }
+    const previous = (globalThis as { window?: unknown }).window
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: {
+        location: {
+          pathname: '/products/pkg',
+          search: '?departure=2026-11-01&utm=a',
+          hash: '#fare',
+        },
+        history: {
+          state,
+          pushState: (...args: unknown[]) => {
+            calls.push.push(args)
+          },
+          replaceState: (...args: unknown[]) => {
+            calls.replace.push(args)
+          },
+        },
+      },
+    })
+    try {
+      replaceRejectedDepartureInLocation('2026-11-15', '2026-12-20')
+      expect(calls.replace).toEqual([])
+      expect(calls.push).toEqual([])
+      replaceRejectedDepartureInLocation('2026-11-15', '2026-11-01')
+      expect(calls.push).toEqual([])
+      expect(calls.replace).toEqual([[state, '', '/products/pkg?departure=2026-11-15&utm=a#fare']])
+    } finally {
+      if (previous === undefined) delete (globalThis as { window?: unknown }).window
+      else Object.defineProperty(globalThis, 'window', { configurable: true, value: previous })
+    }
   })
 })
