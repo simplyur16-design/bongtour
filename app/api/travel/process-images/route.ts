@@ -34,6 +34,7 @@ import {
   daySelectionPersistSlice,
 } from '@/lib/register-photo-day-confirmed-place'
 import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-preserve'
+import { parseStoredScheduleRows, preserveStoredScheduleDayEvidence } from '@/lib/schedule-stored-day-evidence-preserve'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
 import { logAutoPhotoAttempt } from '@/lib/auto-photo-attempt-log'
@@ -480,6 +481,8 @@ export async function POST(req: Request) {
 
     const destination = (product.destination ?? '').trim() || '미지정'
     const scheduleArrRaw = parseSchedule(product.schedule)
+    // REGRESSION-FREEZE[schedule-photo-step-keeps-supplier-original]: 저장된 일차 원문·숙소·식사 유지 — manifest
+    const storedScheduleRows = parseStoredScheduleRows(product.schedule)
     const scheduleArr = finalizeRegisterScheduleImageKeywords(
       scheduleArrRaw.map((item) => ({
         day: item.day,
@@ -570,7 +573,7 @@ export async function POST(req: Request) {
         }
       }
 
-      const updatedSchedule: ScheduleEntry[] = preserveScheduleRouteText(scheduleArr.map((item, i) => {
+      const updatedSchedule: ScheduleEntry[] = preserveStoredScheduleDayEvidence(preserveScheduleRouteText(scheduleArr.map((item, i) => {
         const rec = picked[i]
         const poolKw = rec?.attractionName?.trim() || `day_${item.day ?? i + 1}`
         return {
@@ -584,7 +587,7 @@ export async function POST(req: Request) {
             ? { source: rec.source, photographer: rec.source, originalLink: '' }
             : item.imageSource,
         }
-      }), scheduleArr)
+      }), scheduleArr), storedScheduleRows)
       const scheduleStr = await stringifyScheduleWithPexelsRehost(
         product.id as string,
         updatedSchedule,
@@ -638,7 +641,7 @@ export async function POST(req: Request) {
           await sealPexelsPhotoObjectForScheduleSlot(prisma, destination, schedPhotos[i]!, `premade_${i + 1}`)
         )
       }
-      const updatedSchedule: ScheduleEntry[] = preserveScheduleRouteText(scheduleArr.map((item, i) => {
+      const updatedSchedule: ScheduleEntry[] = preserveStoredScheduleDayEvidence(preserveScheduleRouteText(scheduleArr.map((item, i) => {
         const photo = schedSealed[i] ?? null
         const premadeKw = photo ? `premade_${i + 1}` : `day_${item.day ?? i + 1}`
         return {
@@ -652,7 +655,7 @@ export async function POST(req: Request) {
             ? { source: photo.source, photographer: photo.photographer, originalLink: photo.originalLink }
             : item.imageSource,
         }
-      }), scheduleArr)
+      }), scheduleArr), storedScheduleRows)
       const scheduleStrPre = await stringifyScheduleWithPexelsRehost(
         product.id as string,
         updatedSchedule,
@@ -1359,7 +1362,7 @@ export async function POST(req: Request) {
 
     const prevByDay = new Map<number, ScheduleEntry>()
     for (const it of workingSchedule) prevByDay.set(Number(it.day), it)
-    const updatedSchedule: ScheduleEntry[] = preserveScheduleRouteText(workingSchedule.map((item, i) => {
+    const updatedSchedule: ScheduleEntry[] = preserveStoredScheduleDayEvidence(preserveScheduleRouteText(workingSchedule.map((item, i) => {
       const slot = schedulePhotos[i]
       const photo = slot?.photo
       const secondary = scheduleSecondaryPhotos[i]
@@ -1404,7 +1407,7 @@ export async function POST(req: Request) {
         imageSelectionMode: item.imageSelectionMode ?? null,
         imageCandidateOrigin: slotDebug[i]?.candidateOrigin ?? item.imageCandidateOrigin ?? null,
       }
-    }), workingSchedule)
+    }), workingSchedule), storedScheduleRows)
 
     const coverCandidates = schedulePhotos
       .map((sp, i) => {

@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[modetour-register-api-parse]: collectModetourRegisterFacts → RegisterParsed — manifest
  * REGRESSION-FREEZE[modetour-register-schedule-image-keyword-apply]: schedule imageKeyword 규칙 — manifest
  */
+import { applyRegisterRouteRawFromFactFlights } from '@/lib/register-facts/route-raw-from-fact-flights'
 import { buildRegisterDurationLabel } from '@/lib/register-duration-label'
 import { parseModetourPackageProductNoFromUrl } from '@/lib/modetour-departures'
 import { modetourFactDaysToRegisterSchedule } from '@/lib/modetour-register-api-schedule'
@@ -189,6 +190,8 @@ export async function parseModetourRegisterFromApi(
     parsed,
     buildModetourFlightStructuredFromFactLegs(bundle.flights),
   )
+  // REGRESSION-FREEZE[register-route-raw-from-fact-flights]: API 등록 경로 routeRaw null 방지 — manifest
+  parsed = applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)
 
   parsed = finalizeModetourRegisterParsedPricing(parsed)
   parsed = finalizeModetourRegisterParsedShopping(parsed)

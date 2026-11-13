@@ -97,6 +97,7 @@ export function registerScheduleToDayInputs(
     description?: string
     imageKeyword?: string
     routeText?: string | null
+    cityText?: string | null
     hotelText?: string | null
     breakfastText?: string | null
     lunchText?: string | null
@@ -132,7 +133,8 @@ export function registerScheduleToDayInputs(
     return [
       {
         day,
-        city: title || routeText || null,
+        // REGRESSION-FREEZE[itinerary-day-city-only]: city = 공급사 도시 칸(cityText)만, 제목·경로 금지 — manifest
+        city: trimNull(s.cityText),
         poiNamesRaw: title || routeText || null,
         summaryTextRaw: summaryTextRaw || null,
         rawBlock,

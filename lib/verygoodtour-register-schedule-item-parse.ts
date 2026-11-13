@@ -9,8 +9,20 @@ import {
   joinVerygoodtourScheduleRouteText,
 } from '@/lib/verygoodtour-register-api-schedule'
 import { parseScheduleMealFieldsFromText } from '@/lib/register-schedule-meal-parse'
+import { itineraryDayCityFromSupplierCities } from '@/lib/itinerary-day-city'
 
 type ParsedScheduleItem = RegisterScheduleDay & { flightReturnHead: string | null }
+
+/**
+ * scheduleItem accordion 중 안내·필독 카드(아동 동반 출국·공증·여권·좌석·기내 반입 등) — 방문지 아님.
+ * REGRESSION-FREEZE[verygoodtour-schedule-notice-accordion-not-route]: 공지 accordion 1일차 혼입 금지 — manifest
+ */
+const VERYGOOD_SCHEDULE_NOTICE_HEAD_RE =
+  /필독|유의\s*사항|안내\s*사항|참고\s*사항|주의\s*사항|준비물|체크사항|미팅|출발\s*전|연락처|1644|동반\s*출국|출국\s*시|공증|여권|비자|입국\s*(?:서류|규정|신고)|좌석\s*배정|기내\s*반입|^\s*※/u
+
+export function isVerygoodScheduleNoticeHead(head: string): boolean {
+  return VERYGOOD_SCHEDULE_NOTICE_HEAD_RE.test(String(head ?? ''))
+}
 
 function stripVerygoodScheduleInnerHtml(html: string): string {
   return html
@@ -42,9 +54,7 @@ function parseVerygoodScheduleItemBlock(day: number, block: string): ParsedSched
     .map((m) => stripVerygoodScheduleInnerHtml(m[1]!))
     .filter(Boolean)
   const flightReturnHead = heads.find((h) => /\[[A-Z]{2}\s*\d+\].*인천/i.test(h)) ?? null
-  const touringHeads = heads.filter(
-    (h) => !/체크사항|미팅|출발\s*전|연락처|1644/i.test(h) && !/\[[A-Z]{2}\s*\d+\]/i.test(h),
-  )
+  const touringHeads = heads.filter((h) => !isVerygoodScheduleNoticeHead(h) && !/\[[A-Z]{2}\s*\d+\]/i.test(h))
   const hotelRaw =
     stripVerygoodScheduleInnerHtml(
       block.match(/<h4>\s*호텔\s*<\/h4>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i)?.[1] ?? '',
@@ -74,13 +84,19 @@ function parseVerygoodScheduleItemBlock(day: number, block: string): ParsedSched
   const routePlaces = dedupeVerygoodtourScheduleRoutePlaces(routeSeed)
   const routeText = joinVerygoodtourScheduleRouteText(routePlaces)
   const title = routePlaces[0] ?? locRaw.split('-')[0]?.trim() ?? `${day}일차`
-  const descriptionLines = [dateText, locRaw, ...heads.filter((h) => h !== flightReturnHead)]
+  const descriptionLines = [
+    dateText,
+    locRaw,
+    ...heads.filter((h) => h !== flightReturnHead && !isVerygoodScheduleNoticeHead(h)),
+  ]
 
   return {
     day,
     title,
     description: descriptionLines.filter(Boolean).join('\n'),
     routeText,
+    // REGRESSION-FREEZE[itinerary-day-city-only]: info location 도시 칸만 cityText — manifest
+    cityText: itineraryDayCityFromSupplierCities(locRaw.split(/\s*-\s*/)),
     dateText: dateText || null,
     hotelText,
     breakfastText: mealFields.breakfastText ?? null,

@@ -35,6 +35,7 @@ function scheduleRowToItineraryDay(row: {
   title: string
   description: string
   routeText?: string | null
+  cityText?: string | null
   hotelText?: string | null
   mealSummaryText?: string | null
   breakfastText?: string | null
@@ -45,7 +46,8 @@ function scheduleRowToItineraryDay(row: {
   return {
     day: row.day,
     dateText: null,
-    city: row.title?.trim() || null,
+    // REGRESSION-FREEZE[itinerary-day-city-only]: 제목을 city 로 쓰지 않음 — manifest
+    city: row.cityText?.trim() || null,
     summaryTextRaw: row.description?.trim().slice(0, 500) || null,
     poiNamesRaw: row.routeText?.trim() || null,
     meals: meals?.trim() || null,

@@ -4,6 +4,7 @@
  *
  * REGRESSION-FREEZE[verygoodtour-register-schedule-collect]: manifest
  */
+import { splitItineraryDayCityText } from '@/lib/itinerary-day-city'
 import type { RegisterParsed, RegisterScheduleDay } from '@/lib/register-llm-schema-verygoodtour'
 import { applyRegisterScheduleImageKeywordsBySupplier } from '@/lib/register-schedule-image-keywords-apply'
 import {
@@ -39,6 +40,7 @@ function itineraryDaysToFactDays(days: ItineraryDayInput[]): RegisterFactSchedul
       hotels: d.accommodation?.trim() ? [d.accommodation.trim()] : [],
       meals: d.meals?.trim() ? [d.meals.trim()] : [],
       transportNote: d.transport?.trim() || null,
+      ...(splitItineraryDayCityText(d.city).length ? { cities: splitItineraryDayCityText(d.city) } : {}),
     }
   })
 }
