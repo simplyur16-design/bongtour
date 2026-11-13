@@ -12,7 +12,7 @@ import {
   isUsimsaCancelSuccess,
   USIMSA_CANCEL_CODE,
 } from "@/lib/bongsim/supplier/usimsa/types";
-import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
+import { isEsimLiveIssuanceAndSmsAllowed } from "@/lib/bongsim/esim-live-fulfillment";
 
 export type SubmitUsimsaOrderResult =
   | UsimsaSubmitResponse
@@ -37,7 +37,8 @@ export class UsimsaCancelError extends Error {
 export async function submitUsimsaOrder(
   body: UsimsaSubmitRequest,
 ): Promise<SubmitUsimsaOrderResult> {
-  if (isBongsimCheckoutTestMode()) {
+  if (!isEsimLiveIssuanceAndSmsAllowed()) {
+    // REGRESSION-FREEZE[esim-sandbox-no-live-issue-sms]: no live USIMSA order in sandbox — manifest
     console.log("[BONGSIM_TEST_MODE] USIMSA 발급 스킵 - orderId:", body.orderId);
     return { ok: true, skipped: "test_mode" as const };
   }
@@ -52,7 +53,7 @@ export async function submitUsimsaOrder(
 export async function submitUsimsaUsimOrder(
   body: UsimsaUsimOrderRequest,
 ): Promise<SubmitUsimsaUsimOrderResult> {
-  if (isBongsimCheckoutTestMode()) {
+  if (!isEsimLiveIssuanceAndSmsAllowed()) {
     console.log("[BONGSIM_TEST_MODE] USIMSA USIM 발급 스킵 - orderId:", body.orderId, "iccid:", body.iccid);
     return {
       ok: true,

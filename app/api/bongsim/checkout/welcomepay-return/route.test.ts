@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -69,6 +70,36 @@ describe("welcomepay return callback rejections", () => {
     expect(outcome).not.toHaveBeenCalled();
   });
 
+  it("rejects a blank authSignature before capture", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            resultCode: "0000",
+            authSignature: " ",
+            TotPrice: "8910",
+            tid: TID,
+            MOID: "oid-fixture",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+    const res = await POST(
+      callbackRequest({
+        oid: "oid-fixture",
+        resultCode: "0000",
+        authToken: "token-fixture",
+        mid: "testmid",
+        authUrl: "http://localhost/mock-payauth",
+      }),
+    );
+    expect(res.status).toBe(303);
+    expect(locationMessage(res)).toBe("auth_signature_missing");
+    expect(outcome).not.toHaveBeenCalled();
+  });
+
   it("rejects a mismatched authSignature before capture", async () => {
     vi.stubGlobal(
       "fetch",
@@ -100,15 +131,22 @@ describe("welcomepay return callback rejections", () => {
   });
 
   it("rejects a tampered callback amount before capture", async () => {
+    const fixedNow = 1_700_000_000_000;
+    vi.spyOn(Date, "now").mockReturnValue(fixedNow);
+    const totPrice = "1";
+    const moid = "oid-fixture";
+    const plain = `TotPrice=${totPrice}&tstamp=${fixedNow}&MOID=${moid}`;
+    const authSignature = createHash("sha256").update(plain, "utf8").digest("hex");
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
         new Response(
           JSON.stringify({
             resultCode: "0000",
-            TotPrice: "1",
+            authSignature,
+            TotPrice: totPrice,
             tid: TID,
-            MOID: "oid-fixture",
+            MOID: moid,
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         ),

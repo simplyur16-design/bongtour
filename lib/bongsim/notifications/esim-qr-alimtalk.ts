@@ -1,4 +1,5 @@
 import { SolapiMessageService } from "solapi";
+import { isEsimLiveIssuanceAndSmsAllowed } from "@/lib/bongsim/esim-live-fulfillment";
 import { enqueueSolapiSend } from "@/lib/bongsim/notifications/solapi-send-queue";
 
 export type EsimQrAlimtalkPayload = {
@@ -38,6 +39,11 @@ export async function sendEsimQrDeliveredAlimTalk(
   orderId: string,
   payload: EsimQrAlimtalkPayload,
 ): Promise<EsimQrAlimtalkResult> {
+  if (!isEsimLiveIssuanceAndSmsAllowed()) {
+    console.error("[solapi-alimtalk] esim_qr_skipped_sandbox", JSON.stringify({ orderId }));
+    return { ok: true };
+  }
+
   // REGRESSION-FREEZE[bongsim-esim-qr-alimtalk-install-path]: variables orderNumber+installPath only — manifest
   const apiKey = process.env.SOLAPI_API_KEY?.trim();
   const apiSecret = process.env.SOLAPI_API_SECRET?.trim();

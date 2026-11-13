@@ -26,7 +26,7 @@ import {
   shouldSendBongtourEsimOsQuickInstallLms,
   shouldSendSimplyurEsimIssuedLms,
 } from "@/lib/bongsim/notifications/esim-qr-lms";
-import { isBongsimCheckoutTestMode } from "@/lib/bongsim/test-mode";
+import { isEsimLiveIssuanceAndSmsAllowed } from "@/lib/bongsim/esim-live-fulfillment";
 import { sendEsimQrDeliveredLmsFallback } from "@/lib/notification-service";
 
 /**
@@ -324,7 +324,7 @@ export async function deliverEsimToCustomer(
     (result.status === "delivered" ||
       (result.status === "skipped" && result.reason === "already_delivered"));
 
-  if (!isBongsimCheckoutTestMode() && shouldEnqueueNotify) {
+  if (isEsimLiveIssuanceAndSmsAllowed() && shouldEnqueueNotify) {
     const q = qrCodeUrl.trim();
     const d = downloadLink.trim();
     if (q && d) {

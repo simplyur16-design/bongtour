@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { bongsimPath } from "@/lib/bongsim/constants";
 import type { BongsimOrderPublicV1 } from "@/lib/bongsim/contracts/order-public.v1";
+import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
 import { EsimInstallSection } from "@/components/bongsim/order-complete/EsimInstallSection";
 import { EsimTravelerVerificationCallout } from "@/components/bongsim/esim/EsimTravelerVerificationCallout";
 import { OrderCompleteRefundActions } from "@/components/bongsim/order-complete/OrderCompleteRefundActions";
@@ -56,7 +57,7 @@ function nextStepMessage(o: BongsimOrderPublicV1): string {
   if (o.fulfillment.status === "delivered") {
     return "eSIM이 발급되었습니다. 아래 QR·바로 설치로 설치한 뒤, 해외에서는 국내 유심 데이터 로밍을 끄고 eSIM만 데이터로 쓰세요. 자세한 단계는 /travel/esim/guide 를 확인해 주세요.";
   }
-  if (o.fulfillment.status === "failed") return "발급에 문제가 발생했습니다. 고객센터(09:00–18:00 KST)로 문의해 주세요.";
+  if (o.fulfillment.status === "failed") return "발급에 문제가 발생했습니다. 아래 고객센터로 문의해 주세요.";
   return "eSIM을 준비하고 있습니다. 완료되면 카카오 알림톡·이메일로도 안내됩니다.";
 }
 
@@ -136,6 +137,8 @@ export function OrderCompleteRealView({ order }: { order: BongsimOrderPublicV1 }
       {order.requires_traveler_verification && order.traveler_verification_iccid ? (
         <EsimTravelerVerificationCallout iccid={order.traveler_verification_iccid} />
       ) : null}
+
+      <EsimMypageUsimsaCsLinks className="mt-2" />
 
       <Link href={bongsimPath()} className="inline-block text-[13px] text-teal-800 underline">
         홈으로

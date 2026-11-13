@@ -2873,7 +2873,9 @@
           ],
           "mustNotInclude": [
             "문의: 카카오 09:00-18:00 · bongtour.com",
-            "유심사 고객센터"
+            "유심사 고객센터",
+            "open.kakao.com/o/",
+            "pf.kakao.com/_xlxjrxlX"
           ]
         },
         {
@@ -2968,6 +2970,36 @@
           ],
           "mustNotInclude": [
             "BONGSIM_KAKAO_CHANNEL_URL"
+          ]
+        },
+        {
+          "file": "components/bongsim/EsimSupportFootnote.tsx",
+          "mustInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "USIMSA_CX_CONTACT_URL"
+          ],
+          "mustNotInclude": [
+            "open.kakao.com/o/",
+            "BONGSIM_KAKAO_CHANNEL_URL"
+          ]
+        },
+        {
+          "file": "app/travel/esim/help/customer-support/page.tsx",
+          "mustInclude": [
+            "EsimMypageUsimsaCsLinks"
+          ],
+          "mustNotInclude": [
+            "EsimBongsimCsLinks",
+            "open.kakao.com/o/"
+          ]
+        },
+        {
+          "file": "components/bongsim/order-complete/OrderCompleteRealView.tsx",
+          "mustInclude": [
+            "EsimMypageUsimsaCsLinks"
+          ],
+          "mustNotInclude": [
+            "open.kakao.com/o/"
           ]
         }
       ]
@@ -31028,13 +31060,15 @@
     {
       "id": "esim-callback-auth-amount-gate",
       "tier": ["prebuild", "ci"],
-      "summary": "웰컴페이 콜백은 실패 인증코드·틀린 authSignature·주문 합계와 다른 금액을 승인하지 않는다.",
+      "summary": "웰컴페이 콜백은 빈 authSignature·없는 금액·주문 합계와 다른 금액을 승인하지 않는다.",
       "checks": [
         {
           "file": "lib/bongsim/welcomepay-payauth.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[esim-callback-auth-amount-gate]",
-            "export function verifyWelcomepayAuthSignature"
+            "export function verifyWelcomepayAuthSignature",
+            "export function gateWelcomepayPcApproval",
+            "auth_signature_missing"
           ]
         },
         {
@@ -31048,7 +31082,22 @@
           "file": "app/api/bongsim/checkout/welcomepay-return/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[esim-callback-auth-amount-gate]",
-            "auth_signature_mismatch",
+            "gateWelcomepayPcApproval"
+          ],
+          "mustNotInclude": [
+            "grandTotalKrw ? grandTotalKrw"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/checkout/welcomepay-mobile-next/route.ts",
+          "mustInclude": [
+            "gateWelcomepayPcApproval",
+            "isWelcomepayReturnAmountTampered"
+          ]
+        },
+        {
+          "file": "app/api/bongsim/checkout/welcomepay-vbank-noti/route.ts",
+          "mustInclude": [
             "isWelcomepayReturnAmountTampered"
           ]
         },
@@ -31064,6 +31113,43 @@
         "lib/bongsim/welcomepay-return-gate.test.ts",
         "app/api/bongsim/checkout/welcomepay-return/route.test.ts",
         "lib/bongsim/fulfillment/esim-paid-sms-pipeline.test.ts"
+      ]
+    },
+    {
+      "id": "esim-sandbox-no-live-issue-sms",
+      "tier": ["prebuild", "ci"],
+      "summary": "웰컴페이 테스트·USIMSA 비운영·체크아웃 테스트 모드에서는 유심사 실발급과 고객 Solapi 문자를 호출하지 않는다.",
+      "checks": [
+        {
+          "file": "lib/bongsim/esim-live-fulfillment.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-sandbox-no-live-issue-sms]",
+            "export function isEsimLiveIssuanceAndSmsAllowed"
+          ]
+        },
+        {
+          "file": "lib/bongsim/supplier/usimsa/order-api.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-sandbox-no-live-issue-sms]",
+            "isEsimLiveIssuanceAndSmsAllowed"
+          ]
+        },
+        {
+          "file": "lib/notification-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-sandbox-no-live-issue-sms]",
+            "skipped_sandbox"
+          ]
+        },
+        {
+          "file": "lib/bongsim/fulfillment/esim-delivery.ts",
+          "mustInclude": [
+            "isEsimLiveIssuanceAndSmsAllowed"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim-live-fulfillment.test.ts"
       ]
     },
     {

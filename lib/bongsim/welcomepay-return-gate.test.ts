@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 
 import { isWelcomepayAuthSuccessCode } from "@/lib/bongsim/checkout/welcomepay-fail-message";
 import { isWelcomepayReturnAmountTampered } from "@/lib/bongsim/welcomepay-callback-parse";
-import { verifyWelcomepayAuthSignature } from "@/lib/bongsim/welcomepay-payauth";
+import { gateWelcomepayPcApproval, verifyWelcomepayAuthSignature } from "@/lib/bongsim/welcomepay-payauth";
 
 function authSignatureFor(input: {
   mid: string;
@@ -47,6 +47,41 @@ describe("welcomepay return auth and amount gate", () => {
   it("rejects a callback amount that differs from the order total", () => {
     expect(isWelcomepayReturnAmountTampered(1, 8910)).toBe(true);
     expect(isWelcomepayReturnAmountTampered(8910, 8910)).toBe(false);
-    expect(isWelcomepayReturnAmountTampered(null, 8910)).toBe(false);
+    expect(isWelcomepayReturnAmountTampered(null, 8910)).toBe(true);
+    expect(isWelcomepayReturnAmountTampered(0, 8910)).toBe(true);
+  });
+
+  it("rejects a blank signature instead of skipping verification", () => {
+    const input = {
+      mid: "testmid",
+      authTimestamp: "202611081210100",
+      moid: "oid-fixture",
+      totPrice: "8910",
+      amountKrw: 8910,
+      orderGrandTotalKrw: 8910,
+    };
+    expect(gateWelcomepayPcApproval({ ...input, authSignature: "" })).toBe("auth_signature_missing");
+    expect(gateWelcomepayPcApproval({ ...input, authSignature: "   " })).toBe("auth_signature_missing");
+    expect(
+      gateWelcomepayPcApproval({
+        ...input,
+        authSignature: authSignatureFor(input),
+      }),
+    ).toBeNull();
+    expect(
+      gateWelcomepayPcApproval({
+        ...input,
+        totPrice: "",
+        amountKrw: null,
+        authSignature: authSignatureFor({ ...input, totPrice: "" }),
+      }),
+    ).toBe("auth_signature_mismatch");
+    expect(
+      gateWelcomepayPcApproval({
+        ...input,
+        amountKrw: null,
+        authSignature: authSignatureFor(input),
+      }),
+    ).toBe("amount_mismatch");
   });
 });

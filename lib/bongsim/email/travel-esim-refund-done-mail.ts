@@ -1,6 +1,10 @@
 import nodemailer from "nodemailer";
 
-import { BONGSIM_ESIM_SUPPORT_EMAIL_LINE, BONGSIM_KAKAO_CHANNEL_URL } from "@/lib/bongsim/constants";
+import {
+  BONGSIM_ESIM_SUPPORT_EMAIL_LINE,
+  USIMSA_CX_CONTACT_URL,
+  USIMSA_CX_KAKAO_CHAT_URL,
+} from "@/lib/bongsim/constants";
 
 export type TravelEsimRefundDoneMailInput = {
   to: string;
@@ -35,7 +39,9 @@ export function buildTravelEsimRefundDoneMailContent(input: TravelEsimRefundDone
     "카드사 반영은 수일 걸릴 수 있습니다.",
     "",
     BONGSIM_ESIM_SUPPORT_EMAIL_LINE,
-    BONGSIM_KAKAO_CHANNEL_URL.trim() ? `카카오 채널: ${BONGSIM_KAKAO_CHANNEL_URL.trim()}` : "",
+    "고객센터",
+    `카카오: ${USIMSA_CX_KAKAO_CHAT_URL}`,
+    USIMSA_CX_CONTACT_URL,
     "",
     "Bong투어 드림",
   ]
@@ -45,9 +51,7 @@ export function buildTravelEsimRefundDoneMailContent(input: TravelEsimRefundDone
   const safeOrder = escapeHtml(orderNumber);
   const safeAmount = escapeHtml(refundAmount);
   const safeSupport = escapeHtml(BONGSIM_ESIM_SUPPORT_EMAIL_LINE);
-  const kakaoLine = BONGSIM_KAKAO_CHANNEL_URL.trim()
-    ? `<p style="margin:12px 0 0;font-size:14px;color:#334155;">카카오: <a href="${escapeHtml(BONGSIM_KAKAO_CHANNEL_URL.trim())}" style="color:#0f766e;">채널 바로가기</a></p>`
-    : "";
+  const kakaoLine = `<p style="margin:12px 0 0;font-size:14px;color:#334155;">고객센터: <a href="${escapeHtml(USIMSA_CX_KAKAO_CHAT_URL)}" style="color:#0f766e;">카카오톡 문의</a> · <a href="${escapeHtml(USIMSA_CX_CONTACT_URL)}" style="color:#0f766e;">문의 페이지</a></p>`;
 
   const html = `<!DOCTYPE html>
 <html lang="ko"><body style="margin:0;padding:24px;background:#f8fafc;font-family:sans-serif;">

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { processWelcomepayPaymentOutcome, WELCOMEPAY_PROVIDER_ID } from "@/lib/bongsim/data/process-welcomepay-payment-outcome";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 // REGRESSION-FREEZE[bongsim-request-path-no-pg-probe]: no request-path TLS probe — manifest
-import { readWelcomepayCallbackFromRequest } from "@/lib/bongsim/welcomepay-callback-parse";
+import {
+  isWelcomepayReturnAmountTampered,
+  readWelcomepayCallbackFromRequest,
+} from "@/lib/bongsim/welcomepay-callback-parse";
 import {
   isVbankDepositNoti,
   pickVbankNotiAmountKrw,
@@ -61,19 +64,13 @@ async function handleVbankNoti(req: Request): Promise<NextResponse> {
   }
 
   const amt = pickVbankNotiAmountKrw(incoming);
-  if (
-    amt != null &&
-    Number.isFinite(grandTotalKrw) &&
-    grandTotalKrw > 0 &&
-    amt !== grandTotalKrw
-  ) {
+  if (isWelcomepayReturnAmountTampered(amt, grandTotalKrw)) {
     console.warn("[welcomepay-vbank-noti] amount_mismatch", { oid, amt, grandTotalKrw });
     return new NextResponse("AMOUNT_MISMATCH", { status: 400 });
   }
 
   const providerEventId = vbankNotiProviderEventId(incoming);
-  const amountForCapture =
-    amt != null && Number.isFinite(amt) && amt > 0 ? amt : Number.isFinite(grandTotalKrw) ? grandTotalKrw : undefined;
+  const amountForCapture = amt as number;
 
   const fin = await processWelcomepayPaymentOutcome({
     providerEventId,
