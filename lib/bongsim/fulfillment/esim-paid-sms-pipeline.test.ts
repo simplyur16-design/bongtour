@@ -72,7 +72,13 @@ const fakePool = {
       return { rows: [] };
     }
     if (text.includes("UPDATE bongsim_order") && text.includes("status = 'paid'")) {
+      if (text.includes("status = 'awaiting_payment'") && state.orderStatus !== "awaiting_payment") {
+        return { rows: [], rowCount: 0 };
+      }
       state.orderStatus = "paid";
+      return { rows: [], rowCount: 1 };
+    }
+    if (text.includes("SELECT status FROM bongsim_fulfillment_job")) {
       return { rows: [] };
     }
     if (text.includes("WITH pending") && text.includes("INSERT INTO bongsim_outbox")) {
@@ -102,11 +108,11 @@ const fakePool = {
       );
       return { rows: due.slice(0, 1) };
     }
-    if (text.includes("SET locked_at = now()") && text.includes("interval '2 minutes'")) {
+    if (text.includes("SET locked_at = now()") && text.includes("interval '5 minutes'")) {
       const row = state.outbox.find((item) => item.id === params[0]);
       if (row) {
         row.locked_at = new Date();
-        row.available_at = new Date(Date.now() + 120_000);
+        row.available_at = new Date(Date.now() + 300_000);
       }
       return { rows: [] };
     }
