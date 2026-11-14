@@ -5,6 +5,7 @@
  */
 import type { Metadata } from 'next'
 import { SITE_NAME } from '@/lib/site-metadata'
+import { toCanonicalPath } from '@/lib/seo/canonical-url'
 
 /** 검색용 eSIM 상품 표기 */
 export const ESIM_SEARCH_LABEL = 'eSIM(여행용)'
@@ -43,10 +44,12 @@ export function buildEsimSearchMetadata(input: {
   const title = sanitizeEsimSearchCopy(input.title)
   const description = sanitizeEsimSearchCopy(input.description)
   const ogDescription = sanitizeEsimSearchCopy(input.ogDescription ?? input.description)
+  const canonicalPath = toCanonicalPath(input.path) ?? input.path
   return {
     title: { absolute: title },
     description,
-    alternates: { canonical: input.path },
+    // REGRESSION-FREEZE[seo-canonical-param-free]: 쿼리가 섞여 들어와도 정식 주소는 파라미터 없는 경로 — manifest
+    alternates: { canonical: canonicalPath },
     ...(input.robots ? { robots: input.robots } : {}),
     openGraph: {
       type: 'website',
@@ -54,7 +57,7 @@ export function buildEsimSearchMetadata(input: {
       siteName: SITE_NAME,
       title,
       description: ogDescription,
-      url: input.path,
+      url: canonicalPath,
       images: [{ url: ESIM_OG_IMAGE_PATH, alt: `${SITE_NAME} ${ESIM_SEARCH_LABEL}` }],
     },
     twitter: {

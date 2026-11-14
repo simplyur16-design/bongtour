@@ -14,6 +14,8 @@ export type ProductPathStatus =
   /** REGRESSION-FREEZE[seo-training-products-301]: 다른 정식 경로(국외연수 `/business/programs/*`)로 301 */
   | { kind: 'redirect_path'; path: string }
   | { kind: 'not_found' }
+  /** REGRESSION-FREEZE[seo-deleted-product-410]: DB 에 행이 아예 없는(영구 삭제) 상품 주소 → 410. 비공개·출발 종료 행은 not_found(404) */
+  | { kind: 'gone' }
 
 export const PRODUCT_PATH_STATUS_API_PATH = '/api/public/product-path-status'
 
@@ -36,6 +38,7 @@ export function parseProductPathStatus(body: unknown): ProductPathStatus | null 
   const o = body as { kind?: unknown; slug?: unknown }
   if (o.kind === 'render') return { kind: 'render' }
   if (o.kind === 'not_found') return { kind: 'not_found' }
+  if (o.kind === 'gone') return { kind: 'gone' }
   if (o.kind === 'redirect' && typeof o.slug === 'string' && o.slug.trim()) {
     return { kind: 'redirect', slug: o.slug.trim() }
   }
@@ -50,6 +53,28 @@ export function parseProductPathStatus(body: unknown): ProductPathStatus | null 
 export function isSafeInternalRedirectPath(path: string): boolean {
   return /^\/(?!\/)[^\s\\]*$/.test(path) && !path.includes('://')
 }
+
+/** 410 응답 본문 — 홈 리다이렉트 대신 목록으로 안내하고 색인에서 빼도록 noindex */
+export function buildGoneProductHtml(): string {
+  return [
+    '<!doctype html>',
+    '<html lang="ko"><head><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    '<meta name="robots" content="noindex, nofollow">',
+    '<title>판매가 종료된 상품입니다 | Bong투어</title></head>',
+    '<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:4rem auto;padding:0 1rem;line-height:1.6">',
+    '<h1 style="font-size:1.25rem">판매가 종료된 상품입니다</h1>',
+    '<p>요청하신 상품은 더 이상 판매하지 않습니다.</p>',
+    '<p><a href="/products">여행 상품 목록 보기</a></p>',
+    '</body></html>',
+  ].join('')
+}
+
+export const GONE_PRODUCT_HEADERS = {
+  'content-type': 'text/html; charset=utf-8',
+  'x-robots-tag': 'noindex, nofollow',
+  'cache-control': 'public, max-age=0, s-maxage=300',
+} as const
 
 /** 같은 프로세스의 Node 서버(`next start -p $PORT`)에 조회 — 실패·시간초과는 null(기존 동작 유지) */
 export async function fetchProductPathStatus(

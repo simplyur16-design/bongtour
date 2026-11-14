@@ -32076,6 +32076,96 @@
       "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
     },
     {
+      "id": "seo-search-console-1115",
+      "tier": ["prebuild", "ci"],
+      "summary": "서치 콘솔 11/9(중복 canonical·404·이미지 사이트맵) 대응 vitest",
+      "checks": [
+        {
+          "file": "lib/seo/seo-search-console-1115.test.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-search-console-1115]"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-search-console-1115.test.ts"]
+    },
+    {
+      "id": "seo-canonical-param-free",
+      "tier": ["prebuild", "ci"],
+      "summary": "canonical·og:url 은 utm·정렬·필터·페이지 파라미터 없는 정식 경로, cuid 접근도 slug 정식 주소",
+      "checks": [
+        {
+          "file": "lib/seo/canonical-url.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-canonical-param-free]", "export function toCanonicalPath"]
+        },
+        {
+          "file": "lib/seo/esim-search-metadata.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-canonical-param-free]", "toCanonicalPath(input.path)"]
+        },
+        {
+          "file": "app/products/[idOrSlug]/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-canonical-param-free]", "toCanonicalPath(publicProductPath(p))"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-search-console-1115.test.ts"]
+    },
+    {
+      "id": "seo-image-sitemap-last-good",
+      "tier": ["prebuild", "ci"],
+      "summary": "sitemap.xml·sitemap-images.xml 생성 실패·지연 시 5xx·상품 0건 대신 마지막 정상본(없으면 빈 urlset)을 200 으로",
+      "checks": [
+        {
+          "file": "lib/seo/last-good-cache.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-image-sitemap-last-good]", "export function createLastGoodCache"]
+        },
+        {
+          "file": "app/sitemap-images.xml/route.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-image-sitemap-last-good]", "imageSitemapCache.get("],
+          "mustNotInclude": ["empty urlset"]
+        },
+        {
+          "file": "app/sitemap.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-image-sitemap-last-good]", "sitemapCache.get("],
+          "mustNotInclude": ["static URLs only"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-search-console-1115.test.ts"]
+    },
+    {
+      "id": "seo-deleted-product-410",
+      "tier": ["prebuild", "ci"],
+      "summary": "영구 삭제 상품 주소는 410(홈 리다이렉트 금지), 비공개·출발 종료 행은 404 유지, 국외연수는 정식 주소 301",
+      "checks": [
+        {
+          "file": "middleware.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-deleted-product-410]", "status?.kind === 'gone'", "status: 410"]
+        },
+        {
+          "file": "app/api/public/product-path-status/route.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-deleted-product-410]", "productRowExistsForPathSegment"]
+        },
+        {
+          "file": "lib/resolve-product-by-path-segment.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-deleted-product-410]", "export async function productRowExistsForPathSegment"]
+        },
+        {
+          "file": "lib/product-path-status.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-deleted-product-410]", "buildGoneProductHtml"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-search-console-1115.test.ts", "lib/product-path-status.test.ts"]
+    },
+    {
+      "id": "seo-no-dead-product-links",
+      "tier": ["prebuild", "ci"],
+      "summary": "내부 링크·사이트맵은 상세가 열리는 공개 상품만(홈 큐레이션 카드, 정적 sitemap·llms.txt 주소는 실제 라우트)",
+      "checks": [
+        {
+          "file": "lib/home-season-pick.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-no-dead-product-links]", "AND: [publicProductWhereClause()]"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-search-console-1115.test.ts"]
+    },
+    {
       "id": "seo-home-image-alt",
       "tier": ["prebuild", "ci"],
       "summary": "홈·목록 상품/도시 사진 alt 비우지 않음",

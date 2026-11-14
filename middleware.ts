@@ -35,8 +35,10 @@ import {
 } from '@/lib/auth/simplyur-oauth-return-cookie'
 import {
   buildProductSlugRedirectLocation,
+  buildGoneProductHtml,
   buildSameHostRedirectLocation,
   fetchProductPathStatus,
+  GONE_PRODUCT_HEADERS,
   parseProductDetailPathSegment,
 } from '@/lib/product-path-status'
 import { esimUnavailableNotFoundResponse } from '@/lib/bongsim/esim-unavailable-middleware'
@@ -325,6 +327,13 @@ export async function middleware(req: NextRequest) {
     }
     // 로그인 세션·서비스 bearer 는 관리자 미리보기(draft) 가능성 — 페이지 판정에 맡김
     const maybeAdminPreview = Boolean(token) || Boolean(req.headers.get('authorization'))
+    // REGRESSION-FREEZE[seo-deleted-product-410]: 영구 삭제 상품 주소는 410 (홈 리다이렉트 금지) — manifest
+    if (status?.kind === 'gone' && !maybeAdminPreview) {
+      return new NextResponse(req.method === 'HEAD' ? null : buildGoneProductHtml(), {
+        status: 410,
+        headers: GONE_PRODUCT_HEADERS,
+      })
+    }
     if (status?.kind === 'not_found' && !maybeAdminPreview) {
       const nf = req.nextUrl.clone()
       nf.pathname = '/products/__not-found__/404'

@@ -8,6 +8,9 @@
 
 export const IMAGE_SITEMAP_CONTENT_TYPE = 'application/xml; charset=utf-8'
 
+/** 사이트맵 프로토콜 URL 길이 상한 — 넘는 항목은 파서 오류 대신 건너뛴다 */
+export const SITEMAP_URL_MAX_LENGTH = 2048
+
 export type ImageSitemapEntry = {
   /** 페이지 절대 URL */
   loc: string
@@ -69,6 +72,7 @@ export function buildImageSitemapXml(entries: readonly ImageSitemapEntry[], orig
     const loc = (e.loc ?? '').trim()
     const img = normalizeSitemapImageUrl(e.imageUrl, origin)
     if (!loc || !img || seenLoc.has(loc)) continue
+    if (loc.length > SITEMAP_URL_MAX_LENGTH || img.length > SITEMAP_URL_MAX_LENGTH) continue
     seenLoc.add(loc)
     const caption = stripInvalidXmlChars((e.caption ?? '').trim())
     const title = stripInvalidXmlChars((e.title ?? '').trim())

@@ -62,6 +62,19 @@ async function findAdminPreviewProduct(
 }
 
 /**
+ * REGRESSION-FREEZE[seo-deleted-product-410]: 상태와 무관하게 행이 하나라도 있는지(영구 삭제 판별). 없을 때만 410 대상.
+ */
+export async function productRowExistsForPathSegment(rawSegment: string): Promise<boolean> {
+  const segment = extractProductPathIdentifier(rawSegment)
+  if (!segment) return false
+  const row = await prisma.product.findFirst({
+    where: { OR: [{ slug: segment }, { id: segment }] },
+    select: { id: true },
+  })
+  return row !== null
+}
+
+/**
  * URL 세그먼트(slug 또는 cuid) → 상품 조회.
  * cuid로 접근했는데 slug가 있으면 redirect 반환(호출측에서 permanentRedirect).
  */

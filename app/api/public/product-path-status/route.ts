@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { resolveProductByPathSegment } from '@/lib/resolve-product-by-path-segment'
+import { productRowExistsForPathSegment, resolveProductByPathSegment } from '@/lib/resolve-product-by-path-segment'
 import { productPathStatusFromLookup } from '@/lib/product-path-status-from-lookup'
 import type { ProductPathStatus } from '@/lib/product-path-status'
 
@@ -35,7 +35,11 @@ export async function GET(req: Request) {
   }
   try {
     const r = await resolveProductByPathSegment(seg, { allowAdminDraft: false })
-    const value: ProductPathStatus = productPathStatusFromLookup(r)
+    let value: ProductPathStatus = productPathStatusFromLookup(r)
+    // REGRESSION-FREEZE[seo-deleted-product-410]: 공개 조회에 안 잡혀도 행이 남아 있으면(비공개·출발 종료) 404 유지, 행이 없을 때만 410 — manifest
+    if (value.kind === 'not_found' && !(await productRowExistsForPathSegment(seg))) {
+      value = { kind: 'gone' }
+    }
     remember(seg, value)
     return NextResponse.json(value, { headers: { 'Cache-Control': 'no-store' } })
   } catch (e) {

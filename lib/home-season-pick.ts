@@ -3,6 +3,7 @@ import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { buildPublicUrlForObjectKey, isObjectStorageConfigured } from '@/lib/object-storage'
 import { prisma } from '@/lib/prisma'
 import { publicProductPath } from '@/lib/product-public-path'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { excerptBody, stripSupabaseStorageForHomeSeasonImage } from '@/lib/home-season-pick-shared'
@@ -138,6 +139,8 @@ export async function resolveValidMonthlyCurationLinkedProductIds(
       id: { in: linkedIds },
       registrationStatus: 'registered',
       autoUnpublishedAt: null,
+      // REGRESSION-FREEZE[seo-no-dead-product-links]: 홈 카드 링크 = 상세가 실제로 열리는 공개 상품만(출발 종료 상품 404 링크 방지) — manifest
+      AND: [publicProductWhereClause()],
     },
     select: { id: true },
   })
