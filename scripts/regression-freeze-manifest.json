@@ -3078,7 +3078,58 @@
         "lib/bongsim/esim-customer-cs-links.test.ts"
       ]
     },
+    {
+      "id": "bongsim-esim-install-guide-pages",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 설치 안내는 데이터 JSON만 그리고, 카카오·PDF·공급사 이름은 화면에 없다",
+      "checks": [
         {
+          "file": "lib/bongsim/esim-install-guide.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-install-guide-pages]",
+            "/travel/esim/guide/install",
+            "/travel/esim/guide/traveler-auth",
+            "https://www.usimsa.com/board/contact-channel/",
+            "eSIM 설치 방법"
+          ],
+          "mustNotInclude": [
+            "_fqTkK",
+            "_xlxjrxlX",
+            "pf.kakao.com"
+          ]
+        },
+        {
+          "file": "lib/bongsim/esim-guide-site/esim-guide.data.json",
+          "mustInclude": [
+            "자세히 보기",
+            "출국 전 준비",
+            "https://www.usimsa.com/board/contact-channel/",
+            "\"downloads\": []"
+          ],
+          "mustNotInclude": [
+            "_fqTkK",
+            "_xlxjrxlX",
+            "pf.kakao.com",
+            ".pdf",
+            "유심사",
+            "USIMSA"
+          ]
+        },
+        {
+          "file": "lib/sitemap-public-entries.ts",
+          "mustInclude": [
+            "/travel/esim/guide/install"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim-install-guide.test.ts"
+      ]
+    },
+    {
       "id": "bongsim-esim-qr-os-install-lms-always",
       "tier": [
         "prebuild",
