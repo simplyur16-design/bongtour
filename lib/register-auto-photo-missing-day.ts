@@ -76,6 +76,44 @@ export function scheduleHasMissingEligiblePhotoSlot(schedule: string | null): bo
   })
 }
 
+/**
+ * 키워드가 겹치면 풀 5장을 일차 순서대로 덮어쓴다. 빈 칸만 채울 때, 또는 이미 사진이 있으면 그 경로를 타지 않는다.
+ * REGRESSION-FREEZE[photo-fill-route-sight-1114]: 일괄 배정은 빈 상품만 — manifest
+ */
+export function shouldBulkAssignUndistinctPool(input: {
+  poolCount: number
+  fillMissingOnly: boolean
+  storedDayPhotoCount: number
+}): boolean {
+  if (input.fillMissingOnly || input.storedDayPhotoCount > 0) return false
+  return input.poolCount >= 5
+}
+
+export function countNewlyFilledPhotoSlots(input: {
+  beforeDayUrls: ReadonlyArray<string | null | undefined>
+  afterDayUrls: ReadonlyArray<string | null | undefined>
+  beforeCover?: string | null
+  afterCover?: string | null
+  coverCounts: boolean
+}): number {
+  let n = 0
+  const len = Math.max(input.beforeDayUrls.length, input.afterDayUrls.length)
+  for (let i = 0; i < len; i++) {
+    if (!String(input.beforeDayUrls[i] ?? '').trim() && String(input.afterDayUrls[i] ?? '').trim()) n++
+  }
+  if (input.coverCounts && !String(input.beforeCover ?? '').trim() && String(input.afterCover ?? '').trim()) n++
+  return n
+}
+
+/** 실제로 채운 칸이 0이면 성공이 아니다. */
+export function photoFillHttpResult(filled: number): {
+  httpStatus: number
+  body: { success: boolean; filled: number; reason?: string }
+} {
+  if (filled > 0) return { httpStatus: 200, body: { success: true, filled } }
+  return { httpStatus: 422, body: { success: false, filled: 0, reason: 'no_slot_filled' } }
+}
+
 export function autoPhotoFillRequest(hasMainPhoto: boolean): {
   photoChain: 'v2'
   preserveHero: boolean

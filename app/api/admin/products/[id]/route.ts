@@ -620,6 +620,24 @@ export async function PATCH(request: Request, { params }: RouteParams) {
             { status: 400 },
           )
         }
+        // REGRESSION-FREEZE[photo-registration-gate-wiring]: 방문지 불일치·공개 상품과 중복·무관 사진·저화질·용량 → registered 금지 — manifest
+        {
+          const { evaluateStoredProductPhotosForRegistration } = await import('@/lib/photo-gate-runner')
+          const { probeStoredImage } = await import('@/lib/register-auto-photo-register-job')
+          const photoGate = await evaluateStoredProductPhotosForRegistration(prisma, id, {
+            bgImageUrl: typeof nextBg === 'string' ? nextBg : null,
+            schedule: typeof nextSchedule === 'string' ? nextSchedule : null,
+          }, (u) => probeStoredImage(u))
+          if (photoGate && !photoGate.ok) {
+            return NextResponse.json(
+              {
+                error: '등록 확정 전 사진 검사를 통과해야 합니다(방문지 불일치·목록 카드 대표 사진 중복·무관 사진·저화질·용량). 등록중 상태로 두세요.',
+                missing: { photoGate: true, blocks: photoGate.blocks.slice(0, 20) },
+              },
+              { status: 400 },
+            )
+          }
+        }
         // 문과장 1106 v4: remat revision 상품은 3축 사람 검수 기록이 '지금 행'과 일치해야만 registered (legacy 무변경)
         const { checkRegisterFlipHumanReviewGate } = await import('@/lib/register-pending-review-stamp')
         const flipGate = await checkRegisterFlipHumanReviewGate(id, Object.keys(body))

@@ -11,6 +11,7 @@
  * REGRESSION-FREEZE[register-photo-day-confirmed-place]: 풀·hero 는 그날 장소 관문, 다른 활동 URL 재사용 금지 — manifest
  */
 import { expandPlaceValues, photoMatchGate, type MatchGateCandidate } from '@/lib/register-photo-match-gate'
+import { registerScheduleRouteHasNamedSight } from '@/lib/register-schedule-city-only-day'
 
 /** 여행 틀·이동만 있는 낱말. 이것만 겹치면 같은 장소 재방문이 아니다. */
 const FRAME_RE =
@@ -254,7 +255,10 @@ export function dayPhotoContextFromFacts(facts: DayPhotoFacts): DayPhotoContext 
   )
   const marks = landmarkCitiesInText(`${stored}\n${facts.imageKeyword ?? ''}\n${facts.imageKeyword2 ?? ''}`)
   if (generated && (named.length > 0 || marks.length > 0)) return { kind: 'recommendation' }
-  return dayPhotoContext(stored)
+  const base = dayPhotoContext(stored)
+  // REGRESSION-FREEZE[photo-fill-route-sight-1114]: 요약에 명소가 있으면 '확인된 관광 없음'으로 검색을 건너뛰지 않는다. 자유일정·이동·도시만은 위 분기 유지 — manifest
+  if (base.kind === 'none' && registerScheduleRouteHasNamedSight(facts.routeText)) return { kind: 'supplier' }
+  return base
 }
 
 export function dayConfirmedPlaceText(parts: {

@@ -4,9 +4,12 @@ import path from 'node:path'
 import { REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE } from '@/lib/register-pre-photo-pending-queue-query'
 import {
   autoPhotoFillRequest,
+  countNewlyFilledPhotoSlots,
   missingDayFillAction,
+  photoFillHttpResult,
   processImagesProductUpdate,
   scheduleHasMissingEligiblePhotoSlot,
+  shouldBulkAssignUndistinctPool,
 } from '@/lib/register-auto-photo-missing-day'
 
 describe('missing-day photo fill', () => {
@@ -36,5 +39,45 @@ describe('missing-day photo fill', () => {
     expect(src).toContain('REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE')
     expect(src).not.toContain("registrationStatus: 'pre_photo_blocked'")
     expect(src).not.toContain('registerPrePhotoQueueReady:')
+    expect(src).toContain('filled: filledCount')
+    expect(src).toContain('j.filled')
+  })
+
+  it('does not bulk-assign the pool over stored photos or a missing-only fill', () => {
+    expect(shouldBulkAssignUndistinctPool({
+      poolCount: 5, fillMissingOnly: true, storedDayPhotoCount: 2,
+    })).toBe(false)
+    expect(shouldBulkAssignUndistinctPool({
+      poolCount: 5, fillMissingOnly: false, storedDayPhotoCount: 1,
+    })).toBe(false)
+    expect(shouldBulkAssignUndistinctPool({
+      poolCount: 5, fillMissingOnly: false, storedDayPhotoCount: 0,
+    })).toBe(true)
+    expect(shouldBulkAssignUndistinctPool({
+      poolCount: 4, fillMissingOnly: false, storedDayPhotoCount: 0,
+    })).toBe(false)
+    const route = fs.readFileSync(path.join(process.cwd(), 'app/api/travel/process-images/route.ts'), 'utf8')
+    expect(route).toContain('!areScheduleImageKeywordsDistinct(scheduleArr)')
+    expect(route).toContain('shouldBulkAssignUndistinctPool')
+    expect(route).toContain('replyWithFilledCount')
+  })
+
+  it('counts only newly filled slots and rejects a zero fill', () => {
+    expect(countNewlyFilledPhotoSlots({
+      beforeDayUrls: ['https://cdn.example/a.webp', ''],
+      afterDayUrls: ['https://cdn.example/a.webp', 'https://cdn.example/b.webp'],
+      beforeCover: 'https://cdn.example/cover.webp',
+      afterCover: 'https://cdn.example/cover.webp',
+      coverCounts: true,
+    })).toBe(1)
+    expect(countNewlyFilledPhotoSlots({
+      beforeDayUrls: [''],
+      afterDayUrls: [''],
+      beforeCover: '',
+      afterCover: 'https://cdn.example/cover.webp',
+      coverCounts: false,
+    })).toBe(0)
+    expect(photoFillHttpResult(2)).toEqual({ httpStatus: 200, body: { success: true, filled: 2 } })
+    expect(photoFillHttpResult(0)).toEqual({ httpStatus: 422, body: { success: false, filled: 0, reason: 'no_slot_filled' } })
   })
 })

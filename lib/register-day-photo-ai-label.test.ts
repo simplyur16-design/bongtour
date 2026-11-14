@@ -18,6 +18,12 @@ describe('register-day-photo-ai-label', () => {
   it('falls back to the keyword when the prompt is unknown', () => {
     expect(dayPhotoAiLabel({ source: 'Gemini' }, null, 'Ba Na Hills', now)?.promptRecorded).toBe('keyword')
   })
+  it('AI 생성 출처와 ai-generated 파일명은 생성 이미지로 표시한다', () => {
+    const l = dayPhotoAiLabel({ source: 'AI 생성', url: 'https://cdn.example/ai-generated-prague.webp' }, null, 'Old Town Square', now)
+    expect(l?.isGenerated).toBe(true)
+    expect(l?.aiLabel).toBe(DAY_PHOTO_AI_LABEL_KO)
+    expect(l?.promptRecorded).toBe('keyword')
+  })
   it('does not label stock photos', () => {
     expect(dayPhotoAiLabel({ source: 'Pexels' }, 'x', 'y', now)).toBeNull()
     expect(dayPhotoAiLabel({ source: 'Unsplash' }, 'x', 'y', now)).toBeNull()

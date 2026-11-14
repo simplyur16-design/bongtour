@@ -8,7 +8,7 @@
 
 import { promises as fs } from 'fs'
 import path from 'path'
-import type { PrismaClient } from '@prisma/client'
+import type { Prisma, PrismaClient } from '@prisma/client'
 import { convertToWebp } from '@/lib/image-to-webp'
 import {
   COVER_IMAGE_WEBP_MAX_WIDTH,
@@ -85,6 +85,8 @@ export async function savePhotoToPool(
     maxWidth?: number
     quality?: number
     attribution?: PhotoPoolAttribution
+    /** 파일명 맨 앞. 생성 이미지는 ai-generated (실사로 보이지 않게). */
+    filenamePrefix?: string
   }
 ): Promise<PoolPhotoRecord> {
   if (!isObjectStorageConfigured()) {
@@ -103,7 +105,9 @@ export async function savePhotoToPool(
     data = converted.buffer
   }
 
-  const filename = buildWebpFilename(cityName, attractionName, source)
+  const built = buildWebpFilename(cityName, attractionName, source)
+  const prefix = String(options?.filenamePrefix ?? '').replace(/[^0-9A-Za-z-]/g, '').slice(0, 40)
+  const filename = prefix ? `${prefix}-${built}` : built
   const objectKey = buildPhotoPoolObjectKey(filename)
   const storageLeaf = objectKey.startsWith('photo-pool/') ? objectKey.slice('photo-pool/'.length) : objectKey
   const { publicUrl } = await uploadStorageObject({
@@ -193,6 +197,30 @@ const IMAGE_INGEST_FETCH_HEADERS: Record<string, string> = {
 /**
  * REGRESSION-FREEZE[pexels-primary-single-ingest]: same Pexels photo id → reuse pool row (skip download) — manifest
  */
+/**
+ * 같은 방문지 이름으로 사진 풀을 찾는다. 도시 이름만으로 찾지 않는다(풀에 도시만 적힌 행이 많다).
+ * attractionName·파일명에 장소 이름이 들어 있는 행만 반환한다.
+ */
+export async function findPhotoPoolByPlaceName(
+  prisma: PrismaClient,
+  placeName: string,
+  take = 8,
+): Promise<PoolPhotoRecord[]> {
+  const q = placeName.trim()
+  if (q.length < 2) return []
+  const or: Prisma.PhotoPoolWhereInput[] = [{ attractionName: { contains: q, mode: 'insensitive' } }]
+  const compact = q.replace(/\s+/g, '')
+  if (compact.length >= 2 && compact !== q) or.push({ attractionName: { contains: compact, mode: 'insensitive' } })
+  const slug = q.replace(/[^0-9A-Za-z가-힣]+/g, '')
+  if (slug.length >= 3) or.push({ filePath: { contains: slug, mode: 'insensitive' } })
+  const list = await prisma.photoPool.findMany({
+    where: { OR: or },
+    orderBy: { createdAt: 'desc' },
+    take,
+  })
+  return list as PoolPhotoRecord[]
+}
+
 export async function findPhotoPoolBySourcePhotoId(
   prisma: PrismaClient,
   sourcePhotoId: string

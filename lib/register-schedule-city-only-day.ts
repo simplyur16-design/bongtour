@@ -46,6 +46,28 @@ export function registerScheduleRouteIsCityOnly(routeText: string | null | undef
   return cities > 0
 }
 
+/** 일정 요약 칸의 명소·관광지. 도시 이름(아디스 아바바·상파울루)과 공항·이동 말은 제외. */
+const NAMED_SIGHT_RE =
+  /마운틴|신사|사원|사찰|폭포|해변|비치|시장|성당|타워|공원|광장|박물관|궁전|대교|호수|빙하|온천|구시가|피라미드|협곡|계곡|동굴|워터프런트|유니버설|디즈니|성채|mountain|shrine|temple|glacier|lagoon|beach|bridge|market|palace|falls|waterfall|park|tower|cathedral|mosque|pyramid|canyon|cave/i
+
+/**
+ * 일정 요약(route)에 명소·관광지가 있는지.
+ * 도시 이름만·공항 이동은 false. 도시 이름이 곧 명소인 곳은 true.
+ * REGRESSION-FREEZE[photo-fill-route-sight-1114]: 요약의 명소는 검색 대상 — manifest
+ */
+export function registerScheduleRouteHasNamedSight(routeText: string | null | undefined): boolean {
+  const t = String(routeText ?? '').trim()
+  if (!t) return false
+  if (REGISTER_CITY_IS_ATTRACTION_RE.test(t)) return true
+  const segs = t.split(SPLIT_RE).map((x) => x.trim()).filter(Boolean)
+  return segs.some((seg) => {
+    if (NOISE_SEGMENT_RE.test(seg)) return false
+    if (NAMED_SIGHT_RE.test(seg)) return true
+    const en = firstMatchingScheduleSpotEn(seg)
+    return !!en && NAMED_SIGHT_RE.test(en)
+  })
+}
+
 /**
  * 도시만 있는 이동·경유일 — 서로 다른 도시 2곳 이상만 있는 날(예: '두바이 - 아테네').
  * 한 도시에 머무는 날('보르도'·'홍콩')은 그 도시 명소 키워드가 필요하므로 여기에 들지 않는다.

@@ -18,6 +18,11 @@ import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import { REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE } from '@/lib/register-pre-photo-pending-queue-query'
 import { refreshRegisterPrePhotoQueueFlagsForProductId } from '@/lib/register-pre-photo-queue-flags'
 import { loadRegisterPublishFacts } from '@/lib/register-publish-facts'
+import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
+import { buildRegistrationPhotoInput, runPhotoHealForProduct, runPublicPhotoNightlyAuditLive } from '@/lib/photo-gate-runner'
+import { isNightlyAuditWindowKst } from '@/lib/photo-nightly-audit'
+import { summarizePhotoExceptions, type PhotoException } from '@/lib/photo-exception-list'
+import { evaluateRegistrationPhotos, registrationBlockCodes } from '@/lib/register-photo-registration-gate'
 import {
   evaluateAutoRegisterGate,
   formatAutoRegisterBlockReasons,
@@ -92,6 +97,10 @@ export type AutoPhotoRegisterRunResult = {
   registered: number
   held: number
   heldByReason: Record<string, number>
+  /** 등록 전 사진 게이트가 막아 자가 힐로 교체한 칸 수 / 못 고쳐 예외 목록에 오른 칸 수 */
+  healed: number
+  photoExceptions: number
+  nightly: { ran: boolean; replaced: number; broken: number; duplicates: number; deferred: number; exceptions: number } | null
 }
 
 export async function runAutoPhotoRegisterJob(opts?: {
@@ -114,6 +123,9 @@ export async function runAutoPhotoRegisterJob(opts?: {
     registered: 0,
     held: 0,
     heldByReason: {},
+    healed: 0,
+    photoExceptions: 0,
+    nightly: null,
   }
 
   const ids = await prisma.product.findMany({
@@ -150,8 +162,10 @@ export async function runAutoPhotoRegisterJob(opts?: {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
             body: JSON.stringify({ productId: id, ...autoPhotoFillRequest(hasMainPhoto) }),
           })
-          const j = (await res.json().catch(() => ({}))) as { success?: boolean }
-          if (res.ok && j.success) {
+          const j = (await res.json().catch(() => ({}))) as { success?: boolean; filled?: number; reason?: string }
+          const filledCount = typeof j.filled === 'number' && Number.isFinite(j.filled) ? Math.max(0, Math.floor(j.filled)) : 0
+          // REGRESSION-FREEZE[photo-fill-route-sight-1114]: 응답의 실제 채움 수만 성공으로 센다 — manifest
+          if (res.ok && j.success === true && filledCount > 0) {
             logAutoPhotoAttempt({
               productId: id,
               day: null,
@@ -159,16 +173,18 @@ export async function runAutoPhotoRegisterJob(opts?: {
               providerErrorClass: null,
               attemptAt,
               result: 'filled',
+              filled: filledCount,
             })
-            result.filled++
+            result.filled += filledCount
           } else {
             logAutoPhotoAttempt({
               productId: id,
               day: null,
               gate: 'process-images',
-              providerErrorClass: res.ok ? 'FillRejected' : `Http${res.status}`,
+              providerErrorClass: j.reason || (res.ok ? 'FillRejected' : `Http${res.status}`),
               attemptAt,
               result: 'failed',
+              filled: filledCount,
             })
             result.fillFailed++
           }
@@ -195,6 +211,27 @@ export async function runAutoPhotoRegisterJob(opts?: {
         })
       }
       await sleep(gapMs)
+    }
+
+    // 04b: 등록 전 사진 게이트가 막은 칸은 다음 후보(칸당 5개)로 자가 힐. 못 고친 칸은 예외 목록 + 이 상품만 보류.
+    // REGRESSION-FREEZE[photo-registration-gate-wiring]: 힐 → 게이트 → 보류 사유 기록 — manifest
+    let healExceptions: PhotoException[] = []
+    if (sw.fill) {
+      try {
+        const healed = await runPhotoHealForProduct(prisma, id, (u) => probeStoredImage(u, f))
+        result.healed += healed.heal?.replaced.length ?? 0
+        result.photoExceptions += healed.exceptions.length
+        healExceptions = healed.exceptions
+      } catch (err) {
+        logAutoPhotoAttempt({
+          productId: id,
+          day: null,
+          gate: 'photo-heal',
+          providerErrorClass: providerErrorClass(err),
+          attemptAt: new Date().toISOString(),
+          result: 'failed',
+        })
+      }
     }
 
     // 05: 자동 검사
@@ -248,6 +285,19 @@ export async function runAutoPhotoRegisterJob(opts?: {
       hasBookablePrice: p.hasBookableDepartures === true && priceRows === 1,
       probes,
     })
+
+    // 등록 전 사진 게이트(방문지 불일치·공개 상품과 중복·무관 사진·저화질·용량): 기존 검사에 더하기만 한다.
+    try {
+      const usage = await loadPublicPhotoUsageCached(prisma)
+      const photoGate = evaluateRegistrationPhotos(buildRegistrationPhotoInput({ ...p, id }, usage, probes))
+      for (const code of registrationBlockCodes(photoGate.blocks)) {
+        if (!gate.reasons.includes(code)) gate.reasons.push(code)
+      }
+      if (photoGate.blocks.length > 0) gate.ok = false
+    } catch {
+      if (!gate.reasons.includes('photo_review_pending')) gate.reasons.push('photo_review_pending')
+      gate.ok = false
+    }
 
     // 문과장 사진 검수 통과 목록 밖이면 자동 검사를 통과해도 등록 전환하지 않음 (REGRESSION-FREEZE[auto-register-review-pass])
     const reviewPassed = isAutoRegisterReviewPassed(id, {
@@ -313,10 +363,39 @@ export async function runAutoPhotoRegisterJob(opts?: {
       await prisma.product.update({
         where: { id },
         data: {
-          autoRegisterBlockReason: formatAutoRegisterBlockReasons(gate.reasons).slice(0, 500),
+          autoRegisterBlockReason: [formatAutoRegisterBlockReasons(gate.reasons), summarizePhotoExceptions(healExceptions, 200)]
+            .filter(Boolean)
+            .join(' | ')
+            .slice(0, 500),
           autoRegisterCheckedAt: new Date(),
           ...(photoReason ? { needsImageReview: true } : {}),
         },
+      })
+    }
+  }
+
+  // 야간 점검: 기존 스케줄(KST 22시~06시 구간 실행)에 붙는 단계. 공개 상품은 사진 칸만 교체하고, 외부 장애는 건너뛴다.
+  // REGRESSION-FREEZE[photo-nightly-audit]: 야간 구간에서만, 실패해도 job 은 계속 — manifest
+  if (sw.fill && isNightlyAuditWindowKst(new Date())) {
+    try {
+      const n = await runPublicPhotoNightlyAuditLive(prisma, (u) => probeStoredImage(u, f), f)
+      result.photoExceptions += n.exceptions.length
+      result.nightly = {
+        ran: true,
+        replaced: n.replaced.length,
+        broken: n.broken,
+        duplicates: n.duplicates,
+        deferred: n.deferred,
+        exceptions: n.exceptions.length,
+      }
+    } catch (err) {
+      logAutoPhotoAttempt({
+        productId: 'nightly',
+        day: null,
+        gate: 'photo-nightly-audit',
+        providerErrorClass: providerErrorClass(err),
+        attemptAt: new Date().toISOString(),
+        result: 'failed',
       })
     }
   }
