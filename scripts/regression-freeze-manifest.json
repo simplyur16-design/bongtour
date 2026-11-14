@@ -29736,6 +29736,38 @@
       ]
     },
     {
+      "id": "card-cover-photo-unique",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "목록 카드 대표사진 1상품 1장: 자동 배정(풀·미리저장 세트·캐시·재고 검색)에서 다른 공개·등록대기 상품 대표사진(같은 주소·같은 Pexels/Unsplash 번호) 재사용 금지, 다 쓰였으면 일정의 다른 방문지로 재검색(도시명 대체 금지) (사장님 11/14)",
+      "checks": [
+        {
+          "file": "lib/product-cover-photo-unique.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[card-cover-photo-unique]",
+            "export function coverPhotoKeys",
+            "export async function loadCoverPhotoUsage",
+            "{ registrationStatus: 'pending' }"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[card-cover-photo-unique]",
+            "loadCoverPhotoUsage(prisma, { excludeProductId: String(product.id) })",
+            "poolMainRaw && !otherCovers.isUsed",
+            "runChain('main', q, q, notOtherCover",
+            "coverFallbackPlaceQueries("
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/product-cover-photo-unique.test.ts"
+      ]
+    },
+    {
       "id": "auto-register-review-pass",
       "tier": [
         "prebuild",
