@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
+import { buildEsimSearchMetadata, esimSearchTitle } from "@/lib/seo/esim-search-metadata";
 import Link from "next/link";
 import Header from "@/app/components/Header";
 import { HelpSupportDetailLayout } from "@/components/bongsim/HelpSupportDetailLayout";
 import { bongsimPath } from "@/lib/bongsim/constants";
 
 export const metadata: Metadata = {
-  title: "eSIM 서비스 도움말",
-  description: "Bong투어 eSIM 이용 중 자주 묻는 질문과 문의 경로를 안내합니다.",
-  alternates: { canonical: "/travel/esim/help/service-help" },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle("eSIM 서비스 도움말"),
+    description: "Bong투어 eSIM(여행용) 이용 중 자주 묻는 질문과 고객센터 문의 경로를 안내합니다.",
+    path: "/travel/esim/help/service-help",
+  }),
 };
 
 export default function EsimServiceHelpPage() {

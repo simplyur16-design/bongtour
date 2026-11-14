@@ -5,17 +5,20 @@
 import type { Metadata } from 'next'
 import { SITE_NAME } from '@/lib/site-metadata'
 
-export const HOME_PAGE_TITLE = '해외여행 패키지·자유여행·eSIM | 봉투어'
+// REGRESSION-FREEZE[seo-search-copy-esim-travel]: 검색용 eSIM 표기 = 'eSIM(여행용)', 공급사(유심사) 이름 금지, 국외연수 포함 — manifest
+export const HOME_PAGE_TITLE = '해외여행 패키지·자유여행·국외연수·eSIM(여행용) | 봉투어'
 
 export const HOME_PAGE_DESCRIPTION =
-  '일본·베트남·유럽 해외여행 패키지와 항공+호텔 자유여행, 해외 eSIM을 한곳에서 비교하세요. 출발 일정 확인 후 상담으로 예약합니다.'
+  '일본·베트남·유럽 해외여행 패키지와 항공+호텔 자유여행, 공공·기업 국외연수, eSIM(여행용)을 한곳에서 비교하세요. 출발 일정 확인 후 상담으로 예약합니다.'
 
 export const HOME_PAGE_KEYWORDS = [
   '해외여행',
   '해외여행 패키지',
   '자유여행',
   '항공호텔',
-  '해외 eSIM',
+  'eSIM(여행용)',
+  '국외연수',
+  '공공기관 국외연수',
   '일본여행',
   '베트남여행',
   '유럽여행',

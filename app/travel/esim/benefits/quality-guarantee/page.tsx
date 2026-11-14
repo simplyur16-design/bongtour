@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import { buildEsimSearchMetadata, esimSearchTitle } from "@/lib/seo/esim-search-metadata";
 import { EsimBenefitPageShell } from "@/components/bongsim/EsimBenefitPageShell";
 import { EsimQualityGuaranteeSections } from "@/components/bongsim/EsimQualityGuaranteeSections";
 
 export const metadata: Metadata = {
-  title: { absolute: "품질보장서비스 | Bong투어 eSIM" },
-  description:
-    "제품 결함 시 전액 환불 등 Bong투어 eSIM 품질보장의 취지, 여행자 보호, 환불 기준 안내입니다.",
-  alternates: { canonical: "/travel/esim/benefits/quality-guarantee" },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle("품질보장서비스"),
+    description:
+      "제품 결함 시 전액 환불 등 Bong투어 eSIM(여행용) 품질보장의 취지, 여행자 보호, 환불 기준 안내입니다.",
+    path: "/travel/esim/benefits/quality-guarantee",
+  }),
 };
 
 export default function EsimQualityGuaranteeBenefitPage() {

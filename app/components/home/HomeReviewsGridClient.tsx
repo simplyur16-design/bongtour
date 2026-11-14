@@ -28,7 +28,8 @@ export function HomeReviewGridCard({
         <div className="relative mb-3 aspect-[2/1] w-full overflow-hidden rounded-lg bg-slate-100">
           <SafeImage
             src={r.thumbnail_url}
-            alt=""
+            // REGRESSION-FREEZE[seo-home-image-alt]: 요청서 C11
+            alt={dest ? `${dest} 여행 후기 사진` : '여행 후기 사진'}
             fill
             className="object-cover"
             sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 320px"

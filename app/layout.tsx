@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: SITE_NAME,
       title: `${SITE_NAME} | BongTour`,
       description: '해외여행 패키지, 자유여행(항공+호텔), 해외 eSIM 안내와 예약 상담을 제공합니다.',
-      url: '/',
+      // REGRESSION-FREEZE[seo-root-layout-no-og-url-robots]: og:url 기본값(홈) 금지 — openGraph 없는 하위 페이지가 og:url=홈으로 나가던 문제
       images: [{ url: defaultOgImagePath, alt: SITE_NAME }],
     },
     twitter: {
@@ -42,11 +42,8 @@ export async function generateMetadata(): Promise<Metadata> {
       description: '해외여행 패키지, 자유여행(항공+호텔), 해외 eSIM 안내와 예약 상담을 제공합니다.',
       images: [defaultOgImagePath],
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: { index: true, follow: true },
-    },
+    // REGRESSION-FREEZE[seo-root-layout-no-og-url-robots]: 루트 robots 기본값 금지 — 404 에서 Next noindex 와 index,follow 가 같이 나가던 충돌.
+    // robots 메타가 없으면 검색엔진 기본값(index, follow). 홈·개별 페이지는 각자 robots 를 명시한다.
     verification: {
       other: {
         'naver-site-verification': 'ae6ce863b7e961b590c7ca31eddd12ba245ebfaa',

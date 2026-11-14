@@ -7,6 +7,7 @@ import { itineraryDescriptionsBlob } from '@/lib/product-location-key-match'
 import { normalizeProductGeoForPrisma } from '@/lib/normalize-product-geo'
 import { travelScopeAndListingKindFromAdminRegister } from '@/lib/register-admin-travel-category'
 import { revalidateProductListingCaches } from '@/lib/revalidate-product-listing-caches'
+import { notifyProductPublicUrlChanged } from '@/lib/seo/product-index-events'
 import { revalidateProductDetailCaches } from '@/lib/revalidate-product-detail-caches'
 import { requireAdmin } from '@/lib/require-admin'
 import { mapToParsedProductForDB } from '@/lib/map-to-parsed-product'
@@ -322,6 +323,8 @@ export async function POST(request: Request) {
 
     revalidateProductListingCaches()
     await revalidateProductDetailCaches(productId)
+    // REGRESSION-FREEZE[seo-indexnow-skip-on-failure]: 등록·수정 → 사이트맵 무효화 + IndexNow(키 없으면 SKIP, 비차단)
+    notifyProductPublicUrlChanged({ productId })
 
     return NextResponse.json({
       detailPath: `/admin/products/${productId}`,

@@ -6,7 +6,10 @@ import {
   parseInquiryUiLang,
   sanitizeInquiryQueryForKind,
 } from '@/lib/inquiry-page'
-import { SITE_NAME } from '@/lib/site-metadata'
+import { DEFAULT_OG_IMAGE_PATH, SITE_NAME } from '@/lib/site-metadata'
+
+/** REGRESSION-FREEZE[seo-inquiry-og-image]: /inquiry 공유 이미지 비어 있음 금지 (요청서 A3) — manifest */
+const INQUIRY_OG_IMAGES = [{ url: DEFAULT_OG_IMAGE_PATH, width: 1200, height: 630, alt: `${SITE_NAME} 여행·단체 문의` }]
 
 const KO_METADATA: Metadata = {
   title: '여행·단체 문의',
@@ -18,8 +21,9 @@ const KO_METADATA: Metadata = {
     description: '해외 여행 및 단체 관련 문의를 남겨 주세요.',
     url: '/inquiry',
     type: 'website',
+    images: INQUIRY_OG_IMAGES,
   },
-  twitter: { card: 'summary_large_image' },
+  twitter: { card: 'summary_large_image', images: [DEFAULT_OG_IMAGE_PATH] },
 }
 
 type PageProps = {
@@ -40,8 +44,9 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       description: 'Leave dates, party size, and destination. A coordinator will contact you.',
       url: '/inquiry',
       type: 'website',
+      images: INQUIRY_OG_IMAGES,
     },
-    twitter: { card: 'summary_large_image' },
+    twitter: { card: 'summary_large_image', images: [DEFAULT_OG_IMAGE_PATH] },
   }
 }
 

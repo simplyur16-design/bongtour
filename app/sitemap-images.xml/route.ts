@@ -4,28 +4,21 @@ import { getSiteOrigin } from '@/lib/site-metadata'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { publicProductPath } from '@/lib/product-public-path'
 import { shouldSkipSitemapDbAtBuild } from '@/lib/sitemap-build'
+import {
+  OVERSEAS_TRAINING_LISTING_KIND,
+  trainingProgramPublicPath,
+} from '@/lib/overseas-training-program-query'
+import {
+  buildImageSitemapXml,
+  IMAGE_SITEMAP_CONTENT_TYPE,
+  type ImageSitemapEntry,
+} from '@/lib/seo/image-sitemap'
 
-export const revalidate = 3600
+/**
+ * 이미지 사이트맵 — 요청 시 DB(공개 상품만). 삭제·비공개 상품은 조회 조건에서 빠진다.
+ * REGRESSION-FREEZE[seo-image-sitemap-valid-xml]: 국외연수는 `/business/programs/*` 정식 주소, XML 제어문자 제거 — manifest
+ */
 export const dynamic = 'force-dynamic'
-
-function escapeXml(s: string): string {
-  return s.replace(/[&<>"']/g, (ch) => {
-    switch (ch) {
-      case '&':
-        return '&amp;'
-      case '<':
-        return '&lt;'
-      case '>':
-        return '&gt;'
-      case '"':
-        return '&quot;'
-      case "'":
-        return '&apos;'
-      default:
-        return ch
-    }
-  })
-}
 
 function pickImageCaption(p: {
   title: string
@@ -46,25 +39,26 @@ function pickImageCaption(p: {
   return (p.title ?? '').trim() || '상품'
 }
 
-function emptyImageUrlset(): Response {
-  const body =
-    '<?xml version="1.0" encoding="UTF-8"?>\n' +
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"></urlset>'
-  return new Response(body, {
-    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+function xmlResponse(body: string, method: 'GET' | 'HEAD' = 'GET'): Response {
+  return new Response(method === 'HEAD' ? null : body, {
+    headers: {
+      'Content-Type': IMAGE_SITEMAP_CONTENT_TYPE,
+      'Cache-Control': 'public, max-age=0, s-maxage=300, stale-while-revalidate=600',
+    },
   })
 }
 
-export async function GET() {
+async function buildBody(): Promise<string> {
+  const origin = getSiteOrigin()
   if (shouldSkipSitemapDbAtBuild()) {
-    return emptyImageUrlset()
+    return buildImageSitemapXml([], origin)
   }
 
-  const origin = getSiteOrigin()
   let products: {
     id: string
     slug: string | null
     title: string
+    listingKind: string | null
     localDepartureTag: string[]
     departureAirportLabel: string | null
     bgImageUrl: string | null
@@ -83,6 +77,7 @@ export async function GET() {
         id: true,
         slug: true,
         title: true,
+        listingKind: true,
         localDepartureTag: true,
         departureAirportLabel: true,
         bgImageUrl: true,
@@ -95,40 +90,33 @@ export async function GET() {
     })
   } catch (e) {
     console.error('[sitemap-images] DB unavailable — empty urlset', e)
-    return emptyImageUrlset()
+    return buildImageSitemapXml([], origin)
   }
 
-  const lines: string[] = []
-  lines.push('<?xml version="1.0" encoding="UTF-8"?>')
-  lines.push(
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">'
-  )
-
+  const entries: ImageSitemapEntry[] = []
   for (const p of products) {
     const imgUrl = (p.bgImageUrl ?? '').trim()
     if (!imgUrl) continue
-
-    const loc = `${origin}${publicProductPath(p)}`
+    // 국외연수 8개는 상품 상세가 아니라 `/business/programs/<slug>` 가 정식 주소(상세 /products/* 는 301)
+    const path =
+      p.listingKind === OVERSEAS_TRAINING_LISTING_KIND ? trainingProgramPublicPath(p) : publicProductPath(p)
     // REGRESSION-FREEZE[local-departure-display-prefix]: 공개 상품명은 지방출발 표시 함수 경유 — manifest
     const displayTitle = applyLocalDepartureDisplayPrefix(p.title, resolveDisplayLocalDepartureTags(p))
     const title = (displayTitle ?? '').trim() || '상품'
-    const caption = pickImageCaption({ ...p, title: displayTitle })
-
-    lines.push('  <url>')
-    lines.push(`    <loc>${escapeXml(loc)}</loc>`)
-    lines.push('    <image:image>')
-    lines.push(`      <image:loc>${escapeXml(imgUrl)}</image:loc>`)
-    lines.push(`      <image:caption>${escapeXml(caption)}</image:caption>`)
-    lines.push(`      <image:title>${escapeXml(title)}</image:title>`)
-    lines.push('    </image:image>')
-    lines.push('  </url>')
+    entries.push({
+      loc: `${origin}${path}`,
+      imageUrl: imgUrl,
+      caption: pickImageCaption({ ...p, title: displayTitle }),
+      title,
+    })
   }
+  return buildImageSitemapXml(entries, origin)
+}
 
-  lines.push('</urlset>')
+export async function GET() {
+  return xmlResponse(await buildBody())
+}
 
-  return new Response(lines.join('\n'), {
-    headers: {
-      'Content-Type': 'application/xml; charset=utf-8',
-    },
-  })
+export async function HEAD() {
+  return xmlResponse('', 'HEAD')
 }
