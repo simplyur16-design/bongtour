@@ -5,6 +5,7 @@
  * SSOT: 관리자 재수집·공개 상세 출발일/가격 표시는 ProductDeparture 우선이며, ProductPrice는 레거시·보조.
  */
 import type { PrismaClient } from '@prisma/client'
+import { recomputeProductDepartureCacheSafe } from '@/lib/product-departure-cache'
 
 import { computeDepartureSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { reconcileLegacyYmdDepartureSlots } from '@/lib/departure-legacy-slot-reconcile'
@@ -426,6 +427,8 @@ export async function upsertProductDepartures(
     }
   }
   if (pairs.length > 0) await updateLastPriceObservedAt(prisma, productId)
+  // REGRESSION-FREEZE[departure-cache-from-rows]: 출발 row 쓰기 직후 캐시 재계산 — manifest
+  await recomputeProductDepartureCacheSafe(prisma, productId, 'upsert-hanatour')
   return pairs.length
 }
 

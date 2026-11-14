@@ -1,11 +1,11 @@
 /**
- * 사진 자동 채움 출처 순서 (사장님 10/31): Pexels → Unsplash/CC0(출처 표시 의무 없음) → AI(호출부, AI 표시 필수).
- * - Pexels: 기존처럼 풀에 저장(재호스팅)해서 쓴다.
- * - Unsplash: 가이드라인대로 핫링크(재호스팅 안 함) + 고를 때 download_location 호출 + 작가·프로필 기록.
- * - CC0: 연결된 CC0 검색 제공자가 없다 → 지어내지 않고 건너뛴다(tried 에 'cc0:no-provider').
- * - 신규 iStock·CC BY 는 후보로 만들지 않는다(두 검색 모두 해당 없음).
- * process-images 의 'photoChain v2' 경로에서만 쓴다. 기본 경로(관리자 수동 실행)는 그대로.
- * REGRESSION-FREEZE[register-photo-source-chain]: Pexels → Unsplash → (CC0 없음) → AI 순서, v2 에서만 — manifest
+ * 사진 자동 채움의 소싱 순서는 photo-autofill-acquire: 풀 → Pexels → Unsplash 무료 → CC0(Wikimedia) → 생성.
+ * 이 파일의 findStockPhotoByChain 은 process-images v2 의 스톡 검색만 한다.
+ * - Pexels, 그다음 Unsplash 무료. Unsplash 는 핫링크(재호스팅 안 함)이고, 고를 때 download_location 을 부르며 작가·프로필을 남긴다.
+ * - 이 함수의 cc0 칸은 검색하지 않고 tried 에 'cc0:no-provider' 만 남긴다. Wikimedia CC0 검색은 photo-autofill-cc0 가 획득 경로에서 한다.
+ * - 신규 iStock·CC BY 는 후보로 만들지 않는다.
+ * 기본 경로(관리자 수동 실행)는 이 체인을 쓰지 않는다.
+ * REGRESSION-FREEZE[register-photo-source-chain]: v2 스톡 검색은 Pexels → Unsplash 무료, 이 함수의 cc0 칸은 건너뜀 — manifest
  */
 import { searchPexelsHeroCandidates, type PexelsHeroCandidateMeta } from '@/lib/pexels-service'
 import {
@@ -158,9 +158,10 @@ export const pickFirstCandidate: ChainPick = (cands) => cands[0] ?? null
 export type ChainResult = { photo: ChainCandidate | null; tried: string[] }
 
 /**
- * 출처 순서대로 찾는다. 한 출처에서 하나라도 통과하면 다음 출처는 보지 않는다.
+ * v2 스톡 검색. Pexels 다음 Unsplash 무료. 한 출처에서 통과하면 다음 출처는 보지 않는다.
+ * 풀 재사용·Wikimedia CC0·생성은 여기 없고, 획득 경로 순서(풀 → Pexels → Unsplash 무료 → CC0 → 생성)는 photo-autofill-acquire 다.
  * 통과 조건: 가로 1200px 이상 + accept(같은 상품 안 중복 아님 등).
- * 아무것도 없으면 photo=null — 호출부가 AI 생성(표시 필수) 또는 '사진 필요'로 둔다.
+ * 아무것도 없으면 photo=null — v2 호출부가 생성(표시 필수) 또는 '사진 필요'로 둔다.
  */
 export async function findStockPhotoByChain(
   query: string,
