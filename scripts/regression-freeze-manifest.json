@@ -32065,7 +32065,11 @@
             "REGRESSION-FREEZE[departure-cache-from-rows]",
             "export async function recomputeProductDepartureCache(",
             "maxFuturePricedDepartureDate(prisma, productId, todayYmd)",
-            "export const DEPARTURE_CACHE_OTR_LISTING_KIND = 'overseas_training'"
+            "export const DEPARTURE_CACHE_OTR_LISTING_KIND = 'overseas_training'",
+            "prisma.product.updateMany({"
+          ],
+          "mustNotInclude": [
+            "await prisma.product.update({"
           ]
         },
         {
@@ -32125,7 +32129,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[departure-cache-nightly-reconcile]",
             "'40 0 * * *'",
-            "rollback"
+            "rollback",
+            "DEPARTURE_CACHE_RECONCILE_BOOT_DELAY_MS"
           ]
         },
         {
@@ -32752,7 +32757,8 @@
       ],
       "summary": "야간 캐시 불일치 탐지·재계산·건수·되돌리기 기록·dryRun·상한·otr 제외",
       "files": [
-        "lib/departure-cache-reconcile.test.ts"
+        "lib/departure-cache-reconcile.test.ts",
+        "lib/departure-cache-pr112-fix.test.ts"
       ]
     }
   ]

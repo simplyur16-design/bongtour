@@ -53,7 +53,8 @@ function toYmd(d: Date | null): string | null {
 
 export type DepartureCacheRecomputeResult = {
   productId: string
-  status: 'updated' | 'unchanged' | 'skipped_otr' | 'not_found'
+  /** conflict = 읽은 뒤 다른 쓰기가 먼저 캐시/마커를 바꿔 조건부 UPDATE 가 0건(덮어쓰지 않음). */
+  status: 'updated' | 'unchanged' | 'skipped_otr' | 'not_found' | 'conflict'
   dryRun: boolean
   before: { lastFutureDepartureDate: string | null; noFutureDepartureConfirmedAt: string | null }
   after: { lastFutureDepartureDate: string | null; markerCleared: boolean }
@@ -100,18 +101,25 @@ export async function recomputeProductDepartureCache(
   const todayYmd = opts?.todayYmd ?? kstTodayYmd()
   const actualLast = await maxFuturePricedDepartureDate(prisma, productId, todayYmd)
   const plan = planDepartureCache(row, actualLast)
+  let conflict = false
   if (plan.changed && !dryRun) {
-    await prisma.product.update({
-      where: { id: productId },
+    // REGRESSION-FREEZE[departure-cache-from-rows]: 읽은 값 그대로일 때만 쓰는 조건부 UPDATE(동시 저장이 쓴 새 캐시를 옛 값으로 덮지 않음) — manifest
+    const res = await prisma.product.updateMany({
+      where: {
+        id: productId,
+        lastFutureDepartureDate: row.lastFutureDepartureDate,
+        noFutureDepartureConfirmedAt: row.noFutureDepartureConfirmedAt,
+      },
       data: {
         lastFutureDepartureDate: plan.nextLastFutureDepartureDate,
         ...(plan.clearMarker ? { noFutureDepartureConfirmedAt: null } : {}),
       },
     })
+    conflict = res.count === 0
   }
   return {
     productId,
-    status: plan.changed ? 'updated' : 'unchanged',
+    status: conflict ? 'conflict' : plan.changed ? 'updated' : 'unchanged',
     dryRun,
     before,
     after: { lastFutureDepartureDate: toYmd(plan.nextLastFutureDepartureDate), markerCleared: plan.clearMarker },

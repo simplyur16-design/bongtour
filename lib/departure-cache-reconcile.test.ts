@@ -28,6 +28,11 @@ function fake(products: ProductRow[], deps: Array<{ productId: string; departure
         updates.push(where.id)
         Object.assign(products.find((p) => p.id === where.id)!, data)
       },
+      updateMany: async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+        updates.push(where.id)
+        Object.assign(products.find((p) => p.id === where.id)!, data)
+        return { count: 1 }
+      },
     },
     productDeparture: {
       findFirst: async ({ where }: { where: { productId: string; departureDate: { gte: Date } } }) => {

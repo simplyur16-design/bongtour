@@ -457,7 +457,10 @@ export async function runOneSalesPolicyCheck(
     checked: true,
     marked: markers.marked,
     lastFutureDate:
-      recomputed != null && recomputed.status !== 'skipped_otr' && recomputed.status !== 'not_found'
+      recomputed != null &&
+      recomputed.status !== 'skipped_otr' &&
+      recomputed.status !== 'not_found' &&
+      recomputed.status !== 'conflict'
         ? recomputed.after.lastFutureDepartureDate != null
           ? new Date(`${recomputed.after.lastFutureDepartureDate}T00:00:00.000Z`)
           : null

@@ -31,6 +31,14 @@ function fakePrisma(products: ProductRow[], deps: DepRow[]) {
         Object.assign(p, data)
         return p
       },
+      updateMany: async ({ where, data }: { where: { id: string; lastFutureDepartureDate: Date | null; noFutureDepartureConfirmedAt: Date | null }; data: Record<string, unknown> }) => {
+        const p = products.find((x) => x.id === where.id)
+        const same = (a: Date | null, b: Date | null) => (a == null || b == null ? a == null && b == null : a.getTime() === b.getTime())
+        if (!p || !same(p.lastFutureDepartureDate, where.lastFutureDepartureDate) || !same(p.noFutureDepartureConfirmedAt, where.noFutureDepartureConfirmedAt)) return { count: 0 }
+        updates.push({ id: where.id, data })
+        Object.assign(p, data)
+        return { count: 1 }
+      },
     },
     productDeparture: {
       findFirst: async ({ where }: { where: { productId: string; departureDate: { gte: Date }; adultPrice: { gt: number } } }) => {
