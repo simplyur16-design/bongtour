@@ -19,6 +19,8 @@ const SITEMAP_STATIC_CORE: Array<{ path: string; priority: number }> = [
   { path: '/travel/esim/catalog', priority: 0.8 },
   { path: '/travel/esim/recommend', priority: 0.8 },
   { path: '/travel/esim/guide', priority: 0.7 },
+  { path: '/travel/esim/guide/auth', priority: 0.7 },
+  { path: '/travel/esim/guide/general', priority: 0.7 },
   { path: '/travel/esim/devices', priority: 0.7 },
   { path: '/travel/esim/policy', priority: 0.55 },
   { path: '/air-ticketing', priority: 0.8 },

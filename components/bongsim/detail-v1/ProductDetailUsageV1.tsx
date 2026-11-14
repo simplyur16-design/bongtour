@@ -1,4 +1,5 @@
 import type { BongsimProductDetailUsageV1 } from "@/lib/bongsim/contracts/product-detail.v1";
+import { EsimInstallGuideLinks } from "@/components/bongsim/esim/EsimInstallGuideLinks";
 
 function Block({ title, body }: { title: string; body: string }) {
   return (
@@ -22,6 +23,10 @@ export function ProductDetailUsageV1({ usage }: { usage: BongsimProductDetailUsa
           <Block title="핫스팟" body={usage.hotspot_flag_raw} />
           <Block title="신원인증(KYC)" body={usage.kyc_flag_raw} />
         </div>
+      </div>
+      <div className="mt-4 border-t border-slate-100 pt-3">
+        <p className="text-[12px] font-semibold text-slate-700">eSIM 설치 방법</p>
+        <EsimInstallGuideLinks className="mt-2 block text-[13px]" />
       </div>
     </section>
   );

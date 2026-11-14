@@ -132,6 +132,40 @@ export function esimInstallHeadings(markdown: string): string[] {
     .map((block) => block.text);
 }
 
+/**
+ * 공개 페이지용 원고. 순서·표·문구는 유지하고,
+ * 카카오 상담 행·24시간 문장·PDF·확인 필요 표시는 빼거나 상품 페이지 안내로 바꾼다.
+ */
+export function publishEsimInstallManuscript(markdown: string): string {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  const out: string[] = [];
+  for (const line of lines) {
+    if (
+      line.includes("_fqTkK") ||
+      line.includes("_xlxjrxlX") ||
+      line.includes("pf.kakao.com") ||
+      /\.pdf\b/i.test(line)
+    ) {
+      continue;
+    }
+    if (line.trim().startsWith("|") && line.includes("카카오톡")) continue;
+    let next = line.replace(/ ?카카오톡 상담은 \*\*24시간 연중무휴\*\*입니다\./g, "");
+    if (next.includes("확인 필요")) {
+      if (/^#{1,3}\s+/.test(next.trim())) continue;
+      if (next.trim().startsWith("|")) {
+        next = next
+          .split("|")
+          .map((cell) => (cell.includes("확인 필요") ? " 상품 페이지 안내를 따르세요 " : cell))
+          .join("|");
+      } else {
+        next = "상품 페이지 안내를 따르세요";
+      }
+    }
+    out.push(next);
+  }
+  return out.join("\n").replace(/\]\(img\//g, "](/travel/esim/guide/");
+}
+
 export function esimInstallPlainText(markdown: string): string {
   return parseEsimInstallManuscript(markdown)
     .map((block) => {

@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   description:
     "여행자 인증이 필요 없는 eSIM(여행용) 상품의 아이폰·갤럭시 설치, 현지 설정, 자주 묻는 문제, 고객센터 안내.",
   alternates: { canonical: ESIM_INSTALL_GENERAL_PATH },
+  robots: { index: true, follow: true },
 };
 
 export default function EsimInstallGeneralPage() {

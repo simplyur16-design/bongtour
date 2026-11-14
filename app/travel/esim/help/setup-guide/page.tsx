@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
+import { EsimInstallGuideLinks } from '@/components/bongsim/esim/EsimInstallGuideLinks'
 import { bongsimPath } from '@/lib/bongsim/constants'
 
 export const metadata: Metadata = {
@@ -77,6 +78,7 @@ export default function EsimSetupGuidePage() {
             출국 전 준비 · 요금 폭탄 방지 · QR 1회성까지, Bong투어 eSIM을 처음 쓰는 분도 따라 할 수 있게 정리했어요.
             기기별 화면 단계는 전체 설치 가이드에서 확인하세요.
           </p>
+          <EsimInstallGuideLinks className="mt-4 block text-[13px]" />
 
           <section aria-label="설치 시점 Q&A" className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
             {QNA.map((item) => {

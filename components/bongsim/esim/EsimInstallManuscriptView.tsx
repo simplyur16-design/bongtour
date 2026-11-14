@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
+import { ESIM_INSTALL_IMAGE_SIZE } from "@/lib/bongsim/esim-install-image-size";
 import { parseEsimInstallManuscript, type EsimInstallBlock } from "@/lib/bongsim/esim-install-manuscript";
 
 function Inline({ text }: { text: string }): ReactNode {
@@ -68,14 +70,18 @@ function BlockView({ block }: { block: EsimInstallBlock }) {
     );
   }
   if (block.kind === "img") {
+    const size = ESIM_INSTALL_IMAGE_SIZE[block.src] ?? { width: 390, height: 844 };
     return (
-      {/* eslint-disable-next-line @next/next/no-img-element -- 원고 SVG */}
-      <img
+      <Image
         src={block.src}
         alt={block.alt}
-        className="mt-4 h-auto w-full max-w-3xl"
+        width={size.width}
+        height={size.height}
+        sizes="(max-width: 390px) 100vw, 720px"
+        className="mt-4 h-auto w-full max-w-full"
+        style={{ width: "100%", height: "auto" }}
         loading="lazy"
-        decoding="async"
+        unoptimized={block.src.endsWith(".svg")}
       />
     );
   }
@@ -84,11 +90,11 @@ function BlockView({ block }: { block: EsimInstallBlock }) {
   }
   return (
     <div className="mt-3 max-w-full overflow-x-auto">
-      <table className="w-full min-w-[36rem] border-collapse text-left text-sm text-slate-800">
+      <table className="w-full table-fixed border-collapse text-left text-[13px] leading-snug text-slate-800 sm:text-sm">
         <thead>
           <tr>
             {block.header.map((cell) => (
-              <th key={cell} className="border border-slate-200 bg-slate-50 px-3 py-2 font-semibold">
+              <th key={cell} className="break-words border border-slate-200 bg-slate-50 px-2 py-2 font-semibold">
                 <Inline text={cell} />
               </th>
             ))}
@@ -98,7 +104,7 @@ function BlockView({ block }: { block: EsimInstallBlock }) {
           {block.rows.map((row) => (
             <tr key={row.join("|")}>
               {row.map((cell, index) => (
-                <td key={`${index}-${cell}`} className="border border-slate-200 px-3 py-2 align-top">
+                <td key={`${index}-${cell}`} className="break-words border border-slate-200 px-2 py-2 align-top">
                   <Inline text={cell} />
                 </td>
               ))}

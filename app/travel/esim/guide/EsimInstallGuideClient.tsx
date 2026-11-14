@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ChevronDown, HelpCircle, Settings2 } from "lucide-react";
 import Header from "@/app/components/Header";
 import { bongsimCountryPickerHref, bongsimPath } from "@/lib/bongsim/constants";
+import { EsimInstallGuideLinks } from "@/components/bongsim/esim/EsimInstallGuideLinks";
 import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
 import {
   ANDROID_STEPS,
@@ -183,7 +184,7 @@ function GuideFaqSection({
         자주 묻는 질문
       </h2>
       <div className="mt-4 space-y-2">
-        {faqs.map(({ q, a, showBongsimCs }) => {
+        {faqs.map(({ q, a, showBongsimCs, links }) => {
           const open = openFaq === q;
           return (
             <div key={q} className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm">
@@ -202,6 +203,15 @@ function GuideFaqSection({
               {open ? (
                 <div className="border-t border-slate-100 px-4 py-3 lg:px-5 lg:py-4">
                   <p className="text-sm leading-relaxed !text-slate-900 lg:text-base">{a}</p>
+                  {links && links.length > 0 ? (
+                    <p className="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-sm">
+                      {links.map((item) => (
+                        <Link key={item.href} href={item.href} className="font-semibold text-teal-800 underline-offset-2 hover:underline">
+                          {item.label}
+                        </Link>
+                      ))}
+                    </p>
+                  ) : null}
                   {showBongsimCs ? <EsimMypageUsimsaCsLinks className="mt-3" /> : null}
                 </div>
               ) : null}
@@ -243,6 +253,7 @@ export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageM
             QR코드 하나로 1분 만에 설치 완료!
           </p>
           <p className="mx-auto mt-2 max-w-xl text-sm !text-slate-700 lg:text-base">여행자님, 천천히 따라 오시면 금방 끝나요.</p>
+          <EsimInstallGuideLinks className="mt-5 text-sm" />
         </div>
       </section>
 

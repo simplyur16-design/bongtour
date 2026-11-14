@@ -3010,7 +3010,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM 설치 안내 인증형·일반형 페이지 경로와 유심사 문의 URL",
+      "summary": "eSIM 설치 안내 인증형 33단계·일반형 31단계, 유심사 문의만, 카카오·PDF·확인 필요 표시 없음",
       "checks": [
         {
           "file": "lib/bongsim/esim-install-guide.ts",
@@ -3025,7 +3025,34 @@
             "_fqTkK",
             "_xlxjrxlX"
           ]
+        },
+        {
+          "file": "lib/bongsim/esim-install-guide-copy.ts",
+          "mustInclude": [
+            "아이폰 17단계",
+            "갤럭시 14단계",
+            "인증 2단계",
+            "https://www.usimsa.com/board/contact-channel/"
+          ],
+          "mustNotInclude": [
+            "_fqTkK",
+            "_xlxjrxlX",
+            "pf.kakao.com",
+            ".pdf",
+            "확인 필요",
+            "카카오톡 상담은"
+          ]
+        },
+        {
+          "file": "lib/sitemap-public-entries.ts",
+          "mustInclude": [
+            "/travel/esim/guide/auth",
+            "/travel/esim/guide/general"
+          ]
         }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim-install-guide.test.ts"
       ]
     },
     {
