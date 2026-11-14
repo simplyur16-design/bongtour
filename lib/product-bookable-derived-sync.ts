@@ -9,6 +9,12 @@ import type { PrismaClient } from '@prisma/client'
 /** Seoul (today + 2 days) 이후 출발만 집계 — migration·cron 과 동일 */
 export const BOOKABLE_MIN_DATE_SEoul_SQL = `((NOW() AT TIME ZONE 'Asia/Seoul')::date + INTERVAL '2 days')::date`
 
+/**
+ * departureDate(timestamp without time zone, UTC 자정 저장) → 서울 달력 날짜. Node `toSeoulYmd` 와 같은 해석.
+ * REGRESSION-FREEZE[bookable-derived-departure-seoul-date]: AT TIME ZONE 'Asia/Seoul' 단독 비교 금지(하루 앞당김) — manifest
+ */
+export const BOOKABLE_DEPARTURE_SEOUL_DATE_SQL = `((pd."departureDate" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Seoul')::date`
+
 /** 전체 Product 백필 — migration step 4·nightly cron 공용 */
 export const SYNC_ALL_PRODUCTS_BOOKABLE_DERIVED_SQL = `
 WITH bookable_min AS (
@@ -49,7 +55,7 @@ agg AS (
     )::int AS cnt
   FROM "ProductDeparture" pd
   CROSS JOIN bookable_min bm
-  WHERE (pd."departureDate" AT TIME ZONE 'Asia/Seoul')::date >= bm.d
+  WHERE ${BOOKABLE_DEPARTURE_SEOUL_DATE_SQL} >= bm.d
   GROUP BY pd."productId"
 )
 UPDATE "Product" p
@@ -75,7 +81,7 @@ WHERE NOT EXISTS (
   FROM "ProductDeparture" pd
   CROSS JOIN bookable_min bm
   WHERE pd."productId" = p.id
-    AND (pd."departureDate" AT TIME ZONE 'Asia/Seoul')::date >= bm.d
+    AND ${BOOKABLE_DEPARTURE_SEOUL_DATE_SQL} >= bm.d
 );
 `
 

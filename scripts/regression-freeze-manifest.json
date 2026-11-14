@@ -31707,6 +31707,24 @@
         }
       ],
       "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+    },
+    {
+      "id": "bookable-derived-departure-seoul-date",
+      "tier": ["prebuild", "ci"],
+      "summary": "예약 가능 집계(트리거 함수·매일 일괄 동기화)는 departureDate 를 UTC instant 로 읽어 서울 날짜로 비교한다. AT TIME ZONE 'Asia/Seoul' 단독 비교(하루 앞당김) 금지. 마이그레이션은 GRANT·RLS 불변.",
+      "checks": [
+        {
+          "file": "lib/product-bookable-derived-sync.ts",
+          "mustInclude": ["REGRESSION-FREEZE[bookable-derived-departure-seoul-date]", "AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Seoul')::date", "${BOOKABLE_DEPARTURE_SEOUL_DATE_SQL} >= bm.d"],
+          "mustNotInclude": ["(pd.\"departureDate\" AT TIME ZONE 'Asia/Seoul')::date"]
+        },
+        {
+          "file": "supabase/migrations/20261114120000_fix_bookable_derived_departure_seoul_date.sql",
+          "mustInclude": ["REGRESSION-FREEZE[bookable-derived-departure-seoul-date]", "((pd.\"departureDate\" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Seoul')::date >= v_min_date", "GRANT EXECUTE ON FUNCTION public.fn_sync_product_bookable_derived(TEXT) TO PUBLIC;", "GRANT: 변경 없음", "RLS: 변경 없음"],
+          "mustNotInclude": ["(pd.\"departureDate\" AT TIME ZONE 'Asia/Seoul')::date"]
+        }
+      ],
+      "vitestSuites": ["lib/product-bookable-derived-sync.test.ts"]
     }
   ],
   "vitestSuites": [
