@@ -64,6 +64,7 @@ import { scheduleRouteTextFromRow } from '@/lib/register-schedule-image-keyword-
 import { resolveProductBgImageFieldsFromPhoto } from '@/lib/product-image-source-attribution'
 // REGRESSION-FREEZE[product-image-auto-register-gate]: 신규·등록대기 대표 사진만 정책 적용(기본 꺼짐) — manifest
 import { gatedAutoCoverUpdateData } from '@/lib/product-image-auto-register-gate'
+import { coverFallbackPlaceQueries, loadCoverPhotoUsage } from '@/lib/product-cover-photo-unique'
 // REGRESSION-FREEZE[register-photo-source-chain]: v2 = Pexels → Unsplash → (CC0 없음) → AI — manifest
 import {
   findStockPhotoByChain,
@@ -552,19 +553,23 @@ export async function POST(req: Request) {
     })
     // v2: 같은 도시 상품끼리 같은 사진을 쓰지 않게 최근에 덜 쓴 풀 사진부터
     const poolList = photoChainV2 ? rotatePoolWithinCity(poolListRaw, recentIndex) : poolListRaw
+    // REGRESSION-FREEZE[card-cover-photo-unique]: 다른 공개·대기 상품 대표사진 재사용 금지 — manifest
+    const otherCovers = await loadCoverPhotoUsage(prisma, { excludeProductId: String(product.id) })
+    const poolMainIdx = poolList.findIndex((rec) => !otherCovers.isUsed(toPoolResult(rec)))
 
     /**
      * 풀 5장 이상: 메인 1 + 일정 4 일괄 배정.
      * 일차별 랜드마크 imageKeyword가 이미 구분돼 있으면 스킵 — 아래 hero 경로가 키워드별 이미지를 쓴다.
      */
-    if (poolList.length >= 5 && !areScheduleImageKeywordsDistinct(scheduleArr)) {
+    if (poolList.length >= 5 && poolMainIdx >= 0 && !areScheduleImageKeywordsDistinct(scheduleArr)) {
       console.log(`[POOL] ${destination} 풀 사진 5장 사용 (중복 제외)`)
       const usage = createPhotoUsage()
-      const mainRec = poolList[0]
+      const mainRec = poolList[poolMainIdx]!
       const mainUrl = mainRec.filePath
       usage.mark(toPoolResult(mainRec))
       const picked: PoolPhotoRecord[] = []
-      for (let i = 1; i < poolList.length && picked.length < SCHEDULE_PHOTOS; i++) {
+      for (let i = 0; i < poolList.length && picked.length < SCHEDULE_PHOTOS; i++) {
+        if (i === poolMainIdx) continue
         const rec = poolList[i]
         const pr = toPoolResult(rec)
         if (!usage.isUsed(pr)) {
@@ -610,7 +615,13 @@ export async function POST(req: Request) {
       else poolBySlot.set(i - 1, rec)
     })
 
-    const preMade = poolList.length === 0 ? await getPreMadeImageSet(prisma, destination) : null
+    const preMadeRaw = poolList.length === 0 ? await getPreMadeImageSet(prisma, destination) : null
+    const preMade =
+      preMadeRaw &&
+      !otherCovers.isUsed({ url: preMadeRaw.mainPhoto.url, originalLink: preMadeRaw.mainPhoto.originalLink })
+        ? preMadeRaw
+        : null
+    if (preMadeRaw && !preMade) console.log(`[PRE-MADE] 메인 사진이 다른 상품 대표사진이라 세트 미사용`)
     if (preMade) {
       console.log(`[PRE-MADE] ${destination} 미리 저장 세트 사용 (메인·일정 URL 중복 제외)`)
       const usage = createPhotoUsage()
@@ -809,7 +820,8 @@ export async function POST(req: Request) {
     const existingHeroUrl = String(product.bgImageUrl ?? '').trim()
     // REGRESSION-FREEZE[auto-photo-missing-day-fill]: 기존 대표 URL·출처는 유지 — manifest
     const preserveHero = preserveHeroRequested && existingHeroUrl.length > 0
-    const poolMain = preserveHero ? undefined : poolBySlot.get(-1)
+    const poolMainRaw = preserveHero ? undefined : poolBySlot.get(-1)
+    const poolMain = poolMainRaw && !otherCovers.isUsed(toPoolResult(poolMainRaw)) ? poolMainRaw : undefined
     if (preserveHero) {
       mainPhoto = {
         url: existingHeroUrl,
@@ -823,21 +835,40 @@ export async function POST(req: Request) {
       console.log(`[POOL] 메인 사진 사용`)
     } else {
       // v2: 캐시 사진은 설명·출처를 확인할 수 없어 쓰지 않는다(장소 일치 관문 통과분만)
-      const cachedMain = photoChainV2 ? null : await getCachedPhoto(cache, destination, mainQuery, true)
+      const cachedMainRaw = photoChainV2 ? null : await getCachedPhoto(cache, destination, mainQuery, true)
+      const cachedMain = cachedMainRaw && !otherCovers.isUsed(cachedToResult(cachedMainRaw)) ? cachedMainRaw : null
       if (cachedMain) {
         mainPhoto = cachedToResult(cachedMain)
         cacheHitCount++
       } else {
-        const chainMain = photoChainV2
-          ? await runChain('main', mainQuery, mainQuery, undefined, undefined, {
-              placeTerms: [mainQuery, heroPick.keyword],
-              destinationTerms: [destination, subjectCtx.destinationEn],
-              slotText: subjectCtx.productText,
-              slot: 'main',
-            })
-          : null
+        const notOtherCover = (c: ChainCandidate) =>
+          !otherCovers.isUsed({ url: c.url, originalLink: c.originalLink, externalId: c.externalId })
+        const runMainChain = (q: string) =>
+          runChain('main', q, q, notOtherCover, undefined, {
+            placeTerms: [q, heroPick.keyword],
+            destinationTerms: [destination, subjectCtx.destinationEn],
+            slotText: subjectCtx.productText,
+            slot: 'main',
+          })
+        let chainMain = photoChainV2 ? await runMainChain(mainQuery) : null
+        if (photoChainV2 && !chainMain) {
+          // 핵심 방문지 사진이 모두 다른 상품 대표사진이면 일정의 다른 방문지로 다시 찾는다(도시명 대체 금지)
+          const alt = coverFallbackPlaceQueries(
+            mainQuery,
+            scheduleArr.map((s) => s?.imageKeyword),
+            [destination, mapDestination(destination), subjectCtx.destinationEn],
+          )
+          for (const q of alt) {
+            chainMain = await runMainChain(q)
+            if (chainMain) break
+          }
+        }
         // v2: 재고 사진이 없을 때만 AI 생성(아래 Gemini 분기)으로 간다
-        const pexelsMain = photoChainV2 ? null : await fetchPexelsPhotoObject(mainQuery)
+        const pexelsMainRaw = photoChainV2 ? null : await fetchPexelsPhotoObject(mainQuery)
+        const pexelsMain =
+          pexelsMainRaw && !otherCovers.isUsed({ url: pexelsMainRaw.url, originalLink: pexelsMainRaw.originalLink })
+            ? pexelsMainRaw
+            : null
         if (!photoChainV2) newFetchCount++
         if (chainMain) {
           mainPhoto = chainMain
