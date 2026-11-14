@@ -36,13 +36,13 @@ function cand(over: Partial<AutofillCandidate> = {}): AutofillCandidate {
   }
 }
 
-function judge(c: AutofillCandidate, usage = new PublicPhotoUsage(), productId = 'p-new') {
+function judge(c: AutofillCandidate, usage = new PublicPhotoUsage(), productId = 'p-new', slotKind: 'day' | 'cover' = 'day') {
   return evaluateAutofillCandidate({
     candidate: c,
     sight: blue,
     cityTerms: ['istanbul'],
     slotText: '이스탄불 블루모스크 Istanbul',
-    slotKind: 'day',
+    slotKind,
     productId,
     usage,
   })
@@ -155,7 +155,7 @@ describe('photo-autofill-gate: 인물 주인공 탈락', () => {
   })
 })
 
-describe('photo-autofill-gate: 공개 상품 중복 탈락', () => {
+describe('photo-autofill-gate: 공개 중복은 목록 카드 대표만', () => {
   const rows = [
     {
       productId: 'p-public',
@@ -167,35 +167,43 @@ describe('photo-autofill-gate: 공개 상품 중복 탈락', () => {
       ]),
     },
   ]
+  const coverCand = () => cand({ id: '2002', url: 'https://images.pexels.com/photos/2002/pexels-photo-2002.jpeg', originalLink: 'https://www.pexels.com/photo/blue-mosque-2002/' })
 
-  it('일차 사진과 같은 출처 id 는 탈락', () => {
+  it('일차 사진은 다른 상품의 일차·대표와 같아도 통과', () => {
     const usage = buildPublicPhotoUsage(rows)
-    const r = judge(cand(), usage)
+    expect(judge(cand(), usage).reasons).not.toContain('public_duplicate')
+    expect(judge(coverCand(), usage, 'p-new', 'day').reasons).not.toContain('public_duplicate')
+  })
+
+  it('대표는 다른 공개 상품 대표와 같으면 탈락', () => {
+    const usage = buildPublicPhotoUsage(rows)
+    const r = judge(coverCand(), usage, 'p-new', 'cover')
     expect(r.ok).toBe(false)
     expect(r.reasons).toContain('public_duplicate')
   })
 
-  it('대표(목록 카드) 사진과 같은 id 도 탈락 — 카드 대표는 공개 상품 전체에서 한 번만', () => {
+  it('대표가 다른 상품의 일차 사진과만 같으면 통과', () => {
     const usage = buildPublicPhotoUsage(rows)
-    const r = judge(cand({ id: '2002', url: 'https://images.pexels.com/photos/2002/pexels-photo-2002.jpeg', originalLink: 'https://www.pexels.com/photo/blue-mosque-2002/' }), usage)
-    expect(r.reasons).toContain('public_duplicate')
+    const r = judge(cand(), usage, 'p-new', 'cover')
+    expect(r.reasons).not.toContain('public_duplicate')
+    expect(r.ok).toBe(true)
   })
 
-  it('재호스팅 주소는 풀의 원 출처 id 로 찾는다', () => {
+  it('재호스팅 주소는 풀의 원 출처 id 로 대표 중복을 찾는다', () => {
     const usage = buildPublicPhotoUsage(
       [{ productId: 'p-public', bgImageUrl: 'https://cdn.example.com/photo-pool/x.webp', bgImageExternalId: null }],
       new Map([['https://cdn.example.com/photo-pool/x.webp', '3003']]),
     )
-    expect(usage.conflict(photoIdentityKeys({ externalId: '3003' }), 'p-other')).not.toBeNull()
+    expect(usage.coverConflict(photoIdentityKeys({ externalId: '3003' }), 'p-other')).not.toBeNull()
   })
 
-  it('같은 상품 안 재사용은 충돌이 아니다', () => {
+  it('같은 상품 대표 재사용은 충돌이 아니다', () => {
     const usage = buildPublicPhotoUsage(rows)
-    expect(judge(cand(), usage, 'p-public').ok).toBe(true)
+    expect(judge(coverCand(), usage, 'p-public', 'cover').ok).toBe(true)
   })
 
   it('쓰이지 않은 사진은 통과', () => {
-    expect(judge(cand({ id: '9999', url: 'https://images.pexels.com/photos/9999/a.jpeg', originalLink: 'https://www.pexels.com/photo/blue-mosque-9999/' }), buildPublicPhotoUsage(rows)).ok).toBe(true)
+    expect(judge(cand({ id: '9999', url: 'https://images.pexels.com/photos/9999/a.jpeg', originalLink: 'https://www.pexels.com/photo/blue-mosque-9999/' }), buildPublicPhotoUsage(rows), 'p-new', 'cover').ok).toBe(true)
   })
 })
 

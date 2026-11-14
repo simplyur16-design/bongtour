@@ -99,7 +99,7 @@ export const AUTO_REGISTER_BLOCK_REASON_KO: Record<AutoRegisterBlockReason, stri
   cover_day_duplicate: '대표·일차 사진 중복',
   photo_review_pending: '사진 검수 대기(문과장 통과 전)',
   photo_sight_mismatch: '사진이 그날 방문지와 안 맞음(자동 교체 실패)',
-  photo_public_duplicate: '공개 상품과 같은 사진(자동 교체 실패)',
+  photo_public_duplicate: '목록 카드 대표 사진이 다른 공개 상품과 같음(자동 교체 실패)',
   photo_irrelevant_subject: '무관 사진(인물·회의실·로고 등, 자동 교체 실패)',
   no_future_departures: '향후 출발일 없음(등록 안 함)',
   fit_itinerary_missing: '자유여행 추천일정 없음·일차 부족',

@@ -1,5 +1,5 @@
 /**
- * 야간 점검(기존 자동 등록 cron 의 야간 구간에 붙는 단계) — 공개 상품 사진의 HTTP 깨짐·중복을 다시 확인하고,
+ * 야간 점검(기존 자동 등록 cron 의 야간 구간에 붙는 단계) — 공개 상품 사진의 HTTP 깨짐과 대표 사진 중복을 다시 확인하고,
  * 같은 게이트를 통과한 후보로 사진 칸만 자동 교체한다.
  * - 공개 상품은 사진 칸만 바꾼다(title·가격·일정 글 불변). 관리자가 고른 칸은 건드리지 않는다.
  * - 교체 전 값은 AssetUsageLog 노트(photo-replace:…)로 남겨 되돌릴 수 있다.
@@ -91,25 +91,26 @@ function ts(v: Date | string): number {
   return new Date(v).getTime()
 }
 
-/** 공개 상품 사이 같은 사진: 가장 먼저 만든 상품이 갖고, 나머지 상품의 칸이 중복. 같은 상품 안 재사용은 중복이 아니다. */
+/** 목록 카드 대표끼리만 중복. 가장 먼저 만든 상품이 대표를 갖고, 나중 상품의 대표만 교체 대상. 일차 사진은 같아도 중복이 아니다. */
 export function planDuplicateIssues(products: readonly PublicProductPhotos[]): PhotoIssue[] {
   const order = [...products].sort((a, b) => ts(a.createdAt) - ts(b.createdAt) || a.id.localeCompare(b.id))
-  const rank = new Map(order.map((p, i) => [p.id, i]))
-  const owners = new Map<string, string[]>()
+  const owners = new Map<string, string>()
   for (const p of order) {
     for (const s of slotsOfProduct(p)) {
-      for (const k of s.keys) {
-        const list = owners.get(k) ?? []
-        if (!list.includes(p.id)) list.push(p.id)
-        owners.set(k, list)
-      }
+      if (s.kind !== 'cover') continue
+      for (const k of s.keys) if (!owners.has(k)) owners.set(k, p.id)
     }
   }
   const issues: PhotoIssue[] = []
+  const seen = new Set<string>()
   for (const p of order) {
     for (const s of slotsOfProduct(p)) {
-      const earlier = s.keys.map((k) => (owners.get(k) ?? []).find((o) => o !== p.id && (rank.get(o) ?? 0) < (rank.get(p.id) ?? 0))).find(Boolean)
-      if (earlier) issues.push({ productId: p.id, kind: s.kind, day: s.day, reason: 'public_duplicate', url: s.url, detail: `same photo as ${earlier}` })
+      if (s.kind !== 'cover') continue
+      const earlier = s.keys.map((k) => owners.get(k)).find((o) => o && o !== p.id)
+      const slotKey = `${p.id}:${s.url}`
+      if (!earlier || seen.has(slotKey)) continue
+      seen.add(slotKey)
+      issues.push({ productId: p.id, kind: 'cover', day: null, reason: 'public_duplicate', url: s.url, detail: `same cover as ${earlier}` })
     }
   }
   return issues

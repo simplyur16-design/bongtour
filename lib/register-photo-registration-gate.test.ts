@@ -60,7 +60,7 @@ describe('register-photo-registration-gate: 등록 전 자동 차단 사유', ()
     expect(reasons(r)).not.toContain('photo_sight_mismatch')
   })
 
-  it('공개 상품과 같은 사진 → photo_public_duplicate (일차·대표 모두)', () => {
+  it('대표가 다른 공개 상품 대표와 같으면 photo_public_duplicate, 일차가 같아도 막지 않는다', () => {
     const usage = buildPublicPhotoUsage([
       { productId: 'p-public', bgImageUrl: 'https://cdn.example.com/photo-pool/cover.webp', bgImageExternalId: '555', schedule: JSON.stringify([{ day: 1, imageUrl: 'x', imageSource: { externalId: '111' } }]) },
     ])
@@ -72,7 +72,16 @@ describe('register-photo-registration-gate: 등록 전 자동 차단 사유', ()
       }),
     )
     const dups = r.blocks.filter((b) => b.reason === 'photo_public_duplicate')
-    expect(dups.map((b) => b.kind).sort()).toEqual(['cover', 'day'])
+    expect(dups.map((b) => b.kind)).toEqual(['cover'])
+  })
+
+  it('대표가 다른 상품의 일차 사진과만 같으면 중복으로 막지 않는다', () => {
+    const usage = buildPublicPhotoUsage([
+      { productId: 'p-public', bgImageUrl: null, schedule: JSON.stringify([{ day: 1, imageUrl: 'https://images.pexels.com/photos/777/a.jpeg', imageSource: { externalId: '777' } }]) },
+    ])
+    const cover = { url: 'https://cdn.example.com/photo-pool/c777.webp', externalId: '777', originalLink: 'https://www.pexels.com/photo/blue-mosque-777/', placeLabel: 'Blue Mosque' }
+    const r = evaluateRegistrationPhotos(input({ usage, cover, probes: { 'https://cdn.example.com/photo-pool/d1.webp': OK_PROBE, [cover.url]: OK_PROBE } }))
+    expect(r.blocks.some((b) => b.reason === 'photo_public_duplicate')).toBe(false)
   })
 
   it('인물이 주인공이거나 회의실·로고면 → photo_irrelevant_subject', () => {

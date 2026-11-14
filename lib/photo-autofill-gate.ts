@@ -3,7 +3,7 @@
  * 모두 통과해야 채택:
  *  (a) 사진 제목·설명·alt·태그에 그날 명소 이름(또는 별칭)이 있어야 한다. 도시 이름만 맞으면 탈락.
  *  (b) 사람이 주인공인 사진(portrait·woman·man·person·selfie·model 등 태그·제목) 탈락. 풍경 속 작은 사람·간판은 허용.
- *  (c) 공개 상품이 이미 쓴 사진(대표·목록 카드 포함)과 출처 id·주소가 겹치면 탈락. 같은 상품 안 재사용은 호출부가 따로 허용.
+ *  (c) 목록 카드 대표 사진만 공개 중복을 본다. 다른 공개 상품의 대표와 출처 id·주소가 겹치면 탈락. 일차 사진은 다른 상품과 같아도 탈락하지 않는다. 같은 상품 안 재사용은 허용.
  *  (d) 가로 1200px 이상·가로형, 저장본은 대표 200,000B(카드)·일차 400,000B 미만(기존 상수 재사용).
  * 기존 관문(photoMatchGate)의 인물·차량·사물·실내·타국 명소 판정을 그대로 더해 쓴다(완화 없음).
  * REGRESSION-FREEZE[photo-autofill-gate]: 명소 이름 일치·인물 탈락·공개 중복 탈락·크기 기준 — manifest
@@ -37,6 +37,10 @@ export type AutofillCandidate = {
   pageUrl?: string | null
   /** Unsplash: 고른 사진마다 download_location 호출(가이드라인) */
   downloadLocation?: string | null
+  /** 사진 풀에 이미 있는 저장본 용량. 있으면 다시 받지 않고 이 값으로 용량 관문을 본다. */
+  storedBytes?: number | null
+  /** 생성 이미지 원본. 관문을 통과한 뒤에만 풀에 올린다. */
+  generatedBuffer?: Buffer
 }
 
 export type AutofillRejectReason =
@@ -129,6 +133,19 @@ export class PublicPhotoUsage {
       for (const [pid, roles] of owners) {
         if (pid === productId) continue
         return { productId: pid, role: roles.has('cover') ? 'cover' : 'day' }
+      }
+    }
+    return null
+  }
+
+  /** 목록 카드 대표끼리만 충돌. 다른 상품의 일차 사진과 같은 것은 충돌이 아니다. */
+  coverConflict(keys: readonly string[], productId: string): { productId: string; role: 'cover' } | null {
+    for (const k of keys) {
+      const owners = this.byKey.get(k)
+      if (!owners) continue
+      for (const [pid, roles] of owners) {
+        if (pid === productId || !roles.has('cover')) continue
+        return { productId: pid, role: 'cover' }
       }
     }
     return null
@@ -298,8 +315,10 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
 
   if (folded.length >= 3 && foreignCityInText(folded, `${input.slotText} ${input.cityTerms.join(' ')} ${input.sight.name}`)) reasons.add('other_place')
 
-  const conflict = input.usage.conflict(photoIdentityKeys({ url: c.url, externalId: c.id, originalLink: c.originalLink }), input.productId)
-  if (conflict) reasons.add('public_duplicate')
+  if (input.slotKind === 'cover') {
+    const conflict = input.usage.coverConflict(photoIdentityKeys({ url: c.url, externalId: c.id, originalLink: c.originalLink }), input.productId)
+    if (conflict) reasons.add('public_duplicate')
+  }
 
   return { ok: reasons.size === 0, reasons: [...reasons], matched }
 }

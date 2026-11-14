@@ -50,6 +50,7 @@ const argNum = (k: string, d: number) => {
 const SLOTS = argNum('--slots', 15)
 const HEAD_ALL = args.includes('--head-all')
 const SKIP_SLOTS = args.includes('--no-slots')
+const DUP_ONLY = args.includes('--dup-only')
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 const csv = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`
@@ -108,8 +109,9 @@ async function main() {
     const usage = buildPublicPhotoUsage(usageRows, poolIdByUrl)
     console.log(`[dry-run] registered=${products.length} pending-scanned=${pending.length} usageKeys=${usage.size}`)
 
-    if (!SKIP_SLOTS) await runSlots(pending, usage)
-    await runNightly(products, HEAD_ALL)
+    if (!SKIP_SLOTS && !DUP_ONLY) await runSlots(pending, usage)
+    if (DUP_ONLY) await writeCoverDuplicates(products)
+    else await runNightly(products, HEAD_ALL)
   } finally {
     await client.end().catch(() => {})
   }
@@ -214,6 +216,22 @@ async function runSlots(pending: Array<Record<string, unknown>>, usage: ReturnTy
   fs.writeFileSync(path.join(OUT, 'dry-run-slots.md'), md.join('\n'), 'utf8')
 }
 
+async function writeCoverDuplicates(products: PublicProductPhotos[]) {
+  const dup = planDuplicateIssues(products)
+  const dupProducts = new Set(dup.map((d) => d.productId))
+  const covers = products.filter((p) => String(p.bgImageUrl ?? '').trim()).length
+  const md = [
+    `# 대표 사진 기준 중복 (${new Date().toISOString()})`,
+    '',
+    `- 공개 상품 ${products.length}개 · 대표 사진 있는 상품 ${covers}개`,
+    `- 대표 중복(다른 공개 상품 대표와 같은 사진): ${dup.length}칸 / ${dupProducts.size}개 상품`,
+    '- 일차 사진은 중복으로 세지 않는다. 먼저 만든 상품이 대표를 갖고, 나중 상품의 대표만 센다.',
+  ]
+  fs.writeFileSync(path.join(OUT, 'cover-duplicates.md'), md.join('\n'), 'utf8')
+  fs.writeFileSync(path.join(OUT, 'cover-duplicates.csv'), '\uFEFFproduct,kind,day,url,detail\n' + dup.map((d) => [d.productId, d.kind, d.day ?? '', d.url, d.detail].map(csv).join(',')).join('\n'), 'utf8')
+  console.log(md.join('\n'))
+}
+
 async function runNightly(products: PublicProductPhotos[], headAll: boolean) {
   const dup = planDuplicateIssues(products)
   const dupProducts = new Set(dup.map((d) => d.productId))
@@ -253,7 +271,7 @@ async function runNightly(products: PublicProductPhotos[], headAll: boolean) {
     `# 야간 점검 읽기 전용 결과 (${new Date().toISOString()})`,
     '',
     `- 공개 상품 ${products.length}개 · 사진 칸 ${totalSlots}개`,
-    `- 중복(다른 공개 상품과 같은 사진): ${dup.length}칸 / ${dupProducts.size}개 상품 (먼저 만든 상품이 보유, 나중 상품의 칸을 교체 대상으로 센다)`,
+    `- 대표 중복(다른 공개 상품 대표와 같은 사진): ${dup.length}칸 / ${dupProducts.size}개 상품 (먼저 만든 상품이 대표를 보유, 나중 상품의 대표만 교체 대상. 일차 사진은 세지 않음)`,
     `- HEAD 점검 범위: ${headAll ? '전체' : '이번 밤 점검 창'} 상품 ${scan.length}개 · 고유 주소 ${urls.length}개`,
     `- 깨짐(재확인에서도 4xx): ${broken.length}개 주소 / ${brokenSlots.length}칸`,
     `- 외부 장애 SKIP(5xx·429·시간초과): ${skipRows.length}개 주소`,

@@ -631,7 +631,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           if (photoGate && !photoGate.ok) {
             return NextResponse.json(
               {
-                error: '등록 확정 전 사진 검사를 통과해야 합니다(방문지 불일치·공개 상품과 같은 사진·무관 사진·저화질·용량). 등록중 상태로 두세요.',
+                error: '등록 확정 전 사진 검사를 통과해야 합니다(방문지 불일치·목록 카드 대표 사진 중복·무관 사진·저화질·용량). 등록중 상태로 두세요.',
                 missing: { photoGate: true, blocks: photoGate.blocks.slice(0, 20) },
               },
               { status: 400 },

@@ -1,5 +1,6 @@
 /**
- * 자가 힐 — 등록 전 사진 게이트가 막은 칸을 다음 후보로 교체하고, 칸당 후보 5개 안에 못 고치면 예외 목록에 올린다
+ * 자가 힐 — 등록 전 사진 게이트가 막은 칸을 다음 후보로 교체하고, 칸당 후보 5개 안에 못 고치면 예외 목록에 올린다.
+ * 일차 사진의 공개 중복만으로는 바꾸지 않는다(대표 사진 중복만 교체 대상).
  * (그 상품만 보류 — 상품 단위 보류는 호출부의 자동 등록 검사가 그대로 한다).
  * 바꾸는 것은 막힌 칸의 사진 필드뿐. 외부 호출은 acquireVerifiedPhoto(순차·간격+지터·재시도 1회)만 쓴다.
  * REGRESSION-FREEZE[photo-heal]: 막힌 칸만 교체·5개 상한·못 고치면 예외 — manifest
@@ -90,6 +91,7 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
   const byKey = new Map<string, { block: RegistrationPhotoBlock; reasons: string[] }>()
   for (const b of input.blocks) {
     if (!HEALABLE.has(b.reason)) continue
+    if (b.kind === 'day' && b.reason === 'photo_public_duplicate') continue
     const k = slotKey(b)
     const cur = byKey.get(k)
     if (cur) cur.reasons.push(b.reason)

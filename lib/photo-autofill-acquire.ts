@@ -1,9 +1,10 @@
 /**
  * 사진 자동 채움·자가 힐·야간 점검이 같이 쓰는 후보 찾기(외부 호출은 주입).
- * 순서: 명소 이름 검색 → Pexels → Unsplash. AI 생성은 호출하지 않는다.
+ * 순서: 사진 풀(같은 방문지, 이미 저장된 URL) → Pexels → Unsplash(무료만, Unsplash+ 는 검색 쪽에서 제외) → CC0/퍼블릭도메인 → 그래도 없으면 생성 이미지 1장.
+ * 생성은 마지막이고, 없거나 기준을 못 넘기면 그 칸은 예외 '생성 대상'.
  * 호출 규칙: 동시 호출 없음(순차), 호출마다 간격+지터(pause), 읽기 재시도 최대 1회, 외부 장애·한도는 사유만 남기고 다음으로.
  * 칸당 확인하는 후보는 AUTOFILL_MAX_CANDIDATES_PER_SLOT(5)개까지 — 넘으면 예외 목록으로.
- * REGRESSION-FREEZE[photo-autofill-acquire]: 순차·재시도 1회·후보 5개 상한·AI 없음 — manifest
+ * REGRESSION-FREEZE[photo-autofill-acquire]: 순차·재시도 1회·후보 5개 상한·생성은 마지막(생성 대상) — manifest
  */
 import {
   AUTOFILL_MAX_CANDIDATES_PER_SLOT,
@@ -44,10 +45,16 @@ export type AcquireDeps = {
   commit: (c: AutofillCandidate, ctx: { kind: AutofillSlotKind; day: number | null; label: string }) => Promise<AcquireCommitResult>
   /** 외부 호출 전 간격+지터 */
   pause: () => Promise<void>
+  /** 새로 찾기 전에 사진 풀에서 같은 방문지 사진을 읽는다. 없으면 빈 배열. 도시 이름만 맞는 행은 관문이 버린다. */
+  lookupPool?: (sight: string, cityTerms: readonly string[]) => Promise<AutofillCandidate[]>
+  /** 표기 의무 없는 CC0·퍼블릭도메인. 없으면 이 단계는 건너뛴다. */
+  searchCc0?: (query: string, perPage: number) => Promise<AutofillCandidate[]>
+  /** 재고가 하나도 없을 때만 1장. null 이면 예외 '생성 대상'. */
+  generate?: (input: { sight: string; cityTerms: readonly string[] }) => Promise<AutofillCandidate | null>
   now?: () => Date
 }
 
-export type AcquireTried = { tier: StockTier; query: string; id: string; outcome: 'rejected' | 'commit_failed' | 'stored_rejected' | 'adopted'; reasons: string[] }
+export type AcquireTried = { tier: StockTier | 'pool' | 'cc0' | 'generate'; query: string; id: string; outcome: 'rejected' | 'commit_failed' | 'stored_rejected' | 'adopted'; reasons: string[] }
 
 export type AcquireInput = {
   productId: string
@@ -123,10 +130,81 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
     rejectCounts[k] = (rejectCounts[k] ?? 0) + 1
   }
 
+  const consider = async (
+    cands: readonly AutofillCandidate[],
+    tier: AcquireTried['tier'],
+    query: string,
+    profile: ReturnType<typeof sightProfile>,
+    sightLabel: string,
+  ): Promise<AcquireOk | 'cap' | null> => {
+    const passing: Array<{ candidate: AutofillCandidate; matched: string | null }> = []
+    for (const c of cands) {
+      const keys = photoIdentityKeys({ url: c.url, externalId: c.id, originalLink: c.originalLink })
+      const seenKey = `${c.source}:${c.id}`
+      if (seen.has(seenKey)) continue
+      seen.add(seenKey)
+      anyCandidate = true
+      if (keys.some((k) => exclude.has(k))) {
+        bump('excluded')
+        continue
+      }
+      const verdict = evaluateAutofillCandidate({
+        candidate: c,
+        sight: profile,
+        cityTerms,
+        slotText,
+        slotKind: input.kind,
+        productId: input.productId,
+        usage: input.usage,
+      })
+      if (!verdict.ok) {
+        for (const r of verdict.reasons) bump(r)
+        tried.push({ tier, query, id: c.id, outcome: 'rejected', reasons: verdict.reasons })
+        continue
+      }
+      passing.push({ candidate: c, matched: verdict.matched })
+    }
+    for (const p of rankAutofillCandidates(passing)) {
+      if (evaluated >= max) {
+        limitNotes.add('candidate_cap')
+        return 'cap'
+      }
+      evaluated++
+      const res = await deps.commit(p.candidate, { kind: input.kind, day: input.day, label: sightLabel.slice(0, 80) })
+      if (!res.ok) {
+        bump(`commit_${res.reason}`)
+        tried.push({ tier, query, id: p.candidate.id, outcome: 'commit_failed', reasons: [res.reason] })
+        continue
+      }
+      const size = evaluateStoredPhotoSize({ kind: input.kind, bytes: res.bytes, width: res.width })
+      if (size.length > 0) {
+        for (const r of size) bump(`stored_${r}`)
+        tried.push({ tier, query, id: p.candidate.id, outcome: 'stored_rejected', reasons: size })
+        continue
+      }
+      tried.push({ tier, query, id: p.candidate.id, outcome: 'adopted', reasons: [] })
+      return { ok: true, tried, photo: { ...res, sight: sightLabel, matched: p.matched ?? sightLabel, query } }
+    }
+    return null
+  }
+
   outer: for (const sight of sights.slice(0, MAX_SIGHTS_PER_SLOT)) {
     const profile = sightProfile(sight)
     if (profile.kind !== 'sight' && profile.kind !== 'generic') continue
     lastSight = sight
+    if (deps.lookupPool) {
+      let pool: AutofillCandidate[] = []
+      try {
+        pool = await deps.lookupPool(sight, cityTerms)
+      } catch {
+        limitNotes.add('pool_error')
+        pool = []
+      }
+      lastQuery = sight
+      const pooled = await consider(pool, 'pool', sight, profile, sight)
+      if (pooled === 'cap') break
+      if (pooled) return pooled
+    }
     for (const query of sightSearchQueries(sight, cityTerms)) {
       lastQuery = query
       for (const tier of ['pexels', 'unsplash'] as const) {
@@ -148,64 +226,57 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
           }
         }
         if (deps.stockStopped(tier)) limitNotes.add(`${tier}_limit`)
-        const passing: Array<{ candidate: AutofillCandidate; matched: string | null }> = []
-        for (const c of cands) {
-          const keys = photoIdentityKeys({ url: c.url, externalId: c.id, originalLink: c.originalLink })
-          const seenKey = `${c.source}:${c.id}`
-          if (seen.has(seenKey)) continue
-          seen.add(seenKey)
-          anyCandidate = true
-          if (keys.some((k) => exclude.has(k))) {
-            bump('excluded')
+        const picked = await consider(cands, tier, query, profile, sight)
+        if (picked === 'cap') break outer
+        if (picked) return picked
+      }
+    }
+    if (deps.searchCc0) {
+      for (const query of sightSearchQueries(sight, cityTerms)) {
+        lastQuery = query
+        await deps.pause()
+        let cands: AutofillCandidate[]
+        try {
+          cands = await deps.searchCc0(query, PER_PAGE)
+        } catch {
+          await deps.pause()
+          try {
+            cands = await deps.searchCc0(query, PER_PAGE)
+          } catch {
+            limitNotes.add('cc0_error')
             continue
           }
-          const verdict = evaluateAutofillCandidate({
-            candidate: c,
-            sight: profile,
-            cityTerms,
-            slotText,
-            slotKind: input.kind,
-            productId: input.productId,
-            usage: input.usage,
-          })
-          if (!verdict.ok) {
-            for (const r of verdict.reasons) bump(r)
-            tried.push({ tier, query, id: c.id, outcome: 'rejected', reasons: verdict.reasons })
-            continue
-          }
-          passing.push({ candidate: c, matched: verdict.matched })
         }
-        for (const p of rankAutofillCandidates(passing)) {
-          if (evaluated >= max) {
-            limitNotes.add('candidate_cap')
-            break outer
-          }
-          evaluated++
-          const res = await deps.commit(p.candidate, { kind: input.kind, day: input.day, label: sight.slice(0, 80) })
-          if (!res.ok) {
-            bump(`commit_${res.reason}`)
-            tried.push({ tier, query, id: p.candidate.id, outcome: 'commit_failed', reasons: [res.reason] })
-            continue
-          }
-          const size = evaluateStoredPhotoSize({ kind: input.kind, bytes: res.bytes, width: res.width })
-          if (size.length > 0) {
-            for (const r of size) bump(`stored_${r}`)
-            tried.push({ tier, query, id: p.candidate.id, outcome: 'stored_rejected', reasons: size })
-            continue
-          }
-          tried.push({ tier, query, id: p.candidate.id, outcome: 'adopted', reasons: [] })
-          return { ok: true, tried, photo: { ...res, sight, matched: p.matched ?? sight, query } }
-        }
+        const picked = await consider(cands, 'cc0', query, profile, sight)
+        if (picked === 'cap') break outer
+        if (picked) return picked
       }
     }
   }
 
-  const limit = [...limitNotes].find((n) => n !== 'candidate_cap') ?? null
-  const reason = !anyCandidate
-    ? (limit ?? 'no_candidates')
-    : limitNotes.has('candidate_cap') && evaluated >= max
-      ? 'candidate_cap'
-      : (topReason(rejectCounts) ?? 'no_verified_candidate')
+  if (deps.generate && lastSight) {
+    await deps.pause()
+    let gen: AutofillCandidate | null = null
+    try {
+      gen = await deps.generate({ sight: lastSight, cityTerms })
+    } catch {
+      gen = null
+    }
+    if (gen) {
+      const picked = await consider([gen], 'generate', lastSight, sightProfile(lastSight), lastSight)
+      if (picked && picked !== 'cap') return picked
+    }
+    limitNotes.add('생성 대상')
+  }
+
+  const limit = [...limitNotes].find((n) => n !== 'candidate_cap' && n !== '생성 대상') ?? null
+  const reason = limitNotes.has('생성 대상')
+    ? '생성 대상'
+    : !anyCandidate
+      ? (limit ?? 'no_candidates')
+      : limitNotes.has('candidate_cap') && evaluated >= max
+        ? 'candidate_cap'
+        : (topReason(rejectCounts) ?? 'no_verified_candidate')
   const detail = [
     `rejects=${Object.entries(rejectCounts).map(([k, n]) => `${k}:${n}`).join(',') || '-'}`,
     `evaluated=${evaluated}/${max}`,

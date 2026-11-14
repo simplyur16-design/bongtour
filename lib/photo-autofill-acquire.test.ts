@@ -17,11 +17,14 @@ function cand(id: string, over: Partial<AutofillCandidate> = {}): AutofillCandid
   }
 }
 
-type Call = { type: 'search' | 'commit' | 'pause'; tier?: string; query?: string; id?: string }
+type Call = { type: 'search' | 'commit' | 'pause' | 'pool' | 'cc0' | 'generate'; tier?: string; query?: string; id?: string }
 
 function makeDeps(opts: {
   results?: (tier: string, query: string, n: number) => AutofillCandidate[] | Error
   stopped?: (tier: string) => boolean
+  pool?: (sight: string, cityTerms: readonly string[]) => AutofillCandidate[]
+  cc0?: (query: string) => AutofillCandidate[] | Error
+  generate?: () => AutofillCandidate | null
   commit?: (c: AutofillCandidate) => { ok: true; bytes: number; width: number } | { ok: false; reason: string }
 }) {
   const calls: Call[] = []
@@ -54,11 +57,11 @@ function makeDeps(opts: {
     commit: async (c) =>
       track(() => {
         calls.push({ type: 'commit', id: c.id })
-        const r = opts.commit?.(c) ?? { ok: true as const, bytes: 150_000, width: 1800 }
+        const r = opts.commit?.(c) ?? { ok: true as const, bytes: c.storedBytes ?? 150_000, width: c.width || 1800 }
         if (!r.ok) return r
         return {
           ok: true as const,
-          url: `https://cdn.example.com/photo-pool/${c.id}.webp`,
+          url: c.source === 'PhotoPool' ? c.url : `https://cdn.example.com/photo-pool/${c.id}.webp`,
           bytes: r.bytes,
           width: r.width,
           source: c.source,
@@ -67,6 +70,26 @@ function makeDeps(opts: {
           externalId: c.id,
         }
       }),
+  }
+  if (opts.pool) {
+    deps.lookupPool = async (sight, cityTerms) => {
+      calls.push({ type: 'pool', query: sight })
+      return opts.pool!(sight, cityTerms)
+    }
+  }
+  if (opts.cc0) {
+    deps.searchCc0 = async (query) => {
+      calls.push({ type: 'cc0', query })
+      const r = opts.cc0!(query)
+      if (r instanceof Error) throw r
+      return r
+    }
+  }
+  if (opts.generate) {
+    deps.generate = async () => {
+      calls.push({ type: 'generate' })
+      return opts.generate!()
+    }
   }
   return { deps, calls, stats: () => ({ maxInFlight, searchCount }) }
 }
@@ -108,13 +131,49 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     })
   })
 
-  it('Pexels 에 없으면 Unsplash 후보를 채택(AI 생성은 없다)', async () => {
-    const { deps } = makeDeps({
+  it('Pexels 에 없으면 Unsplash 후보를 채택하고 생성은 부르지 않는다', async () => {
+    const { deps, calls } = makeDeps({
       results: (tier) => (tier === 'unsplash' ? [cand('u1', { source: 'Unsplash', url: 'https://images.unsplash.com/photo-u1', originalLink: 'https://unsplash.com/photos/blue-mosque-u1' })] : []),
+      cc0: () => [cand('c0', { source: 'CC0', altText: 'Blue Mosque in Istanbul' })],
+      generate: () => cand('g0', { source: 'AI 생성', altText: 'Blue Mosque in Istanbul' }),
     })
     const r = await acquireVerifiedPhoto(base(), deps)
     expect(r.ok).toBe(true)
     if (r.ok) expect(r.photo.source).toBe('Unsplash')
+    expect(calls.some((c) => c.type === 'cc0' || c.type === 'generate')).toBe(false)
+  })
+
+  it('Pexels·Unsplash 가 비면 CC0 를 채택하고 생성은 부르지 않는다', async () => {
+    const { deps, calls } = makeDeps({
+      results: () => [],
+      cc0: () => [cand('c0', { source: 'CC0', url: 'https://upload.wikimedia.org/a.jpg', originalLink: 'https://commons.wikimedia.org/wiki/File:Blue_Mosque.jpg', altText: 'Blue Mosque in Istanbul' })],
+      generate: () => cand('g0', { source: 'AI 생성' }),
+    })
+    const r = await acquireVerifiedPhoto(base({ sights: ['Blue Mosque'] }), deps)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.photo.source).toBe('CC0')
+    expect(calls.some((c) => c.type === 'generate')).toBe(false)
+    const searchIdx = calls.map((c) => c.type)
+    expect(searchIdx.indexOf('search')).toBeLessThan(searchIdx.indexOf('cc0'))
+  })
+
+  it('재고가 없고 생성도 실패하면 예외 사유는 생성 대상', async () => {
+    const { deps, calls } = makeDeps({ results: () => [], cc0: () => [], generate: () => null })
+    const r = await acquireVerifiedPhoto(base({ sights: ['Blue Mosque'] }), deps)
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.exception.reason).toBe('생성 대상')
+    expect(calls.filter((c) => c.type === 'generate')).toHaveLength(1)
+  })
+
+  it('생성 이미지는 앞 단계가 모두 빈 뒤에만 채택하고 출처는 AI 생성', async () => {
+    const { deps } = makeDeps({
+      results: () => [],
+      cc0: () => [],
+      generate: () => cand('g1', { source: 'AI 생성', url: 'ai-generated://pending', originalLink: 'ai-generated', altText: 'Blue Mosque in Istanbul', width: 1600, height: 1000, storedBytes: 80_000 }),
+    })
+    const r = await acquireVerifiedPhoto(base({ sights: ['Blue Mosque'] }), deps)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.photo.source).toBe('AI 생성')
   })
 
   it('읽기는 한 번만 재시도하고, 계속 실패하면 그 출처는 _error 로 남긴다', async () => {
@@ -159,12 +218,50 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     expect(r.ok).toBe(false)
   })
 
-  it('공개 상품이 쓰는 사진은 건너뛰고 다른 후보를 채택', async () => {
+  it('일차 사진은 다른 상품과 같아도 채택한다', async () => {
     const usage = buildPublicPhotoUsage([{ productId: 'p-public', bgImageUrl: null, schedule: JSON.stringify([{ day: 1, imageUrl: cand('1').url, imageSource: { externalId: '1' } }]) }])
     const { deps } = makeDeps({ results: (tier) => (tier === 'pexels' ? [cand('1'), cand('2')] : []) })
     const r = await acquireVerifiedPhoto(base({ usage }), deps)
     expect(r.ok).toBe(true)
+    if (r.ok) expect(r.photo.externalId).toBe('1')
+  })
+
+  it('대표는 다른 상품 대표와 같으면 건너뛰고 다음 후보를 채택', async () => {
+    const usage = buildPublicPhotoUsage([{ productId: 'p-public', bgImageUrl: cand('1').url, bgImageExternalId: '1', bgImageSourceUrl: cand('1').originalLink }])
+    const { deps } = makeDeps({ results: (tier) => (tier === 'pexels' ? [cand('1'), cand('2')] : []) })
+    const r = await acquireVerifiedPhoto(base({ kind: 'cover', day: null, sights: ['Blue Mosque'], usage }), deps)
+    expect(r.ok).toBe(true)
     if (r.ok) expect(r.photo.externalId).toBe('2')
+  })
+
+  it('사진 풀에 같은 방문지가 있으면 그 URL을 쓰고 검색하지 않는다', async () => {
+    const pooled = cand('pool-1', {
+      source: 'PhotoPool',
+      url: 'https://cdn.example.com/photo-pool/blue-mosque.webp',
+      width: 1800,
+      height: 1200,
+      storedBytes: 120_000,
+      altText: 'Blue Mosque in Istanbul',
+    })
+    const { deps, stats, calls } = makeDeps({ pool: () => [pooled], results: () => [cand('9')] })
+    const r = await acquireVerifiedPhoto(base(), deps)
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      expect(r.photo.url).toBe(pooled.url)
+      expect(r.photo.source).toBe('PhotoPool')
+    }
+    expect(stats().searchCount).toBe(0)
+    expect(calls.some((c) => c.type === 'pool')).toBe(true)
+  })
+
+  it('도시 이름만 맞는 풀 사진과 인물 풀 사진은 버리고 새로 찾는다', async () => {
+    const cityOnly = cand('city', { source: 'PhotoPool', url: 'https://cdn.example.com/photo-pool/city.webp', altText: 'Istanbul skyline', originalLink: 'https://www.pexels.com/photo/istanbul-city/', storedBytes: 100_000, width: 1800, height: 1200 })
+    const person = cand('person', { source: 'PhotoPool', url: 'https://cdn.example.com/photo-pool/person.webp', altText: 'A woman standing in front of the Blue Mosque in Istanbul', storedBytes: 100_000, width: 1800, height: 1200 })
+    const { deps, stats } = makeDeps({ pool: () => [cityOnly, person], results: (tier) => (tier === 'pexels' ? [cand('2')] : []) })
+    const r = await acquireVerifiedPhoto(base(), deps)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.photo.externalId).toBe('2')
+    expect(stats().searchCount).toBeGreaterThan(0)
   })
 
   it('같은 상품이 이미 쓴 사진(exclude)은 다시 고르지 않는다', async () => {

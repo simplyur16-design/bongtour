@@ -2,7 +2,7 @@
  * 등록(상태 전환) 전 사진 게이트 — 기존 자동 등록 검사에 '더하기만' 한다(기존 guard 완화 없음).
  * 막는 사유(칸 단위):
  *  photo_sight_mismatch   그날 방문 명소와 맞지 않거나 맞는지 확인할 근거가 없음
- *  photo_public_duplicate 공개 상품이 이미 쓰는 사진(출처 id·주소) — 대표·카드 포함
+ *  photo_public_duplicate 목록 카드 대표가 다른 공개 상품 대표와 같음(출처 id·주소). 일차 사진은 같아도 막지 않는다
  *  photo_irrelevant_subject 인물 주피사체·회의실/사무실·로고 등 무관 사진(제목·태그 기준)
  *  photo_low_res / photo_over_bytes / photo_not_measured  1200px 미만·용량(대표 200,000B·일차 400,000B) 초과·측정 실패
  * 관리자가 고른 칸(imageManualSelected·수동 대표)은 해상도·내용 판정에서 제외한다(기존과 동일, 용량만 본다).
@@ -87,8 +87,8 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
     const locked = coverLocked(cover.source)
     measure('cover', null, cover.url, locked)
     if (!locked) {
-      const conflict = input.usage.conflict(photoIdentityKeys({ url: cover.url, externalId: cover.externalId, originalLink: cover.originalLink }), input.productId)
-      if (conflict) push({ kind: 'cover', day: null, reason: 'photo_public_duplicate', detail: `used by ${conflict.productId}(${conflict.role})` })
+      const conflict = input.usage.coverConflict(photoIdentityKeys({ url: cover.url, externalId: cover.externalId, originalLink: cover.originalLink }), input.productId)
+      if (conflict) push({ kind: 'cover', day: null, reason: 'photo_public_duplicate', detail: `cover used by ${conflict.productId}` })
       const text = textOf(cover.originalLink)
       subject('cover', null, text)
       if (text.length >= 3 && !cover.sightMatch) {
@@ -116,8 +116,6 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
       if (locked) continue
       const src = raw.imageSource && typeof raw.imageSource === 'object' ? (raw.imageSource as Record<string, unknown>) : {}
       const link = String(src.originalLink ?? raw.imageSourcePageUrl ?? '')
-      const conflict = input.usage.conflict(photoIdentityKeys({ url, externalId: String(src.externalId ?? ''), originalLink: link }), input.productId)
-      if (conflict) push({ kind: 'day', day, reason: 'photo_public_duplicate', detail: `used by ${conflict.productId}(${conflict.role})` })
       const text = textOf(link)
       subject('day', day, text)
       const d = deriveDaySights(
