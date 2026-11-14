@@ -2809,7 +2809,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM LMS — iPhone·Galaxy 원클릭 URL 본문. 알림톡 성공 시 LMS 없음, 실패·미설정 시에만 폴백",
+      "summary": "eSIM LMS — iPhone·Galaxy 원클릭 URL 본문. 알림톡 실패·미설정 시에만 LMS 폴백 (LPA여도 동시 발송하지 않음)",
       "checks": [
         {
           "file": "lib/bongsim/notifications/esim-qr-lms.ts",
@@ -2855,13 +2855,13 @@
         "lib/bongsim/notifications/esim-qr-lms.test.ts"
       ]
     },
-    {
+        {
       "id": "bongsim-esim-purchase-notify-usimsa-cs",
       "tier": [
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM 구매 발송(LMS·QR메일) 고객센터 링크는 유심사 CX — 봉투어 카카오/bongtour.com 문의 금지",
+      "summary": "eSIM 구매 발송(LMS·QR메일·쿠폰·환불메일) 고객센터 링크는 유심사 고객센터 페이지만 — 카카오(_fqTkK·_xlxjrxlX) 금지",
       "checks": [
         {
           "file": "lib/bongsim/notifications/esim-qr-lms.ts",
@@ -2871,72 +2871,105 @@
             "고객센터"
           ],
           "mustNotInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
-            "https://pf.kakao.com/_fqTkK/chat",
-            "카카오:",
             "문의: 카카오 09:00-18:00 · bongtour.com",
             "유심사 고객센터",
-            "open.kakao.com/o/",
-            "pf.kakao.com/_xlxjrxlX"
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX",
+            "open.kakao.com/o/"
           ]
         },
         {
           "file": "lib/bongsim/email/travel-esim-order-qr-mail.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]",
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL",
             "── 고객센터 ──"
           ],
           "mustNotInclude": [
             "BONGSIM_KAKAO_CHANNEL_URL",
             "봉투어 고객센터",
-            "유심사 고객센터"
+            "유심사 고객센터",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX"
           ]
         },
         {
           "file": "lib/simplyur/email/simplyur-esim-qr-mail.ts",
           "mustInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL",
             "Customer support"
           ],
           "mustNotInclude": [
             "BONGSIM_KAKAO_CHANNEL_URL",
-            "유심사"
+            "유심사",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX"
+          ]
+        },
+        {
+          "file": "lib/bongsim/email/travel-esim-gratitude-coupon-mail.ts",
+          "mustInclude": [
+            "USIMSA_CX_CONTACT_URL",
+            "고객센터"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX"
+          ]
+        },
+        {
+          "file": "lib/bongsim/email/travel-esim-refund-done-mail.ts",
+          "mustInclude": [
+            "USIMSA_CX_CONTACT_URL",
+            "고객센터"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX"
           ]
         },
         {
           "file": "lib/bongsim/constants.ts",
           "mustInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
-            "https://pf.kakao.com/_fqTkK/chat",
             "USIMSA_CX_CONTACT_URL",
             "https://www.usimsa.com/board/contact-channel/"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK"
           ]
         }
       ],
       "vitestSuites": [
         "lib/bongsim/notifications/esim-qr-lms.test.ts",
-        "lib/simplyur/email/simplyur-esim-qr-mail.test.ts"
+        "lib/simplyur/email/simplyur-esim-qr-mail.test.ts",
+        "lib/bongsim/esim-customer-cs-links.test.ts"
       ]
     },
-    {
+        {
       "id": "bongsim-esim-web-install-usimsa-cs",
       "tier": [
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM 홈·가이드·기기 설치 문의 UI는 유심사 CX — 봉투어 카카오 링크 금지",
+      "summary": "eSIM 홈·가이드·기기·정책·CS 카드 설치 문의 UI는 유심사 고객센터 페이지만 — 카카오(_fqTkK·_xlxjrxlX) 금지",
       "checks": [
         {
           "file": "app/travel/esim/EsimLandingWhySection.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-esim-web-install-usimsa-cs]",
-            "USIMSA_CX_KAKAO_CHAT_URL"
+            "USIMSA_CX_CONTACT_URL",
+            "BONGSIM_ESIM_SUPPORT_CARD_BODY"
           ],
           "mustNotInclude": [
-            "BONGSIM_KAKAO_CHANNEL_URL"
+            "BONGSIM_KAKAO_CHANNEL_URL",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK"
           ]
         },
         {
@@ -2945,7 +2978,8 @@
             "EsimMypageUsimsaCsLinks"
           ],
           "mustNotInclude": [
-            "EsimBongsimCsLinks"
+            "EsimBongsimCsLinks",
+            "kakaoLabel"
           ]
         },
         {
@@ -2954,35 +2988,42 @@
             "EsimMypageUsimsaCsLinks"
           ],
           "mustNotInclude": [
-            "EsimBongsimCsLinks"
+            "EsimBongsimCsLinks",
+            "kakaoLabel"
           ]
         },
         {
           "file": "components/bongsim/EsimMypageUsimsaCsLinks.tsx",
           "mustInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "BONGSIM_KAKAO_CHANNEL_URL"
           ]
         },
         {
           "file": "components/bongsim/esim/EsimVerificationGuideContent.tsx",
           "mustInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL"
           ],
           "mustNotInclude": [
-            "BONGSIM_KAKAO_CHANNEL_URL"
+            "BONGSIM_KAKAO_CHANNEL_URL",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK"
           ]
         },
         {
           "file": "components/bongsim/EsimSupportFootnote.tsx",
           "mustInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL"
           ],
           "mustNotInclude": [
             "open.kakao.com/o/",
-            "BONGSIM_KAKAO_CHANNEL_URL"
+            "BONGSIM_KAKAO_CHANNEL_URL",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK"
           ]
         },
         {
@@ -3003,16 +3044,43 @@
           "mustNotInclude": [
             "open.kakao.com/o/"
           ]
+        },
+        {
+          "file": "app/travel/esim/policy/page.tsx",
+          "mustInclude": [
+            "USIMSA_CX_CONTACT_URL",
+            "EsimMypageUsimsaCsLinks"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "카카오톡 문의"
+          ]
+        },
+        {
+          "file": "components/bongsim/EsimBongsimCsLinks.tsx",
+          "mustInclude": [
+            "USIMSA_CX_CONTACT_URL"
+          ],
+          "mustNotInclude": [
+            "BONGSIM_KAKAO_CHANNEL_URL",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX"
+          ]
         }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim-customer-cs-links.test.ts"
       ]
     },
-    {
+        {
       "id": "bongsim-esim-qr-os-install-lms-always",
       "tier": [
         "prebuild",
         "ci"
       ],
-      "summary": "봉투어 발송은 알림톡 우선. 성공하면 LMS 없음. LMS는 shouldSendLmsFallback일 때만. 카카오 상담 링크는 LMS에 없음",
+      "summary": "LPA 원클릭 헬퍼는 유지하되, 발송 경로는 알림톡 우선·LMS는 실패·미설정 폴백만 (동시 발송 금지)",
       "checks": [
         {
           "file": "lib/bongsim/notifications/esim-qr-lms.ts",
@@ -3020,34 +3088,24 @@
             "REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]",
             "esimQrNotifyMustSendOsQuickInstallLms",
             "shouldSendBongtourEsimOsQuickInstallLms",
-            "startsWith(\"LPA:\")",
-            "USIMSA_CX_CONTACT_URL"
-          ],
-          "mustNotInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
-            "https://pf.kakao.com/_fqTkK/chat",
-            "카카오:"
+            "startsWith(\"LPA:\")"
           ]
         },
         {
           "file": "lib/bongsim/fulfillment/esim-delivery.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]",
-            "sendEsimQrDeliveredAlimTalk",
-            "if (alim.ok)",
-            "alim.shouldSendLmsFallback",
-            "sendEsimQrDeliveredLmsFallback"
+            "REGRESSION-FREEZE[bongsim-esim-lms-quick-install]",
+            "shouldSendLmsFallback"
           ],
           "mustNotInclude": [
             "shouldSendBongtourEsimOsQuickInstallLms",
             "os_install_lms_failed",
-            "companion_failed_after_os_lms"
+            "REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]"
           ]
         }
       ],
       "vitestSuites": [
-        "lib/bongsim/notifications/esim-qr-lms.test.ts",
-        "lib/bongsim/fulfillment/esim-qr-notify-single-channel.test.ts"
+        "lib/bongsim/notifications/esim-qr-lms.test.ts"
       ]
     },
     {

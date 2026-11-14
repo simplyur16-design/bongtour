@@ -1,6 +1,5 @@
 import {
   USIMSA_CX_CONTACT_URL,
-  USIMSA_CX_KAKAO_CHAT_URL,
 } from "@/lib/bongsim/constants";
 import {
   buildAndroidQuickInstallUrl,
@@ -74,7 +73,6 @@ export function buildSimplyurEsimQrMailContent(input: SimplyurEsimQrMailInput, q
     "",
     // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: simplyur mail CS=USIMSA URL — manifest
     "Customer support",
-    `Kakao: ${USIMSA_CX_KAKAO_CHAT_URL}`,
     USIMSA_CX_CONTACT_URL,
   ]
     .filter(Boolean)
@@ -115,9 +113,6 @@ export function buildSimplyurEsimQrMailContent(input: SimplyurEsimQrMailInput, q
     <p style="margin:0 0 16px;font-size:12px;line-height:1.5;color:#8a93a3;">Unused eSIMs (not registered / no data used) can be cancelled from My eSIM. Card cancel runs first, then the supplier profile is voided.</p>
     <div style="margin:0;padding:14px 16px;border:1px solid #f1e4dc;border-radius:12px;background:#fff7f2;">
       <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#12233F;">Customer support</p>
-      <p style="margin:0 0 8px;text-align:center;">
-        <a href="${escapeHtml(USIMSA_CX_KAKAO_CHAT_URL)}" style="display:inline-block;padding:10px 16px;background:#FEE500;color:#191919;text-decoration:none;border-radius:8px;font-size:13px;font-weight:700;">Kakao chat</a>
-      </p>
       <p style="margin:0;text-align:center;"><a href="${escapeHtml(USIMSA_CX_CONTACT_URL)}" style="color:#e86a58;font-size:13px;font-weight:600;">Customer support</a></p>
     </div>
   </div>

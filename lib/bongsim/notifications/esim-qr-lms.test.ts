@@ -30,12 +30,13 @@ describe("buildEsimQrDeliveredLmsText", () => {
     expect(text).toContain("https://www.usimsa.com/board/contact-channel/");
     expect(text).not.toContain("https://pf.kakao.com/_fqTkK/chat");
     expect(text).not.toContain("카카오:");
+    expect(text).not.toContain("pf.kakao.com/_xlxjrxlX");
     expect(text).not.toContain("유심사");
     expect(text).not.toMatch(/문의: 카카오 09:00-18:00 · bongtour\.com/);
   });
 
-  it("detects an LPA prefix without treating it as a second send", () => {
-    // REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: LPA 판정. 발송은 알림톡 한 통 — manifest
+  it("requires OS-install LMS whenever LPA is present", () => {
+    // REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: LPA prefix helper — manifest
     expect(esimQrNotifyMustSendOsQuickInstallLms("LPA:1$consumer.rsp.world$ABCDEF123456")).toBe(true);
     expect(esimQrNotifyMustSendOsQuickInstallLms("https://example.com/qr")).toBe(false);
     expect(esimQrNotifyMustSendOsQuickInstallLms(null)).toBe(false);

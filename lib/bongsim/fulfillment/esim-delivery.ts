@@ -175,7 +175,6 @@ export async function sendQueuedEsimQrCustomerNotify(payload: EsimQrNotifyPayloa
       orderPageUrl,
       downloadLink: payload.download_link,
     };
-    // REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: 알림톡 우선. 성공하면 LMS 없음. shouldSendLmsFallback 일 때만 LMS — manifest
     // REGRESSION-FREEZE[bongsim-esim-lms-quick-install]: 알림톡 성공 시 한 통만. LMS는 실패·미설정 폴백 — manifest
     const alim = await sendEsimQrDeliveredAlimTalk(orderId, {
       customerPhone: phone,
