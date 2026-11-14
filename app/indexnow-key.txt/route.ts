@@ -1,13 +1,17 @@
-import { INDEXNOW_PUBLIC_KEY } from '@/lib/seo/indexnow'
+import { resolveIndexNowKey } from '@/lib/seo/indexnow'
 
 /**
- * IndexNow 키 파일(keyLocation 보조). 본문은 저장소 공개 키와 같다. `public/<key>.txt` 가 정식 keyLocation.
- * REGRESSION-FREEZE[seo-indexnow-skip-on-failure]: 키 문자열만, 본문 없음 — manifest
+ * IndexNow 키 파일(keyLocation). `INDEXNOW_KEY` 가 없으면 404 — 알림도 SKIP 된다.
+ * REGRESSION-FREEZE[seo-indexnow-skip-on-failure]: 키 없으면 404, 있으면 키 문자열만 — manifest
  */
-export const dynamic = 'force-static'
+export const dynamic = 'force-dynamic'
 
 export function GET() {
-  return new Response(INDEXNOW_PUBLIC_KEY, {
+  const key = resolveIndexNowKey()
+  if (!key) {
+    return new Response('Not Found', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+  }
+  return new Response(key, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'public, max-age=3600',

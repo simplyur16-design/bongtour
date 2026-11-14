@@ -3,21 +3,15 @@
  * Google Indexing API 는 쓰지 않는다(채용·라이브 영상 전용 정책).
  *
  * REGRESSION-FREEZE[seo-indexnow-skip-on-failure]: 절대 throw·대기하지 않음. 키 없음/실패 = SKIP 로그만 — manifest
- * - 키: 저장소의 공개 키 `INDEXNOW_PUBLIC_KEY` = `public/<key>.txt` (env 불필요).
- *   테스트만 `INDEXNOW_KEY` 를 넘기면 그 값을 쓰고, 빈 문자열이면 SKIP.
- * - 간격: 묶음 전송(디바운스) + 직전 전송과 최소 간격 + 지터. 한 요청 최대 500건. 재시도는 최대 1회. 그래도 실패하면 SKIP.
- * - 운영에서만 전송: NODE_ENV=production 이고 RAILWAY_ENVIRONMENT 또는 VERCEL_ENV 가 production 이며 CI 가 아니고 origin 이 https 공개 호스트.
+ * - 키: `INDEXNOW_KEY` (8~128자 [A-Za-z0-9-]). 없으면 전부 SKIP(no-op), 키 파일 라우트도 404.
+ * - 간격: 묶음 전송(디바운스) + 직전 전송과 최소 간격 + 지터. 재시도는 최대 1회. 그래도 실패하면 SKIP.
+ * - 운영 origin(https, localhost 아님)일 때만 전송.
  */
 import { getSiteOrigin } from '@/lib/site-metadata'
 
 export const INDEXNOW_ENDPOINT = 'https://api.indexnow.org/indexnow'
-/** 공개 키 (public/<key>.txt 와 같은 값). env 없이 동작한다. */
-export const INDEXNOW_PUBLIC_KEY = '390ef6b3bc14abdd0c900efd20618788'
-
-/** keyLocation 경로. 같은 내용의 `/indexnow-key.txt` 라우트도 둔다. */
-export function indexNowKeyLocationPath(key: string = INDEXNOW_PUBLIC_KEY): string {
-  return `/${key}.txt`
-}
+/** 키 파일 — `app/indexnow-key.txt/route.ts` (keyLocation 으로 전달) */
+export const INDEXNOW_KEY_FILE_PATH = '/indexnow-key.txt'
 
 const KEY_RE = /^[A-Za-z0-9-]{8,128}$/
 
@@ -46,26 +40,12 @@ export const INDEXNOW_TIMING = {
   retryDelayMs: 5_000,
   timeoutMs: 5_000,
   /** IndexNow 1회 최대 10,000 — 여유 있게 */
-  maxUrlsPerRequest: 500,
+  maxUrlsPerRequest: 1_000,
 } as const
 
-/**
- * 키가 명시되면 그 값(빈 값·형식 오류는 null = SKIP). 없으면 저장소 공개 키.
- * REGRESSION-FREEZE[seo-indexnow-public-key]: 운영 키는 public/<key>.txt — manifest
- */
 export function resolveIndexNowKey(env: Record<string, string | undefined> = process.env): string | null {
-  if (Object.prototype.hasOwnProperty.call(env, 'INDEXNOW_KEY')) {
-    const k = (env.INDEXNOW_KEY ?? '').trim()
-    return KEY_RE.test(k) ? k : null
-  }
-  return KEY_RE.test(INDEXNOW_PUBLIC_KEY) ? INDEXNOW_PUBLIC_KEY : null
-}
-
-/** CI·로컬·비운영에서는 호출하지 않는다. 새 env 없이 기존 RAILWAY_ENVIRONMENT / VERCEL_ENV / CI / NODE_ENV. */
-export function isIndexNowProductionRuntime(env: Record<string, string | undefined> = process.env): boolean {
-  if (env.CI === 'true' || env.CI === '1') return false
-  if (env.NODE_ENV !== 'production') return false
-  return env.RAILWAY_ENVIRONMENT === 'production' || env.VERCEL_ENV === 'production'
+  const k = (env.INDEXNOW_KEY ?? '').trim()
+  return KEY_RE.test(k) ? k : null
 }
 
 /** 운영 공개 origin 만 — localhost·http·IP 는 SKIP */
@@ -118,12 +98,8 @@ export async function submitIndexNow(urls: readonly string[], deps: IndexNowDeps
     const origin = (deps.origin ?? getSiteOrigin()).replace(/\/$/, '')
     const list = filterIndexNowUrls(urls, origin).slice(0, INDEXNOW_TIMING.maxUrlsPerRequest)
     if (!key) {
-      log('SKIP no_key', { count: list.length })
+      log('SKIP no_key (INDEXNOW_KEY 미설정)', { count: list.length })
       return { status: 'skip', reason: 'no_key', count: list.length }
-    }
-    if (!isIndexNowProductionRuntime(env)) {
-      log('SKIP not_production', { count: list.length })
-      return { status: 'skip', reason: 'not_production', count: list.length }
     }
     if (!isIndexNowEligibleOrigin(origin)) {
       log('SKIP non_production_origin', { origin, count: list.length })
@@ -136,7 +112,7 @@ export async function submitIndexNow(urls: readonly string[], deps: IndexNowDeps
     const body = JSON.stringify({
       host: new URL(origin).host,
       key,
-      keyLocation: `${origin}${indexNowKeyLocationPath(key)}`,
+      keyLocation: `${origin}${INDEXNOW_KEY_FILE_PATH}`,
       urlList: list,
     })
     let lastReason = 'unknown'
@@ -196,11 +172,7 @@ export function queueIndexNowUrls(urls: readonly string[], deps: IndexNowDeps = 
   try {
     const env = deps.env ?? process.env
     if (!resolveIndexNowKey(env)) {
-      ;(deps.log ?? defaultLog)('SKIP no_key', { count: urls.length })
-      return
-    }
-    if (!isIndexNowProductionRuntime(env)) {
-      ;(deps.log ?? defaultLog)('SKIP not_production', { count: urls.length })
+      ;(deps.log ?? defaultLog)('SKIP no_key (INDEXNOW_KEY 미설정)', { count: urls.length })
       return
     }
     for (const u of urls) if (u) queue.pending.add(u)

@@ -47,22 +47,6 @@ export function revalidateSitemapCaches(): void {
   }
 }
 
-/** 상세·목록·사이트맵. 상세 페이로드 DB 재빌드는 하지 않는다. */
-export function revalidateChangedProductPaths(row: { id: string; slug: string | null; listingKind?: string | null }): void {
-  revalidateSitemapCaches()
-  const path =
-    (row.listingKind ?? '') === OVERSEAS_TRAINING_LISTING_KIND
-      ? trainingProgramPublicPath(row)
-      : publicProductPath(row)
-  for (const p of [path, '/products', '/business/programs']) {
-    try {
-      safeRevalidatePath(p, 'product-index-refresh')
-    } catch {
-      /* 요청 밖 */
-    }
-  }
-}
-
 /** never throws, never blocks caller (내부 비동기는 void) */
 export function notifyProductPublicUrlChanged(input: ProductIndexEventInput): void {
   try {
@@ -85,7 +69,6 @@ export function notifyProductPublicUrlChanged(input: ProductIndexEventInput): vo
           .catch(() => null)
         if (found) row = found
       }
-      revalidateChangedProductPaths(row)
       queueIndexNowUrls(productPublicUrlsForIndex(getSiteOrigin(), row))
     } catch (err) {
       console.warn('[product-index-events] SKIP', err instanceof Error ? err.message : String(err))

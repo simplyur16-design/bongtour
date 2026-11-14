@@ -181,10 +181,6 @@ export async function register() {
         '@/lib/instrumentation-curation-event-cron'
       )
       startInstrumentationCurationEventCron()
-      const { startInstrumentationProductIndexRefreshCron } = await import(
-        '@/lib/instrumentation-product-index-refresh-cron'
-      )
-      startInstrumentationProductIndexRefreshCron()
     }
   }
   assertProductionServerEnv()
