@@ -26,7 +26,8 @@ export function ProductDetailUsageV1({ usage }: { usage: BongsimProductDetailUsa
       </div>
       <div className="mt-4 border-t border-slate-100 pt-3">
         <p className="text-[12px] font-semibold text-slate-700">eSIM 설치 방법</p>
-        <EsimInstallGuideLinks className="mt-2 block text-[13px]" />
+        <p className="mt-1 text-[13px] text-slate-600">인증이 필요한 상품은 여행자 인증 안내를 먼저 보세요.</p>
+        <EsimInstallGuideLinks includeAuth className="mt-2 block text-[13px]" />
       </div>
     </section>
   );

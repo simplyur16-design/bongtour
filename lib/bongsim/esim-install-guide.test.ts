@@ -2,81 +2,68 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { COMMON_FAQ } from "@/lib/bongsim/esim-guide-content";
-import { ESIM_INSTALL_AUTH_MARKDOWN, ESIM_INSTALL_GENERAL_MARKDOWN } from "@/lib/bongsim/esim-install-guide-copy";
+import { ESIM_GUIDE_SITE_DATA, esimGuideLocale, esimGuideScreen } from "@/lib/bongsim/esim-guide-site/load";
 import {
-  ESIM_INSTALL_AUTH_PATH,
   ESIM_INSTALL_CS_URL,
   ESIM_INSTALL_FAQ_QUESTION,
-  ESIM_INSTALL_GENERAL_PATH,
+  ESIM_INSTALL_GUIDE_PATH,
+  ESIM_TRAVELER_AUTH_PATH,
 } from "@/lib/bongsim/esim-install-guide";
-import {
-  esimInstallHeadings,
-  parseEsimInstallManuscript,
-  publishEsimInstallManuscript,
-} from "@/lib/bongsim/esim-install-manuscript";
 
-function stepHeadings(markdown: string): string[] {
-  return esimInstallHeadings(markdown).filter((heading) => /\d+단계/.test(heading));
-}
+const FORBIDDEN = ["_fqTkK", "_xlxjrxlX", "pf.kakao.com"];
 
-function assertPublished(markdown: string, steps: number) {
-  expect(stepHeadings(markdown)).toHaveLength(steps);
-  expect(markdown).toContain(ESIM_INSTALL_CS_URL);
-  expect(markdown).not.toContain("_fqTkK");
-  expect(markdown).not.toContain("_xlxjrxlX");
-  expect(markdown).not.toContain("pf.kakao.com");
-  expect(markdown).not.toContain(".pdf");
-  expect(markdown).not.toContain("확인 필요");
-  expect(markdown).not.toContain("카카오톡 상담은");
-  const images = parseEsimInstallManuscript(markdown).filter((block) => block.kind === "img");
-  expect(images.length).toBeGreaterThan(0);
-  for (const image of images) {
-    expect(image.src.startsWith("/travel/esim/guide/")).toBe(true);
-    expect(fs.existsSync(path.join(process.cwd(), "public", image.src))).toBe(true);
-  }
-}
-
-describe("esim install guide pages", () => {
-  it("publishes the auth manuscript as 33 steps without kakao or pdf", () => {
-    assertPublished(ESIM_INSTALL_AUTH_MARKDOWN, 33);
+describe("esim guide site data", () => {
+  it("falls back to the default locale", () => {
+    expect(esimGuideLocale("en").locale).toBe(ESIM_GUIDE_SITE_DATA.defaultLocale);
+    expect(esimGuideLocale("en").content.guide.title).toBe(esimGuideLocale("ko").content.guide.title);
   });
 
-  it("publishes the general manuscript as 31 steps without kakao or pdf", () => {
-    assertPublished(ESIM_INSTALL_GENERAL_MARKDOWN, 31);
+  it("keeps the published step counts and hides downloads", () => {
+    const content = esimGuideLocale("ko").content;
+    expect(content.guide.platforms.iphone.steps).toHaveLength(7);
+    expect(content.guide.platforms.galaxy.steps).toHaveLength(8);
+    expect(content.auth.verification.steps).toHaveLength(2);
+    expect(content.guide.prep.cards).toHaveLength(5);
+    expect(content.faq.downloads).toEqual([]);
+    expect(content.common.moreLabel).toBe("자세히 보기");
   });
 
-  it("drops the kakao row and the 확인 필요 label", () => {
-    const published = publishEsimInstallManuscript(
-      [
-        "본문입니다. 카카오톡 상담은 **24시간 연중무휴**입니다.",
-        "| 카카오톡 | @유심사 ([pf.kakao.com/_fqTkK/chat](https://pf.kakao.com/_fqTkK/chat)) |",
-        "| 전화 | 1661-0158 |",
-        "확인 필요: 개통 시점은 자료가 없다.",
-        "![화면](img/screens/ios-01.png)",
-      ].join("\n"),
-    );
-    expect(published).toContain("본문입니다.");
-    expect(published).toContain("| 전화 | 1661-0158 |");
-    expect(published).toContain("상품 페이지 안내를 따르세요");
-    expect(published).toContain("](/travel/esim/guide/screens/ios-01.png)");
-    expect(published).not.toContain("확인 필요");
-    expect(published).not.toContain("_fqTkK");
-    expect(published).not.toContain("카카오톡");
-  });
-
-  it("links both install pages from the eSIM FAQ", () => {
-    const item = COMMON_FAQ.find((faq) => faq.q === ESIM_INSTALL_FAQ_QUESTION);
-    expect(item?.links?.map((link) => link.href)).toEqual([
-      ESIM_INSTALL_AUTH_PATH,
-      ESIM_INSTALL_GENERAL_PATH,
-    ]);
-  });
-
-  it("keeps both pages indexable", () => {
-    for (const file of ["app/travel/esim/guide/auth/page.tsx", "app/travel/esim/guide/general/page.tsx"]) {
-      const source = fs.readFileSync(path.join(process.cwd(), file), "utf8");
-      expect(source).toContain("index: true");
-      expect(source).not.toContain("noindex");
+  it("resolves every image key to a file under the ko public folder", () => {
+    const content = esimGuideLocale("ko").content;
+    const keys = [
+      ...content.guide.platforms.iphone.steps.flatMap((step) => [step.imageKey, ...step.details.map((detail) => detail.imageKey)]),
+      ...content.guide.platforms.galaxy.steps.flatMap((step) => [step.imageKey, ...step.details.map((detail) => detail.imageKey)]),
+      ...content.auth.verification.steps.map((step) => step.imageKey),
+    ];
+    for (const key of keys) {
+      const image = esimGuideScreen(key, "ko");
+      expect(image.src).toContain("/ko/");
+      expect(image.width).toBeGreaterThan(0);
+      expect(fs.existsSync(path.join(process.cwd(), "public", image.src))).toBe(true);
     }
+  });
+
+  it("keeps supplier names off the screen copy and uses only the contact URL", () => {
+    const blob = JSON.stringify(esimGuideLocale("ko").content);
+    expect(blob).not.toMatch(/유심사|USIMSA/);
+    expect(ESIM_GUIDE_SITE_DATA.support.web.url).toBe(ESIM_INSTALL_CS_URL);
+    expect(ESIM_INSTALL_CS_URL).toBe("https://www.usimsa.com/board/contact-channel/");
+    const files = [
+      "lib/bongsim/esim-guide-site/esim-guide.data.json",
+      "components/bongsim/esim/EsimGuideSiteView.tsx",
+      "app/travel/esim/guide/install/page.tsx",
+      "app/travel/esim/guide/traveler-auth/page.tsx",
+    ];
+    for (const file of files) {
+      const source = fs.readFileSync(path.join(process.cwd(), file), "utf8");
+      for (const token of FORBIDDEN) expect(source).not.toContain(token);
+      expect(source).not.toMatch(/\.pdf/);
+    }
+  });
+
+  it("links the install page from FAQ and the auth page when the answer names it", () => {
+    const item = COMMON_FAQ.find((faq) => faq.q === ESIM_INSTALL_FAQ_QUESTION);
+    expect(item?.a).toMatch(/인증이 필요한 상품/);
+    expect(item?.links?.map((link) => link.href)).toEqual([ESIM_INSTALL_GUIDE_PATH, ESIM_TRAVELER_AUTH_PATH]);
   });
 });

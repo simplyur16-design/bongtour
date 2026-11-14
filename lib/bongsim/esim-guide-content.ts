@@ -1,8 +1,8 @@
 // lib/bongsim/esim-guide-content.ts
 import {
-  ESIM_INSTALL_AUTH_PATH,
   ESIM_INSTALL_FAQ_QUESTION,
-  ESIM_INSTALL_GENERAL_PATH,
+  ESIM_INSTALL_GUIDE_PATH,
+  ESIM_TRAVELER_AUTH_PATH,
 } from "@/lib/bongsim/esim-install-guide";
 
 // ─────────────────────────────────────────────────────────────
@@ -360,10 +360,10 @@ export const ANDROID_STEPS: GuideStep[] = [
 export const COMMON_FAQ: GuideFaq[] = [
   {
     q: ESIM_INSTALL_FAQ_QUESTION,
-    a: "인증이 필요한 상품과 일반 상품의 화면이 다릅니다. 해당 안내를 단계 번호 순서대로 따라 하세요.",
+    a: "출국 전 준비, 아이폰, 갤럭시 단계는 설치 안내를 따라 하세요. 인증이 필요한 상품은 여행자 인증 안내를 먼저 보세요.",
     links: [
-      { href: ESIM_INSTALL_AUTH_PATH, label: "인증형 설치 안내" },
-      { href: ESIM_INSTALL_GENERAL_PATH, label: "일반형 설치 안내" },
+      { href: ESIM_INSTALL_GUIDE_PATH, label: "eSIM 설치 안내" },
+      { href: ESIM_TRAVELER_AUTH_PATH, label: "여행자 인증" },
     ],
   },
   {
