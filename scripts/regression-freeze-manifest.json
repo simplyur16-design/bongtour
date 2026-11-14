@@ -3005,6 +3005,30 @@
       ]
     },
     {
+      "id": "bongsim-esim-install-guide-pages",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 설치 안내 인증형·일반형 페이지 경로와 유심사 문의 URL",
+      "checks": [
+        {
+          "file": "lib/bongsim/esim-install-guide.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-install-guide-pages]",
+            "/travel/esim/guide/auth",
+            "/travel/esim/guide/general",
+            "https://www.usimsa.com/board/contact-channel/",
+            "eSIM 설치 방법"
+          ],
+          "mustNotInclude": [
+            "_fqTkK",
+            "_xlxjrxlX"
+          ]
+        }
+      ]
+    },
+    {
       "id": "bongsim-esim-qr-os-install-lms-always",
       "tier": [
         "prebuild",
