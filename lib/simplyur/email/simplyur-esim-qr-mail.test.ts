@@ -27,8 +27,11 @@ describe("simplyur eSIM delivery mail", () => {
     expect(mail.html).toContain(android!);
     expect(mail.html).toContain("/simplyur/en/my-esim");
     expect(mail.html).toContain("Customer support");
-    expect(mail.html).toContain("https://pf.kakao.com/_fqTkK/chat");
     expect(mail.html).toContain("https://www.usimsa.com/board/contact-channel/");
+    expect(mail.html).not.toContain("https://pf.kakao.com/_fqTkK/chat");
+    expect(mail.html).not.toContain("Kakao chat");
+    expect(mail.html).not.toContain("pf.kakao.com/_xlxjrxlX");
+    expect(mail.text).not.toContain("Kakao:");
     expect(mail.html).not.toContain("유심사");
     expect(mail.text).toContain("iPhone install");
   });

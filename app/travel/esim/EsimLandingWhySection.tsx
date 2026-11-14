@@ -6,7 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { BarChart3, ChevronRight, Map, MessageCircle, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { EsimLoginRequiredModal } from "@/components/bongsim/esim/EsimLoginRequiredModal";
-import { USIMSA_CX_KAKAO_CHAT_URL, bongsimPath } from "@/lib/bongsim/constants";
+import { BONGSIM_ESIM_SUPPORT_CARD_BODY, USIMSA_CX_CONTACT_URL, bongsimPath } from "@/lib/bongsim/constants";
 
 type WhyItem = {
   id: string;
@@ -80,11 +80,11 @@ const WHY_ITEMS: readonly WhyItem[] = [
     id: "support",
     icon: MessageCircle,
     title: "안심 고객센터",
-    // REGRESSION-FREEZE[bongsim-esim-web-install-usimsa-cs]: 랜딩 설치 문의=유심사 CX — manifest
-    body: "설치·사용 문의는 24시간 카카오톡으로 연결됩니다",
+    // REGRESSION-FREEZE[bongsim-esim-web-install-usimsa-cs]: 랜딩 설치 문의=유심사 고객센터 페이지 — manifest
+    body: BONGSIM_ESIM_SUPPORT_CARD_BODY,
     titleMobile: "고객센터",
-    href: USIMSA_CX_KAKAO_CHAT_URL.trim() || undefined,
-    linkLabel: "카카오톡 문의하기",
+    href: USIMSA_CX_CONTACT_URL,
+    linkLabel: "고객센터",
     external: true,
     circleClass: "bg-amber-100 text-amber-600",
   },

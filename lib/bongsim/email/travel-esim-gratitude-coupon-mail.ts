@@ -3,7 +3,6 @@ import nodemailer from "nodemailer";
 import {
   BONGSIM_ESIM_SUPPORT_EMAIL_LINE,
   USIMSA_CX_CONTACT_URL,
-  USIMSA_CX_KAKAO_CHAT_URL,
   bongsimPath,
 } from "@/lib/bongsim/constants";
 
@@ -80,7 +79,6 @@ export function buildTravelEsimGratitudeMailContent(input: TravelEsimGratitudeMa
     "",
     BONGSIM_ESIM_SUPPORT_EMAIL_LINE,
     "고객센터",
-    `카카오: ${USIMSA_CX_KAKAO_CHAT_URL}`,
     USIMSA_CX_CONTACT_URL,
     "",
     "즐거운 여행 되세요.",
@@ -96,7 +94,7 @@ export function buildTravelEsimGratitudeMailContent(input: TravelEsimGratitudeMa
   const safeDep = escapeHtml(depKo);
   const safeEsimUrl = escapeHtml(esimUrl);
   const safeSupport = escapeHtml(BONGSIM_ESIM_SUPPORT_EMAIL_LINE);
-  const kakaoLine = `<p style="margin:12px 0 0;font-size:14px;color:#334155;">고객센터: <a href="${escapeHtml(USIMSA_CX_KAKAO_CHAT_URL)}" style="color:#0f766e;">카카오톡 문의</a> · <a href="${escapeHtml(USIMSA_CX_CONTACT_URL)}" style="color:#0f766e;">문의 페이지</a></p>`;
+  const contactLine = `<p style="margin:12px 0 0;font-size:14px;color:#334155;">고객센터: <a href="${escapeHtml(USIMSA_CX_CONTACT_URL)}" style="color:#0f766e;">고객센터</a></p>`;
 
   const html = `<!DOCTYPE html>
 <html lang="ko"><head><meta charset="utf-8" /></head>
@@ -122,7 +120,7 @@ export function buildTravelEsimGratitudeMailContent(input: TravelEsimGratitudeMa
           <p style="margin:20px 0 0;font-size:14px;color:#475569;"><strong>유효기간:</strong> ${safeDep}까지</p>
           <hr style="margin:24px 0;border:none;border-top:1px solid #e2e8f0;" />
           <p style="margin:0;font-size:14px;color:#334155;">${safeSupport}</p>
-          ${kakaoLine}
+          ${contactLine}
           <p style="margin:24px 0 0;font-size:13px;color:#64748b;">Bong투어 드림</p>
         </td></tr>
       </table>

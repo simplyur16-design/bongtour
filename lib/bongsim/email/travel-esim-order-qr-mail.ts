@@ -2,7 +2,6 @@ import nodemailer from "nodemailer";
 
 import {
   USIMSA_CX_CONTACT_URL,
-  USIMSA_CX_KAKAO_CHAT_URL,
 } from "@/lib/bongsim/constants";
 import {
   buildAndroidQuickInstallUrl,
@@ -83,7 +82,6 @@ function buildTravelerVerificationEmailBlock(iccid: string): { html: string; tex
       </p>
       <p style="margin:14px 0 0;font-size:12px;line-height:1.5;color:#64748b;">고객센터</p>
       <p style="margin:8px 0 0;text-align:center;">
-        <a href="${escapeHtml(USIMSA_CX_KAKAO_CHAT_URL)}" style="display:inline-block;margin:0 4px 6px;padding:10px 16px;background:#FEE500;color:#191919;text-decoration:none;border-radius:8px;font-size:13px;font-weight:700;">카카오톡 문의</a>
         <a href="${escapeHtml(USIMSA_CX_CONTACT_URL)}" style="display:inline-block;margin:0 4px 6px;padding:10px 16px;color:#0f766e;font-size:13px;font-weight:600;text-decoration:underline;">고객센터</a>
       </p>
     </td>
@@ -97,7 +95,6 @@ function buildTravelerVerificationEmailBlock(iccid: string): { html: string; tex
     "ICCID 뒷부분 복사는 마이페이지 또는 주문 완료 페이지에서 할 수 있습니다.",
     `CMLink: ${CMLINK_TRAVELER_VERIFICATION_URL}`,
     "고객센터",
-    `카카오톡: ${USIMSA_CX_KAKAO_CHAT_URL}`,
     USIMSA_CX_CONTACT_URL,
   ].join("\n");
 
@@ -131,8 +128,7 @@ export function buildTravelEsimOrderQrMailContent(
     ? buildTravelerVerificationEmailBlock(verificationIccid)
     : { html: "", text: "" };
 
-  // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: 구매 메일 문의=유심사 CX — manifest
-  const kakaoUrl = USIMSA_CX_KAKAO_CHAT_URL.trim();
+  // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: 구매 메일 문의=USIMSA contact URL만 (11/14 00:16) — manifest
   const contactUrl = USIMSA_CX_CONTACT_URL.trim();
 
   const text = [
@@ -158,7 +154,6 @@ export function buildTravelEsimOrderQrMailContent(
     verificationBlock.text ? ["", verificationBlock.text].join("\n") : "",
     "",
     "── 고객센터 ──",
-    kakaoUrl ? `카카오톡 문의: ${kakaoUrl}` : "",
     contactUrl || "",
     `문의 시 주문번호를 알려주세요: ${orderNumber}`,
     "",
@@ -172,7 +167,6 @@ export function buildTravelEsimOrderQrMailContent(
   const safeOrderPage = escapeHtml(orderPage);
   const safeSmDp = escapeHtml(smDp);
   const safeActivationCode = escapeHtml(activationCode);
-  const safeKakao = kakaoUrl ? escapeHtml(kakaoUrl) : "";
   const safeContact = contactUrl ? escapeHtml(contactUrl) : "";
 
   const qrImgSrc = options?.qrImgSrc?.trim() ?? "";
@@ -234,13 +228,6 @@ export function buildTravelEsimOrderQrMailContent(
     ${quickInstallBtns}
     <div style="margin:20px 0 0;padding:16px;border:1px solid #99f6e4;border-radius:12px;background:#f0fdfa;">
       <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#0f766e;">고객센터</p>
-      ${
-        safeKakao
-          ? `<p style="margin:0 0 10px;text-align:center;">
-        <a href="${safeKakao}" style="display:inline-block;padding:12px 20px;background:#FEE500;color:#191919;text-decoration:none;border-radius:8px;font-size:14px;font-weight:700;">카카오톡 문의하기</a>
-      </p>`
-          : ""
-      }
       ${
         safeContact
           ? `<p style="margin:0 0 12px;text-align:center;"><a href="${safeContact}" style="color:#0f766e;font-size:13px;font-weight:600;">고객센터</a></p>`

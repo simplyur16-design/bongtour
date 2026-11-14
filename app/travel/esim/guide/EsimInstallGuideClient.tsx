@@ -298,7 +298,6 @@ export function EsimInstallGuideClient({ imageMap }: { imageMap: EsimGuideImageM
             </p>
             <div className="mt-4 flex justify-center">
               <EsimMypageUsimsaCsLinks
-                kakaoLabel="카카오톡 문의하기"
                 showHeading={false}
                 className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center"
               />

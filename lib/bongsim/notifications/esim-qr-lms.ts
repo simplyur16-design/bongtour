@@ -1,6 +1,5 @@
 import {
   USIMSA_CX_CONTACT_URL,
-  USIMSA_CX_KAKAO_CHAT_URL,
 } from "@/lib/bongsim/constants";
 import {
   buildAndroidQuickInstallUrl,
@@ -19,7 +18,7 @@ export type EsimQrLmsTextInput = {
   downloadLink?: string | null;
 };
 
-/** LPA가 있으면 알림톡 성공과 무관하게 원클릭 LMS를 반드시 보냄 */
+/** LPA 접두 여부. LMS 본문 원클릭 URL 삽입 판단용. 발송은 알림톡 실패 폴백만. */
 // REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: LPA prefix — manifest
 export function esimQrNotifyMustSendOsQuickInstallLms(
   downloadLink: string | null | undefined,
@@ -84,9 +83,8 @@ export function buildSimplyurEsimQrDeliveredLmsText(input: EsimQrLmsTextInput): 
     "",
     "Install before you need data. The plan starts when the eSIM first connects in Korea.",
     "",
-    // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: simplyur LMS CS=USIMSA — manifest
+    // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: simplyur LMS CS=USIMSA contact URL only (11/14 00:16) — manifest
     "Customer support",
-    `Kakao: ${USIMSA_CX_KAKAO_CHAT_URL}`,
     USIMSA_CX_CONTACT_URL,
   );
   return lines.join("\n");
@@ -95,7 +93,7 @@ export function buildSimplyurEsimQrDeliveredLmsText(input: EsimQrLmsTextInput): 
 /**
  * eSIM QR LMS 본문 — 주문 페이지 + (가능 시) iPhone/Galaxy 바로 설치 URL.
  * REGRESSION-FREEZE[bongsim-esim-lms-quick-install]: LMS에 원클릭 설치 URL — manifest
- * REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: LPA면 원클릭 LMS 필수 — manifest
+ * REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: LPA면 원클릭 URL을 LMS 본문에 넣음(발송은 폴백) — manifest
  */
 export function buildEsimQrDeliveredLmsText(input: EsimQrLmsTextInput): string {
   const orderNumber = input.orderNumber.trim() || "—";
@@ -130,9 +128,8 @@ export function buildEsimQrDeliveredLmsText(input: EsimQrLmsTextInput): string {
     "- QR·코드는 1회성 (삭제 후 재설치 어려움)",
     "- 상세 단계: bongtour.com/travel/esim/guide",
     "",
-    // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: 구매 발송 고객센터=유심사 CX URL — manifest
+    // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: 구매 발송 고객센터=USIMSA contact URL만 (카카오 상담 링크 제외, 11/14 00:16) — manifest
     "고객센터",
-    `카카오: ${USIMSA_CX_KAKAO_CHAT_URL}`,
     USIMSA_CX_CONTACT_URL,
   );
   return lines.join("\n");

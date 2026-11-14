@@ -27,14 +27,16 @@ describe("buildEsimQrDeliveredLmsText", () => {
     expect(text).toMatch(/1회성/);
     // REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]: LMS 고객센터=유심사 CX URL — manifest
     expect(text).toContain("고객센터");
-    expect(text).toContain("https://pf.kakao.com/_fqTkK/chat");
     expect(text).toContain("https://www.usimsa.com/board/contact-channel/");
+    expect(text).not.toContain("https://pf.kakao.com/_fqTkK/chat");
+    expect(text).not.toContain("카카오:");
+    expect(text).not.toContain("pf.kakao.com/_xlxjrxlX");
     expect(text).not.toContain("유심사");
     expect(text).not.toMatch(/문의: 카카오 09:00-18:00 · bongtour\.com/);
   });
 
   it("requires OS-install LMS whenever LPA is present", () => {
-    // REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: LPA → must send LMS — manifest
+    // REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: LPA prefix helper — manifest
     expect(esimQrNotifyMustSendOsQuickInstallLms("LPA:1$consumer.rsp.world$ABCDEF123456")).toBe(true);
     expect(esimQrNotifyMustSendOsQuickInstallLms("https://example.com/qr")).toBe(false);
     expect(esimQrNotifyMustSendOsQuickInstallLms(null)).toBe(false);
@@ -70,8 +72,9 @@ describe("buildEsimQrDeliveredLmsText", () => {
     expect(text).toContain("/simplyur/en/my-esim");
     expect(text).not.toContain("[Bong투어]");
     expect(text).toContain("Customer support");
-    expect(text).toContain("https://pf.kakao.com/_fqTkK/chat");
     expect(text).toContain("https://www.usimsa.com/board/contact-channel/");
+    expect(text).not.toContain("https://pf.kakao.com/_fqTkK/chat");
+    expect(text).not.toContain("Kakao:");
     expect(text).not.toContain("open.kakao.com/o/");
     expect(text).not.toContain("pf.kakao.com/_xlxjrxlX");
   });
