@@ -32050,6 +32050,96 @@
         }
       ],
       "vitestSuites": ["lib/product-bookable-derived-sync.test.ts"]
+    },
+    {
+      "id": "departure-cache-from-rows",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "마지막 출발일 캐시(lastFutureDepartureDate)는 실제 ProductDeparture row(오늘 KST 이후 성인가>0 MAX)에서 재계산하고, 출발 row를 쓰는 모든 경로가 쓰기 직후 재계산한다. 공개 판정은 publicProductWhereClause 한 곳이며 여행 상품은 캐시가 비면 비공개(fail-closed), 국외연수(overseas_training, otr)만 예외.",
+      "checks": [
+        {
+          "file": "lib/product-departure-cache.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-from-rows]",
+            "export async function recomputeProductDepartureCache(",
+            "maxFuturePricedDepartureDate(prisma, productId, todayYmd)",
+            "export const DEPARTURE_CACHE_OTR_LISTING_KIND = 'overseas_training'",
+            "prisma.product.updateMany({"
+          ],
+          "mustNotInclude": [
+            "await prisma.product.update({"
+          ]
+        },
+        {
+          "file": "lib/product-sales-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-from-rows]",
+            "DEPARTURE_CACHE_OTR_LISTING_KIND",
+            "recomputeProductDepartureCacheSafe(prisma, product.id"
+          ],
+          "mustNotInclude": [
+            "AND: [{ lastFutureDepartureDate: null }, { noFutureDepartureConfirmedAt: null }]"
+          ]
+        },
+        {
+          "file": "lib/season-curation.ts",
+          "mustInclude": [
+            "publicProductWhereClause(now)"
+          ],
+          "mustNotInclude": [
+            "OR: [{ lastFutureDepartureDate: null }"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-from-rows]",
+            "recomputeProductDepartureCacheSafe(prisma, productId"
+          ]
+        },
+        {
+          "file": "lib/hanatour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-from-rows]",
+            "recomputeProductDepartureCacheSafe(prisma, product.id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "departure-cache-nightly-reconcile",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "야간(KST 00:40) 점검이 캐시 vs 실제 출발 row 불일치(otr 제외)를 탐지·재계산하고 고친 건수와 되돌리기 기록(rollback 항목·SQL)을 로그로 남긴다. instrumentation 에 등록 필수.",
+      "checks": [
+        {
+          "file": "lib/departure-cache-reconcile.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-nightly-reconcile]",
+            "COALESCE(p.\"listingKind\", '') <> 'overseas_training'",
+            "export function buildDepartureCacheRollbackSql("
+          ]
+        },
+        {
+          "file": "lib/instrumentation-departure-cache-reconcile-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-nightly-reconcile]",
+            "'40 0 * * *'",
+            "rollback",
+            "DEPARTURE_CACHE_RECONCILE_BOOT_DELAY_MS"
+          ]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "startInstrumentationDepartureCacheReconcileCron"
+          ]
+        }
+      ]
     }
   ],
   "vitestSuites": [
@@ -32646,6 +32736,29 @@
       "summary": "내일투어 MEZZ32084 녹화 fixture — live gate 확인 항목 전부(포함/불포함·hasOptionalTour=false 등)·상세묶음 1회 수집·부분실패 unknown_fetch_failed·변조 fixture FAIL·SKIP 종료코드 집계",
       "files": [
         "lib/naeiltour-register-api-detail.fixture.test.ts"
+      ]
+    },
+    {
+      "id": "departure-cache-from-rows-tests",
+      "tier": [
+        "ci"
+      ],
+      "summary": "캐시 재계산·공개 fail-closed·otr 예외·CPP7883/JKB130/EPP0211 사례 재현·쓰기 경로 정적 가드",
+      "files": [
+        "lib/product-departure-cache.test.ts",
+        "lib/product-sales-policy.test.ts",
+        "lib/departure-cache-write-paths.test.ts"
+      ]
+    },
+    {
+      "id": "departure-cache-nightly-reconcile-tests",
+      "tier": [
+        "ci"
+      ],
+      "summary": "야간 캐시 불일치 탐지·재계산·건수·되돌리기 기록·dryRun·상한·otr 제외",
+      "files": [
+        "lib/departure-cache-reconcile.test.ts",
+        "lib/departure-cache-pr112-fix.test.ts"
       ]
     }
   ]

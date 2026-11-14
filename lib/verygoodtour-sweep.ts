@@ -9,6 +9,7 @@
  */
 import { resolveSupplierProductTripDuration } from '@/lib/supplier-trip-duration'
 import type { PrismaClient } from '@prisma/client'
+import { recomputeProductDepartureCacheSafe } from '@/lib/product-departure-cache'
 import { createSupplierSweepPacer } from '@/lib/supplier-sweep-pacing'
 
 import { prismaRead as defaultPrismaRead } from '@/lib/prisma'
@@ -317,6 +318,8 @@ export async function sweepDueVerygoodtourProducts(
               rawMeta: clearVerygoodtourPriceRecheckFromRawMeta(product.rawMeta),
             },
           })
+          // REGRESSION-FREEZE[departure-cache-from-rows]: 출발 row 쓰기·마커 갱신 직후 캐시 재계산 — manifest
+          await recomputeProductDepartureCacheSafe(prisma, product.id, 'verygoodtour-sweep:horizon-sold-out')
           result.horizonSoldOut += 1
           continue
         }
@@ -385,6 +388,8 @@ export async function sweepDueVerygoodtourProducts(
           rawMeta,
         },
       })
+      // REGRESSION-FREEZE[departure-cache-from-rows]: 출발 row 쓰기·마커 갱신 직후 캐시 재계산 — manifest
+      await recomputeProductDepartureCacheSafe(prisma, product.id, 'verygoodtour-sweep:updated')
       result.updated += 1
     } catch (err) {
       await pacer.onError(err)
