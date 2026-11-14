@@ -1,10 +1,11 @@
 /**
  * 메인 시즌 추천 도시 사이클 — Gemini + Product 도시 분포 (PR-D3-A).
  * 사이클 기간: KST 매달 1일 00:00 ~ 다음 달 1일 00:00(배타).
- * 메모리 #28 시즌 SSOT, #25 노출: registered + (lastFutureDepartureDate IS NULL OR > now).
+ * 메모리 #28 시즌 SSOT, #25 노출: registered + publicProductWhereClause (공개 목록과 같은 판정).
  */
 import type { SeasonalDestinationCuration } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { extractFirstBalancedJsonObject, stripLlmMarkdownJsonFence } from '@/lib/llm-json-extract'
 import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { loadMegaMenuSsotCityKeys } from '@/lib/mega-menu-ssot-city-keys'
@@ -224,7 +225,7 @@ export async function getProductCityDistribution(now = new Date()): Promise<Map<
       product: {
         registrationStatus: 'registered',
         NOT: { travelScope: 'domestic' },
-        OR: [{ lastFutureDepartureDate: null }, { lastFutureDepartureDate: { gt: now } }],
+        AND: [publicProductWhereClause(now)],
       },
     },
     _count: { productId: true },

@@ -173,6 +173,10 @@ export async function register() {
         '@/lib/instrumentation-sync-bookable-derived-cron'
       )
       startInstrumentationSyncBookableDerivedCron()
+      const { startInstrumentationDepartureCacheReconcileCron } = await import(
+        '@/lib/instrumentation-departure-cache-reconcile-cron'
+      )
+      startInstrumentationDepartureCacheReconcileCron()
       const { startInstrumentationProductDetailPayloadCron } = await import(
         '@/lib/instrumentation-product-detail-payload-cron'
       )

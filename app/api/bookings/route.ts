@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { recomputeProductDepartureCacheSafe } from '@/lib/product-departure-cache'
 import { computeKRWQuotation, computeLocalFeeTotal, type PriceRowLike } from '@/lib/price-utils'
 import { formatDepartureDate } from '@/lib/message-service'
 import { notifyBookingStyleIntakeAlerts } from '@/lib/booking-style-intake-notify'
@@ -254,6 +255,8 @@ export async function POST(request: Request) {
           where: { id: departure.id },
           data: { adultPrice: modetourLiveAdultPrice },
         })
+        // REGRESSION-FREEZE[departure-cache-from-rows]: 성인가 변경도 캐시(성인가>0 기준) 재계산 — manifest
+        await recomputeProductDepartureCacheSafe(prisma, product.id, 'bookings-modetour-live-price')
       }
     }
 
