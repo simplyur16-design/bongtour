@@ -29,7 +29,9 @@ import {
   keptDayImagesWhenConfirmedPlaceSkipped,
   photoContextSearchQuery,
   pickDayStockCandidate,
+  dayPhotoContextFromFacts,
   selectScheduleDayPhoto,
+  type DayPhotoPick,
   routeDaySlotHero,
   daySelectionPersistSlice,
 } from '@/lib/register-photo-day-confirmed-place'
@@ -95,6 +97,13 @@ import {
 import { probeStoredImage } from '@/lib/register-auto-photo-register-job'
 // REGRESSION-FREEZE[register-day-photo-ai-label]: v2 생성 일차 사진 AI 표시 기록 — manifest
 import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-ai-label'
+// REGRESSION-FREEZE[photo-autofill-route-strict]: 자동 채움(photoChain v2 + fillMissingOnly)은 검증된 방문지 사진만 — manifest
+import { acquireVerifiedPhoto } from '@/lib/photo-autofill-acquire'
+import { photoIdentityKeys } from '@/lib/photo-autofill-gate'
+import { createLiveAcquireDeps } from '@/lib/photo-autofill-live-deps'
+import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
+import { destinationTermsOf } from '@/lib/photo-gate-runner'
+import { recordPhotoException, type PhotoException } from '@/lib/photo-exception-list'
 
 /**
  * 이미지 톤: lib/image-style 공통 (실사·다큐, 건물 지현창조 금지).
@@ -158,6 +167,9 @@ type PhotoResult = {
   cityMatch?: DayCityMatch
   /** v2: 생성 이미지 AI 표시(생성 문장) */
   aiLabel?: DayPhotoAiLabel | null
+  /** 자동 채움: 그날 방문지와 사진 설명이 일치한 근거(등록 전 사진 게이트가 읽는다) */
+  sight?: string
+  sightMatch?: string
 }
 
 type ItineraryRowLite = {
@@ -466,6 +478,8 @@ export async function POST(req: Request) {
     const photoChainV2 = isPhotoChainV2Enabled(body)
     const fillMissingOnly = body.fillMissingOnly === true
     const preserveHeroRequested = body.preserveHero === true
+    const strictAutofill = photoChainV2 && fillMissingOnly
+    const strictExceptions: PhotoException[] = []
     if (productId == null) {
       return jsonWithLeakGuard({ success: false, error: 'productId 필요' }, 'travel.process-images.no-id', {
         status: 400,
@@ -574,6 +588,7 @@ export async function POST(req: Request) {
      */
     // REGRESSION-FREEZE[photo-fill-route-sight-1114]: 겹친 키워드의 풀 일괄 배정은 빈 상품만. 빈 칸 채움·기존 사진은 일차별 경로 — manifest
     if (
+      !strictAutofill &&
       !areScheduleImageKeywordsDistinct(scheduleArr) &&
       shouldBulkAssignUndistinctPool({
         poolCount: poolList.length,
@@ -643,7 +658,7 @@ export async function POST(req: Request) {
       else poolBySlot.set(i - 1, rec)
     })
 
-    const preMade = poolList.length === 0 ? await getPreMadeImageSet(prisma, destination) : null
+    const preMade = poolList.length === 0 && !strictAutofill ? await getPreMadeImageSet(prisma, destination) : null
     if (preMade) {
       console.log(`[PRE-MADE] ${destination} 미리 저장 세트 사용 (메인·일정 URL 중복 제외)`)
       const usage = createPhotoUsage()
@@ -843,9 +858,61 @@ export async function POST(req: Request) {
     let mainPhoto: PhotoResult
     const existingHeroUrl = String(product.bgImageUrl ?? '').trim()
     // REGRESSION-FREEZE[auto-photo-missing-day-fill]: 기존 대표 URL·출처는 유지 — manifest
-    const preserveHero = preserveHeroRequested && existingHeroUrl.length > 0
+    let preserveHero = preserveHeroRequested && existingHeroUrl.length > 0
     const poolMain = preserveHero ? undefined : poolBySlot.get(-1)
-    if (preserveHero) {
+
+    // 자동 채움: 방문지 검증 + 공개 상품과 중복 금지. 검색은 순차·간격+지터, 읽기 재시도 1회, AI 생성 없음.
+    const strictTerms = destinationTermsOf({
+      destination,
+      primaryDestination: (product as { primaryDestination?: string | null }).primaryDestination ?? null,
+    })
+    const strictDeps = strictAutofill
+      ? createLiveAcquireDeps({ prisma, destination, probe: (u) => probeStoredImage(u) })
+      : null
+    const strictPublicUsage = strictAutofill ? await loadPublicPhotoUsageCached(prisma) : null
+    const strictOwnKeys = new Set<string>()
+    const strictAdopt = (p: PhotoResult, kind: 'cover' | 'day') => {
+      const keys = photoIdentityKeys({ url: p.url, externalId: p.externalId, originalLink: p.originalLink })
+      for (const k of keys) strictOwnKeys.add(k)
+      strictPublicUsage?.add(String(product.id), kind, keys)
+    }
+    const strictRecord = async (e: PhotoException) => {
+      strictExceptions.push(e)
+      await recordPhotoException(e)
+    }
+    if (strictAutofill && !preserveHero && !poolMain) {
+      const sights = [...new Set([mainQuery, heroPick.keyword].map((x) => String(x ?? '').trim()).filter(Boolean))]
+      const res = await acquireVerifiedPhoto(
+        {
+          productId: String(product.id),
+          kind: 'cover',
+          day: null,
+          sights,
+          cityTerms: strictTerms.cityTerms,
+          destinationText: strictTerms.terms.join(' '),
+          usage: strictPublicUsage!,
+          origin: 'autofill',
+        },
+        strictDeps!,
+      )
+      if (res.ok) {
+        mainPhoto = {
+          url: res.photo.url,
+          source: res.photo.source,
+          photographer: res.photo.photographer,
+          originalLink: res.photo.originalLink,
+          ...(res.photo.externalId ? { externalId: res.photo.externalId } : {}),
+          sight: res.photo.sight,
+          sightMatch: res.photo.matched,
+        }
+        strictAdopt(mainPhoto, 'cover')
+        console.log(`[AUTOFILL] 대표 ${res.photo.source} ${res.photo.sight}`)
+      } else {
+        if (!res.skipped) await strictRecord(res.exception)
+        mainPhoto = { url: '', source: '', photographer: '', originalLink: '' }
+        preserveHero = true
+      }
+    } else if (preserveHero) {
       mainPhoto = {
         url: existingHeroUrl,
         source: String(product.bgImageSource ?? 'existing'),
@@ -913,7 +980,7 @@ export async function POST(req: Request) {
     if (!preserveHero) {
       mainPhoto = await sealProductCoverPhoto(prisma, destination, mainPhoto, mainQuery, mainPhoto.source)
     }
-    usage.mark(mainPhoto)
+    if (mainPhoto.url) usage.mark(mainPhoto)
 
     const maxItineraryDay =
       itineraryRows.length > 0 ? Math.max(...itineraryRows.map((r) => r.day)) : 0
@@ -1073,7 +1140,60 @@ export async function POST(req: Request) {
       let fallbackReason: string | undefined
       const dayFacts = scheduleDayPhotoFacts(sched)
 
-      const picked = await selectScheduleDayPhoto({
+      const strictDayPick = async (): Promise<DayPhotoPick<PhotoResult>> => {
+        const keep = (unresolvedReason: string): DayPhotoPick<PhotoResult> => ({
+          photo: null,
+          stage: 'kept',
+          imageUrl: sched?.imageUrl ?? null,
+          imageUrl2: sched?.imageUrl2 ?? null,
+          title: sched?.title ?? null,
+          description: sched?.description ?? null,
+          routeText: sched?.routeText ?? null,
+          unresolvedReason,
+          generateInvoked: false,
+        })
+        if (dayPhotoContextFromFacts(dayFacts).kind === 'none') return keep('no_confirmed_sightseeing')
+        const exclude = new Set(strictOwnKeys)
+        const res = await acquireVerifiedPhoto(
+          {
+            productId: String(product.id),
+            kind: 'day',
+            day: dayNum,
+            dayFacts: {
+              title: sched?.title ?? null,
+              routeText: sched?.routeText ?? null,
+              description: sched?.description ?? null,
+              imageKeyword: sched?.imageKeyword ?? null,
+              imageKeyword2: sched?.imageKeyword2 ?? null,
+            },
+            cityTerms: strictTerms.cityTerms,
+            destinationText: [...strictTerms.terms, itRow?.city ?? ''].join(' '),
+            usage: strictPublicUsage!,
+            exclude,
+            origin: 'autofill',
+          },
+          strictDeps!,
+        )
+        if (!res.ok) {
+          if (!res.skipped) await strictRecord(res.exception)
+          return keep(res.exception.reason.slice(0, 120))
+        }
+        const adopted: PhotoResult = {
+          url: res.photo.url,
+          source: res.photo.source,
+          photographer: res.photo.photographer,
+          originalLink: res.photo.originalLink,
+          ...(res.photo.externalId ? { externalId: res.photo.externalId } : {}),
+          cityMatch: 'meta',
+          sight: res.photo.sight,
+          sightMatch: res.photo.matched,
+        }
+        strictAdopt(adopted, 'day')
+        keywordUsed = res.photo.sight
+        return { photo: adopted, stage: 'chain', imageUrl: adopted.url, imageUrl2: null, title: null, description: null, routeText: null, unresolvedReason: null, generateInvoked: false }
+      }
+
+      const picked = strictAutofill ? await strictDayPick() : await selectScheduleDayPhoto({
         facts: dayFacts,
         existing: {
           imageUrl: sched?.imageUrl ?? null,
@@ -1253,7 +1373,7 @@ export async function POST(req: Request) {
         let verdict = await verdictOf(sealedSlot)
         if (!verdict.ok) {
           const first = verdict.reasons.join(',')
-          const retry = await runChain(
+          const retry = strictAutofill ? null : await runChain(
             `day${dayNum}-policy-retry`,
             normalizeToPlaceName(keywordUsed) || keywordUsed,
             `${destination}_${dayNum}`,
@@ -1323,6 +1443,7 @@ export async function POST(req: Request) {
       const sched = workingSchedule[n]
       const kw2 = typeof sched?.imageKeyword2 === 'string' ? sched.imageKeyword2.trim() : ''
       if (!kw2) continue
+      if (strictAutofill) continue
       if (preserveExistingPhotoIdx.has(n)) continue
       if (photoChainV2 && sched && (isRegisterScheduleNoPlacePhotoDay(sched, scheduleMaxDay) || registerScheduleDayIsCityOnlyPhotoSkip(sched))) continue
       const existing2 = sched?.imageUrl2 ? String(sched.imageUrl2).trim() : ''
@@ -1427,6 +1548,7 @@ export async function POST(req: Request) {
               originalLink: photo.originalLink,
               ...(photo.externalId ? { externalId: photo.externalId } : {}),
               ...(photo.cityMatch ? { cityMatch: photo.cityMatch } : {}),
+              ...(photo.sight ? { sight: photo.sight, sightMatch: photo.sightMatch ?? '' } : {}),
               ...(photo.aiLabel ? photo.aiLabel : {}),
             }
           : item.imageSource,
@@ -1481,15 +1603,18 @@ export async function POST(req: Request) {
       itineraryRows
     )
     const bgMeta = resolveProductBgImageFieldsFromPhoto(bgPhoto)
+    const strictNoCover = strictAutofill && !existingHeroUrl && !bgPhoto.url
     await prisma.product.update({
       where: { id: product.id as string },
-      data: await gatedAutoCoverUpdateData(product, bgPhoto, mainQuery, {
-        ...processImagesProductUpdate(preserveHero, scheduleStrFinal, {
-          bgImageUrl: bgPhoto.url,
-          bgImageRehostSearchLabel: mainQuery.slice(0, 120),
-          ...bgMeta,
-        }),
-      }),
+      data: strictNoCover
+        ? { schedule: scheduleStrFinal }
+        : await gatedAutoCoverUpdateData(product, bgPhoto, mainQuery, {
+            ...processImagesProductUpdate(preserveHero, scheduleStrFinal, {
+              bgImageUrl: bgPhoto.url,
+              bgImageRehostSearchLabel: mainQuery.slice(0, 120),
+              ...bgMeta,
+            }),
+          }),
     })
 
     for (const row of updatedSchedule) {
@@ -1524,6 +1649,9 @@ export async function POST(req: Request) {
     const response: Record<string, unknown> = {
       cacheHit: cacheHitCount,
       newFetch: newFetchCount,
+      ...(strictAutofill
+        ? { exceptions: strictExceptions.map((e) => ({ productId: e.productId, day: e.day, kind: e.kind, sight: e.sight, query: e.query, reason: e.reason, detail: e.detail })) }
+        : {}),
     }
     if (debugMode) {
       response.processImagesTrace = {
