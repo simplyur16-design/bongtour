@@ -31215,6 +31215,279 @@
       ]
     },
     {
+      "id": "photo-autofill-sight",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사진 자동 채움: 그날 방문지는 일정 글에서 뽑은 명소(영문 우선)이며 도시 이름만 있는 키워드·일정에 없는 다른 도시 키워드는 쓰지 않는다. 별칭 사전으로 이름 일치를 본다.",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-sight.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-autofill-sight]",
+            "export function deriveDaySights",
+            "export function sightMatchInText",
+            "other_city"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-autofill-sight.test.ts"
+      ]
+    },
+    {
+      "id": "photo-autofill-gate",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사진 자동 채움 채택 관문: 명소 이름(별칭) 일치, 도시 이름만 일치 탈락, 인물 주인공 탈락, 공개 상품 중복 탈락(같은 상품 재사용만 허용), 해상도·용량(카드 200,000B·상세 400,000B·1200px).",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-autofill-gate]",
+            "AUTOFILL_COVER_MAX_BYTES = 200_000",
+            "export function evaluateAutofillCandidate",
+            "'public_duplicate'",
+            "'person_subject'",
+            "'city_only_match'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-autofill-gate.test.ts"
+      ]
+    },
+    {
+      "id": "photo-autofill-acquire",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사진 자동 채움 획득: Pexels → Unsplash 순서, 순차·호출 전 간격+지터, 읽기 재시도 1회, 칸당 후보 5개 상한, AI 생성 없음, 한도·장애는 그 칸의 예외 사유.",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-acquire.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-autofill-acquire]",
+            "export async function acquireVerifiedPhoto",
+            "AUTOFILL_MAX_CANDIDATES_PER_SLOT",
+            "_limit",
+            "_error"
+          ],
+          "mustNotInclude": [
+            "generateImageWithGemini",
+            "savePhotoToPool"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-live-deps.ts",
+          "mustInclude": [
+            "AUTOFILL_PAUSE_BASE_MS",
+            "AUTOFILL_PAUSE_JITTER_MS"
+          ],
+          "mustNotInclude": [
+            "generateImageWithGemini",
+            "savePhotoToPool"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-autofill-acquire.test.ts"
+      ]
+    },
+    {
+      "id": "photo-exception-list",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사진 예외 목록은 한 곳(AssetUsageLog selectionMode=photo-exception). 자동 채움·자가 힐·야간 점검이 못 고친 칸만 쌓이고, 나중에 자동 채움이 성공하면 닫힌다.",
+      "checks": [
+        {
+          "file": "lib/photo-exception-list.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-exception-list]",
+            "PHOTO_EXCEPTION_SELECTION_MODE = 'photo-exception'",
+            "export function openPhotoExceptions"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-exception-list.test.ts"
+      ]
+    },
+    {
+      "id": "photo-slot-apply",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사진 칸 교체는 사진 필드 5개만 바꾸고(title·가격·일정 글 불변) 관리자가 고른 칸은 건드리지 않으며, 교체 전 값을 기록해 되돌릴 수 있다.",
+      "checks": [
+        {
+          "file": "lib/photo-slot-apply.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-slot-apply]",
+            "PHOTO_REPLACE_FIELDS",
+            "export function revertDayPhoto",
+            "manual_locked"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-slot-apply.test.ts"
+      ]
+    },
+    {
+      "id": "register-photo-registration-gate",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "등록 전 사진 게이트: 방문지 불일치·공개 상품과 중복·무관 사진·저화질·용량 미달이면 등록하지 않는다. 기존 자동 등록 검사에 더하기만 한다.",
+      "checks": [
+        {
+          "file": "lib/register-photo-registration-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-registration-gate]",
+            "export function evaluateRegistrationPhotos",
+            "'photo_public_duplicate'",
+            "'photo_irrelevant_subject'"
+          ]
+        },
+        {
+          "file": "lib/register-auto-register-gate.ts",
+          "mustInclude": [
+            "'photo_sight_mismatch'",
+            "'photo_public_duplicate'",
+            "'photo_irrelevant_subject'",
+            "'photo_review_pending'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/register-photo-registration-gate.test.ts"
+      ]
+    },
+    {
+      "id": "photo-heal",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "자가 힐: 사진 게이트가 막은 칸만 다음 후보(칸당 5개)로 교체하고 교체 전 값을 기록한다. 못 고친 칸은 예외 목록에 올리고 그 상품만 자동 등록에서 보류된다.",
+      "checks": [
+        {
+          "file": "lib/photo-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-heal]",
+            "HEAL_MAX_SLOTS_PER_PRODUCT = 8",
+            "export async function healBlockedSlots",
+            "heal_cap"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-heal.test.ts"
+      ]
+    },
+    {
+      "id": "photo-nightly-audit",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "야간 점검: 공개 상품 사진의 HTTP 깨짐·중복을 재확인해 같은 게이트 후보로 사진 칸만 교체한다. 실행당 교체 상한 10, 교체 전 값 기록, 순차·간격+지터·재시도 1회, 외부 장애는 SKIP+사유. 기존 자동 등록 job 의 야간 구간에만 붙는다.",
+      "checks": [
+        {
+          "file": "lib/photo-nightly-audit.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-nightly-audit]",
+            "NIGHTLY_MAX_REPLACEMENTS_PER_RUN = 10",
+            "export function isNightlyAuditWindowKst",
+            "replaceNote(",
+            "export function planDuplicateIssues"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-nightly-audit]",
+            "runPublicPhotoNightlyAuditLive",
+            "isNightlyAuditWindowKst(new Date())"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-nightly-audit.test.ts"
+      ]
+    },
+    {
+      "id": "photo-registration-gate-wiring",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사진 게이트·자가 힐·야간 점검 연결: 자동 등록 job 은 힐 → 게이트 → 보류 사유 기록, 관리자 등록 전환(registered)도 같은 게이트로 400 차단. 쓰는 칸은 사진 칸뿐.",
+      "checks": [
+        {
+          "file": "lib/photo-gate-runner.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-registration-gate-wiring]",
+            "export async function runPhotoHealForProduct",
+            "export async function evaluateStoredProductPhotosForRegistration",
+            "registrationStatus: 'registered'"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-registration-gate-wiring]",
+            "runPhotoHealForProduct(prisma, id,",
+            "evaluateRegistrationPhotos(buildRegistrationPhotoInput(",
+            "registrationBlockCodes(photoGate.blocks)"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-registration-gate-wiring]",
+            "evaluateStoredProductPhotosForRegistration(",
+            "photoGate: true"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-autofill-wiring.test.ts"
+      ]
+    },
+    {
+      "id": "photo-autofill-route-strict",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "자동 채움(photoChain v2 + fillMissingOnly)은 검증된 방문지 사진만 채운다: 풀 일괄 배정·미리 만든 세트·AI 생성·정책 재시도·두 번째 칸 채움 없음. 못 구한 칸은 예외 목록, 대표를 못 구하면 대표는 쓰지 않는다.",
+      "checks": [
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-autofill-route-strict]",
+            "const strictAutofill = photoChainV2 && fillMissingOnly",
+            "acquireVerifiedPhoto(",
+            "const strictNoCover",
+            "strictRecord(res.exception)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-autofill-wiring.test.ts"
+      ]
+    },
+    {
       "id": "register-ingest-esim-yield-count-fallback",
       "tier": [
         "prebuild",

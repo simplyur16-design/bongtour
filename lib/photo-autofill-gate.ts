@@ -196,6 +196,27 @@ export function buildPublicPhotoUsage(rows: readonly PublicUsageRow[], poolIdByU
   return usage
 }
 
+/** 같은 이름 다른 곳(예: Yerevan 의 Blue Mosque)을 거르는 보조 목록 [영문, 한글]. 그날 글·목적지에 있으면 허용한다. */
+const FOREIGN_CITY_PAIRS: ReadonlyArray<readonly [string, string]> = [
+  ['yerevan', '예레반'], ['tbilisi', '트빌리시'], ['baku', '바쿠'], ['warsaw', '바르샤바'], ['krakow', '크라쿠프'],
+  ['tallinn', '탈린'], ['riga', '리가'], ['vilnius', '빌뉴스'], ['bratislava', '브라티슬라바'], ['ljubljana', '류블랴나'],
+  ['zagreb', '자그레브'], ['sarajevo', '사라예보'], ['belgrade', '베오그라드'], ['bucharest', '부쿠레슈티'], ['kyiv', '키이우'],
+  ['minsk', '민스크'], ['tehran', '테헤란'], ['isfahan', '이스파한'], ['cairo', '카이로'], ['marrakech', '마라케시'],
+  ['tunis', '튀니스'], ['damascus', '다마스쿠스'], ['beirut', '베이루트'], ['amman', '암만'], ['jerusalem', '예루살렘'],
+  ['dubai', '두바이'], ['doha', '도하'], ['muscat', '무스카트'], ['kuala lumpur', '쿠알라룸푸르'], ['jakarta', '자카르타'],
+  ['manila', '마닐라'], ['hanoi', '하노이'], ['yangon', '양곤'], ['kathmandu', '카트만두'], ['colombo', '콜롬보'],
+  ['delhi', '델리'], ['mumbai', '뭄바이'], ['lima', '리마'], ['bogota', '보고타'], ['havana', '아바나'],
+]
+
+export function foreignCityInText(foldedText: string, contextRaw: string): string | null {
+  const padded = ` ${foldedText} `
+  const ctx = ` ${foldPhotoText(contextRaw)} `
+  const ctxKo = contextRaw.replace(/\s+/g, '')
+  for (const [en, ko] of FOREIGN_CITY_PAIRS) {
+    if (padded.includes(` ${en} `) && !ctx.includes(` ${en} `) && !ctxKo.includes(ko)) return en
+  }
+  return null
+}
 export type AutofillGateInput = {
   candidate: AutofillCandidate
   sight: SightProfile
@@ -270,6 +291,8 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
       if (mapped) reasons.add(mapped)
     }
   }
+
+  if (folded.length >= 3 && foreignCityInText(folded, `${input.slotText} ${input.cityTerms.join(' ')} ${input.sight.name}`)) reasons.add('other_place')
 
   const conflict = input.usage.conflict(photoIdentityKeys({ url: c.url, externalId: c.id, originalLink: c.originalLink }), input.productId)
   if (conflict) reasons.add('public_duplicate')

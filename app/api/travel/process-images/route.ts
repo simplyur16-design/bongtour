@@ -1604,17 +1604,17 @@ export async function POST(req: Request) {
     )
     const bgMeta = resolveProductBgImageFieldsFromPhoto(bgPhoto)
     const strictNoCover = strictAutofill && !existingHeroUrl && !bgPhoto.url
-    await prisma.product.update({
+    if (strictNoCover) {
+      await prisma.product.update({ where: { id: product.id as string }, data: { schedule: scheduleStrFinal } })
+    } else await prisma.product.update({
       where: { id: product.id as string },
-      data: strictNoCover
-        ? { schedule: scheduleStrFinal }
-        : await gatedAutoCoverUpdateData(product, bgPhoto, mainQuery, {
-            ...processImagesProductUpdate(preserveHero, scheduleStrFinal, {
-              bgImageUrl: bgPhoto.url,
-              bgImageRehostSearchLabel: mainQuery.slice(0, 120),
-              ...bgMeta,
-            }),
-          }),
+      data: await gatedAutoCoverUpdateData(product, bgPhoto, mainQuery, {
+        ...processImagesProductUpdate(preserveHero, scheduleStrFinal, {
+          bgImageUrl: bgPhoto.url,
+          bgImageRehostSearchLabel: mainQuery.slice(0, 120),
+          ...bgMeta,
+        }),
+      }),
     })
 
     for (const row of updatedSchedule) {

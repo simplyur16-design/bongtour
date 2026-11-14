@@ -148,7 +148,7 @@ export function sightProfile(nameRaw: string): SightProfile {
   if (head.length >= 2) required = head
   else if (head.length === 1) required = head[0]!.length >= 6 && nouns.length === 0 ? head : [...head, ...nouns.slice(0, 1)]
   else required = nonCity.filter((t) => !['old', 'town', 'city', 'national'].includes(t)).slice(0, 2)
-  if (alias) return { name, kind: 'sight', phraseTerms: [...new Set([folded, ...alias])], requiredTokens: required.length >= 2 || (required.length === 1 && required[0]!.length >= 4) ? required : [], needsCityAnchor: false }
+  if (alias) return { name, kind: 'sight', phraseTerms: [...new Set([folded, ...alias])].filter(Boolean), requiredTokens: required.length >= 2 || (required.length === 1 && required[0]!.length >= 4) ? required : [], needsCityAnchor: false }
   if (required.length === 0 || (required.length === 1 && required[0]!.length < 4)) return empty
   const phrases = new Set<string>([folded, ...(alias ?? [])])
   const weakOnly = strong.length === 0
