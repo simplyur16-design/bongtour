@@ -150,8 +150,10 @@ export async function runAutoPhotoRegisterJob(opts?: {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
             body: JSON.stringify({ productId: id, ...autoPhotoFillRequest(hasMainPhoto) }),
           })
-          const j = (await res.json().catch(() => ({}))) as { success?: boolean }
-          if (res.ok && j.success) {
+          const j = (await res.json().catch(() => ({}))) as { success?: boolean; filled?: number; reason?: string }
+          const filledCount = typeof j.filled === 'number' && Number.isFinite(j.filled) ? Math.max(0, Math.floor(j.filled)) : 0
+          // REGRESSION-FREEZE[photo-fill-route-sight-1114]: 응답의 실제 채움 수만 성공으로 센다 — manifest
+          if (res.ok && j.success === true && filledCount > 0) {
             logAutoPhotoAttempt({
               productId: id,
               day: null,
@@ -159,16 +161,18 @@ export async function runAutoPhotoRegisterJob(opts?: {
               providerErrorClass: null,
               attemptAt,
               result: 'filled',
+              filled: filledCount,
             })
-            result.filled++
+            result.filled += filledCount
           } else {
             logAutoPhotoAttempt({
               productId: id,
               day: null,
               gate: 'process-images',
-              providerErrorClass: res.ok ? 'FillRejected' : `Http${res.status}`,
+              providerErrorClass: j.reason || (res.ok ? 'FillRejected' : `Http${res.status}`),
               attemptAt,
               result: 'failed',
+              filled: filledCount,
             })
             result.fillFailed++
           }

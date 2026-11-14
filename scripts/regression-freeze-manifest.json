@@ -31167,6 +31167,54 @@
       ]
     },
     {
+      "id": "photo-fill-route-sight-1114",
+      "tier": ["prebuild", "ci"],
+      "summary": "일정 요약에 명소가 있으면 확인된 관광 없음으로 건너뛰지 않는다. 채움 응답은 실제 채운 칸 수이고 0칸은 성공이 아니다. 키워드가 겹친 풀 일괄 배정은 빈 상품만 덮는다.",
+      "checks": [
+        {
+          "file": "lib/register-photo-day-confirmed-place.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-fill-route-sight-1114]",
+            "registerScheduleRouteHasNamedSight"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-city-only-day.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-fill-route-sight-1114]",
+            "export function registerScheduleRouteHasNamedSight"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-fill-route-sight-1114]",
+            "shouldBulkAssignUndistinctPool",
+            "replyWithFilledCount"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-missing-day.ts",
+          "mustInclude": [
+            "no_slot_filled",
+            "export function shouldBulkAssignUndistinctPool",
+            "export function photoFillHttpResult"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-fill-route-sight-1114]",
+            "filled: filledCount"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-fill-route-sight-1114.test.ts",
+        "lib/register-auto-photo-missing-day.test.ts"
+      ]
+    },
+    {
       "id": "register-ingest-esim-yield-count-fallback",
       "tier": [
         "prebuild",

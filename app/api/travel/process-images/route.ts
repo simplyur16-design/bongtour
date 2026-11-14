@@ -38,7 +38,13 @@ import { parseStoredScheduleRows, preserveStoredScheduleDayEvidence } from '@/li
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
 import { logAutoPhotoAttempt } from '@/lib/auto-photo-attempt-log'
-import { missingDayFillAction, processImagesProductUpdate } from '@/lib/register-auto-photo-missing-day'
+import {
+  countNewlyFilledPhotoSlots,
+  missingDayFillAction,
+  photoFillHttpResult,
+  processImagesProductUpdate,
+  shouldBulkAssignUndistinctPool,
+} from '@/lib/register-auto-photo-missing-day'
 import { firstMatchingScheduleSpotEn } from '@/lib/schedule-poi-regex-ssot'
 import { registerSupplierTripDays, trimRegisterScheduleToSupplierDays } from '@/lib/register-schedule-supplier-day-count'
 import { normalizeSemanticPoiKey } from '@/lib/pexels-keyword'
@@ -97,6 +103,15 @@ import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-
 
 const SCHEDULE_PHOTOS = 4
 const LOG_PREFIX = '[DEBUG]'
+
+function replyWithFilledCount(filled: number, extra: Record<string, unknown>, tag: string) {
+  const result = photoFillHttpResult(filled)
+  return jsonWithLeakGuard(
+    { ...extra, ...result.body },
+    tag,
+    result.httpStatus === 200 ? undefined : { status: result.httpStatus },
+  )
+}
 
 /** schedule JSON 한 항목 — imageKeyword는 검색에 쓴 대표 명소/구문(캐시 키·추적용) */
 type ScheduleEntry = {
@@ -557,7 +572,15 @@ export async function POST(req: Request) {
      * 풀 5장 이상: 메인 1 + 일정 4 일괄 배정.
      * 일차별 랜드마크 imageKeyword가 이미 구분돼 있으면 스킵 — 아래 hero 경로가 키워드별 이미지를 쓴다.
      */
-    if (poolList.length >= 5 && !areScheduleImageKeywordsDistinct(scheduleArr)) {
+    // REGRESSION-FREEZE[photo-fill-route-sight-1114]: 겹친 키워드의 풀 일괄 배정은 빈 상품만. 빈 칸 채움·기존 사진은 일차별 경로 — manifest
+    if (
+      !areScheduleImageKeywordsDistinct(scheduleArr) &&
+      shouldBulkAssignUndistinctPool({
+        poolCount: poolList.length,
+        fillMissingOnly,
+        storedDayPhotoCount: scheduleArr.filter((item) => String(item.imageUrl ?? '').trim()).length,
+      })
+    ) {
       console.log(`[POOL] ${destination} 풀 사진 5장 사용 (중복 제외)`)
       const usage = createPhotoUsage()
       const mainRec = poolList[0]
@@ -601,7 +624,17 @@ export async function POST(req: Request) {
           schedule: scheduleStr,
         }),
       })
-      return jsonWithLeakGuard({ success: true, source: 'pool', cacheHit: 5, newFetch: 0 }, 'travel.process-images.pool')
+      return replyWithFilledCount(
+        countNewlyFilledPhotoSlots({
+          beforeDayUrls: scheduleArr.map((item) => item.imageUrl),
+          afterDayUrls: updatedSchedule.map((item) => item.imageUrl),
+          beforeCover: product.bgImageUrl as string | null,
+          afterCover: mainUrl,
+          coverCounts: true,
+        }),
+        { source: 'pool', cacheHit: 5, newFetch: 0 },
+        'travel.process-images.pool',
+      )
     }
 
     const poolBySlot = new Map<number, PoolPhotoRecord>()
@@ -669,13 +702,15 @@ export async function POST(req: Request) {
           schedule: scheduleStrPre,
         }),
       })
-      return jsonWithLeakGuard(
-        {
-          success: true,
-          source: 'pre-made',
-          cacheHit: 5,
-          newFetch: 0,
-        },
+      return replyWithFilledCount(
+        countNewlyFilledPhotoSlots({
+          beforeDayUrls: scheduleArr.map((item) => item.imageUrl),
+          afterDayUrls: updatedSchedule.map((item) => item.imageUrl),
+          beforeCover: product.bgImageUrl as string | null,
+          afterCover: mainSealed.url,
+          coverCounts: true,
+        }),
+        { source: 'pre-made', cacheHit: 5, newFetch: 0 },
         'travel.process-images.premade',
       )
     }
@@ -1479,8 +1514,14 @@ export async function POST(req: Request) {
     console.log(`${LOG_PREFIX} 최종 DB 업데이트 성공`)
     console.log(`[STEP 4] 최종 업데이트 완료`)
 
+    const filledCount = countNewlyFilledPhotoSlots({
+      beforeDayUrls: scheduleArr.map((item) => item.imageUrl),
+      afterDayUrls: updatedSchedule.map((item) => item.imageUrl),
+      beforeCover: typeof product.bgImageUrl === 'string' ? product.bgImageUrl : null,
+      afterCover: preserveHero ? (typeof product.bgImageUrl === 'string' ? product.bgImageUrl : null) : bgPhoto.url,
+      coverCounts: !preserveHero,
+    })
     const response: Record<string, unknown> = {
-      success: true,
       cacheHit: cacheHitCount,
       newFetch: newFetchCount,
     }
@@ -1497,7 +1538,7 @@ export async function POST(req: Request) {
         ...(photoChainV2 ? { photoChain: 'v2', chain: chainTrace } : {}),
       }
     }
-    return jsonWithLeakGuard(response, 'travel.process-images.ok')
+    return replyWithFilledCount(filledCount, response, 'travel.process-images.ok')
   } catch (error) {
     const message = error instanceof Error ? error.message : '이미지 처리 실패'
     console.error('[DEBUG] process-images 예외:', error instanceof Error ? (error as Error).stack : error)
