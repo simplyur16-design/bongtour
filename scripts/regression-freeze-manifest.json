@@ -1944,7 +1944,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "OrderPaid 발급 — USIMSA HTTP 중 pg 커넥션 미점유 (무상발급 connect timeout 500 방지)",
+      "summary": "OrderPaid 발급 — USIMSA HTTP 중 pg 커넥션은 미점유(connect timeout 방지)하되 outbox lease는 5분 유지(호출 중 재claim·이중 POST 금지). 미확정 job이면 processed 처리하지 않음",
       "checks": [
         {
           "file": "lib/bongsim/fulfillment/process-fulfillment-job.ts",
@@ -1958,6 +1958,10 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]",
             "advanceFulfillmentForPaidOrderReleasingDuringSubmit",
+            "available_at = now() + interval '5 minutes'",
+            "fulfillment_unsettled"
+          ],
+          "mustNotInclude": [
             "available_at = now() + interval '2 minutes'"
           ]
         },

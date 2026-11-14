@@ -116,7 +116,7 @@ export function startInstrumentationBongsimOrderPaidOutboxCron(): void {
     });
 }
 
-async function unlockStaleFulfillOutboxes(): Promise<{ unlocked: number; agedPending: number }> {
+export async function unlockStaleFulfillOutboxes(): Promise<{ unlocked: number; agedPending: number }> {
   const { getBongsimFulfillOutboxPool } = await import("@/lib/bongsim/db/pool");
   const pool = getBongsimFulfillOutboxPool();
   if (!pool) return { unlocked: 0, agedPending: 0 };
@@ -127,7 +127,9 @@ async function unlockStaleFulfillOutboxes(): Promise<{ unlocked: number; agedPen
       WHERE topic IN ('OrderPaid', 'EsimQrNotify')
         AND processed_at IS NULL
         AND (
-          (locked_at IS NOT NULL AND locked_at < now() - interval '10 minutes')
+          (locked_at IS NOT NULL
+            AND locked_at < now() - interval '10 minutes'
+            AND available_at <= now())
           OR available_at > now() + interval '30 minutes'
         )
       RETURNING id`,
