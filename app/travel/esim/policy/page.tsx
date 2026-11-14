@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { buildEsimSearchMetadata, esimSearchTitle } from "@/lib/seo/esim-search-metadata";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { FileText, RefreshCw, Scale, ShieldAlert } from "lucide-react";
@@ -8,16 +9,13 @@ import { bongsimPath, USIMSA_CX_CONTACT_URL, USIMSA_CX_KAKAO_CHAT_URL } from "@/
 import { SITE_NAME } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
-  title: { absolute: `eSIM 환불·서비스 정책 | Bong투어 eSIM` },
-  description:
-    "Bong투어 eSIM의 서비스 제공기간, 환불·교환 정책 및 유의사항입니다. 결제 후 QR 발송, 활성화 기준, 미활성 시 환불 안내.",
-  alternates: { canonical: "/travel/esim/policy" },
-  openGraph: {
-    title: `eSIM 환불·서비스 정책 | ${SITE_NAME} eSIM`,
-    description: "서비스 제공기간, 환불·교환 정책, 유의사항.",
-    url: "/travel/esim/policy",
-    type: "website",
-  },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle("eSIM 환불·서비스 정책"),
+    description:
+      "Bong투어 eSIM(여행용)의 서비스 제공기간, 환불·교환 정책 및 유의사항입니다. 결제 후 QR 발송, 활성화 기준, 미활성 시 환불 안내.",
+    ogDescription: `${SITE_NAME} eSIM(여행용) 서비스 제공기간, 환불·교환 정책, 유의사항.`,
+    path: "/travel/esim/policy",
+  }),
 };
 
 const SECTIONS: Array<{

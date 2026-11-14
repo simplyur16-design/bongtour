@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { buildEsimSearchMetadata, esimSearchTitle } from "@/lib/seo/esim-search-metadata";
 import Link from "next/link";
 import Header from "@/app/components/Header";
 import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
@@ -6,9 +7,11 @@ import { HelpSupportDetailLayout } from "@/components/bongsim/HelpSupportDetailL
 import { bongsimPath } from "@/lib/bongsim/constants";
 
 export const metadata: Metadata = {
-  title: "eSIM 고객지원",
-  description: "Bong투어 eSIM 상담 시간과 문의 채널을 안내합니다.",
-  alternates: { canonical: "/travel/esim/help/customer-support" },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle("eSIM 고객센터"),
+    description: "Bong투어 eSIM(여행용) 고객센터 상담 시간과 문의 방법을 안내합니다.",
+    path: "/travel/esim/help/customer-support",
+  }),
 };
 
 export default function EsimCustomerSupportPage() {

@@ -11,6 +11,8 @@
 export type ProductPathStatus =
   | { kind: 'render' }
   | { kind: 'redirect'; slug: string }
+  /** REGRESSION-FREEZE[seo-training-products-301]: 다른 정식 경로(국외연수 `/business/programs/*`)로 301 */
+  | { kind: 'redirect_path'; path: string }
   | { kind: 'not_found' }
 
 export const PRODUCT_PATH_STATUS_API_PATH = '/api/public/product-path-status'
@@ -37,7 +39,16 @@ export function parseProductPathStatus(body: unknown): ProductPathStatus | null 
   if (o.kind === 'redirect' && typeof o.slug === 'string' && o.slug.trim()) {
     return { kind: 'redirect', slug: o.slug.trim() }
   }
+  const path = (body as { path?: unknown }).path
+  if (o.kind === 'redirect_path' && typeof path === 'string' && isSafeInternalRedirectPath(path)) {
+    return { kind: 'redirect_path', path }
+  }
   return null
+}
+
+/** 같은 사이트 내부 절대경로만 (open redirect 방지) */
+export function isSafeInternalRedirectPath(path: string): boolean {
+  return /^\/(?!\/)[^\s\\]*$/.test(path) && !path.includes('://')
 }
 
 /** 같은 프로세스의 Node 서버(`next start -p $PORT`)에 조회 — 실패·시간초과는 null(기존 동작 유지) */
@@ -67,7 +78,16 @@ export function buildProductSlugRedirectLocation(
   search: string,
   headers: { get(name: string): string | null },
 ): string {
-  const path = `/products/${encodeURIComponent(slug)}${search || ''}`
+  return buildSameHostRedirectLocation(`/products/${encodeURIComponent(slug)}`, search, headers)
+}
+
+/** 내부 경로 → 같은 호스트 절대 Location (쿼리 보존) */
+export function buildSameHostRedirectLocation(
+  pathname: string,
+  search: string,
+  headers: { get(name: string): string | null },
+): string {
+  const path = `${pathname}${search || ''}`
   const host = (headers.get('x-forwarded-host') ?? headers.get('host') ?? '').split(',')[0]?.trim()
   const proto = (headers.get('x-forwarded-proto') ?? '').split(',')[0]?.trim()
   if (host && /^[a-z0-9.-]+(?::\d+)?$/i.test(host)) {

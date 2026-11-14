@@ -22,12 +22,16 @@ import {
   overseasHubUrlNeedsServerGeoFetch,
 } from '@/lib/products-browse-hub-query'
 import { SITE_CONTENT_CLASS } from '@/lib/site-content-layout'
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 
 type Props = {
   /** RSC가 매 soft-nav마다 갱신 — `useSearchParams` 미사용(허브 무한 리마운트 방지) */
   initialSearchParamsString: string
   hubGalleryRotationSeed: number
+  /**
+   * REGRESSION-FREEZE[seo-list-ssr-index]: 카탈로그 로딩 중 자리에 서버 렌더 상품 목록(JS 없이도 HTML 에 상품 링크) — manifest
+   */
+  ssrFallback?: ReactNode
 }
 
 /**
@@ -41,6 +45,7 @@ type Props = {
 export default function OverseasHubCatalogRoot({
   initialSearchParamsString,
   hubGalleryRotationSeed,
+  ssrFallback,
 }: Props) {
   const serverSearchParamsRef = useRef(initialSearchParamsString)
   const searchParamsString = useSyncExternalStore(
@@ -190,7 +195,7 @@ export default function OverseasHubCatalogRoot({
   return (
     <div className={`${SITE_CONTENT_CLASS} pt-3 pb-6 sm:pt-4`}>
       {catalogLoading ? (
-        <p className="mt-10 text-center text-sm text-slate-500">불러오는 중…</p>
+        ssrFallback ?? <p className="mt-10 text-center text-sm text-slate-500">불러오는 중…</p>
       ) : null}
       {error ? (
         <div className="mx-auto mt-10 max-w-lg px-4 text-center text-sm text-rose-800" role="alert">

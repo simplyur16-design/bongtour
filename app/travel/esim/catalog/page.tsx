@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { buildEsimSearchMetadata, esimSearchTitle } from "@/lib/seo/esim-search-metadata";
 import { connection } from "next/server";
 import CatalogPageClient from "./CatalogPageClient";
 import { loadCatalogPageBootstrapCached } from "@/lib/bongsim/data/load-catalog-page-bootstrap-cached";
@@ -8,15 +9,12 @@ import { loadCatalogPageBootstrapCached } from "@/lib/bongsim/data/load-catalog-
 // REGRESSION-FREEZE[build-ssg-skip-db]: catalog connection() — build SSG bongsim pool timeout 방지 — manifest
 
 export const metadata: Metadata = {
-  title: { absolute: "eSIM 요금제 목록 | Bong투어 eSIM" },
-  description: "국가·일수·용량별 해외여행 eSIM 요금제를 비교하고 바로 구매하세요.",
-  alternates: { canonical: "/travel/esim/catalog" },
-  openGraph: {
-    title: "eSIM 요금제 목록 | Bong투어 eSIM",
-    description: "국가·일수·용량별 해외여행 eSIM 요금제를 비교하고 바로 구매하세요.",
-    url: "/travel/esim/catalog",
-    type: "website",
-  },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle("eSIM 요금제 목록"),
+    description: "국가·일수·용량별 해외여행 eSIM(여행용) 요금제를 비교하고 바로 구매하세요. 설치·사용 문의는 고객센터에서 안내합니다.",
+    path: "/travel/esim/catalog",
+  }),
+  title: { absolute: esimSearchTitle("eSIM 요금제 목록") },
 };
 
 export default async function CatalogPage() {

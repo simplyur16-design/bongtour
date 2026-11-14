@@ -66,6 +66,24 @@ export default function TrainingProgramsCatalog({
           공무·기업 목적의 국외출장연수 프로그램을 소개합니다. 가장 일반적인 프로그램들이며 연수프로그램은 목적에 맞도록
           매번 새롭게 만들어집니다.
         </p>
+        {/* REGRESSION-FREEZE[seo-business-programs-cta]: 광고 연결 페이지 — 실제 업무 범위 문구 + 문의 버튼 2개 (요청서 A2) — manifest */}
+        <p className="mt-2 max-w-2xl text-[17px] leading-relaxed text-slate-700">
+          연수기관 섭외, 일정 기획, 제안서 작성, 설명회까지 지방의회·지자체 연수와 공공·기업 국외연수를 처음부터 함께 준비합니다.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link
+            href="/inquiry?type=training"
+            className="inline-flex items-center rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800"
+          >
+            국외연수 문의하기
+          </Link>
+          <Link
+            href="/inquiry?type=institution"
+            className="inline-flex items-center rounded-full border border-slate-900 bg-white px-5 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+          >
+            기관 섭외 문의
+          </Link>
+        </div>
 
         <div className="mt-8 flex flex-wrap gap-2 border-b border-slate-200 pb-4">
           {(['all', 'public', 'corporate'] as const).map((a) => (

@@ -1,14 +1,17 @@
 import type { Metadata } from 'next'
+import { buildEsimSearchMetadata, esimSearchTitle } from '@/lib/seo/esim-search-metadata'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import { bongsimPath } from '@/lib/bongsim/constants'
 
 export const metadata: Metadata = {
-  title: 'eSIM 설치 가이드',
-  description:
-    'Bong투어 eSIM — 초보도 OK. 출국 전 설치, 요금 폭탄 방지, QR 1회성까지 한눈에 안내합니다.',
-  alternates: { canonical: '/travel/esim/help/setup-guide' },
-  robots: { index: true, follow: true },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle('eSIM 설치 가이드'),
+    description:
+      'Bong투어 eSIM(여행용) — 초보도 OK. 출국 전 설치, 요금 폭탄 방지, QR 1회성까지 한눈에 안내합니다.',
+    path: '/travel/esim/help/setup-guide',
+    robots: { index: true, follow: true },
+  }),
 }
 
 type QA = {

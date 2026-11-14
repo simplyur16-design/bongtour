@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { buildEsimSearchMetadata, esimSearchTitle } from '@/lib/seo/esim-search-metadata'
 import nextDynamic from 'next/dynamic'
 import Header from '@/app/components/Header'
 import EsimLandingHero from '@/app/travel/esim/EsimLandingHero'
@@ -13,20 +14,13 @@ const EsimLandingBelowFold = nextDynamic(() => import('./EsimLandingBelowFold'),
 })
 
 export const metadata: Metadata = {
-  title: { absolute: 'Bong투어 eSIM | 해외 여행 eSIM' },
-  description: '24시간 고객센터, 100% 환불 보장. 여행지에 맞는 최적의 eSIM을 찾아드립니다.',
-  alternates: { canonical: '/travel/esim' },
-  openGraph: {
-    title: 'Bong투어 eSIM | 해외 여행 eSIM',
-    description: '24시간 고객센터, 100% 환불 보장. 여행지에 맞는 최적의 eSIM을 찾아드립니다.',
-    url: '/travel/esim',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Bong투어 eSIM | 해외 여행 eSIM',
-    description: '24시간 고객센터, 100% 환불 보장. 여행지에 맞는 최적의 eSIM을 찾아드립니다.',
-  },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle('해외여행 eSIM'),
+    description: '해외여행 eSIM(여행용) — 24시간 고객센터, 100% 환불 보장. 여행지에 맞는 최적의 eSIM(여행용)을 찾아드립니다.',
+    path: '/travel/esim',
+  }),
+  // REGRESSION-FREEZE[site-title-no-double-suffix]: 문서 제목은 absolute
+  title: { absolute: esimSearchTitle('해외여행 eSIM') },
 }
 
 export default function EsimPage() {

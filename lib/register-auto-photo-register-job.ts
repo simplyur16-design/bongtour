@@ -351,6 +351,13 @@ export async function runAutoPhotoRegisterJob(opts?: {
           } catch {
             /* 캐시 무효화 실패는 다음 갱신 때 반영 */
           }
+          // REGRESSION-FREEZE[seo-indexnow-skip-on-failure]: 자동 등록(공개 전환) → IndexNow(비차단, 키 없으면 SKIP)
+          try {
+            const { notifyProductPublicUrlChanged } = await import('@/lib/seo/product-index-events')
+            notifyProductPublicUrlChanged({ productId: id })
+          } catch {
+            /* SKIP */
+          }
         }
       }
       continue

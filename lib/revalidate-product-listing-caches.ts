@@ -16,4 +16,8 @@ export function revalidateProductListingCaches() {
   safeRevalidatePath('/', 'product-listing-cache')
   safeRevalidatePath('/travel/overseas', 'product-listing-cache')
   safeRevalidatePath('/travel/air-hotel', 'product-listing-cache')
+  // REGRESSION-FREEZE[seo-sitemap-db-public-only]: 공개 목록이 바뀌면 SSR 상품 목록·사이트맵도 무효화 — manifest
+  safeRevalidatePath('/products', 'product-listing-cache')
+  safeRevalidatePath('/sitemap.xml', 'product-listing-cache')
+  safeRevalidatePath('/sitemap-images.xml', 'product-listing-cache')
 }

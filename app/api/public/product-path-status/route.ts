@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { resolveProductByPathSegment } from '@/lib/resolve-product-by-path-segment'
+import { productPathStatusFromLookup } from '@/lib/product-path-status-from-lookup'
 import type { ProductPathStatus } from '@/lib/product-path-status'
 
 /**
  * middleware 전용 공개 상품 URL 판정 — 공개(registered + 노출 정책) 조회만. draft 판정 없음.
- * 응답: { kind: 'render' } | { kind: 'redirect', slug } | { kind: 'not_found' }
+ * 응답: { kind: 'render' } | { kind: 'redirect', slug } | { kind: 'redirect_path', path } | { kind: 'not_found' }
+ * REGRESSION-FREEZE[seo-training-products-301]: 국외연수 상품은 `/business/programs/<slug>` 로 301 — manifest
  * 짧은 프로세스 메모리 캐시(60초) — 같은 URL 연속 요청 DB 부하 방지.
  */
 export const dynamic = 'force-dynamic'
@@ -33,8 +35,7 @@ export async function GET(req: Request) {
   }
   try {
     const r = await resolveProductByPathSegment(seg, { allowAdminDraft: false })
-    const value: ProductPathStatus =
-      r.kind === 'redirect' ? { kind: 'redirect', slug: r.slug } : r.kind === 'render' ? { kind: 'render' } : { kind: 'not_found' }
+    const value: ProductPathStatus = productPathStatusFromLookup(r)
     remember(seg, value)
     return NextResponse.json(value, { headers: { 'Cache-Control': 'no-store' } })
   } catch (e) {

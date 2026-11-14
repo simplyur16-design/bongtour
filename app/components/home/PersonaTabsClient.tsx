@@ -86,7 +86,8 @@ export default function PersonaTabsClient({ cards }: Props) {
                         <div className={`absolute inset-0 z-0 ${PHOTO_FILTER_BASE}`}>
                           <SafeImage
                             src={card.imageUrl!}
-                            alt=""
+                            // REGRESSION-FREEZE[seo-home-image-alt]: 도시 사진 alt (요청서 C11)
+                            alt={`${card.koreanSubtitle || card.titleEn} 여행 사진`}
                             fill
                             className="object-cover object-center"
                             sizes="(max-width:1024px) 50vw, 20vw"

@@ -5,7 +5,8 @@
 ## 사이트 개요
 
 - 여행사명: Bong투어 (표기: Bong투어 / BongTour)
-- 사업: 해외 패키지여행, 국내여행, 항공권, 단체 견적, eSIM 등
+- 사업: 해외 패키지여행, 자유여행(항공+호텔), 공공·기업 국외연수, 항공권, 단체 견적, eSIM(여행용) 등
+- 국외연수: 지방의회·지자체·공공기관·기업 국외연수의 연수기관 섭외, 일정 기획, 제안서, 설명회까지 진행합니다.
 - 운영: 모두투어, 하나투어, 옐로우벌룬투어, 베리굿투어 등 제휴 공급사 상품을 통합 검색·안내합니다.
 - 주력: 일본, 동남아, 유럽 등 해외 여행 및 국내 여행
 
@@ -14,12 +15,16 @@
 - 홈: https://bongtour.com/
 - 상품 목록: https://bongtour.com/products
 - 해외여행: https://bongtour.com/travel/overseas
-- 국내여행: https://bongtour.com/travel/domestic
+- 자유여행(항공+호텔): https://bongtour.com/travel/air-hotel
+- 우리끼리여행(맞춤 단체): https://bongtour.com/travel/overseas/private-trip
+- 국외연수(공공·기업): https://bongtour.com/business
+- 국외연수 프로그램: https://bongtour.com/business/programs
 - 항공권: https://bongtour.com/air-ticketing
 - 단체 견적: https://bongtour.com/quote/private
 - 상담 문의: https://bongtour.com/inquiry
 - 고객지원: https://bongtour.com/support
-- eSIM: https://bongtour.com/travel/esim
+- eSIM(여행용): https://bongtour.com/travel/esim
+- eSIM(여행용) 고객센터 안내: https://bongtour.com/travel/esim/help/customer-support
 
 ## 사이트맵
 
