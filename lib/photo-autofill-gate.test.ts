@@ -106,6 +106,29 @@ describe('photo-autofill-gate: 같은 이름 다른 곳', () => {
   })
 })
 
+describe('photo-autofill-gate: 흔한 이름은 도시 낱말이 같이 있어야 한다', () => {
+  const judgeWith = (sight: string, cityTerms: string[], alt: string) =>
+    evaluateAutofillCandidate({
+      candidate: cand({ altText: alt, originalLink: 'https://www.pexels.com/photo/x-1020/' }),
+      sight: sightProfile(sight),
+      cityTerms,
+      slotText: cityTerms.join(' '),
+      slotKind: 'day',
+      productId: 'p-new',
+      usage: new PublicPhotoUsage(),
+    })
+
+  it('Aurora Village(옐로나이프) 일정에 노르웨이 오로라 사진은 탈락', () => {
+    expect(judgeWith('Aurora Village', ['yellowknife'], 'Northern Lights above the village in Norway').ok).toBe(false)
+    expect(judgeWith('Aurora Village', ['yellowknife'], 'Aurora Village near Yellowknife Canada at night').ok).toBe(true)
+  })
+
+  it('프라하 Old Town Square 일정에 포즈난 사진은 탈락, 프라하 사진은 통과', () => {
+    expect(judgeWith('Old Town Square', ['prague'], 'Old town square buildings in Poznan Poland').ok).toBe(false)
+    expect(judgeWith('Old Town Square', ['prague'], 'Old Town Square in Prague at night').ok).toBe(true)
+  })
+})
+
 describe('photo-autofill-gate: 인물 주인공 탈락', () => {
   it('태그·제목에 인물이 있으면 탈락', () => {
     for (const alt of ['Portrait of a woman in front of the Blue Mosque', 'Selfie at Blue Mosque istanbul', 'Fashion model posing near Blue Mosque']) {
@@ -114,6 +137,11 @@ describe('photo-autofill-gate: 인물 주인공 탈락', () => {
       expect(r.reasons, alt).toContain('person_subject')
     }
     expect(judge(cand({ tags: ['woman', 'blue mosque'] })).reasons).toContain('person_subject')
+  })
+
+  it('한 사람이 주어인 문장은 배경이 명소여도 탈락(Solitary person standing on …)', () => {
+    expect(photoSubjectIsPerson({ title: 'Solitary person standing on Reynisfjara Beach with iconic rock formations', tags: '' })).toBe(true)
+    expect(photoSubjectIsPerson({ title: 'A woman walking toward the Blue Mosque in Istanbul', tags: '' })).toBe(true)
   })
 
   it('풍경 속 작은 사람은 허용', () => {

@@ -169,11 +169,16 @@ export function sightMatchInText(profile: SightProfile, textRaw: string, anchorT
     if (!profile.needsCityAnchor) return true
     return anchorTermsRaw.map(foldPhotoText).filter(Boolean).some((a) => text.includes(` ${a} `))
   }
+  const anchored = () => anchorTermsRaw.map(foldPhotoText).filter(Boolean).some((a) => text.includes(` ${a} `))
   for (const p of profile.phraseTerms) {
-    if (p && text.includes(` ${p} `) && anchorOk()) return p
+    if (!p || !text.includes(` ${p} `)) continue
+    // 일반 명사·흔한 형용사로만 이루어진 이름(blue mosque, old town square)은 같은 이름 다른 도시가 많아 도시 낱말이 같이 있어야 한다
+    const distinctive = p.split(' ').some((w) => w && !STOP_TOKENS.has(w) && !GENERIC_NOUNS.has(w) && !WEAK_ADJ.has(w) && !isCityToken(w))
+    if (anchorOk() && (distinctive || anchored())) return p
   }
   const toks = profile.requiredTokens
-  if (toks.length > 0 && toks.every((t) => text.includes(` ${t} `)) && anchorOk()) return toks.join('+')
+  // 낱말만 맞는 일치(구절 아님)는 두 낱말 이하면 도시 낱말이 같이 있어야 한다(aurora village 같은 흔한 이름)
+  if (toks.length > 0 && toks.every((t) => text.includes(` ${t} `)) && anchorOk() && (toks.length >= 3 || anchored())) return toks.join('+')
   return null
 }
 
@@ -210,7 +215,7 @@ function cityKeysIn(textFolded: string, includeKorean: boolean): string[] {
   return out
 }
 
-function overlap(a: SightProfile, b: SightProfile): boolean {
+export function sightsOverlap(a: SightProfile, b: SightProfile): boolean {
   if (a.phraseTerms.some((p) => b.phraseTerms.includes(p))) return true
   const bs = new Set(b.requiredTokens)
   return a.requiredTokens.some((t) => bs.has(t) && !GENERIC_NOUNS.has(t))
@@ -250,7 +255,7 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
       rejected.push({ keyword: kw, why: 'other_city' })
       continue
     }
-    if (spotProfiles.length > 0 && !spotProfiles.some((s) => overlap(prof, s))) {
+    if (spotProfiles.length > 0 && !spotProfiles.some((s) => sightsOverlap(prof, s))) {
       rejected.push({ keyword: kw, why: 'not_in_route' })
       continue
     }
@@ -263,7 +268,7 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
     const p = sightProfile(s)
     if (p.kind !== 'sight' && p.kind !== 'generic') continue
     const key = p.phraseTerms[0] ?? foldPhotoText(s)
-    if (orderedSeen.has(key) || ordered.some((o) => overlap(sightProfile(o), p))) continue
+    if (orderedSeen.has(key) || ordered.some((o) => sightsOverlap(sightProfile(o), p))) continue
     orderedSeen.add(key)
     ordered.push(s)
   }

@@ -58,6 +58,9 @@ const PERSON_LEAD_RE =
   /^(a |an |the |two |three |young |old |elderly |smiling |happy |asian |beautiful |stylish |pretty |handsome |senior |little )*(man|men|woman|women|girl|girls|boy|boys|guy|lady|person|couple|child|children|kid|kids|baby|tourist|tourists|traveler|traveller|family|friends|people)\b/
 const SCENE_AFTER_PERSON_RE =
   /\b(bridge|temple|pagoda|shrine|church|cathedral|mosque|palace|castle|fort|tower|ruins|monument|plaza|square|street|alley|market|harbor|harbour|pier|park|garden|cave|canyon|gorge|cliff|mountain|hill|valley|glacier|beach|bay|coast|island|lake|river|canal|waterfall|falls|forest|landscape|skyline|view|panorama)\b/
+// 한 사람이 주어인 문장(a woman standing on …): 배경이 명소여도 주인공이 사람이면 탈락. 무리(people·tourists)는 풍경 속 작은 사람으로 보고 허용.
+const PERSON_ACTION_RE =
+  /\b(man|woman|person|girl|boy|couple|lady|guy|hiker|traveler|traveller|tourist|photographer|backpacker|child|kid)\s+(?:is |was )?(standing|sitting|walking|looking|posing|enjoying|wearing|holding|admiring|taking|overlooking|watching|exploring|gazing|stands|sits|walks|relaxing|resting|hiking|smiling|dancing|running|riding|capturing|dressed)\b/
 const IRRELEVANT_RE =
   /\b(office|offices|meeting|meetings|conference|boardroom|business|desk|workspace|coworking|laptop|computer|logo|logos|watermark|banner|poster|illustration|illustrations|vector|icon|icons|screenshot|infographic|mockup|template|presentation|whiteboard|classroom)\b/
 
@@ -67,6 +70,7 @@ export function photoSubjectIsPerson(parts: { title: string; tags: string }): bo
   if (PERSON_PORTRAIT_RE.test(title) || PERSON_PORTRAIT_RE.test(tags)) return true
   if (tags && PERSON_TAG_RE.test(tags)) return true
   const head = title.split(' ').slice(0, 6).join(' ')
+  if (PERSON_ACTION_RE.test(title)) return true
   if (PERSON_LEAD_RE.test(head) && !SCENE_AFTER_PERSON_RE.test(title)) return true
   return false
 }

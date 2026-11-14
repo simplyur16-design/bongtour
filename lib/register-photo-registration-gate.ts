@@ -17,7 +17,7 @@ import {
   photoSubjectIsPerson,
   type PublicPhotoUsage,
 } from '@/lib/photo-autofill-gate'
-import { deriveDaySights, foldPhotoText, sightMatchInText, sightProfile } from '@/lib/photo-autofill-sight'
+import { deriveDaySights, foldPhotoText, sightMatchInText, sightProfile, sightsOverlap } from '@/lib/photo-autofill-sight'
 import { photoCandidateText } from '@/lib/register-photo-subject-filter'
 
 export type RegistrationPhotoReason =
@@ -131,14 +131,15 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
         input.destinationTerms.join(' '),
       )
       if (d.sights.length === 0) continue
+      const anchors = [...d.cityTerms, ...input.destinationTerms]
       const profiles = d.sights.map(sightProfile)
       const storedSight = String(src.sight ?? '').trim()
       const evidence =
         String(src.sightMatch ?? '').trim() !== '' &&
         storedSight !== '' &&
-        profiles.some((p) => sightMatchInText(p, storedSight, d.cityTerms) != null || foldPhotoText(p.name) === foldPhotoText(storedSight))
+        profiles.some((p) => sightsOverlap(p, sightProfile(storedSight)) || foldPhotoText(p.name) === foldPhotoText(storedSight))
       if (evidence) continue
-      const textHit = text.length >= 3 && profiles.some((p) => sightMatchInText(p, text, d.cityTerms) != null)
+      const textHit = text.length >= 3 && profiles.some((p) => sightMatchInText(p, text, anchors) != null)
       if (!textHit) push({ kind: 'day', day, reason: 'photo_sight_mismatch', detail: text.length >= 3 ? `no sight in "${text.slice(0, 60)}"` : 'unverified (no title/tags)' })
     }
   }

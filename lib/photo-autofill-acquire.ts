@@ -105,11 +105,10 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
   if (sights.length === 0 && input.dayFacts) {
     const d = deriveDaySights(input.dayFacts, input.destinationText)
     sights = d.sights
-    if (cityTerms.length === 0) cityTerms = d.cityTerms
     if (sights.length === 0) return fail(`no_sight:${d.reason}`, 'no visited sight in itinerary text', null, null, true)
   }
   if (sights.length === 0) return fail('no_sight:no_sight', 'no sight given', null, null, true)
-  if (cityTerms.length === 0 && input.dayFacts) cityTerms = deriveDaySights(input.dayFacts, input.destinationText).cityTerms
+  if (input.dayFacts) cityTerms = [...new Set([...cityTerms, ...deriveDaySights(input.dayFacts, input.destinationText).cityTerms])]
   const slotText = [input.dayFacts?.routeText, input.dayFacts?.title, input.dayFacts?.description, input.destinationText].filter(Boolean).join(' ')
 
   const exclude = input.exclude ?? new Set<string>()
