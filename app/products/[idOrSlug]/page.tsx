@@ -23,7 +23,6 @@ import { loadProductForMetadataCached } from '@/lib/product-detail-page-cache'
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
 import { isOverseasTrainingListingKind } from '@/lib/resolve-product-by-path-segment'
 import { trainingProgramPublicPath } from '@/lib/overseas-training-program-query'
-import { toCanonicalPath } from '@/lib/seo/canonical-url'
 import { runWithQueryLogScope } from '@/lib/prisma-query-log'
 import { ProductDetailPageContent } from '@/app/products/[idOrSlug]/product-detail-page-content'
 import ProductDetailPageSkeleton from '@/components/products/ProductDetailPageSkeleton'
@@ -48,8 +47,7 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
   const { resolved, allowAdminDraft } = await resolveProductPageAccess(idOrSlug)
   if (allowAdminDraft) await connection()
   if (resolved.kind === 'redirect') {
-    // REGRESSION-FREEZE[seo-canonical-param-free]: cuid 접근도 canonical 은 slug 정식 주소 — manifest
-    return { title: '상품', alternates: { canonical: publicProductPath({ id: idOrSlug, slug: resolved.slug }) } }
+    return { title: '상품' }
   }
   // REGRESSION-FREEZE[seo-training-products-301]: 국외연수는 301 대상 — 혹시 렌더돼도 canonical 은 정식 주소
   if (resolved.kind === 'render' && isOverseasTrainingListingKind(resolved.listingKind)) {
@@ -81,7 +79,7 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
     primaryDestination: p.primaryDestination,
     destination: p.destination,
   })
-  const path = toCanonicalPath(publicProductPath(p)) ?? publicProductPath(p)
+  const path = publicProductPath(p)
   const seoTitleInput = {
     displayTitle,
     originalTitle: p.originalTitle ? resolvePublicProductDisplayFullTitle(p.originalTitle) : p.originalTitle,

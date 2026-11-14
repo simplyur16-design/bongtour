@@ -8,7 +8,6 @@ import {
   OVERSEAS_TRAINING_LISTING_KIND,
   trainingProgramPublicPath,
 } from '@/lib/overseas-training-program-query'
-import { createLastGoodCache } from '@/lib/seo/last-good-cache'
 import {
   buildImageSitemapXml,
   IMAGE_SITEMAP_CONTENT_TYPE,
@@ -49,13 +48,12 @@ function xmlResponse(body: string, method: 'GET' | 'HEAD' = 'GET'): Response {
   })
 }
 
-/**
- * 신선 5분은 DB 없이 응답, 재생성은 8초 안에서만, 실패·초과는 마지막 정상본(없으면 빈 urlset)을 200 으로.
- * REGRESSION-FREEZE[seo-image-sitemap-last-good]: 5xx·빈 본문 대신 마지막 정상본 — manifest
- */
-const imageSitemapCache = createLastGoodCache<string>({ freshMs: 300_000, timeoutMs: 8_000 })
+async function buildBody(): Promise<string> {
+  const origin = getSiteOrigin()
+  if (shouldSkipSitemapDbAtBuild()) {
+    return buildImageSitemapXml([], origin)
+  }
 
-async function buildBody(origin: string): Promise<string> {
   let products: {
     id: string
     slug: string | null
@@ -91,8 +89,8 @@ async function buildBody(origin: string): Promise<string> {
       orderBy: { updatedAt: 'desc' },
     })
   } catch (e) {
-    console.error('[sitemap-images] DB unavailable', e)
-    throw e
+    console.error('[sitemap-images] DB unavailable — empty urlset', e)
+    return buildImageSitemapXml([], origin)
   }
 
   const entries: ImageSitemapEntry[] = []
@@ -116,13 +114,7 @@ async function buildBody(origin: string): Promise<string> {
 }
 
 export async function GET() {
-  const origin = getSiteOrigin()
-  if (shouldSkipSitemapDbAtBuild()) return xmlResponse(buildImageSitemapXml([], origin))
-  const { value } = await imageSitemapCache.get(
-    () => buildBody(origin),
-    () => buildImageSitemapXml([], origin),
-  )
-  return xmlResponse(value)
+  return xmlResponse(await buildBody())
 }
 
 export async function HEAD() {
