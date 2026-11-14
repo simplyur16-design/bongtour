@@ -24,17 +24,18 @@ import {
   parseHanjintourEventList,
   parseHanjintourPackageLeaves,
   parseHanjintourSchedule,
-  hanjintourShouldEnqueuePending,
   stripHanjintourContactFields,
 } from '../lib/hanjintour-parse'
 import {
   buildExistingRegionIndex,
   classifyHanjintourListing,
+  HANJINTOUR_EXISTING_SUPPLIERS,
   hanjintourDetailCollectAllowed,
   type ExistingProductRegionRow,
   type HanjintourListingForRegion,
   type HanjintourRegionDecision,
 } from '../lib/hanjintour-region-filter'
+import { planHanjintourPendingEnqueue } from '../lib/hanjintour-register'
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
@@ -96,7 +97,7 @@ function compare() {
   const listingDoc = JSON.parse(fs.readFileSync(path.join(OUT, 'listing.json'), 'utf8'))
   const existingDoc = JSON.parse(fs.readFileSync(path.resolve(args.existing), 'utf8'))
   const rows = (existingDoc.rows as ExistingProductRegionRow[]).filter((r) =>
-    ['hanatour', 'modetour', 'ybtour', 'naeiltour', 'lottetour', 'verygoodtour', 'kyowontour'].includes(String(r.originSource)),
+    (HANJINTOUR_EXISTING_SUPPLIERS as readonly string[]).includes(String(r.originSource)),
   )
   const index = buildExistingRegionIndex(rows, existingDoc.cities ?? [])
   const results = (listingDoc.items as HanjintourListingForRegion[]).map((it) => ({ it, r: classifyHanjintourListing(it, index) }))
@@ -125,8 +126,17 @@ function compare() {
   console.log(JSON.stringify({ existingProducts: rows.length, tally }))
 }
 
+function existingRowsForGate(): ExistingProductRegionRow[] {
+  if (!args.existing) return []
+  const existingDoc = JSON.parse(fs.readFileSync(path.resolve(args.existing), 'utf8'))
+  return (existingDoc.rows as ExistingProductRegionRow[]).filter((r) =>
+    (HANJINTOUR_EXISTING_SUPPLIERS as readonly string[]).includes(String(r.originSource)),
+  )
+}
+
 async function detail() {
   const doc = JSON.parse(fs.readFileSync(path.join(OUT, 'region-compare.json'), 'utf8'))
+  const existingRows = existingRowsForGate()
   const limit = Number(args.limit ?? 9999)
   const selected = (doc.selected as Array<HanjintourListingForRegion & HanjintourRegionDecision>)
     .filter((g) => hanjintourDetailCollectAllowed(g))
@@ -156,7 +166,15 @@ async function detail() {
         rec.schedule = parseHanjintourSchedule(sc)
       }
       const prices = departures.map((x) => x.adultPrice).filter((n): n is number => n != null)
-      const days = (rec.schedule as { days?: unknown[] } | undefined)?.days?.length ?? 0
+      const scheduleDays = (rec.schedule as { days?: Array<{ day: number; cities: string[]; spots: string[]; descriptions: string[]; hotels: string[]; meals: { breakfast: string | null; lunch: string | null; dinner: string | null } }> } | undefined)?.days ?? []
+      const plan = planHanjintourPendingEnqueue({
+        gdsNo: g.gdsNo,
+        title: g.title,
+        categoryPaths: g.categoryPaths,
+        departures,
+        days: scheduleDays,
+        existingRows,
+      })
       table.push(
         [
           g.gdsNo,
@@ -167,9 +185,9 @@ async function detail() {
           departures.at(-1)?.date ?? '',
           prices.length ? Math.min(...prices) : '',
           prices.length ? Math.max(...prices) : '',
-          days,
-          hanjintourShouldEnqueuePending({ departures }) ? 'Y' : 'N',
-          departures.length === 0 ? 'no_departure' : '',
+          scheduleDays.length,
+          plan.ok ? 'Y' : 'N',
+          plan.ok ? '' : plan.reason,
         ]
           .map(csvEsc)
           .join(','),

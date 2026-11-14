@@ -69,7 +69,7 @@ function buildHighlightLlmInputBlob(product: {
 type HighlightLlmSupplierKey = Exclude<OverseasSupplierKey, 'kyowontour' | 'etc'>
 
 function isHighlightLlmSupplierKey(k: OverseasSupplierKey): k is HighlightLlmSupplierKey {
-  return k !== 'kyowontour' && k !== 'etc'
+  return k !== 'kyowontour' && k !== 'etc' && k !== 'hanjintour'
 }
 
 async function runSupplierHighlightLlm(

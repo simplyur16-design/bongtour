@@ -32118,6 +32118,68 @@
       "vitestSuites": [
         "lib/hanjintour-region-filter.test.ts"
       ]
+    },
+    {
+      "id": "hanjintour-register-pending-only",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "한진관광 수집 결과는 지역 필터 선정과 출발일·원문 정수 가격이 있을 때만 등록대기(pending)로 적재하고 공개(registered)로 바꾸는 분기가 없다. 기존 7곳 canonical 목록은 유지하고 관리자 상품 목록 필터에만 hanjintour를 더한다.",
+      "checks": [
+        {
+          "file": "lib/hanjintour-register.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanjintour-register-pending-only]",
+            "classifyHanjintourListing(",
+            "hanjintourShouldEnqueuePending(",
+            "registrationStatus: HANJINTOUR_PENDING_STATUS"
+          ],
+          "mustNotInclude": [
+            "registrationStatus: 'registered'"
+          ]
+        },
+        {
+          "file": "lib/parse-and-register-hanjintour-handler.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanjintour-register-pending-only]",
+            "planHanjintourPendingEnqueue("
+          ],
+          "mustNotInclude": [
+            "registrationStatus: 'registered'"
+          ]
+        },
+        {
+          "file": "app/api/travel/parse-and-register-hanjintour/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanjintour-register-pending-only]",
+            "handleParseAndRegisterHanjintourRequest("
+          ]
+        },
+        {
+          "file": "lib/hanjintour-supplier-key.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanjintour-register-pending-only]",
+            "hanjintour"
+          ]
+        },
+        {
+          "file": "scripts/hanjintour-dry-run.ts",
+          "mustInclude": [
+            "planHanjintourPendingEnqueue("
+          ]
+        },
+        {
+          "file": "app/admin/products/page.tsx",
+          "mustInclude": [
+            "ADMIN_PRODUCT_ORIGIN_FILTERS"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanjintour-register.test.ts",
+        "lib/hanjintour-photo-uniqueness.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

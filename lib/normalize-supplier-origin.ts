@@ -7,7 +7,7 @@ import {
   type CanonicalOverseasSupplierKey,
 } from '@/lib/overseas-supplier-canonical-keys'
 
-export type OverseasSupplierKey = CanonicalOverseasSupplierKey | 'etc'
+export type OverseasSupplierKey = CanonicalOverseasSupplierKey | 'hanjintour' | 'etc'
 
 export const OVERSEAS_SUPPLIER_LABEL: Record<OverseasSupplierKey, string> = {
   hanatour: '하나투어',
@@ -17,6 +17,7 @@ export const OVERSEAS_SUPPLIER_LABEL: Record<OverseasSupplierKey, string> = {
   kyowontour: '교원이지',
   lottetour: '롯데관광',
   naeiltour: '내일투어',
+  hanjintour: '한진관광',
   etc: '기타 공급사',
 }
 
@@ -81,14 +82,16 @@ const PATTERN_RULES: { key: CanonicalOverseasSupplierKey; patterns: RegExp[] }[]
 export function normalizeSupplierOrigin(originSource: string | null | undefined): OverseasSupplierKey {
   const raw = (originSource ?? '').trim()
   if (!raw) return 'etc'
+  const lower = raw.toLowerCase()
 
   const asciiCanonical = tryResolveCanonicalSupplierKeyAscii(raw)
   if (asciiCanonical) return asciiCanonical
 
+  if (lower === 'hanjintour' || raw.includes('한진관광')) return 'hanjintour'
+
   const legacy = legacyExactAliasToKey(raw)
   if (legacy) return legacy
 
-  const lower = raw.toLowerCase()
   for (const { key, patterns } of PATTERN_RULES) {
     for (const re of patterns) {
       if (re.test(raw) || re.test(lower)) return key

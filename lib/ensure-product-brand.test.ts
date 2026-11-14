@@ -28,6 +28,8 @@ describe('ensure-product-brand', () => {
     expect(resolveBrandKeyForOriginSource('참좋은여행')).toBe('verygoodtour')
     expect(resolveBrandKeyForOriginSource('롯데관광')).toBe('lottetour')
     expect(resolveBrandKeyForOriginSource('내일투어')).toBe('naeiltour')
+    expect(resolveBrandKeyForOriginSource('hanjintour')).toBe('hanjintour')
+    expect(resolveBrandKeyForOriginSource('한진관광')).toBe('hanjintour')
     expect(resolveBrandKeyForOriginSource('windsor')).toBe('windsor')
   })
 })

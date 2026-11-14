@@ -15,7 +15,8 @@ type SchedulerScraperSite = CanonicalOverseasSupplierKey
 
 function toSite(originSource: string | null): SchedulerScraperSite | null {
   const key = normalizeSupplierOrigin(originSource)
-  return key === 'etc' ? null : key
+  if (key === 'etc' || key === 'hanjintour') return null
+  return key
 }
 
 function isWindsorOrigin(originSource: string | null): boolean {

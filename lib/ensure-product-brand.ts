@@ -19,21 +19,23 @@ const DISPLAY: Record<string, string> = {
   kyowontour: '교원이지',
   lottetour: '롯데관광',
   naeiltour: '내일투어',
+  hanjintour: '한진관광',
   windsor: '윈저여행사',
   other: '기타',
 }
 
 export function brandKeysToEnsure(): string[] {
-  return [...CANONICAL_OVERSEAS_SUPPLIER_KEYS, 'windsor', 'other']
+  return [...CANONICAL_OVERSEAS_SUPPLIER_KEYS, 'hanjintour', 'windsor', 'other']
 }
 
 export function resolveBrandKeyForOriginSource(
   originSource: string | null | undefined,
-): CanonicalOverseasSupplierKey | 'windsor' | 'other' | null {
+): CanonicalOverseasSupplierKey | 'hanjintour' | 'windsor' | 'other' | null {
   const raw = String(originSource ?? '').trim()
   if (!raw) return null
   const fromLegacy = normalizeBrandKeyToCanonicalSupplierKey(raw)
   if (fromLegacy) return fromLegacy
+  if (raw.toLowerCase() === 'hanjintour' || raw.includes('한진관광')) return 'hanjintour'
   const norm = normalizeSupplierOrigin(raw)
   if (norm !== 'etc') return norm
   const lower = raw.toLowerCase()
@@ -64,9 +66,11 @@ export async function ensureBrandRow(
                 ? 6
                 : key === 'naeiltour'
                   ? 7
-                  : key === 'windsor'
+                  : key === 'hanjintour'
                     ? 8
-                    : 99
+                    : key === 'windsor'
+                      ? 9
+                      : 99
   const row = await prisma.brand.upsert({
     where: { brandKey: key },
     create: {

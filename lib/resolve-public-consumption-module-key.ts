@@ -17,6 +17,6 @@ export function resolvePublicConsumptionModuleKey(
   const fromBrand = normalizeBrandKeyToCanonicalSupplierKey(brandKey)
   if (fromBrand) return fromBrand
   const norm = normalizeSupplierOrigin(originSource)
-  if (norm !== 'etc') return norm
+  if (norm !== 'etc' && norm !== 'hanjintour') return norm
   return 'hanatour'
 }

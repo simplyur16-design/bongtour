@@ -12,6 +12,8 @@ import AdminStatusBadge from '../components/AdminStatusBadge'
 import SafeImage from '@/app/components/SafeImage'
 import { adminProductBgImageAttributionLine, adminProductBgImageSourceTypeLabel } from '@/lib/product-bg-image-attribution'
 import { adminSupplierPrimaryDisplayLabel } from '@/lib/admin-product-supplier-derivatives'
+import { ADMIN_PRODUCT_ORIGIN_FILTERS } from '@/lib/hanjintour-supplier-key'
+import { OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
 import { resolveProductListDestinationLabel } from '@/lib/verygoodtour-listing-title-from-paste'
 import type { CanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import type { OverseasSupplierKey } from '@/lib/normalize-supplier-origin'
@@ -162,6 +164,7 @@ export default function AdminProductsPage() {
   const [airline, setAirline] = useState('')
   const [destination, setDestination] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [originFilter, setOriginFilter] = useState('')
   const [primaryRegionFilter, setPrimaryRegionFilter] = useState('')
   const [displayCategoryFilter, setDisplayCategoryFilter] = useState('')
   const [themeTagsSearch, setThemeTagsSearch] = useState('')
@@ -200,6 +203,7 @@ export default function AdminProductsPage() {
       if (airline) params.set('airline', airline)
       if (destination) params.set('destination', destination)
       if (statusFilter) params.set('status', statusFilter)
+      if (originFilter) params.set('originSource', originFilter)
       if (primaryRegionFilter) params.set('primaryRegion', primaryRegionFilter)
       if (displayCategoryFilter) params.set('displayCategory', displayCategoryFilter)
       if (themeTagsSearch) params.set('themeTags', themeTagsSearch)
@@ -226,6 +230,7 @@ export default function AdminProductsPage() {
     airline,
     destination,
     statusFilter,
+    originFilter,
     primaryRegionFilter,
     displayCategoryFilter,
     themeTagsSearch,
@@ -589,6 +594,22 @@ export default function AdminProductsPage() {
             <option value="on_hold">보류</option>
             <option value="rejected">반려</option>
             <option value="auto_unpublished">자동 비공개</option>
+          </select>
+          <select
+            value={originFilter}
+            onChange={(e) => {
+              setOriginFilter(e.target.value)
+              setPage(1)
+            }}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#0f172a]"
+            aria-label="공급사"
+          >
+            <option value="">공급사 전체</option>
+            {ADMIN_PRODUCT_ORIGIN_FILTERS.map((key) => (
+              <option key={key} value={key}>
+                {OVERSEAS_SUPPLIER_LABEL[key]}
+              </option>
+            ))}
           </select>
           <select
             value={airline}
