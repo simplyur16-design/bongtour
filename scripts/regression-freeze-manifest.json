@@ -31725,6 +31725,74 @@
         }
       ],
       "vitestSuites": ["lib/product-bookable-derived-sync.test.ts"]
+    },
+    {
+      "id": "hanjintour-supplier-collect",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "한진관광 수집 — 공개 화면 JSON API 비로그인 순차 호출(간격+지터, 재시도 1회, 403/429 즉시 중단), 공급사 전용 상수, 가격 원문 값만(추정 금지), 출발일·성인요금 있는 미래 출발 없으면 등록대기 금지, 보존 원본 연락처 필드 제거, DB 쓰기 없음",
+      "checks": [
+        {
+          "file": "lib/hanjintour-http.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanjintour-supplier-collect]",
+            "supplierFetch(",
+            "maxRetries: 1",
+            "HANJINTOUR_CALL_GAP_MS",
+            "r.status === 403 || r.status === 429",
+            "if (blocked) throw blocked"
+          ]
+        },
+        {
+          "file": "lib/hanjintour-parse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanjintour-supplier-collect]",
+            "export function hanjintourRawPrice",
+            "export function hanjintourShouldEnqueuePending",
+            "export function stripHanjintourContactFields"
+          ]
+        },
+        {
+          "file": "scripts/hanjintour-dry-run.ts",
+          "mustInclude": [
+            "hanjintourDetailCollectAllowed(g)",
+            "stripHanjintourContactFields("
+          ],
+          "mustNotInclude": [
+            "prisma.",
+            "@prisma/client"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanjintour-http.test.ts",
+        "lib/hanjintour-parse.test.ts"
+      ]
+    },
+    {
+      "id": "hanjintour-region-filter",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "한진관광은 기존 7곳(hanatour·modetour·ybtour·naeiltour·lottetour·verygoodtour·kyowontour) 공개+등록대기에 없는 지역 상품만 상세 수집 — 도시 단위 우선, 묶음 분류명은 방문 도시로 보지 않음, 애매하면 판단보류, 선정 외 상세 호출 금지",
+      "checks": [
+        {
+          "file": "lib/hanjintour-region-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanjintour-region-filter]",
+            "'kyowontour',",
+            "decision: '판단보류'",
+            "return d.decision === '선정'",
+            "recognized.length === 1 ? core : grouped"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanjintour-region-filter.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
