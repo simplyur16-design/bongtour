@@ -9,6 +9,8 @@ export type AutoPhotoAttemptLog = {
   providerErrorClass: string | null
   attemptAt: string
   result: 'filled' | 'failed' | 'skipped'
+  /** 이번 호출에서 실제로 새로 채운 칸 수. 없으면 로그에 넣지 않는다. */
+  filled?: number
 }
 
 export function providerErrorClass(err: unknown): string {
@@ -17,7 +19,7 @@ export function providerErrorClass(err: unknown): string {
 }
 
 export function logAutoPhotoAttempt(entry: AutoPhotoAttemptLog): void {
-  const line = {
+  const line: Record<string, unknown> = {
     kind: 'auto-photo-attempt',
     productId: entry.productId,
     day: entry.day,
@@ -26,5 +28,6 @@ export function logAutoPhotoAttempt(entry: AutoPhotoAttemptLog): void {
     attemptAt: entry.attemptAt,
     result: entry.result,
   }
+  if (typeof entry.filled === 'number') line.filled = entry.filled
   console.log(JSON.stringify(line))
 }

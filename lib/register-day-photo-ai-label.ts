@@ -16,7 +16,9 @@ export type DayPhotoAiLabel = {
 }
 
 export function isGeneratedPhotoSource(source: string | null | undefined, url?: string | null): boolean {
+  if (String(source ?? '').trim() === 'AI 생성') return true
   if (/gemini|imagen|generated/i.test(String(source ?? ''))) return true
+  if (/ai-generated/i.test(String(url ?? ''))) return true
   return /\/gemini[-_/]|[-_]gemini[-_.]/i.test(String(url ?? ''))
 }
 

@@ -36,6 +36,8 @@ export type ChainCandidate = {
   width: number
   height: number
   altText?: string
+  description?: string
+  tags?: string[]
   /** 위치 메타 비교용 페이지 주소(Pexels slug) */
   pageUrl?: string | null
   downloadLocation?: string
@@ -122,6 +124,8 @@ function fromUnsplash(u: UnsplashHeroCandidate): ChainCandidate | null {
     width: w,
     height: h,
     altText: u.altText,
+    ...(u.description ? { description: u.description } : {}),
+    ...(u.tags ? { tags: u.tags } : {}),
     pageUrl: null,
     downloadLocation: u.downloadLocation,
     queryUsed: u.queryUsed,

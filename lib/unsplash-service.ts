@@ -35,6 +35,9 @@ export type UnsplashHeroCandidate = {
   downloadLocation: string
   queryUsed: string
   altText?: string
+  /** 자동 채움 관문의 명소 일치·인물 판정용 사진 설명·태그 */
+  description?: string
+  tags?: string[]
   /** 크레딧용 작가 이름(photo.user.name) */
   authorName: string | null
   /** 크레딧용 작가 프로필 주소(photo.user.links.html, utm 없이 저장 — 표시할 때 붙임) */
@@ -48,6 +51,8 @@ type UnsplashApiPhoto = {
   width?: number
   height?: number
   alt_description?: string | null
+  description?: string | null
+  tags?: Array<{ title?: string | null }> | null
   urls?: { raw?: string; full?: string; regular?: string }
   links?: { download_location?: string }
   user?: { name?: string | null; username?: string | null; links?: { html?: string | null } }
@@ -141,6 +146,8 @@ export async function searchUnsplashHeroCandidates(
         downloadLocation: dl,
         queryUsed,
         altText: p.alt_description ?? undefined,
+        ...(p.description ? { description: p.description } : {}),
+        ...(Array.isArray(p.tags) ? { tags: p.tags.map((x) => String(x?.title ?? '').trim()).filter(Boolean).slice(0, 30) } : {}),
         authorName: (p.user?.name ?? '').trim() || null,
         authorProfileUrl:
           (p.user?.links?.html ?? '').trim() ||
