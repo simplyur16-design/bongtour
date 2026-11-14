@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { publicProductPath } from '@/lib/product-public-path'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 
 function formatWon(n: number | null) {
   if (n == null) return '문의'
@@ -17,7 +18,7 @@ function formatWon(n: number | null) {
 
 export default async function OverseasRegisteredProductsSection() {
   const rows = await prisma.product.findMany({
-    where: { registrationStatus: 'registered' },
+    where: { registrationStatus: 'registered', AND: [publicProductWhereClause()] },
     orderBy: { updatedAt: 'desc' },
     include: PRODUCT_PRICE_FOR_BROWSE_INCLUDE,
   })

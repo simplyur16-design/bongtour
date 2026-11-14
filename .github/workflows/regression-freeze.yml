@@ -29,3 +29,36 @@ jobs:
         run: npm run verify:regression-freeze:list
       - name: Run CI tier guards
         run: npm run verify:regression-freeze:ci
+
+  # 결제·유심사·솔라피 실호출 없는 eSIM 동시성 회귀. Postgres 서비스에서만 실행.
+  esim-concurrency:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      ESIM_CONCURRENCY_PG: "1"
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      NODE_ENV: test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          package-manager-cache: false
+      - run: npm ci
+      - name: Run eSIM concurrency tests (mock supplier + mock Solapi)
+        run: npx vitest run lib/bongsim/fulfillment/esim-concurrency.pg.test.ts
