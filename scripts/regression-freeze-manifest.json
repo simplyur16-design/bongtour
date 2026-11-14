@@ -2809,7 +2809,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM LMS — iPhone·Galaxy 원클릭 URL 본문. LPA면 항상 LMS, 없으면 알림톡 실패·미설정 시에만 폴백",
+      "summary": "eSIM LMS — iPhone·Galaxy 원클릭 URL 본문. 알림톡 성공 시 LMS 없음, 실패·미설정 시에만 폴백",
       "checks": [
         {
           "file": "lib/bongsim/notifications/esim-qr-lms.ts",
@@ -2867,11 +2867,13 @@
           "file": "lib/bongsim/notifications/esim-qr-lms.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]",
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL",
             "고객센터"
           ],
           "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "https://pf.kakao.com/_fqTkK/chat",
+            "카카오:",
             "문의: 카카오 09:00-18:00 · bongtour.com",
             "유심사 고객센터",
             "open.kakao.com/o/",
@@ -3010,7 +3012,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "LPA가 있으면 알림톡 성공과 무관하게 iPhone·Android 원클릭 LMS를 반드시 발송",
+      "summary": "봉투어 발송은 알림톡 우선. 성공하면 LMS 없음. LMS는 shouldSendLmsFallback일 때만. 카카오 상담 링크는 LMS에 없음",
       "checks": [
         {
           "file": "lib/bongsim/notifications/esim-qr-lms.ts",
@@ -3018,20 +3020,34 @@
             "REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]",
             "esimQrNotifyMustSendOsQuickInstallLms",
             "shouldSendBongtourEsimOsQuickInstallLms",
-            "startsWith(\"LPA:\")"
+            "startsWith(\"LPA:\")",
+            "USIMSA_CX_CONTACT_URL"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "https://pf.kakao.com/_fqTkK/chat",
+            "카카오:"
           ]
         },
         {
           "file": "lib/bongsim/fulfillment/esim-delivery.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]",
+            "sendEsimQrDeliveredAlimTalk",
+            "if (alim.ok)",
+            "alim.shouldSendLmsFallback",
+            "sendEsimQrDeliveredLmsFallback"
+          ],
+          "mustNotInclude": [
             "shouldSendBongtourEsimOsQuickInstallLms",
-            "os_install_lms_failed"
+            "os_install_lms_failed",
+            "companion_failed_after_os_lms"
           ]
         }
       ],
       "vitestSuites": [
-        "lib/bongsim/notifications/esim-qr-lms.test.ts"
+        "lib/bongsim/notifications/esim-qr-lms.test.ts",
+        "lib/bongsim/fulfillment/esim-qr-notify-single-channel.test.ts"
       ]
     },
     {

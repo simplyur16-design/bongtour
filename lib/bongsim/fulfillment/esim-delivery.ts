@@ -23,7 +23,6 @@ import {
 import { sendEsimQrDeliveredAlimTalk } from "@/lib/bongsim/notifications/esim-qr-alimtalk";
 import {
   buildSimplyurEsimQrDeliveredLmsText,
-  shouldSendBongtourEsimOsQuickInstallLms,
   shouldSendSimplyurEsimIssuedLms,
 } from "@/lib/bongsim/notifications/esim-qr-lms";
 import { isEsimLiveIssuanceAndSmsAllowed } from "@/lib/bongsim/esim-live-fulfillment";
@@ -176,37 +175,18 @@ export async function sendQueuedEsimQrCustomerNotify(payload: EsimQrNotifyPayloa
       orderPageUrl,
       downloadLink: payload.download_link,
     };
-    // REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: LPA면 원클릭 LMS 필수 — manifest
-    if (shouldSendBongtourEsimOsQuickInstallLms(checkoutChannel, payload.download_link)) {
-      const lms = await sendEsimQrDeliveredLmsFallback(lmsPayload);
-      if (!lms.ok) {
-        throw new Error(`[bongsim:esim-qr-notify] os_install_lms_failed order=${orderId}`);
-      }
+    // REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]: 알림톡 우선. 성공하면 LMS 없음. shouldSendLmsFallback 일 때만 LMS — manifest
+    // REGRESSION-FREEZE[bongsim-esim-lms-quick-install]: 알림톡 성공 시 한 통만. LMS는 실패·미설정 폴백 — manifest
+    const alim = await sendEsimQrDeliveredAlimTalk(orderId, {
+      customerPhone: phone,
+      orderNumber: orderLabel,
+      orderPageUrl,
+    });
+    if (alim.ok) {
       phoneNotifyOk = true;
-      const alim = await sendEsimQrDeliveredAlimTalk(orderId, {
-        customerPhone: phone,
-        orderNumber: orderLabel,
-        orderPageUrl,
-      });
-      if (!alim.ok) {
-        console.warn("[bongsim:alimtalk:esim-qr] companion_failed_after_os_lms", {
-          orderId,
-          detail: alim.detail,
-        });
-      }
-    } else {
-      const alim = await sendEsimQrDeliveredAlimTalk(orderId, {
-        customerPhone: phone,
-        orderNumber: orderLabel,
-        orderPageUrl,
-      });
-      if (alim.ok) {
-        phoneNotifyOk = true;
-      } else if (alim.shouldSendLmsFallback) {
-        // REGRESSION-FREEZE[bongsim-esim-lms-quick-install]: AlimTalk 실패 시에만 LMS — manifest
-        const lms = await sendEsimQrDeliveredLmsFallback(lmsPayload);
-        phoneNotifyOk = Boolean(lms.ok);
-      }
+    } else if (alim.shouldSendLmsFallback) {
+      const lms = await sendEsimQrDeliveredLmsFallback(lmsPayload);
+      phoneNotifyOk = Boolean(lms.ok);
     }
   } else if (requireKakaoPhone) {
     console.warn("[bongsim:alimtalk:esim-qr] no_phone", { orderId });
