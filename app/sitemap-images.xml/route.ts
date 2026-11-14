@@ -50,10 +50,11 @@ function xmlResponse(body: string, method: 'GET' | 'HEAD' = 'GET'): Response {
 }
 
 /**
- * 신선 5분은 DB 없이 응답, 재생성은 8초 안에서만, 실패·초과는 마지막 정상본(없으면 빈 urlset)을 200 으로.
+ * 신선 캐시는 두지 않는다(freshMs 0). 삭제·비공개는 다음 생성이 바로 빠진다.
+ * CDN 은 Cache-Control s-maxage=300. 실패·8초 초과만 마지막 정상본(없으면 빈 urlset)을 200 으로.
  * REGRESSION-FREEZE[seo-image-sitemap-last-good]: 5xx·빈 본문 대신 마지막 정상본 — manifest
  */
-const imageSitemapCache = createLastGoodCache<string>({ freshMs: 300_000, timeoutMs: 8_000 })
+const imageSitemapCache = createLastGoodCache<string>({ freshMs: 0, timeoutMs: 8_000 })
 
 async function buildBody(origin: string): Promise<string> {
   let products: {

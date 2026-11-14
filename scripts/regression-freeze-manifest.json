@@ -32264,6 +32264,37 @@
       "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
     },
     {
+      "id": "seo-indexnow-public-key",
+      "tier": ["prebuild", "ci"],
+      "summary": "IndexNow 공개 키 파일, 운영(Railway/Vercel production)에서만 전송, 코드 밖 변경은 워커가 updatedAt 으로 갱신",
+      "checks": [
+        {
+          "file": "lib/seo/indexnow.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-indexnow-public-key]",
+            "INDEXNOW_PUBLIC_KEY",
+            "isIndexNowProductionRuntime",
+            "RAILWAY_ENVIRONMENT",
+            "maxUrlsPerRequest: 500"
+          ],
+          "mustNotInclude": ["indexing.googleapis.com"]
+        },
+        {
+          "file": "public/390ef6b3bc14abdd0c900efd20618788.txt",
+          "mustInclude": ["390ef6b3bc14abdd0c900efd20618788"]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": ["startInstrumentationProductIndexRefreshCron"]
+        },
+        {
+          "file": "lib/seo/product-index-events.ts",
+          "mustInclude": ["revalidateChangedProductPaths"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
       "id": "seo-inquiry-og-image",
       "tier": ["prebuild", "ci"],
       "summary": "/inquiry og·twitter 이미지 비어 있음 금지",

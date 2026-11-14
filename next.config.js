@@ -134,6 +134,16 @@ const nextConfig = {
         source: '/icons/:path*',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=2592000, immutable' }],
       },
+      /** 사이트맵 — 짧은 CDN 캐시. 본문은 요청마다 DB(force-dynamic), 실패 시 마지막 정상본. */
+      {
+        source: '/sitemap.xml',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, s-maxage=300, stale-while-revalidate=600',
+          },
+        ],
+      },
       /** 관리자 셸이 오래 캐시되면 배포 직후 ChunkLoadError(구 HTML → 신규 청크)가 난다. */
       {
         source: '/admin/:path*',

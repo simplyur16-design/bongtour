@@ -44,12 +44,16 @@ import {
   __resetIndexNowQueueForTests,
   computeIndexNowDelayMs,
   filterIndexNowUrls,
+  INDEXNOW_PUBLIC_KEY,
   INDEXNOW_TIMING,
+  indexNowKeyLocationPath,
+  isIndexNowProductionRuntime,
   queueIndexNowUrls,
   resolveIndexNowKey,
   submitIndexNow,
 } from '@/lib/seo/indexnow'
 import { productPublicUrlsForIndex } from '@/lib/seo/product-index-events'
+import { nextProductIndexWatermark, shouldNotifyIndexNowForRecentBatch } from '@/lib/seo/product-index-refresh'
 import { publicProductSsrIndexWhere, toPublicProductSsrIndexItem } from '@/lib/public-product-ssr-index'
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -100,6 +104,9 @@ describe('sitemap — DB 공개 상품만, lastmod=updatedAt', () => {
     expect(entries.some((e) => e.url.includes('/products/otr-bt-'))).toBe(false)
     expect(entries.some((e) => e.url.includes('pkg-mt-0170'))).toBe(false)
     expect(entries.filter((e) => !e.url.includes('/products/') && !e.url.includes('/programs/')).every((e) => e.lastModified == null)).toBe(true)
+    expect(read('next.config.js')).toContain("source: '/sitemap.xml'")
+    expect(read('next.config.js')).toContain('s-maxage=300, stale-while-revalidate=600')
+    expect(read('app/sitemap-images.xml/route.ts')).toContain('freshMs: 0')
   })
 
   it('app/sitemap.ts 는 공용 where·force-dynamic 사용', () => {
@@ -321,8 +328,12 @@ describe('검색용 문구 — 유심사 표기 없음, eSIM(여행용)·고객�
   })
 })
 
-describe('IndexNow — 실패·키 없음은 SKIP, throw 없음', () => {
-  const okEnv = { INDEXNOW_KEY: 'abcdef0123456789' }
+describe('IndexNow — 실패·비운영은 SKIP, throw 없음', () => {
+  const okEnv = {
+    INDEXNOW_KEY: 'abcdef0123456789',
+    NODE_ENV: 'production',
+    RAILWAY_ENVIRONMENT: 'production',
+  }
   const noSleep = async () => {}
   const silent = () => {}
 
@@ -332,12 +343,38 @@ describe('IndexNow — 실패·키 없음은 SKIP, throw 없음', () => {
     vi.useRealTimers()
   })
 
-  it('키 없으면 fetch 하지 않고 SKIP', async () => {
+  it('키를 빈 값으로 넘기면 fetch 하지 않고 SKIP', async () => {
     const f = vi.fn()
-    const r = await submitIndexNow([`${ORIGIN}/products/a`], { env: {}, origin: ORIGIN, fetchImpl: f as never, log: silent })
+    const r = await submitIndexNow([`${ORIGIN}/products/a`], {
+      env: { ...okEnv, INDEXNOW_KEY: '' },
+      origin: ORIGIN,
+      fetchImpl: f as never,
+      log: silent,
+    })
     expect(r).toMatchObject({ status: 'skip', reason: 'no_key' })
     expect(f).not.toHaveBeenCalled()
     expect(resolveIndexNowKey({ INDEXNOW_KEY: 'short' })).toBeNull()
+    expect(resolveIndexNowKey({})).toBe(INDEXNOW_PUBLIC_KEY)
+  })
+
+  it('CI·로컬(NODE_ENV 아님·RAILWAY 아님)은 fetch 하지 않는다', async () => {
+    const f = vi.fn()
+    const ci = await submitIndexNow([`${ORIGIN}/products/a`], {
+      env: { ...okEnv, CI: 'true' },
+      origin: ORIGIN,
+      fetchImpl: f as never,
+      log: silent,
+    })
+    expect(ci).toMatchObject({ status: 'skip', reason: 'not_production' })
+    const local = await submitIndexNow([`${ORIGIN}/products/a`], {
+      env: { INDEXNOW_KEY: okEnv.INDEXNOW_KEY, NODE_ENV: 'development' },
+      origin: ORIGIN,
+      fetchImpl: f as never,
+      log: silent,
+    })
+    expect(local).toMatchObject({ status: 'skip', reason: 'not_production' })
+    expect(isIndexNowProductionRuntime({ NODE_ENV: 'production' })).toBe(false)
+    expect(f).not.toHaveBeenCalled()
   })
 
   it('운영 origin 이 아니면 SKIP', async () => {
@@ -375,7 +412,11 @@ describe('IndexNow — 실패·키 없음은 SKIP, throw 없음', () => {
     })
     expect(r).toMatchObject({ status: 'sent', count: 1, attempts: 2, httpStatus: 202 })
     const body = JSON.parse((f.mock.calls[0][1] as { body: string }).body)
-    expect(body).toMatchObject({ host: 'bongtour.com', key: okEnv.INDEXNOW_KEY, keyLocation: `${ORIGIN}/indexnow-key.txt` })
+    expect(body).toMatchObject({
+      host: 'bongtour.com',
+      key: okEnv.INDEXNOW_KEY,
+      keyLocation: `${ORIGIN}${indexNowKeyLocationPath(okEnv.INDEXNOW_KEY)}`,
+    })
     expect(body.urlList).toEqual([`${ORIGIN}/products/a`])
   })
 
@@ -387,7 +428,7 @@ describe('IndexNow — 실패·키 없음은 SKIP, throw 없음', () => {
   })
 
   it('큐: 키 없으면 예약 안 함, 키 있으면 묶어서 간격+지터 후 1회 전송', async () => {
-    queueIndexNowUrls([`${ORIGIN}/products/a`], { env: {}, log: silent })
+    queueIndexNowUrls([`${ORIGIN}/products/a`], { env: { ...okEnv, INDEXNOW_KEY: '' }, log: silent })
     expect(__peekIndexNowQueueForTests().scheduled).toBe(false)
 
     vi.useFakeTimers()
@@ -421,6 +462,33 @@ describe('IndexNow — 실패·키 없음은 SKIP, throw 없음', () => {
     for (const rel of ['lib/seo/indexnow.ts', 'lib/seo/product-index-events.ts']) {
       expect(read(rel)).not.toMatch(/indexing\.googleapis\.com|urlNotifications/)
     }
+  })
+
+  it('공개 키 파일 내용이 상수와 같고, 페이로드 keyLocation 이 그 파일이다', () => {
+    const keyPath = `public/${INDEXNOW_PUBLIC_KEY}.txt`
+    expect(read(keyPath).trim()).toBe(INDEXNOW_PUBLIC_KEY)
+    expect(indexNowKeyLocationPath()).toBe(`/${INDEXNOW_PUBLIC_KEY}.txt`)
+    expect(read('app/robots.ts')).not.toContain(INDEXNOW_PUBLIC_KEY)
+    expect(read('middleware.ts')).toContain('txt|xml')
+  })
+
+  it('한 요청은 최대 500건', async () => {
+    const f = vi.fn().mockResolvedValue(new Response('', { status: 200 }))
+    const urls = Array.from({ length: 600 }, (_, i) => `${ORIGIN}/products/p${i}`)
+    await submitIndexNow(urls, { env: okEnv, origin: ORIGIN, fetchImpl: f as never, sleep: noSleep, log: silent })
+    expect(JSON.parse((f.mock.calls[0][1] as { body: string }).body).urlList).toHaveLength(INDEXNOW_TIMING.maxUrlsPerRequest)
+    expect(INDEXNOW_TIMING.maxUrlsPerRequest).toBe(500)
+  })
+
+  it('코드 밖 변경은 워커가 최근 updatedAt 만 보고, 배치가 꽉 차면 IndexNow 를 하지 않는다', () => {
+    expect(shouldNotifyIndexNowForRecentBatch(3)).toBe(true)
+    expect(shouldNotifyIndexNowForRecentBatch(200)).toBe(false)
+    expect(shouldNotifyIndexNowForRecentBatch(0)).toBe(false)
+    const at = new Date('2026-11-15T01:00:00Z')
+    expect(nextProductIndexWatermark([{ id: 'a', slug: 's', listingKind: null, updatedAt: at }], null)).toEqual(at)
+    expect(read('instrumentation.ts')).toContain('startInstrumentationProductIndexRefreshCron')
+    expect(read('lib/instrumentation-product-index-refresh-cron.ts')).toContain('updatedAt: { gt: since }')
+    expect(read('lib/seo/product-index-events.ts')).toContain('revalidateChangedProductPaths')
   })
 })
 
