@@ -356,6 +356,31 @@ function Banner({
   );
 }
 
+type GuidePlatform = ReturnType<typeof esimGuideLocale>["content"]["guide"]["platforms"]["iphone"];
+
+function GuidePlatformBody({
+  tabId,
+  locale,
+  platform,
+}: {
+  tabId: "iphone" | "galaxy";
+  locale: string;
+  platform: GuidePlatform;
+}) {
+  return (
+    <>
+      <p className="mb-[18px] rounded-[14px] bg-[#f6f8fa] px-[18px] py-3.5">{platform.lead}</p>
+      <StepCarousel steps={asSteps(platform.steps)} locale={locale} />
+      <section className="my-9">
+        <h2 className="mb-3 text-[22px]">{platform.localSetup.title}</h2>
+        {asBlocks(platform.localSetup.blocks).map((block, blockIndex) => (
+          <BlockView key={`${tabId}-local-${blockIndex}`} block={block} />
+        ))}
+      </section>
+    </>
+  );
+}
+
 function SupportLine({ locale }: { locale: string }) {
   const labels = esimGuideLocale(locale).content.support;
   const contact = ESIM_GUIDE_SITE_DATA.support;
@@ -440,7 +465,8 @@ export function EsimGuideSiteView({ page }: { page: "guide" | "auth" }) {
               </button>
             ))}
           </div>
-          {tab === "prep" ? (
+          {/* REGRESSION-FREEZE[bongsim-esim-install-guide-pages]: 설치 탭 3개는 서버 HTML에 모두 있고, 비활성만 hidden — manifest */}
+          <div data-esim-guide-tab="prep" hidden={tab !== "prep"}>
             <div className="grid grid-cols-2 gap-[18px] max-[760px]:grid-cols-1">
               {guide.prep.cards.map((card, index) => (
                 <article key={card.id} className={`rounded-[18px] border border-[#e3e8ee] bg-white px-[22px] py-5 max-[760px]:px-4 ${index === 0 ? "col-span-full" : ""}`}>
@@ -454,19 +480,13 @@ export function EsimGuideSiteView({ page }: { page: "guide" | "auth" }) {
                 </article>
               ))}
             </div>
-          ) : null}
-          {tab === "iphone" || tab === "galaxy" ? (
-            <div>
-              <p className="mb-[18px] rounded-[14px] bg-[#f6f8fa] px-[18px] py-3.5">{guide.platforms[tab].lead}</p>
-              <StepCarousel steps={asSteps(guide.platforms[tab].steps)} locale={locale} />
-              <section className="my-9">
-                <h2 className="mb-3 text-[22px]">{guide.platforms[tab].localSetup.title}</h2>
-                {asBlocks(guide.platforms[tab].localSetup.blocks).map((block, blockIndex) => (
-                  <BlockView key={`${tab}-local-${blockIndex}`} block={block} />
-                ))}
-              </section>
-            </div>
-          ) : null}
+          </div>
+          <div data-esim-guide-tab="iphone" hidden={tab !== "iphone"}>
+            <GuidePlatformBody tabId="iphone" locale={locale} platform={guide.platforms.iphone} />
+          </div>
+          <div data-esim-guide-tab="galaxy" hidden={tab !== "galaxy"}>
+            <GuidePlatformBody tabId="galaxy" locale={locale} platform={guide.platforms.galaxy} />
+          </div>
           <FaqTable title={content.faq.title} items={content.faq.items} columns={content.faq.columns} />
           <SupportLine locale={locale} />
         </>

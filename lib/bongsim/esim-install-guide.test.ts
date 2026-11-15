@@ -1,7 +1,28 @@
 import fs from "node:fs";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it, vi } from "vitest";
+import { EsimGuideSiteView } from "@/components/bongsim/esim/EsimGuideSiteView";
 import { COMMON_FAQ } from "@/lib/bongsim/esim-guide-content";
+
+vi.mock("next/image", () => {
+  const React = require("react") as typeof import("react");
+  return {
+    __esModule: true,
+    default: (props: { alt?: string; src?: string }) =>
+      React.createElement("img", { alt: props.alt ?? "", src: typeof props.src === "string" ? props.src : "" }),
+  };
+});
+
+vi.mock("next/link", () => {
+  const React = require("react") as typeof import("react");
+  return {
+    __esModule: true,
+    default: ({ href, children }: { href: string; children?: import("react").ReactNode }) =>
+      React.createElement("a", { href }, children),
+  };
+});
 import { ESIM_GUIDE_SITE_DATA, esimGuideLocale, esimGuideScreen } from "@/lib/bongsim/esim-guide-site/load";
 import {
   ESIM_INSTALL_CS_URL,
@@ -59,6 +80,22 @@ describe("esim guide site data", () => {
       for (const token of FORBIDDEN) expect(source).not.toContain(token);
       expect(source).not.toMatch(/\.pdf/);
     }
+  });
+
+  it("renders prep, iphone, and galaxy in the server HTML and hides the inactive panels", () => {
+    const html = renderToStaticMarkup(createElement(EsimGuideSiteView, { page: "guide" }));
+    const open = (id: "prep" | "iphone" | "galaxy") => {
+      const match = html.match(new RegExp(`<div[^>]*data-esim-guide-tab="${id}"[^>]*>`));
+      expect(match, id).not.toBeNull();
+      return match![0];
+    };
+    expect(open("prep")).not.toMatch(/\shidden(?:="[^"]*")?/);
+    expect(open("iphone")).toMatch(/\shidden(?:="[^"]*")?/);
+    expect(open("galaxy")).toMatch(/\shidden(?:="[^"]*")?/);
+    expect(html).toContain("내 상품부터 확인하세요");
+    expect(html).toContain("iPhone 바로 설치");
+    expect(html).toContain("QR 이미지를 길게 눌러");
+    expect(html).toContain("개통·장애 문의");
   });
 
   it("links the install page from FAQ and the auth page when the answer names it", () => {
