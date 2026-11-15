@@ -1,7 +1,7 @@
 'use client'
 
 
-import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, displayedDepartureFlightNos } from '@/lib/detail-selected-departure-airline'
+import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, alignFactsAirlineToDisplayedFlights } from '@/lib/detail-selected-departure-airline'
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { TravelProduct, ProductPriceRow } from '@/app/components/travel/TravelProductDetail'
@@ -488,10 +488,13 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
   )
   const calendarAlignedDepartureFacts = useMemo(
     () =>
-      alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
-        packageTotalDays,
-      }),
-    [selectedDepartureFacts, selectedDate, packageTotalDays]
+      alignFactsAirlineToDisplayedFlights(
+        alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
+          packageTotalDays,
+        }),
+        product.airline,
+      ),
+    [selectedDepartureFacts, selectedDate, packageTotalDays, product.airline]
   )
   // REGRESSION-FREEZE[a5-two-buttons-1030]: 히어로 카드 '다른 항공사' — 지금 출발 회차(항공사)를 필터 컨텍스트에 알림
   useReportCurrentDepartureAirline({
@@ -638,7 +641,7 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
           originCode: product.heroOriginCodeDisplay || product.originCode,
           destination: product.destination,
           durationLabel: product.duration ?? '',
-          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline, displayedDepartureFlightNos(calendarAlignedDepartureFacts)),
+          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),
           heroDepartureDisplay,
           duration: product.duration ?? '',
           heroPriceSsot,
@@ -682,7 +685,7 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
       <div className="border-b border-bt-border-soft p-4">
         <TravelCoreInfoSection
           facts={calendarAlignedDepartureFacts}
-          productAirline={resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline, displayedDepartureFlightNos(calendarAlignedDepartureFacts))}
+          productAirline={resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)}
           periodContent={periodContent}
           travelCitiesLine={travelCitiesLine}
           reservationLine={reservationDisplayLine}

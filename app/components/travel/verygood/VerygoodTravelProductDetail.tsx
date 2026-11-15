@@ -1,7 +1,7 @@
 'use client'
 
 
-import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, displayedDepartureFlightNos } from '@/lib/detail-selected-departure-airline'
+import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, alignFactsAirlineToDisplayedFlights } from '@/lib/detail-selected-departure-airline'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -615,10 +615,13 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
   )
   const calendarAlignedDepartureFacts = useMemo(
     () =>
-      alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
-        packageTotalDays,
-      }),
-    [selectedDepartureFacts, selectedDate, packageTotalDays]
+      alignFactsAirlineToDisplayedFlights(
+        alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
+          packageTotalDays,
+        }),
+        product.airline,
+      ),
+    [selectedDepartureFacts, selectedDate, packageTotalDays, product.airline]
   )
   // REGRESSION-FREEZE[a5-two-buttons-1030]: 히어로 카드 '다른 항공사' — 지금 출발 회차(항공사)를 필터 컨텍스트에 알림
   useReportCurrentDepartureAirline({
@@ -776,7 +779,7 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
           originCode: product.heroOriginCodeDisplay || product.originCode,
           destination: product.destination,
           durationLabel: rowDurationLabel?.trim() || product.duration || '',
-          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline, displayedDepartureFlightNos(calendarAlignedDepartureFacts)),
+          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),
           heroDepartureDisplay,
           duration: product.duration ?? '',
           heroPriceSsot,
@@ -827,7 +830,7 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
         <div className="mt-6 space-y-8">
             <TravelCoreInfoSection
               facts={calendarAlignedDepartureFacts}
-              productAirline={resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline, displayedDepartureFlightNos(calendarAlignedDepartureFacts))}
+              productAirline={resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)}
               periodContent={periodContent}
               travelCitiesLine={travelCitiesLine}
               reservationLine={reservationDisplayLine}

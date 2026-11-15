@@ -1,7 +1,7 @@
 'use client'
 
 
-import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, displayedDepartureFlightNos } from '@/lib/detail-selected-departure-airline'
+import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, alignFactsAirlineToDisplayedFlights } from '@/lib/detail-selected-departure-airline'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useProductDepartureYmdFromUrl } from '@/lib/use-product-departure-url-param'
@@ -541,10 +541,13 @@ export default function TravelProductDetail({
 
   const calendarAlignedDepartureFacts = useMemo(
     () =>
-      alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
-        packageTotalDays,
-      }),
-    [selectedDepartureFacts, selectedDate, packageTotalDays]
+      alignFactsAirlineToDisplayedFlights(
+        alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
+          packageTotalDays,
+        }),
+        product.airline,
+      ),
+    [selectedDepartureFacts, selectedDate, packageTotalDays, product.airline]
   )
   // REGRESSION-FREEZE[a5-two-buttons-1030]: 히어로 카드 '다른 항공사' — 지금 출발 회차(항공사)를 필터 컨텍스트에 알림
   useReportCurrentDepartureAirline({
@@ -679,7 +682,7 @@ export default function TravelProductDetail({
             destination: product.destination,
             primaryDestination: product.primaryDestination ?? null,
             durationLabel: product.duration ?? '',
-            airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline, displayedDepartureFlightNos(calendarAlignedDepartureFacts)),
+            airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),
             heroDepartureDisplay,
             heroReturnDisplay,
             duration: product.duration ?? '',
