@@ -20,6 +20,7 @@ import {
 import { HANJINTOUR_SUPPLIER_KEY } from '@/lib/hanjintour-supplier-key'
 import { ensureBrandIdForKey } from '@/lib/ensure-product-brand'
 import { computeDepartureSlotKeyFromDate } from '@/lib/departure-slot-key'
+import { recomputeProductDepartureCacheSafe } from '@/lib/product-departure-cache'
 
 export const HANJINTOUR_PENDING_STATUS = 'pending' as const
 
@@ -211,6 +212,9 @@ export async function applyHanjintourPendingPlan(
       update,
     })
   }
+
+  // REGRESSION-FREEZE[departure-cache-from-rows]: 출발 row 쓰기 직후 캐시 재계산 — manifest
+  await recomputeProductDepartureCacheSafe(prisma, product.id, 'hanjintour-register')
 
   return { ok: true, productId: product.id, registrationStatus: HANJINTOUR_PENDING_STATUS }
 }
