@@ -1,7 +1,7 @@
 'use client'
 
 
-import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, alignFactsAirlineToDisplayedFlights, displayedDepartureFlightNos } from '@/lib/detail-selected-departure-airline'
+import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, displayedDepartureFlightNos } from '@/lib/detail-selected-departure-airline'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -636,13 +636,10 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
   )
   const calendarAlignedDepartureFacts = useMemo(
     () =>
-      alignFactsAirlineToDisplayedFlights(
-        alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
-          packageTotalDays,
-        }),
-        product.airline,
-      ),
-    [selectedDepartureFacts, selectedDate, packageTotalDays, product.airline]
+      alignDepartureKeyFactsToSelectedCalendarDate(selectedDepartureFacts, selectedDate, {
+        packageTotalDays,
+      }),
+    [selectedDepartureFacts, selectedDate, packageTotalDays]
   )
   // REGRESSION-FREEZE[a5-two-buttons-1030]: 히어로 카드 '다른 항공사' — 지금 출발 회차(항공사)를 필터 컨텍스트에 알림
   useReportCurrentDepartureAirline({

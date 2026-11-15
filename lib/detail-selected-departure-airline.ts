@@ -57,24 +57,6 @@ export function resolveSelectedDepartureAirlineForDisplay(
   return sanitizeProductAirlineForDisplay(productAirline)
 }
 
-/** 선택 출발 facts 의 항공사명을, 그 facts 에 그려진 편명 기준으로 바꾼다. */
-export function alignFactsAirlineToDisplayedFlights<
-  T extends {
-    airline?: string | null
-    outbound?: { flightNo?: string | null } | null
-    inbound?: { flightNo?: string | null } | null
-  },
->(facts: T | null | undefined, productAirline: string | null | undefined): T | null {
-  if (!facts) return null
-  const airline = resolveSelectedDepartureAirlineForDisplay(
-    facts.airline,
-    productAirline,
-    displayedDepartureFlightNos(facts),
-  )
-  if (!airline || airline === (facts.airline ?? null)) return facts
-  return { ...facts, airline }
-}
-
 type FactsLike = {
   airline: string | null
   outbound: { flightNo: string | null } | null
