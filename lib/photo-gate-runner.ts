@@ -19,7 +19,6 @@ import { recordPhotoException, type PhotoException } from '@/lib/photo-exception
 import { evaluateRegistrationPhotos, type RegistrationPhotoBlock, type RegistrationPhotoInput } from '@/lib/register-photo-registration-gate'
 import type { PublicPhotoUsage } from '@/lib/photo-autofill-gate'
 import { mapDestination } from '@/lib/pexels-keyword'
-import { pendingRegistrationWriteWhere, isPendingRegistrationStatus } from '@/lib/register-pre-photo-pending-queue-query'
 
 export type PhotoProbe = (url: string) => Promise<{ bytes: number | null; width: number | null }>
 
@@ -51,12 +50,6 @@ export const PHOTO_FACTS_SELECT = {
   bgImagePlaceName: true,
 } as const
 
-/** 현재 대표 사진의 장소 이름. 옛 검색 라벨(bgImageRehostSearchLabel)은 쓰지 않는다. */
-export function coverPlaceLabelOf(p: Pick<ProductPhotoFacts, 'bgImagePlaceName'>): string | null {
-  const place = String(p.bgImagePlaceName ?? '').trim()
-  return place || null
-}
-
 export function destinationTermsOf(p: Pick<ProductPhotoFacts, 'destination' | 'primaryDestination'>): { terms: string[]; cityTerms: string[] } {
   const en = [mapDestination(p.destination ?? null), mapDestination(p.primaryDestination ?? null)].filter(Boolean)
   const terms = [p.destination, p.primaryDestination, ...en].map((x) => String(x ?? '').trim()).filter(Boolean)
@@ -78,7 +71,7 @@ export function buildRegistrationPhotoInput(
           externalId: p.bgImageExternalId,
           originalLink: p.bgImageSourceUrl,
           source: p.bgImageSource,
-          placeLabel: coverPlaceLabelOf(p),
+          placeLabel: p.bgImageRehostSearchLabel || p.bgImagePlaceName || null,
         }
       : null,
     schedule: p.schedule,
@@ -185,11 +178,8 @@ export async function runPhotoHealForProduct(
   productId: string,
   probe: PhotoProbe,
 ): Promise<{ blocks: number; heal: HealResult | null; exceptions: PhotoException[] }> {
-  const p = (await prisma.product.findUnique({
-    where: { id: productId },
-    select: { ...PHOTO_FACTS_SELECT, registrationStatus: true },
-  })) as (ProductPhotoFacts & { registrationStatus: string | null }) | null
-  if (!p || !isPendingRegistrationStatus(p.registrationStatus)) return { blocks: 0, heal: null, exceptions: [] }
+  const p = (await prisma.product.findUnique({ where: { id: productId }, select: PHOTO_FACTS_SELECT })) as ProductPhotoFacts | null
+  if (!p) return { blocks: 0, heal: null, exceptions: [] }
   const evald = await evaluateProductPhotos(prisma, p, probe)
   if (evald.ok) return { blocks: 0, heal: null, exceptions: [] }
   const { terms, cityTerms } = destinationTermsOf(p)
@@ -208,17 +198,15 @@ export async function runPhotoHealForProduct(
             source: p.bgImageSource,
             photographer: p.bgImagePhotographer,
             sourceUrl: p.bgImageSourceUrl,
-            placeLabel: coverPlaceLabelOf(p),
+            placeLabel: p.bgImageRehostSearchLabel || p.bgImagePlaceName || null,
           }
         : null,
       blocks: evald.blocks,
     },
     {
       acquire: (input) => acquireVerifiedPhoto(input, live),
-      writeSchedule: async (id, expected, next) =>
-        (await prisma.product.updateMany({ where: { ...pendingRegistrationWriteWhere(id), schedule: expected }, data: { schedule: next } })).count === 1,
-      writeCover: async (id, data) =>
-        (await prisma.product.updateMany({ where: { ...pendingRegistrationWriteWhere(id), bgImageUrl: p.bgImageUrl ?? null }, data: data as never })).count === 1,
+      writeSchedule: async (id, expected, next) => (await prisma.product.updateMany({ where: { id, schedule: expected }, data: { schedule: next } })).count === 1,
+      writeCover: async (id, data) => (await prisma.product.updateMany({ where: { id, bgImageUrl: p.bgImageUrl ?? null }, data: data as never })).count === 1,
       recordException: (e) => recordPhotoException(e),
       recordReplace: recordReplaceLive,
       usage: evald.usage,
@@ -251,7 +239,6 @@ export async function runPublicPhotoNightlyAuditLive(prisma: PrismaClient, probe
     head: (url) => headStatus(url, fetchImpl),
     pause: () => sleep(NIGHTLY_HEAD_GAP_MS + Math.floor(Math.random() * NIGHTLY_HEAD_JITTER_MS)),
     acquire: (input) => acquireVerifiedPhoto(input, createLiveAcquireDeps({ prisma, destination: input.destinationText, probe })),
-    // 야간 쓰기는 깨진 사진·나중 상품의 대표 중복만 온다(nightlyReplaceAllowed). 그 외 사유로는 쓰지 않는다.
     writeSchedule: async (id, expected, next) => (await prisma.product.updateMany({ where: { id, schedule: expected, registrationStatus: 'registered' }, data: { schedule: next } })).count === 1,
     writeCover: async (id, expectedUrl, data) => (await prisma.product.updateMany({ where: { id, bgImageUrl: expectedUrl, registrationStatus: 'registered' }, data: data as never })).count === 1,
     recordException: (e) => recordPhotoException(e),

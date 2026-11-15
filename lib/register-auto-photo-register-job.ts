@@ -15,11 +15,7 @@ import { isAutoRegisterReviewPassed } from '@/lib/register-auto-register-review-
 import { autoPhotoFillRequest, scheduleHasMissingEligiblePhotoSlot } from '@/lib/register-auto-photo-missing-day'
 import { prisma } from '@/lib/prisma'
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
-import {
-  isPendingRegistrationStatus,
-  pendingRegistrationWriteWhere,
-  REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE,
-} from '@/lib/register-pre-photo-pending-queue-query'
+import { REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE } from '@/lib/register-pre-photo-pending-queue-query'
 import { refreshRegisterPrePhotoQueueFlagsForProductId } from '@/lib/register-pre-photo-queue-flags'
 import { loadRegisterPublishFacts } from '@/lib/register-publish-facts'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
@@ -141,19 +137,12 @@ export async function runAutoPhotoRegisterJob(opts?: {
 
   for (const { id, bgImageUrl, schedule } of ids) {
     result.scanned++
-    // 목록을 읽어 둔 뒤 다른 사람이 registered 로 바꾼 상품은 이미지·힐·사유를 쓰지 않는다.
-    // REGRESSION-FREEZE[photo-selfheal-guard-1115]: 처리 직전 재확인 + 등록대기 조건부 쓰기 — manifest
-    const stillPending = async () => {
-      const row = await prisma.product.findUnique({ where: { id }, select: { registrationStatus: true } })
-      return !!row && isPendingRegistrationStatus(row.registrationStatus)
-    }
-    if (!(await stillPending())) continue
     // 03·04: 사진 채움. 대표가 있어도 당일 키워드가 있는 빈 일차만 채운다.
     // pre_photo_blocked 는 위 큐 조건에서 빠진다. queueReady 는 여기서 바꾸지 않는다.
     // REGRESSION-FREEZE[auto-photo-missing-day-fill]: missing-day-only — manifest
     const hasMainPhoto = String(bgImageUrl ?? '').trim() !== ''
     const missingDay = scheduleHasMissingEligiblePhotoSlot(schedule)
-    if (sw.fill && missingDay && (await stillPending())) {
+    if (sw.fill && missingDay) {
       const attemptAt = new Date().toISOString()
       const secret = getAdminServiceBearerSecret()
       if (!secret) {
@@ -171,7 +160,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
           const res = await f(`${appOrigin(env)}/api/travel/process-images`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
-            body: JSON.stringify({ productId: id, ...autoPhotoFillRequest(hasMainPhoto), requirePendingRegistration: true }),
+            body: JSON.stringify({ productId: id, ...autoPhotoFillRequest(hasMainPhoto) }),
           })
           const j = (await res.json().catch(() => ({}))) as { success?: boolean; filled?: number; reason?: string }
           const filledCount = typeof j.filled === 'number' && Number.isFinite(j.filled) ? Math.max(0, Math.floor(j.filled)) : 0
@@ -227,7 +216,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     // 04b: 등록 전 사진 게이트가 막은 칸은 다음 후보(칸당 5개)로 자가 힐. 못 고친 칸은 예외 목록 + 이 상품만 보류.
     // REGRESSION-FREEZE[photo-registration-gate-wiring]: 힐 → 게이트 → 보류 사유 기록 — manifest
     let healExceptions: PhotoException[] = []
-    if (sw.fill && (await stillPending())) {
+    if (sw.fill) {
       try {
         const healed = await runPhotoHealForProduct(prisma, id, (u) => probeStoredImage(u, f))
         result.healed += healed.heal?.replaced.length ?? 0
@@ -376,10 +365,10 @@ export async function runAutoPhotoRegisterJob(opts?: {
 
     result.held++
     for (const r of gate.reasons) result.heldByReason[r] = (result.heldByReason[r] ?? 0) + 1
-    if (sw.record && (await stillPending())) {
+    if (sw.record) {
       const photoReason = gate.reasons.some((r) => r.startsWith('photo') || r.startsWith('cover') || r.startsWith('day_'))
-      await prisma.product.updateMany({
-        where: pendingRegistrationWriteWhere(id),
+      await prisma.product.update({
+        where: { id },
         data: {
           autoRegisterBlockReason: [formatAutoRegisterBlockReasons(gate.reasons), summarizePhotoExceptions(healExceptions, 200)]
             .filter(Boolean)

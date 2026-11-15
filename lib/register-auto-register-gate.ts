@@ -156,7 +156,7 @@ function norm(s: string | null | undefined): string {
 
 /** 대표 사진을 고른 도시·명소 이름이 상품 목적지·제목·일정에 있는지 (한글 목적지는 영문 매핑도 비교) */
 export function coverCityMatchesProduct(p: AutoRegisterGateInput): boolean {
-  const photoPlaces = [p.bgImageCityName, p.bgImagePlaceName]
+  const photoPlaces = [p.bgImageCityName, p.bgImagePlaceName, p.bgImageRehostSearchLabel]
     .map((x) => String(x ?? '').trim())
     .filter(Boolean)
   if (photoPlaces.length === 0) return false

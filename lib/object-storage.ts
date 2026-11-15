@@ -36,9 +36,6 @@ function getS3Client(): S3Client {
         secretAccessKey: process.env.NCLOUD_SECRET_KEY!.trim(),
       },
       forcePathStyle,
-      // 최신 SDK 기본 체크섬(WHEN_SUPPORTED)은 NCLOUD PutObject 를 AccessDenied 로 막는다.
-      requestChecksumCalculation: 'WHEN_REQUIRED',
-      responseChecksumValidation: 'WHEN_REQUIRED',
     })
   }
   return s3Client
