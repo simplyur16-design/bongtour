@@ -1,0 +1,55 @@
+{
+ "maxDate": "20270502",
+ "minDate": "20270321",
+ "eventCalendarList": [
+  {
+   "evtNo": "OP202703210460",
+   "tofDe": "20270321",
+   "tktrrDstgNm": "예약가능",
+   "adltFare": 6030200,
+   "rgstDt": null
+  },
+  {
+   "evtNo": "OP202704040133",
+   "tofDe": "20270404",
+   "tktrrDstgNm": "예약가능",
+   "adltFare": 6030200,
+   "rgstDt": null
+  },
+  {
+   "evtNo": "OP202704110132",
+   "tofDe": "20270411",
+   "tktrrDstgNm": "예약가능",
+   "adltFare": 6030200,
+   "rgstDt": null
+  },
+  {
+   "evtNo": "OP202704180131",
+   "tofDe": "20270418",
+   "tktrrDstgNm": "예약가능",
+   "adltFare": 6730200,
+   "rgstDt": null
+  },
+  {
+   "evtNo": "OP202704250127",
+   "tofDe": "20270425",
+   "tktrrDstgNm": "예약가능",
+   "adltFare": 6230200,
+   "rgstDt": null
+  },
+  {
+   "evtNo": "OP202705020130",
+   "tofDe": "20270502",
+   "tktrrDstgNm": "예약가능",
+   "adltFare": 6230200,
+   "rgstDt": null
+  }
+ ],
+ "priceList": null,
+ "errorCode": null,
+ "errorMsg": null,
+ "errorRowId": null,
+ "result": true,
+ "resultCode": "0",
+ "resultMsg": "success"
+}

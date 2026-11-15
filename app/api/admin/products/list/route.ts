@@ -6,6 +6,7 @@ import { computeAdminProductSupplierDerivatives } from '@/lib/admin-product-supp
 import { countScheduleDays } from '@/lib/schedule-days'
 import { resolveAdminListPriceFrom } from '@/lib/admin-product-list-price-from'
 import { OVERSEAS_TRAINING_LISTING_KIND } from '@/lib/overseas-training-program-query'
+import { isAdminProductOriginFilter } from '@/lib/hanjintour-supplier-key'
 
 const LIMIT = 50
 
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
     const destination = searchParams.get('destination')?.trim() || null
     const hasErrorOnly = searchParams.get('hasError') === '1'
     const status = searchParams.get('status')?.trim() || null
+    const originSource = searchParams.get('originSource')?.trim() || null
     const primaryRegion = searchParams.get('primaryRegion')?.trim() || null
     const displayCategory = searchParams.get('displayCategory')?.trim() || null
     const themeTags = searchParams.get('themeTags')?.trim() || null
@@ -65,6 +67,7 @@ export async function GET(req: NextRequest) {
     }
     if (airline) where.airline = airline
     if (destination) where.destination = destination
+    if (originSource && isAdminProductOriginFilter(originSource)) where.originSource = originSource
     if (status && ['registered', 'on_hold', 'rejected', 'pending', 'auto_unpublished'].includes(status)) {
       if (status === 'pending') {
         where.OR = [
