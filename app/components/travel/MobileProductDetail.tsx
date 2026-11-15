@@ -1,7 +1,7 @@
 'use client'
 
 
-import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline } from '@/lib/detail-selected-departure-airline'
+import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, displayedDepartureFlightNos } from '@/lib/detail-selected-departure-airline'
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useProductDepartureYmdFromUrl } from '@/lib/use-product-departure-url-param'
@@ -669,7 +669,7 @@ export default function MobileProductDetail({
           destination: product.destination,
           primaryDestination: product.primaryDestination ?? null,
           durationLabel: product.duration ?? '',
-          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),
+          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline, displayedDepartureFlightNos(calendarAlignedDepartureFacts)),
           heroDepartureDisplay,
           heroReturnDisplay,
           duration: product.duration ?? '',

@@ -4,6 +4,7 @@
  * 선택 회차 항공사를 모를 때만 상품 대표 항공사(비항공사 문구 제거 후)로 대신한다.
  */
 import { formatPublicAirlineDisplay } from '@/lib/airline-iata-public-display-ssot'
+import { resolveDepartureRowAirlineForDisplay } from '@/lib/departure-airline-display'
 
 const NON_AIRLINE_TEXT_RE = /[[\]]|교통|항공권|왕복|편도|불포함|포함|미정|문의|예정|^\s*[-–·•]/
 
@@ -13,11 +14,45 @@ export function sanitizeProductAirlineForDisplay(raw: string | null | undefined)
   return formatPublicAirlineDisplay(s) ?? s
 }
 
+export type DisplayedDepartureFlightNos = {
+  outboundFlightNo?: string | null
+  inboundFlightNo?: string | null
+}
+
+/** 화면에 그리는 가는편·오는편 편명. 출발 행 칸이 비어도 본문 leg에 있으면 그걸 쓴다. */
+export function displayedDepartureFlightNos(
+  facts:
+    | {
+        outbound?: { flightNo?: string | null } | null
+        inbound?: { flightNo?: string | null } | null
+      }
+    | null
+    | undefined,
+): DisplayedDepartureFlightNos {
+  return {
+    outboundFlightNo: facts?.outbound?.flightNo ?? null,
+    inboundFlightNo: facts?.inbound?.flightNo ?? null,
+  }
+}
+
 export function resolveSelectedDepartureAirlineForDisplay(
   selectedFactsAirline: string | null | undefined,
   productAirline: string | null | undefined,
+  flightNos?: DisplayedDepartureFlightNos | null,
 ): string | null {
   const fromRow = String(selectedFactsAirline ?? '').trim()
+  const carrier = fromRow || sanitizeProductAirlineForDisplay(productAirline)
+  const ob = String(flightNos?.outboundFlightNo ?? '').trim()
+  const ib = String(flightNos?.inboundFlightNo ?? '').trim()
+  // REGRESSION-FREEZE[airline-codeshare-same-alliance]: 표시 편명과 원문 항공사가 어긋나면 편명 항공사·같은 동맹은 공동운항 — vitest
+  if (carrier && (ob || ib)) {
+    const resolved = resolveDepartureRowAirlineForDisplay({
+      carrierName: carrier,
+      outboundFlightNo: ob || null,
+      inboundFlightNo: ib || null,
+    })
+    if (resolved) return formatPublicAirlineDisplay(resolved) ?? resolved
+  }
   if (fromRow) return fromRow
   return sanitizeProductAirlineForDisplay(productAirline)
 }

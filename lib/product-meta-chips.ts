@@ -1,5 +1,9 @@
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
 import { formatPublicAirlineDisplay } from '@/lib/airline-iata-public-display-ssot'
+import {
+  displayedDepartureFlightNos,
+  resolveSelectedDepartureAirlineForDisplay,
+} from '@/lib/detail-selected-departure-airline'
 import { buildPublicProductBadges, inferFreeTimeFromSchedule, type ProductBadgeInput } from '@/lib/product-detail-badges'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { inferFlightRoutingMeta, productHasFlightMetaContext } from '@/lib/flight-routing-meta'
@@ -140,9 +144,14 @@ export function buildProductMetaChips(
   ]
   // REGRESSION-FREEZE[public-hero-airline-iata-ko]: 메타칩 항공 IATA→한글 — manifest
   // 항공사 = deriveAirlineFact (비교표·상세 동일 축)
+  const airlineForChip = resolveSelectedDepartureAirlineForDisplay(
+    options?.departureFactsOverride?.airline ?? product.airline,
+    product.airline,
+    displayedDepartureFlightNos(options?.departureFactsOverride),
+  )
   const airlineFact = deriveAirlineFact({
-    departureKeyFactsAirline: options?.departureFactsOverride?.airline ?? product.airline,
-    selectedDepartureCarrierName: options?.departureFactsOverride?.airline ?? null,
+    departureKeyFactsAirline: airlineForChip ?? options?.departureFactsOverride?.airline ?? product.airline,
+    selectedDepartureCarrierName: airlineForChip ?? options?.departureFactsOverride?.airline ?? null,
     rawMeta: null,
   })
   const airlineRaw = product.airline?.trim()

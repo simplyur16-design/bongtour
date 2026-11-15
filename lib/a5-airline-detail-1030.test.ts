@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { countIntermediateStopsFromRouteLine } from '@/lib/flight-routing-meta'
 import { computeReturnDate } from '@/lib/package-rules'
 import {
   PAYLOAD_DEPARTURE_KEY_FACTS_MAX_ENTRIES,
@@ -25,12 +26,50 @@ function facts(airline: string): DepartureKeyFacts {
   }
 }
 
+describe('왕복 routeRaw 경유 횟수', () => {
+  it('가는편/오는편을 슬래시로 붙인 직항 왕복은 경유 0', () => {
+    expect(countIntermediateStopsFromRouteLine('TW405 인천 → 로마 / TW406 로마 → 인천')).toBe(0)
+    expect(countIntermediateStopsFromRouteLine('AY0042 인천 국제공항 → 헬싱키 반타 국제공항 / AY0041 헬싱키 반타 국제공항 → 인천 국제공항')).toBe(0)
+  })
+  it('한 방향 안에 중간 기착이 있으면 그 횟수', () => {
+    expect(countIntermediateStopsFromRouteLine('인천 → 도쿄 → 호놀룰루 / 호놀룰루 → 인천')).toBe(1)
+  })
+  it('오픈조·허브 환승은 직항으로 낮추지 않음', () => {
+    expect(countIntermediateStopsFromRouteLine('KE017 인천 → 멕시코시티 / KE7290 상파울로 → 인천')).toBe(1)
+    expect(countIntermediateStopsFromRouteLine('EK323 인천 → 바쿠 / 예레반 → 인천')).toBe(1)
+    expect(countIntermediateStopsFromRouteLine('EK325 인천 → 카이로 / EK924 카이로 → 인천')).toBe(1)
+    expect(countIntermediateStopsFromRouteLine('EK0323 인천국제공항 → 두바이 / EK0322 두바이 → 인천국제공항')).toBe(0)
+    expect(countIntermediateStopsFromRouteLine('가는편: 인천 2026.07.01 22:10 → 호놀룰루 2026.07.01 11:50 / YP151')).toBe(0)
+  })
+})
+
 describe('A-5 상세 — 상단/하단 항공사 같은 회차 facts', () => {
   it('선택 회차 항공사가 있으면 그것, 없을 때만 상품 대표 항공사(쓰레기 제거)', () => {
     expect(resolveSelectedDepartureAirlineForDisplay('제주항공', '대한항공')).toBe('제주항공')
     expect(resolveSelectedDepartureAirlineForDisplay(null, '대한항공')).toBe('대한항공')
     expect(resolveSelectedDepartureAirlineForDisplay('  ', '- [교통] 왕복항공권')).toBeNull()
     expect(sanitizeProductAirlineForDisplay('- [교통] 왕복항공권')).toBeNull()
+  })
+
+  it('표시 편명이 원문 항공사와 어긋나면 편명 항공사, 같은 동맹이면 공동운항', () => {
+    expect(
+      resolveSelectedDepartureAirlineForDisplay('아에로멕시코', '아에로멕시코', {
+        outboundFlightNo: 'KE017',
+        inboundFlightNo: 'KE7290',
+      }),
+    ).toBe('대한항공(공동운항)')
+    expect(
+      resolveSelectedDepartureAirlineForDisplay('에어부산', '에어부산', {
+        outboundFlightNo: 'YP151',
+        inboundFlightNo: 'YP152',
+      }),
+    ).toBe('에어프레미아')
+    expect(
+      resolveSelectedDepartureAirlineForDisplay('대한항공', '중국남방항공', {
+        outboundFlightNo: 'KE0887',
+        inboundFlightNo: null,
+      }),
+    ).toBe('대한항공')
   })
 
   it('payload 키팩트는 공개 가격행 회차를 모두 남김(앞 30건 cuid 컷 아님)', () => {

@@ -1,7 +1,7 @@
 'use client'
 
 
-import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline } from '@/lib/detail-selected-departure-airline'
+import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, displayedDepartureFlightNos } from '@/lib/detail-selected-departure-airline'
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { TravelProduct, ProductPriceRow } from '@/app/components/travel/verygood/VerygoodTravelProductDetail'
@@ -611,7 +611,7 @@ function VerygoodMobileProductDetailView({ product: productInput, showEsimCrossS
           originCode: product.heroOriginCodeDisplay || product.originCode,
           destination: product.destination,
           durationLabel: rowDurationLabel?.trim() || product.duration || '',
-          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),
+          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline, displayedDepartureFlightNos(calendarAlignedDepartureFacts)),
           heroDepartureDisplay,
           duration: product.duration ?? '',
           heroPriceSsot,
@@ -654,7 +654,7 @@ function VerygoodMobileProductDetailView({ product: productInput, showEsimCrossS
       <div className="border-b border-bt-border-soft p-4">
         <TravelCoreInfoSection
           facts={calendarAlignedDepartureFacts}
-          productAirline={resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)}
+          productAirline={resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline, displayedDepartureFlightNos(calendarAlignedDepartureFacts))}
           periodContent={periodContent}
           travelCitiesLine={travelCitiesLine}
           reservationLine={reservationDisplayLine}
