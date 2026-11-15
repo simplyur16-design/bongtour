@@ -10,7 +10,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { fitProductPhotoToMaxBytes } from '@/lib/image-to-webp'
-import { AUTOFILL_COVER_MAX_BYTES, bytesFitSlotLimit } from '@/lib/photo-autofill-gate'
+import { AUTOFILL_COVER_MAX_BYTES } from '@/lib/photo-autofill-gate'
 import {
   COVER_IMAGE_WEBP_MAX_WIDTH,
   COVER_IMAGE_WEBP_QUALITY,
@@ -241,15 +241,15 @@ export async function findPhotoPoolBySourcePhotoId(
   return (hit as PoolPhotoRecord | null) ?? null
 }
 
-/** 저장된 풀 파일의 Content-Length. 모르면 null — 한도 확인이 안 되면 재사용하지 않는다. */
+/** 저장된 풀 파일의 Content-Length. 모르면 null. */
 async function storedObjectBytes(url: string): Promise<number | null> {
   if (!/^https:\/\//i.test(url)) return null
   try {
     const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(15000) })
     const len = Number(res.headers.get('content-length') ?? '')
     if (res.ok && Number.isFinite(len) && len > 0) return len
-  } catch {
-    /* 용량을 모르면 재사용하지 않는다 */
+    } catch {
+    /* 용량을 모르면 있는 파일을 그대로 재사용한다 */
   }
   return null
 }
@@ -267,8 +267,27 @@ export async function savePhotoFromUrl(
     const sid = attribution?.sourcePhotoId?.trim()
     if (sid) {
       const existing = await findPhotoPoolBySourcePhotoId(prisma as PrismaClient, sid)
-      const limit = maxBytes ?? AUTOFILL_COVER_MAX_BYTES
-      if (existing?.filePath && bytesFitSlotLimit(await storedObjectBytes(existing.filePath), limit)) return existing
+      if (existing?.filePath) {
+        const limit = maxBytes ?? AUTOFILL_COVER_MAX_BYTES
+        const bytes = await storedObjectBytes(existing.filePath)
+        if (!(typeof bytes === 'number' && bytes > limit)) return existing
+        const stored = await fetch(existing.filePath, {
+          signal: AbortSignal.timeout(20000),
+          headers: IMAGE_INGEST_FETCH_HEADERS,
+          redirect: 'follow',
+          cache: 'no-store',
+        })
+        if (stored.ok) {
+          const same = Buffer.from(await stored.arrayBuffer())
+          return await savePhotoToPool(prisma, same, cityName, attractionName, source, {
+            convertToWebpFirst: true,
+            maxWidth: COVER_IMAGE_WEBP_MAX_WIDTH,
+            quality: COVER_IMAGE_WEBP_QUALITY,
+            maxBytes: limit,
+            attribution,
+          })
+        }
+      }
     }
     const res = await fetch(imageUrl, {
       signal: AbortSignal.timeout(20000),
@@ -285,7 +304,11 @@ export async function savePhotoFromUrl(
       maxBytes,
       attribution,
     })
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message.includes('기준 용량')) {
+      console.warn('[photo-pool] 사진이 기준 용량 이하로 줄지 않아 저장하지 않습니다.', { imageUrl, message })
+    }
     return null
   }
 }

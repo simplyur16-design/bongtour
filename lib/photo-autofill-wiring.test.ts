@@ -34,7 +34,7 @@ describe('photo-autofill-wiring: 연결부 정적 가드', () => {
 
   it('대표를 못 구하면 대표는 쓰지 않고 일정 칸만 저장한다', () => {
     expect(route).toContain('const strictNoCover = strictAutofill && !existingHeroUrl && !bgPhoto.url')
-    expect(route).toContain('strictNoCover ? { schedule: scheduleStrFinal }')
+    expect(route).toContain('data: { schedule: scheduleStrFinal } })')
   })
 
   it('예외는 건너뜀(skipped)이 아닌 것만 기록하고 응답에 싣는다', () => {
