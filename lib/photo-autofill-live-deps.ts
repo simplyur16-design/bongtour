@@ -8,12 +8,10 @@ import { collectChainCandidates, type ChainCandidate } from '@/lib/register-phot
 import { triggerUnsplashDownload } from '@/lib/unsplash-service'
 import { sharedPexelsCallGuard, sharedUnsplashCallBudget } from '@/lib/register-photo-stock-rate-guard'
 import { findPhotoPoolByPlaceName, savePhotoFromUrl, savePhotoToPool } from '@/lib/photo-pool'
-import { parseImageDimensions, probeImageDimensions } from '@/lib/image-dimension-probe'
+import { probeImageDimensions } from '@/lib/image-dimension-probe'
 import { searchWikimediaCc0 } from '@/lib/photo-autofill-cc0'
-import { generateImageWithGemini } from '@/lib/gemini-image-generate'
-import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
 import type { AcquireDeps, StockTier } from '@/lib/photo-autofill-acquire'
-import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, type AutofillCandidate } from '@/lib/photo-autofill-gate'
+import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, bytesFitSlotLimit, type AutofillCandidate } from '@/lib/photo-autofill-gate'
 
 /** 외부 호출 전 간격(사람처럼). Pexels 3.5초 가드 위에 얹는 지터다. */
 export const AUTOFILL_PAUSE_BASE_MS = 400
@@ -82,48 +80,9 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
       }
       return out
     },
-    generate: async ({ sight, cityTerms }) => {
-      const prompt = buildRegisterDayAiPhotoPrompt({ keyword: sight, destination: cityTerms[0] ?? opts.destination })
-      if (!prompt) return null
-      const buf = await generateImageWithGemini({ prompt, aspectRatio: '16:9', stylePreset: 'single_landmark' })
-      if (!buf) return null
-      const dim = parseImageDimensions(new Uint8Array(buf))
-      return {
-        id: `ai-${sight}`.slice(0, 80),
-        source: 'AI 생성',
-        url: 'ai-generated://pending',
-        width: dim?.width ?? 0,
-        height: dim?.height ?? 0,
-        photographer: 'AI 생성',
-        originalLink: 'ai-generated',
-        altText: `${sight} ${cityTerms.join(' ')}`.trim(),
-        title: sight,
-        description: prompt,
-        storedBytes: buf.length,
-        generatedBuffer: buf,
-      }
-    },
     commit: async (c, ctx) => {
       const maxBytes = ctx.kind === 'cover' ? AUTOFILL_COVER_MAX_BYTES : AUTOFILL_DAY_MAX_BYTES
-      if (c.source === 'AI 생성') {
-        if (!c.generatedBuffer) return { ok: false, reason: 'generate_no_buffer' }
-        const saved = await savePhotoToPool(opts.prisma, c.generatedBuffer, opts.destination || ctx.label, ctx.label, 'AI 생성', {
-          filenamePrefix: 'ai-generated',
-          maxBytes,
-        })
-        if (!saved?.filePath) return { ok: false, reason: 'pool_save_failed' }
-        const m = await opts.probe(saved.filePath)
-        return {
-          ok: true,
-          url: saved.filePath,
-          bytes: m.bytes,
-          width: m.width,
-          source: 'AI 생성',
-          photographer: 'AI 생성',
-          originalLink: saved.filePath,
-          externalId: c.id,
-        }
-      }
+      if (c.source === 'AI 생성') return { ok: false, reason: 'auto_generate_disabled' }
       if (c.source === 'CC0') {
         const saved = await savePhotoFromUrl(opts.prisma, c.url, opts.destination || ctx.label, ctx.label, 'CC0', {
           photographer: c.photographer ?? undefined,
@@ -161,7 +120,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         const fired = await triggerUnsplashDownload(c.downloadLocation)
         if (fired === false) return { ok: false, reason: 'unsplash_download_failed' }
         const m = await opts.probe(c.url)
-        if (m.bytes != null && m.bytes > maxBytes) return { ok: false, reason: 'over_bytes' }
+        if (!bytesFitSlotLimit(m.bytes, maxBytes)) return { ok: false, reason: 'over_bytes' }
         return {
           ok: true,
           url: c.url,

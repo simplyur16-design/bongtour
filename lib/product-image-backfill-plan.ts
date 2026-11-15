@@ -9,7 +9,7 @@
  * REGRESSION-FREEZE[product-image-backfill-plan]: 기본 dry-run·기존 iStock 유지·이미지 칸만·출처 기록 안 만듦 — manifest
  */
 import { createHash } from 'crypto'
-import { unsplashCreditReviewText, unsplashPhotoPageUrl } from '@/lib/unsplash-credit'
+import { unsplashCreditReviewText } from '@/lib/unsplash-credit'
 import {
   IMAGE_SOURCE_TIER_ORDER,
   isOwnedBongtourImage,
@@ -321,7 +321,7 @@ export function backfillCreditFieldsFor(p: {
   if (p.source === 'unsplash') {
     return {
       bgImagePhotographer: (p.unsplashAuthorName ?? '').trim() || null,
-      bgImageSourceUrl: (p.unsplashId ?? '').trim() ? unsplashPhotoPageUrl(String(p.unsplashId)) : null,
+      bgImageSourceUrl: (p.unsplashAuthorProfileUrl ?? '').trim() || null,
       bgImageExternalId: (p.unsplashId ?? '').trim() || null,
     }
   }

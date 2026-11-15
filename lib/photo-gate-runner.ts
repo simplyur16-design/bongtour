@@ -251,6 +251,7 @@ export async function runPublicPhotoNightlyAuditLive(prisma: PrismaClient, probe
     head: (url) => headStatus(url, fetchImpl),
     pause: () => sleep(NIGHTLY_HEAD_GAP_MS + Math.floor(Math.random() * NIGHTLY_HEAD_JITTER_MS)),
     acquire: (input) => acquireVerifiedPhoto(input, createLiveAcquireDeps({ prisma, destination: input.destinationText, probe })),
+    // 야간 쓰기는 깨진 사진·나중 상품의 대표 중복만 온다(nightlyReplaceAllowed). 그 외 사유로는 쓰지 않는다.
     writeSchedule: async (id, expected, next) => (await prisma.product.updateMany({ where: { id, schedule: expected, registrationStatus: 'registered' }, data: { schedule: next } })).count === 1,
     writeCover: async (id, expectedUrl, data) => (await prisma.product.updateMany({ where: { id, bgImageUrl: expectedUrl, registrationStatus: 'registered' }, data: data as never })).count === 1,
     recordException: (e) => recordPhotoException(e),

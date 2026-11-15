@@ -33,6 +33,7 @@ export type PublicProductPhotos = {
   bgImageSourceUrl?: string | null
   bgImageSource?: string | null
   bgImageRehostSearchLabel?: string | null
+  bgImagePlaceName?: string | null
   destination: string | null
   primaryDestination?: string | null
   schedule: string | null
@@ -177,8 +178,14 @@ export type NightlyResult = {
   exceptions: PhotoException[]
 }
 
-function coverSight(p: PublicProductPhotos, destTerms: string): string[] {
-  const label = String(p.bgImageRehostSearchLabel ?? '').trim()
+/** 야간 교체 허용: 깨진 사진, 그리고 나중에 생긴 대표 사진 중복만. 그 외 사유는 교체하지 않는다. */
+export function nightlyReplaceAllowed(issue: { reason: string; kind: 'day' | 'cover' }): boolean {
+  if (issue.reason === 'broken_http') return true
+  return issue.reason === 'public_duplicate' && issue.kind === 'cover'
+}
+
+export function coverSight(p: PublicProductPhotos, destTerms: string): string[] {
+  const label = String(p.bgImagePlaceName ?? '').trim()
   if (label && ['sight', 'generic'].includes(sightProfile(label).kind)) return [label]
   for (const r of parseRows(p.schedule)) {
     const d = deriveDaySights(
@@ -256,6 +263,8 @@ export async function runPublicPhotoNightlyAudit(deps: NightlyDeps): Promise<Nig
     for (const s of slotsOfProduct(p)) for (const k of s.keys) exclude.add(k)
     const cur = slotsOfProduct(p).find((s) => s.kind === issue.kind && s.day === issue.day)
     if (cur?.manual) continue
+
+    if (!nightlyReplaceAllowed(issue)) continue
 
     if (issue.kind === 'cover') {
       const res = await deps.acquire({ productId: p.id, kind: 'cover', day: null, sights: coverSight(p, destTerms), cityTerms, destinationText: destTerms, usage, exclude, origin: 'nightly' })

@@ -10,7 +10,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import type { Prisma, PrismaClient } from '@prisma/client'
 import { fitProductPhotoToMaxBytes } from '@/lib/image-to-webp'
-import { AUTOFILL_COVER_MAX_BYTES } from '@/lib/photo-autofill-gate'
+import { AUTOFILL_COVER_MAX_BYTES, bytesFitSlotLimit } from '@/lib/photo-autofill-gate'
 import {
   COVER_IMAGE_WEBP_MAX_WIDTH,
   COVER_IMAGE_WEBP_QUALITY,
@@ -241,6 +241,19 @@ export async function findPhotoPoolBySourcePhotoId(
   return (hit as PoolPhotoRecord | null) ?? null
 }
 
+/** 저장된 풀 파일의 Content-Length. 모르면 null — 한도 확인이 안 되면 재사용하지 않는다. */
+async function storedObjectBytes(url: string): Promise<number | null> {
+  if (!/^https:\/\//i.test(url)) return null
+  try {
+    const res = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(15000) })
+    const len = Number(res.headers.get('content-length') ?? '')
+    if (res.ok && Number.isFinite(len) && len > 0) return len
+  } catch {
+    /* 용량을 모르면 재사용하지 않는다 */
+  }
+  return null
+}
+
 export async function savePhotoFromUrl(
   prisma: Parameters<typeof savePhotoToPool>[0],
   imageUrl: string,
@@ -254,7 +267,8 @@ export async function savePhotoFromUrl(
     const sid = attribution?.sourcePhotoId?.trim()
     if (sid) {
       const existing = await findPhotoPoolBySourcePhotoId(prisma as PrismaClient, sid)
-      if (existing?.filePath) return existing
+      const limit = maxBytes ?? AUTOFILL_COVER_MAX_BYTES
+      if (existing?.filePath && bytesFitSlotLimit(await storedObjectBytes(existing.filePath), limit)) return existing
     }
     const res = await fetch(imageUrl, {
       signal: AbortSignal.timeout(20000),

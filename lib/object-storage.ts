@@ -127,6 +127,7 @@ async function prepareImageBodyForUpload(params: {
   const { body, contentType } = params
 
   if (!mime.startsWith('image/')) {
+    if (params.maxBytes && body.length > params.maxBytes) throw new Error('사진이 기준 용량 이하로 줄지 않아 저장하지 않습니다.')
     return { objectKey, body, contentType }
   }
   if (mime === 'image/svg+xml') {
@@ -169,6 +170,8 @@ async function prepareImageBodyForUpload(params: {
       contentType: 'image/webp',
     }
   } catch (err) {
+    // 상품 사진 한도(maxBytes)가 있으면 원본 바이트로 되돌아가 저장하지 않는다.
+    if (params.maxBytes) throw err instanceof Error ? err : new Error(String(err))
     console.warn('[object-storage] upload image optimize failed, using original bytes', {
       objectKey,
       contentType,

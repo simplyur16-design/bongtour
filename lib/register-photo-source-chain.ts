@@ -31,9 +31,9 @@ export type ChainCandidate = {
   url: string
   source: 'Pexels' | 'Unsplash'
   photographer: string
-  /** 사진 페이지 URL. 작가 프로필은 여기 넣지 않는다. */
+  /** Pexels: 사진 페이지 / Unsplash: 작가 프로필(bgImageSourceUrl). 사진 페이지는 pageUrl. */
   originalLink: string
-  /** Unsplash 크레딧용 작가 프로필. 출처 URL 과 따로 둔다. */
+  /** Unsplash 크레딧용 작가 프로필. 출처 URL 과 같다. */
   authorProfileUrl?: string | null
   externalId: string
   width: number
@@ -117,13 +117,12 @@ function fromUnsplash(u: UnsplashHeroCandidate): ChainCandidate | null {
   if (!u.authorName || !u.authorProfileUrl) return null
   const w = u.width > 0 ? Math.min(u.width, PHOTO_CHAIN_UNSPLASH_WIDTH) : 0
   const h = u.width > 0 ? Math.round((u.height * w) / u.width) : 0
-  const photoPage = unsplashPhotoPageUrl(u.unsplashId)
   return {
     tier: 'unsplash',
     url: unsplashSizedHotlink(u.imageUrl, w || PHOTO_CHAIN_UNSPLASH_WIDTH),
     source: 'Unsplash',
     photographer: u.authorName,
-    originalLink: photoPage,
+    originalLink: u.authorProfileUrl,
     authorProfileUrl: u.authorProfileUrl,
     externalId: u.unsplashId,
     width: w,
@@ -131,7 +130,7 @@ function fromUnsplash(u: UnsplashHeroCandidate): ChainCandidate | null {
     altText: u.altText,
     ...(u.description ? { description: u.description } : {}),
     ...(u.tags ? { tags: u.tags } : {}),
-    pageUrl: photoPage,
+    pageUrl: unsplashPhotoPageUrl(u.unsplashId),
     downloadLocation: u.downloadLocation,
     queryUsed: u.queryUsed,
     avgColor: u.avgColor ?? null,

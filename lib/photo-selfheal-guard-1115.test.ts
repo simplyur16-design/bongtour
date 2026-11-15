@@ -158,7 +158,7 @@ describe('photo self-heal guard 1115', () => {
     expect(data.bgImageSourceUrl).toBe('https://www.pexels.com/photo/petronas-towers-2/')
   })
 
-  it('stores the Unsplash photo page as SourceUrl, not the author profile', async () => {
+  it('stores the Unsplash author profile as SourceUrl and builds the photo page from the id', async () => {
     const r = await findStockPhotoByChain('Da Nang', {
       accept: () => true,
       deps: {
@@ -178,7 +178,7 @@ describe('photo self-heal guard 1115', () => {
         triggerDownload: async () => true,
       },
     })
-    expect(r.photo?.originalLink).toBe('https://unsplash.com/photos/abc')
+    expect(r.photo?.originalLink).toBe('https://unsplash.com/@u')
     expect(r.photo?.pageUrl).toBe('https://unsplash.com/photos/abc')
     expect(r.photo?.authorProfileUrl).toBe('https://unsplash.com/@u')
     expect(backfillCreditFieldsFor({
@@ -186,13 +186,13 @@ describe('photo self-heal guard 1115', () => {
       unsplashId: 'abc',
       unsplashAuthorName: 'U',
       unsplashAuthorProfileUrl: 'https://unsplash.com/@u',
-    }).bgImageSourceUrl).toBe('https://unsplash.com/photos/abc')
+    }).bgImageSourceUrl).toBe('https://unsplash.com/@u')
     expect(evaluateImageCandidatePolicy({
       source: 'unsplash',
       url: 'https://images.unsplash.com/photo-abc',
       width: 2400,
       photographer: 'U',
-      originalLink: 'https://unsplash.com/photos/abc',
+      originalLink: 'https://unsplash.com/@u',
       authorProfileUrl: 'https://unsplash.com/@u',
     }).fails).not.toContain('L1-UNSPLASH-NO-CREDIT')
   })

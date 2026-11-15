@@ -47,7 +47,7 @@ describe('register-photo-source-chain', () => {
       deps: { searchPexels: async () => [px(1, 800), px(2)], searchUnsplash: async () => [us('abc')], triggerDownload },
     })
     expect(r.photo?.source).toBe('Unsplash')
-    expect(r.photo?.originalLink).toBe('https://unsplash.com/photos/abc')
+    expect(r.photo?.originalLink).toBe('https://unsplash.com/@u')
     expect(r.photo?.pageUrl).toBe('https://unsplash.com/photos/abc')
     expect(r.photo?.authorProfileUrl).toBe('https://unsplash.com/@u')
     expect(r.photo?.width).toBeGreaterThanOrEqual(1200)
