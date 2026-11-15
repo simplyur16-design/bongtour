@@ -3,6 +3,7 @@ import { shouldSkipDbAtBuild } from '@/lib/build-time-db'
 import { buildPublicUrlForObjectKey, isObjectStorageConfigured } from '@/lib/object-storage'
 import { prisma } from '@/lib/prisma'
 import { publicProductPath } from '@/lib/product-public-path'
+import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { getSeoulYearMonthNow } from '@/lib/monthly-curation'
 import type { HomeSeasonPickDTO } from '@/lib/home-season-pick-shared'
 import { excerptBody, stripSupabaseStorageForHomeSeasonImage } from '@/lib/home-season-pick-shared'
@@ -138,6 +139,7 @@ export async function resolveValidMonthlyCurationLinkedProductIds(
       id: { in: linkedIds },
       registrationStatus: 'registered',
       autoUnpublishedAt: null,
+      AND: [publicProductWhereClause()],
     },
     select: { id: true },
   })

@@ -16,19 +16,12 @@ export const BONGSIM_KAKAO_CHANNEL_URL = process.env.NEXT_PUBLIC_KAKAO_OPEN_CHAT
 export const BONGSIM_ESIM_USIM_SUPPORT_COPY =
   '봉투어 고객센터(09:00-18:00 KST)로 문의해 주세요. 시간 외 긴급 문의는 마이페이지 → eSIM 구매내역 → 고객지원센터를 이용해 주세요.'
 
-/** eSIM 메인 랜딩 「안심 고객센터」 카드 부제 — 설치·사용=유심사 CX */
+/** eSIM 메인 랜딩 「안심 고객센터」 카드 부제 — 설치·사용=유심사 고객센터 페이지 */
 // REGRESSION-FREEZE[bongsim-esim-web-install-usimsa-cs]: 랜딩 카드 부제 — manifest
-export const BONGSIM_ESIM_SUPPORT_CARD_BODY = '설치·사용 문의는 24시간 카카오톡으로 연결됩니다'
+export const BONGSIM_ESIM_SUPPORT_CARD_BODY = '설치·사용 문의는 고객센터로 연결됩니다'
 
 /** 결제·가이드·기기·체크아웃 등 1차 문의 */
 export const BONGSIM_ESIM_SUPPORT_EMAIL_LINE = '고객지원 문의: bongtour24@naver.com'
-
-/**
- * 유심사 고객센터 카카오 상담.
- * 출처: https://www.usimsa.com/board/contact-channel/ 페이지의 카카오톡 문의
- * (`BoardContactChannel` → https://pf.kakao.com/_fqTkK/chat).
- */
-export const USIMSA_CX_KAKAO_CHAT_URL = 'https://pf.kakao.com/_fqTkK/chat'
 
 /** 유심사 고객센터 문의 페이지. 출처: https://www.usimsa.com/board/contact-channel/ */
 export const USIMSA_CX_CONTACT_URL = 'https://www.usimsa.com/board/contact-channel/'

@@ -3,6 +3,7 @@
  *   npx tsx scripts/trim-modetour-product-departures-by-confirm-window.ts [productId]
  */
 import { prisma } from '../lib/prisma'
+import { recomputeProductDepartureCacheSafe } from '../lib/product-departure-cache'
 import {
   computeModetourCalendarSearchToYmd,
   MODETOUR_REGISTER_CONFIRM_MONTHS_FORWARD,
@@ -16,6 +17,7 @@ async function main() {
   const del = await prisma.productDeparture.deleteMany({
     where: { productId, departureDate: { gt: cutoff } },
   })
+  await recomputeProductDepartureCacheSafe(prisma, productId, 'trim-modetour-confirm-window')
   const after = await prisma.productDeparture.count({ where: { productId } })
   console.log(
     JSON.stringify(

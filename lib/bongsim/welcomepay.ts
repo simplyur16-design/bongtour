@@ -5,7 +5,7 @@
 /** 서버 전용 — `node:crypto` 사용. 클라이언트 번들에서 import 금지. */
 import "server-only";
 
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import {
   buildWelcomepayMobileReserved,
   getWelcomepayMethodDefinition,
@@ -231,7 +231,9 @@ export function generateMobileSignature(input: {
   return createHash("sha256").update(plain, "utf8").digest("hex");
 }
 
+/** PG `P_OID`/`MOID`. mid+ms만 쓰면 같은 밀리초에 동시 세션이 충돌할 수 있어 난수를 붙인다. */
 export function generateOrderNumber(mid: string): string {
   const m = mid.trim();
-  return `${m}_${Date.now()}`;
+  const rand = randomBytes(4).toString("hex");
+  return `${m}_${Date.now()}_${rand}`;
 }

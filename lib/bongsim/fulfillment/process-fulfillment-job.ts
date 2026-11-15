@@ -1,6 +1,9 @@
 import type { PoolClient } from "pg";
-import { getDefaultSupplierClient, isAsyncSupplier } from "@/lib/bongsim/supplier/supplier-client-registry";
 import { isOfflineUsimOnlyOrder } from "@/lib/bongsim/admin/offline-usim-order";
+import { isEsimLiveIssuanceAndSmsAllowed } from "@/lib/bongsim/esim-live-fulfillment";
+import { getDefaultSupplierClient, isAsyncSupplier } from "@/lib/bongsim/supplier/supplier-client-registry";
+import { queryUsimsaOrder } from "@/lib/bongsim/supplier/usimsa/order-api";
+import { isUsimsaSuccess } from "@/lib/bongsim/supplier/usimsa/types";
 import { promoteFulfillmentJobIfReady } from "@/lib/bongsim/supplier/usimsa/webhook-parser";
 import type { BongsimSupplierClient, BongsimSupplierOrderLineInput, BongsimSupplierSubmitResult } from "@/lib/bongsim/supplier/supplier-types";
 
@@ -439,10 +442,93 @@ async function advanceSyncMockSupplier(
   }
 }
 
+
+const USIMSA_RESUBMIT_GRACE_MS = 180_000;
+
+async function persistAsyncTopupsAndMarkSubmitted(
+  client: PoolClient,
+  order: OrderRow,
+  job: FulfillmentJobRow,
+  supplier: BongsimSupplierClient,
+  result: BongsimSupplierSubmitResult,
+): Promise<void> {
+  if (!result.topups || result.topups.length === 0) {
+    throw new Error("async_supplier_no_topups");
+  }
+  for (const topup of result.topups) {
+    const isUsimWithIccid = topup.fulfillment_mode === "usim" && Boolean(topup.iccid);
+    const status = isUsimWithIccid ? "iccid_ready" : "issued_topup";
+    await client.query(
+      `INSERT INTO bongsim_fulfillment_topup
+         (job_id, order_id, option_api_id, supplier_id, topup_id, status, iccid)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (supplier_id, topup_id) DO NOTHING`,
+      [
+        job.job_id,
+        order.order_id,
+        topup.option_api_id,
+        supplier.id,
+        topup.topup_id,
+        status,
+        topup.iccid ?? null,
+      ],
+    );
+  }
+  await promoteFulfillmentJobIfReady(client, job.job_id);
+  await client.query(
+    `UPDATE bongsim_fulfillment_job
+       SET status = 'submitted',
+           supplier_id = $2,
+           supplier_order_ref = $3,
+           supplier_submission_id = $4,
+           submission_response = $5::jsonb,
+           submitted_at = now(),
+           attempt_count = attempt_count + 1,
+           updated_at = now()
+     WHERE job_id = $1`,
+    [
+      job.job_id,
+      supplier.id,
+      order.order_number,
+      result.submission_id,
+      JSON.stringify({ topups: result.topups }),
+    ],
+  );
+  await appendFulfillmentEvent(client, order.order_id, job.job_id, "async_submitted", {
+    supplier: supplier.id,
+    submission_id: result.submission_id,
+    topup_count: result.topups.length,
+  });
+}
+
+/** in_progress 재진입: POST 대신 GET /v2/order/{orderId}로 기존 발급을 회수한다. */
+async function recoverInProgressViaUsimsaQuery(
+  orderNumber: string,
+): Promise<BongsimSupplierSubmitResult | null> {
+  if (!isEsimLiveIssuanceAndSmsAllowed()) return null;
+  try {
+    const res = await queryUsimsaOrder(orderNumber);
+    if (!isUsimsaSuccess(res.code) || !Array.isArray(res.products) || res.products.length === 0) {
+      return null;
+    }
+    return {
+      submission_id: `usimsa_${orderNumber}`,
+      topups: res.products.map((p) => ({
+        topup_id: p.topupId,
+        option_api_id: p.optionId,
+        fulfillment_mode: "esim" as const,
+        iccid: p.iccid,
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * OrderPaid outbox / grant drain용.
  * USIMSA HTTP 동안 pg 풀 커넥션을 붙잡지 않아 무상발급·다른 API의 connect timeout(500)을 막는다.
- * REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]: release during USIMSA HTTP — manifest
+ * REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]: release pg conn during USIMSA HTTP; outbox lease stays 5 minutes — manifest
  */
 export async function advanceFulfillmentForPaidOrderReleasingDuringSubmit(
   orderId: string,
@@ -475,6 +561,8 @@ export async function advanceFulfillmentForPaidOrderReleasingDuringSubmit(
     order: OrderRow;
     job: FulfillmentJobRow;
     lines: BongsimSupplierOrderLineInput[];
+    recoverOnly?: boolean;
+    inProgressSince?: Date | null;
   };
   let prep: Prep | null = null;
 
@@ -546,14 +634,34 @@ export async function advanceFulfillmentForPaidOrderReleasingDuringSubmit(
         await client.query("COMMIT");
         return;
       }
-      await client.query(
+      const claimed = await client.query<{ job_id: string; updated_at: Date }>(
         `UPDATE bongsim_fulfillment_job
            SET status = 'in_progress', supplier_id = COALESCE(supplier_id, $2), updated_at = now()
-         WHERE job_id = $1`,
+         WHERE job_id = $1 AND status = 'queued'
+         RETURNING job_id, updated_at`,
         [job.job_id, supplier.id],
       );
-      await client.query("COMMIT");
-      prep = { order, job: { ...job, status: "in_progress" }, lines };
+      if ((claimed.rowCount ?? 0) === 0) {
+        if (job.status !== "in_progress") {
+          await client.query("COMMIT");
+          return;
+        }
+        const age = await client.query<{ updated_at: Date }>(
+          `SELECT updated_at FROM bongsim_fulfillment_job WHERE job_id = $1`,
+          [job.job_id],
+        );
+        await client.query("COMMIT");
+        prep = {
+          order,
+          job: { ...job, status: "in_progress" },
+          lines,
+          recoverOnly: true,
+          inProgressSince: age.rows[0]?.updated_at ?? null,
+        };
+      } else {
+        await client.query("COMMIT");
+        prep = { order, job: { ...job, status: "in_progress" }, lines };
+      }
     } catch (e) {
       try {
         await client.query("ROLLBACK");
@@ -569,49 +677,63 @@ export async function advanceFulfillmentForPaidOrderReleasingDuringSubmit(
   if (!prep) return;
 
   let result: BongsimSupplierSubmitResult;
-  try {
-    result = await supplier.submitPaidOrder({
-      order_id: prep.order.order_id,
-      order_number: prep.order.order_number,
-      lines: prep.lines,
-    });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      await client.query(
-        `UPDATE bongsim_fulfillment_job
-           SET status = 'failed',
-               supplier_id = COALESCE(supplier_id, $2),
-               supplier_order_ref = COALESCE(supplier_order_ref, $3),
-               attempt_count = attempt_count + 1,
-               last_error = $4::jsonb,
-               updated_at = now()
-         WHERE job_id = $1`,
-        [
-          prep.job.job_id,
-          supplier.id,
-          prep.order.order_number,
-          JSON.stringify({ code: "async_supplier_submit_failed", message }),
-        ],
-      );
-      await appendFulfillmentEvent(client, prep.order.order_id, prep.job.job_id, "async_submit_error", {
-        supplier: supplier.id,
-        message,
-      });
-      await client.query("COMMIT");
-    } catch (e2) {
-      try {
-        await client.query("ROLLBACK");
-      } catch {
-        /* ignore */
+  if (prep.recoverOnly) {
+    const recovered = await recoverInProgressViaUsimsaQuery(prep.order.order_number);
+    if (recovered) {
+      result = recovered;
+    } else {
+      const since = prep.inProgressSince ? new Date(prep.inProgressSince).getTime() : 0;
+      const aged = since > 0 && Date.now() - since >= USIMSA_RESUBMIT_GRACE_MS;
+      if (!aged) {
+        throw new Error("fulfillment_in_progress_unconfirmed");
       }
-      throw e2;
-    } finally {
-      client.release();
+      result = await supplier.submitPaidOrder({
+        order_id: prep.order.order_id,
+        order_number: prep.order.order_number,
+        lines: prep.lines,
+      });
     }
-    return;
+  } else {
+    try {
+      result = await supplier.submitPaidOrder({
+        order_id: prep.order.order_id,
+        order_number: prep.order.order_number,
+        lines: prep.lines,
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        // timeout 뒤에도 공급사에 주문이 남았을 수 있어 failed로 내리지 않는다.
+        await client.query(
+          `UPDATE bongsim_fulfillment_job
+             SET last_error = $2::jsonb,
+                 attempt_count = attempt_count + 1,
+                 updated_at = now()
+           WHERE job_id = $1 AND status = 'in_progress'`,
+          [
+            prep.job.job_id,
+            JSON.stringify({ code: "async_supplier_submit_failed", message }),
+          ],
+        );
+        await appendFulfillmentEvent(client, prep.order.order_id, prep.job.job_id, "async_submit_error", {
+          supplier: supplier.id,
+          message,
+        });
+        await client.query("COMMIT");
+      } catch (e2) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {
+          /* ignore */
+        }
+        throw e2;
+      } finally {
+        client.release();
+      }
+      throw e;
+    }
   }
 
   const client = await pool.connect();
@@ -620,69 +742,17 @@ export async function advanceFulfillmentForPaidOrderReleasingDuringSubmit(
     if (!result.topups || result.topups.length === 0) {
       await client.query(
         `UPDATE bongsim_fulfillment_job
-           SET status = 'failed',
-               supplier_id = COALESCE(supplier_id, $2),
-               supplier_order_ref = COALESCE(supplier_order_ref, $3),
-               last_error = $4::jsonb,
-               updated_at = now()
-         WHERE job_id = $1`,
-        [
-          prep.job.job_id,
-          supplier.id,
-          prep.order.order_number,
-          JSON.stringify({ code: "async_supplier_no_topups" }),
-        ],
+           SET last_error = $2::jsonb, updated_at = now()
+         WHERE job_id = $1 AND status = 'in_progress'`,
+        [prep.job.job_id, JSON.stringify({ code: "async_supplier_no_topups" })],
       );
       await appendFulfillmentEvent(client, prep.order.order_id, prep.job.job_id, "async_submit_no_topups", {
         supplier: supplier.id,
       });
       await client.query("COMMIT");
-      return;
+      throw new Error("async_supplier_no_topups");
     }
-    for (const topup of result.topups) {
-      const isUsimWithIccid = topup.fulfillment_mode === "usim" && Boolean(topup.iccid);
-      const status = isUsimWithIccid ? "iccid_ready" : "issued_topup";
-      await client.query(
-        `INSERT INTO bongsim_fulfillment_topup
-           (job_id, order_id, option_api_id, supplier_id, topup_id, status, iccid)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (supplier_id, topup_id) DO NOTHING`,
-        [
-          prep.job.job_id,
-          prep.order.order_id,
-          topup.option_api_id,
-          supplier.id,
-          topup.topup_id,
-          status,
-          topup.iccid ?? null,
-        ],
-      );
-    }
-    await promoteFulfillmentJobIfReady(client, prep.job.job_id);
-    await client.query(
-      `UPDATE bongsim_fulfillment_job
-         SET status = 'submitted',
-             supplier_id = $2,
-             supplier_order_ref = $3,
-             supplier_submission_id = $4,
-             submission_response = $5::jsonb,
-             submitted_at = now(),
-             attempt_count = attempt_count + 1,
-             updated_at = now()
-       WHERE job_id = $1`,
-      [
-        prep.job.job_id,
-        supplier.id,
-        prep.order.order_number,
-        result.submission_id,
-        JSON.stringify({ topups: result.topups }),
-      ],
-    );
-    await appendFulfillmentEvent(client, prep.order.order_id, prep.job.job_id, "async_submitted", {
-      supplier: supplier.id,
-      submission_id: result.submission_id,
-      topup_count: result.topups.length,
-    });
+    await persistAsyncTopupsAndMarkSubmitted(client, prep.order, prep.job, supplier, result);
     await client.query("COMMIT");
   } catch (e) {
     try {
