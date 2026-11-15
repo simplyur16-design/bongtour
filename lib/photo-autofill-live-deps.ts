@@ -13,7 +13,7 @@ import { searchWikimediaCc0 } from '@/lib/photo-autofill-cc0'
 import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
 import type { AcquireDeps, StockTier } from '@/lib/photo-autofill-acquire'
-import type { AutofillCandidate } from '@/lib/photo-autofill-gate'
+import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, type AutofillCandidate } from '@/lib/photo-autofill-gate'
 
 /** 외부 호출 전 간격(사람처럼). Pexels 3.5초 가드 위에 얹는 지터다. */
 export const AUTOFILL_PAUSE_BASE_MS = 400
@@ -104,10 +104,12 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
       }
     },
     commit: async (c, ctx) => {
+      const maxBytes = ctx.kind === 'cover' ? AUTOFILL_COVER_MAX_BYTES : AUTOFILL_DAY_MAX_BYTES
       if (c.source === 'AI 생성') {
         if (!c.generatedBuffer) return { ok: false, reason: 'generate_no_buffer' }
         const saved = await savePhotoToPool(opts.prisma, c.generatedBuffer, opts.destination || ctx.label, ctx.label, 'AI 생성', {
           filenamePrefix: 'ai-generated',
+          maxBytes,
         })
         if (!saved?.filePath) return { ok: false, reason: 'pool_save_failed' }
         const m = await opts.probe(saved.filePath)
@@ -127,7 +129,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
           photographer: c.photographer ?? undefined,
           sourceUrl: c.originalLink ?? undefined,
           sourcePhotoId: c.id,
-        })
+        }, maxBytes)
         if (!saved?.filePath) return { ok: false, reason: 'pool_save_failed' }
         const m = await opts.probe(saved.filePath)
         return {
@@ -154,10 +156,12 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         }
       }
       if (c.source === 'Unsplash') {
+        // Unsplash 가이드라인상 핫링크는 재호스팅하지 않는다. 바이트를 줄일 수 없으므로 측정값이 한도를 넘으면 저장하지 않는다.
         if (!c.downloadLocation) return { ok: false, reason: 'unsplash_no_download_location' }
         const fired = await triggerUnsplashDownload(c.downloadLocation)
         if (fired === false) return { ok: false, reason: 'unsplash_download_failed' }
         const m = await opts.probe(c.url)
+        if (m.bytes != null && m.bytes > maxBytes) return { ok: false, reason: 'over_bytes' }
         return {
           ok: true,
           url: c.url,
@@ -173,7 +177,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         photographer: c.photographer ?? undefined,
         sourceUrl: c.originalLink ?? undefined,
         sourcePhotoId: c.id,
-      })
+      }, maxBytes)
       if (!saved?.filePath) return { ok: false, reason: 'pool_save_failed' }
       const m = await opts.probe(saved.filePath)
       return {

@@ -9,7 +9,8 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import type { Prisma, PrismaClient } from '@prisma/client'
-import { convertToWebp } from '@/lib/image-to-webp'
+import { fitProductPhotoToMaxBytes } from '@/lib/image-to-webp'
+import { AUTOFILL_COVER_MAX_BYTES } from '@/lib/photo-autofill-gate'
 import {
   COVER_IMAGE_WEBP_MAX_WIDTH,
   COVER_IMAGE_WEBP_QUALITY,
@@ -20,7 +21,7 @@ import {
   isObjectStorageConfigured,
   removeStorageObject,
   tryParseObjectKeyFromPublicUrl,
-  uploadStorageObject,
+  uploadStorageObjectRaw,
 } from '@/lib/object-storage'
 
 /** 레거시: 로컬 상대 경로 (마이그레이션·삭제용) */
@@ -87,6 +88,8 @@ export async function savePhotoToPool(
     attribution?: PhotoPoolAttribution
     /** 파일명 맨 앞. 생성 이미지는 ai-generated (실사로 보이지 않게). */
     filenamePrefix?: string
+    /** 대표 200,000B · 일차 400,000B. 없으면 대표 한도. */
+    maxBytes?: number
   }
 ): Promise<PoolPhotoRecord> {
   if (!isObjectStorageConfigured()) {
@@ -97,12 +100,16 @@ export async function savePhotoToPool(
 
   let data = buffer
   if (options?.convertToWebpFirst !== false) {
-    const converted = await convertToWebp(buffer, {
-      // REGRESSION-FREEZE[cover-image-quality]: PhotoPool cover master — manifest
+    // REGRESSION-FREEZE[cover-image-quality]: PhotoPool cover master — manifest
+    const fitted = await fitProductPhotoToMaxBytes(buffer, {
+      maxBytes: options?.maxBytes ?? AUTOFILL_COVER_MAX_BYTES,
       maxWidth: options?.maxWidth ?? COVER_IMAGE_WEBP_MAX_WIDTH,
       quality: options?.quality ?? COVER_IMAGE_WEBP_QUALITY,
     })
-    data = converted.buffer
+    if (!fitted) {
+      throw new Error('사진이 기준 용량 이하로 줄지 않아 저장하지 않습니다.')
+    }
+    data = fitted.buffer
   }
 
   const built = buildWebpFilename(cityName, attractionName, source)
@@ -110,7 +117,7 @@ export async function savePhotoToPool(
   const filename = prefix ? `${prefix}-${built}` : built
   const objectKey = buildPhotoPoolObjectKey(filename)
   const storageLeaf = objectKey.startsWith('photo-pool/') ? objectKey.slice('photo-pool/'.length) : objectKey
-  const { publicUrl } = await uploadStorageObject({
+  const { publicUrl } = await uploadStorageObjectRaw({
     objectKey,
     body: data,
     contentType: 'image/webp',
@@ -240,7 +247,8 @@ export async function savePhotoFromUrl(
   cityName: string,
   attractionName: string,
   source: string,
-  attribution?: PhotoPoolAttribution
+  attribution?: PhotoPoolAttribution,
+  maxBytes?: number,
 ): Promise<PoolPhotoRecord | null> {
   try {
     const sid = attribution?.sourcePhotoId?.trim()
@@ -260,6 +268,7 @@ export async function savePhotoFromUrl(
       convertToWebpFirst: true,
       maxWidth: COVER_IMAGE_WEBP_MAX_WIDTH,
       quality: COVER_IMAGE_WEBP_QUALITY,
+      maxBytes,
       attribution,
     })
   } catch {
@@ -280,13 +289,13 @@ export async function savePhotoFromUrlWithRetry(
   cityName: string,
   attractionName: string,
   source: string,
-  options?: { retries?: number; baseDelayMs?: number; attribution?: PhotoPoolAttribution }
+  options?: { retries?: number; baseDelayMs?: number; attribution?: PhotoPoolAttribution; maxBytes?: number }
 ): Promise<PoolPhotoRecord | null> {
   const retries = Math.max(1, Math.min(6, options?.retries ?? 3))
   const baseDelayMs = options?.baseDelayMs ?? 450
   const attribution = options?.attribution
   for (let attempt = 1; attempt <= retries; attempt++) {
-    const got = await savePhotoFromUrl(prisma, imageUrl, cityName, attractionName, source, attribution)
+    const got = await savePhotoFromUrl(prisma, imageUrl, cityName, attractionName, source, attribution, options?.maxBytes)
     if (got) return got
     if (attempt < retries) await sleep(baseDelayMs * attempt)
   }

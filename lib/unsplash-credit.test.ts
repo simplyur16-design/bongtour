@@ -71,7 +71,7 @@ describe('Unsplash credit (사장님 10/30 ①, 10/25 photo rule)', () => {
   })
   it('write values: Unsplash → author/profile/id in existing columns; Pexels → cleared', () => {
     expect(backfillCreditFieldsFor({ source: 'unsplash', unsplashId: 'abc', unsplashAuthorName: 'J', unsplashAuthorProfileUrl: 'https://unsplash.com/@j' })).toEqual({
-      bgImagePhotographer: 'J', bgImageSourceUrl: 'https://unsplash.com/@j', bgImageExternalId: 'abc',
+      bgImagePhotographer: 'J', bgImageSourceUrl: 'https://unsplash.com/photos/abc', bgImageExternalId: 'abc',
     })
     expect(backfillCreditFieldsFor({ source: 'pexels' })).toEqual({ bgImagePhotographer: null, bgImageSourceUrl: null, bgImageExternalId: null })
   })
@@ -79,9 +79,9 @@ describe('Unsplash credit (사장님 10/30 ①, 10/25 photo rule)', () => {
     const cand = { source: 'unsplash', url: HOT, width: 2400, photographer: 'J', authorProfileUrl: 'https://unsplash.com/@j' }
     const d = decideAutoCoverWrite({ enabled: true, registrationStatus: 'pending', currentCoverUrl: null, currentCoverSource: null, candidate: cand })
     const out = applyAutoCoverDecisionToUpdateData({ bgImageUrl: HOT, bgImagePhotographer: 'x' }, d, { width: 2400, height: 1600 }, null, new Date(), {
-      authorName: 'J', authorProfileUrl: 'https://unsplash.com/@j', externalId: 'abc',
+      authorName: 'J', authorProfileUrl: 'https://unsplash.com/@j', photoPageUrl: 'https://unsplash.com/photos/abc', externalId: 'abc',
     })
-    expect(out).toMatchObject({ bgImagePhotographer: 'J', bgImageSourceUrl: 'https://unsplash.com/@j', bgImageExternalId: 'abc' })
+    expect(out).toMatchObject({ bgImagePhotographer: 'J', bgImageSourceUrl: 'https://unsplash.com/photos/abc', bgImageExternalId: 'abc' })
     const dp = decideAutoCoverWrite({ enabled: true, registrationStatus: 'pending', currentCoverUrl: null, currentCoverSource: null, candidate: { source: 'pexels', url: 'https://x/a-pexels-1.webp', width: 2000 } })
     const op = applyAutoCoverDecisionToUpdateData({ bgImageUrl: 'u', bgImagePhotographer: 'x' }, dp, { width: 2000, height: 1300 })
     expect('bgImagePhotographer' in op).toBe(false)

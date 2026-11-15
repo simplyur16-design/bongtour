@@ -31394,6 +31394,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[photo-autofill-gate]",
             "AUTOFILL_COVER_MAX_BYTES = 200_000",
+            "AUTOFILL_COVER_MIN_HEIGHT = 640",
+            "AUTOFILL_COVER_MAX_WIDTH_OVER_HEIGHT = 2.2",
             "export function evaluateAutofillCandidate",
             "'public_duplicate'",
             "'person_subject'",
@@ -31403,6 +31405,74 @@
       ],
       "vitestSuites": [
         "lib/photo-autofill-gate.test.ts"
+      ]
+    },
+    {
+      "id": "photo-selfheal-guard-1115",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사진 자동채움은 처리 직전 등록대기만 쓰고, 대표 후보는 1600x565 파노라마를 거절하며, 장소·출처 URL·NCLOUD 체크섬을 지킨다.",
+      "checks": [
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-selfheal-guard-1115]",
+            "pendingRegistrationWriteWhere(id)",
+            "requirePendingRegistration: true"
+          ]
+        },
+        {
+          "file": "lib/photo-gate-runner.ts",
+          "mustInclude": [
+            "coverPlaceLabelOf(p)",
+            "pendingRegistrationWriteWhere(id)"
+          ],
+          "mustNotInclude": [
+            "bgImageRehostSearchLabel || p.bgImagePlaceName"
+          ]
+        },
+        {
+          "file": "lib/photo-slot-apply.ts",
+          "mustInclude": [
+            "bgImagePlaceName: place"
+          ]
+        },
+        {
+          "file": "lib/register-photo-source-chain.ts",
+          "mustInclude": [
+            "unsplashPhotoPageUrl(u.unsplashId)",
+            "authorProfileUrl: u.authorProfileUrl"
+          ],
+          "mustNotInclude": [
+            "originalLink: u.authorProfileUrl"
+          ]
+        },
+        {
+          "file": "lib/object-storage.ts",
+          "mustInclude": [
+            "requestChecksumCalculation: 'WHEN_REQUIRED'",
+            "responseChecksumValidation: 'WHEN_REQUIRED'",
+            "fitProductPhotoToMaxBytes"
+          ]
+        },
+        {
+          "file": "lib/photo-pool.ts",
+          "mustInclude": [
+            "fitProductPhotoToMaxBytes",
+            "사진이 기준 용량 이하로 줄지 않아 저장하지 않습니다."
+          ]
+        },
+        {
+          "file": "lib/image-to-webp.ts",
+          "mustInclude": [
+            "export async function fitProductPhotoToMaxBytes"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-selfheal-guard-1115.test.ts"
       ]
     },
     {

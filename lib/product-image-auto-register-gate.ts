@@ -15,6 +15,7 @@ import {
   type ImageCandidate,
   type ImagePolicyResult,
 } from '@/lib/product-image-source-policy'
+import { isUnsplashPhotoPageUrl, isUnsplashProfileUrl, unsplashPhotoPageUrl } from '@/lib/unsplash-credit'
 
 export const IMAGE_POLICY_AUTO_REGISTER_ENV = 'BONGTOUR_IMAGE_POLICY_AUTO_REGISTER'
 
@@ -59,7 +60,7 @@ export function applyAutoCoverDecisionToUpdateData<T extends Record<string, unkn
   measured: { width: number; height: number } | null,
   aiPrompt: string | null = null,
   now: Date = new Date(),
-  credit: { authorName: string; authorProfileUrl: string; externalId: string | null } | null = null
+  credit: { authorName: string; authorProfileUrl: string; photoPageUrl: string; externalId: string | null } | null = null
 ): T {
   if (decision.action === 'legacy') return base
   const out: Record<string, unknown> = { ...base }
@@ -75,7 +76,7 @@ export function applyAutoCoverDecisionToUpdateData<T extends Record<string, unkn
   delete out.bgImageExternalId
   if (decision.policy.tier === 'unsplash' && credit) {
     out.bgImagePhotographer = credit.authorName
-    out.bgImageSourceUrl = credit.authorProfileUrl
+    out.bgImageSourceUrl = credit.photoPageUrl
     out.bgImageExternalId = credit.externalId
   }
   if (measured) {
@@ -146,10 +147,16 @@ export async function gatedAutoCoverUpdateData<T extends Record<string, unknown>
     console.warn(`[image-policy] 대표 사진 보류 ${decision.policy.fails.join(',')}`)
   }
   const name = String(photo.photographer ?? '').trim()
-  const profile = String(photo.authorProfileUrl ?? photo.originalLink ?? '').trim()
+  const profile = String(photo.authorProfileUrl ?? '').trim()
+  const link = String(photo.originalLink ?? '').trim()
+  const photoPage = isUnsplashPhotoPageUrl(link)
+    ? link
+    : photo.externalId != null && String(photo.externalId).trim()
+      ? unsplashPhotoPageUrl(String(photo.externalId))
+      : ''
   const credit =
-    decision.action === 'write' && decision.policy.tier === 'unsplash' && name && profile
-      ? { authorName: name, authorProfileUrl: profile, externalId: photo.externalId != null ? String(photo.externalId) : null }
+    decision.action === 'write' && decision.policy.tier === 'unsplash' && name && isUnsplashProfileUrl(profile) && photoPage
+      ? { authorName: name, authorProfileUrl: profile, photoPageUrl: photoPage, externalId: photo.externalId != null ? String(photo.externalId) : null }
       : null
   return applyAutoCoverDecisionToUpdateData(data, decision, measured, isGen ? prompt : null, new Date(), credit)
 }

@@ -18,6 +18,13 @@ export const AUTOFILL_MAX_CANDIDATES_PER_SLOT = 5
 export const AUTOFILL_MIN_WIDTH = IMAGE_MIN_WIDTH
 export const AUTOFILL_COVER_MAX_BYTES = 200_000
 export const AUTOFILL_DAY_MAX_BYTES = DAY_PHOTO_DETAIL_MAX_BYTES
+/**
+ * 목록 카드 대표 후보만. 1600×565 파노라마(세로 565, 가로/세로 ≈2.83)를 막는다.
+ * 기존 가로 1200·가로형·용량은 그대로다. 가로 1200의 16:9 는 세로 675 라서
+ * 세로 하한은 그 아래인 640. 2:1(2.0)은 두고 2.2 를 넘는 띠 사진만 거절한다.
+ */
+export const AUTOFILL_COVER_MIN_HEIGHT = 640
+export const AUTOFILL_COVER_MAX_WIDTH_OVER_HEIGHT = 2.2
 
 export type AutofillSlotKind = 'day' | 'cover'
 
@@ -46,6 +53,8 @@ export type AutofillCandidate = {
 export type AutofillRejectReason =
   | 'low_res'
   | 'portrait_orientation'
+  | 'cover_short'
+  | 'cover_panorama'
   | 'no_description'
   | 'missing_attribution'
   | 'no_sight_match'
@@ -274,6 +283,10 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
 
   if (!(c.width >= AUTOFILL_MIN_WIDTH)) reasons.add('low_res')
   if (c.width > 0 && c.height > c.width) reasons.add('portrait_orientation')
+  if (input.slotKind === 'cover') {
+    if (!(c.height >= AUTOFILL_COVER_MIN_HEIGHT)) reasons.add('cover_short')
+    if (c.height > 0 && c.width / c.height > AUTOFILL_COVER_MAX_WIDTH_OVER_HEIGHT) reasons.add('cover_panorama')
+  }
   if (!String(c.id ?? '').trim() || !(String(c.photographer ?? '').trim() || String(c.originalLink ?? '').trim())) {
     reasons.add('missing_attribution')
   }

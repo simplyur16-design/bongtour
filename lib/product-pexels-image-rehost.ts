@@ -9,6 +9,7 @@
  */
 
 import sharp from 'sharp'
+import { AUTOFILL_COVER_MAX_BYTES } from '@/lib/photo-autofill-gate'
 import {
   uploadStorageObject,
   getImageStorageBucket,
@@ -233,6 +234,7 @@ export async function rehostPexelsProductHeroIfNeeded(input: ProductPexelsRehost
     objectKey,
     body: buffer,
     contentType: uploadContentType,
+    maxBytes: AUTOFILL_COVER_MAX_BYTES,
   })
 
   return {

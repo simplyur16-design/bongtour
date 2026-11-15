@@ -19,6 +19,16 @@ export const REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE: Prisma.ProductWhereInpu
   ],
 }
 
+/** 등록대기(null·빈 문자열·pending). registered 로 바뀐 상품은 사진 작업 대상이 아니다. */
+export function isPendingRegistrationStatus(status: string | null | undefined): boolean {
+  return status == null || status === '' || status === 'pending'
+}
+
+/** 이미지·힐·사유 쓰기는 이 조건이 맞는 행만. 처리 중 registered 로 바뀌면 count 0. */
+export function pendingRegistrationWriteWhere(id: string): Prisma.ProductWhereInput {
+  return { id, ...REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE }
+}
+
 /** KPI·목록 where — pending status + denormalized live-queue flag */
 export const REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE: Prisma.ProductWhereInput = {
   AND: [REGISTER_PRE_PHOTO_PENDING_DB_STATUS_WHERE, { registerPrePhotoQueueReady: true }],

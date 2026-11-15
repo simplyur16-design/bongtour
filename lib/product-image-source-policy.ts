@@ -25,7 +25,7 @@
  * REGRESSION-FREEZE[unsplash-credit-1030]: Unsplash=작가+프로필 필수·creditRequired는 Unsplash만 — manifest
  */
 import { inferSourceKeyFromImageUrl } from '@/lib/product-image-source-attribution'
-import { isUnsplashProfileUrl } from '@/lib/unsplash-credit'
+import { isUnsplashPhotoPageUrl, isUnsplashProfileUrl } from '@/lib/unsplash-credit'
 
 export type ImageSourceTier = 'pexels' | 'unsplash' | 'cc0' | 'generated'
 
@@ -180,8 +180,10 @@ export function evaluateImageCandidatePolicy(c: ImageCandidate): ImagePolicyResu
   const isUnsplash = !ownerKept && tier === 'unsplash'
   if (isUnsplash) {
     const name = String(c.photographer ?? '').trim()
-    const profile = String(c.authorProfileUrl ?? c.originalLink ?? '').trim()
-    if (!name || !isUnsplashProfileUrl(profile)) fails.push('L1-UNSPLASH-NO-CREDIT')
+    const profile = String(c.authorProfileUrl ?? '').trim()
+    const link = String(c.originalLink ?? '').trim()
+    const hasCreditLink = isUnsplashProfileUrl(profile) || isUnsplashProfileUrl(link) || isUnsplashPhotoPageUrl(link)
+    if (!name || !hasCreditLink) fails.push('L1-UNSPLASH-NO-CREDIT')
   }
   // 생성 이미지: 생성 표시 + prompt 기록 둘 다 있어야 통과 (사장님 2026-10-30 19:34 "AI 표시 칸 추가해")
   if (!owned && tier === 'generated') {
