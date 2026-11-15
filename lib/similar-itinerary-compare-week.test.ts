@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { isCompareClusterSupplierOrigin } from '@/lib/similar-itinerary-compare-supplier'
 import {
   compareWeekStartYmd,
   formatCompareWeekLabel,
@@ -18,6 +19,17 @@ const dep = (id: string, ymd: string, adultPrice: number | null, extra: Record<s
   departureDate: new Date(`${ymd}T00:00:00.000Z`),
   adultPrice,
   ...extra,
+})
+
+describe('compare supplier set', () => {
+  it('canonical 7과 한진관광만 포함하고 기타는 뺀다', () => {
+    for (const key of ['hanatour', 'modetour', 'verygoodtour', 'ybtour', 'kyowontour', 'lottetour', 'naeiltour', 'hanjintour', '한진관광']) {
+      expect(isCompareClusterSupplierOrigin(key)).toBe(true)
+    }
+    expect(isCompareClusterSupplierOrigin('ybtour')).toBe(true)
+    expect(isCompareClusterSupplierOrigin('windsor')).toBe(false)
+    expect(isCompareClusterSupplierOrigin('')).toBe(false)
+  })
 })
 
 describe('similar-itinerary-compare-week', () => {

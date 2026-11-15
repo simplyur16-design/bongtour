@@ -42,9 +42,7 @@ function metaFromStopCount(n: number, source: FlightRoutingSource): FlightRoutin
   }
 }
 
-/** 화살표 체인에서 공항/도시 꼭짓점 개수로 경유 횟수(중간 기착) 추정 */
-export function countIntermediateStopsFromRouteLine(line: string | null | undefined): number | null {
-  if (!line?.trim()) return null
+function countStopsInSingleChain(line: string): number | null {
   const parts = line
     .replace(/\r/g, '\n')
     .split(/\s*[→➝>＞]\s*/)
@@ -62,6 +60,23 @@ export function countIntermediateStopsFromRouteLine(line: string | null | undefi
 
   if (placeLike.length < 2) return null
   return Math.max(0, placeLike.length - 2)
+}
+
+/**
+ * 화살표 체인에서 공항/도시 꼭짓점 개수로 경유 횟수(중간 기착) 추정.
+ * `가는편 / 오는편` 을 한 줄로 붙인 routeRaw 는 방향마다 센다(왕복을 경유 1회로 세지 않음).
+ * REGRESSION-FREEZE[airline-display-roundtrip-stops]: 슬래시로 나뉜 왕복은 방향별 경유 — vitest
+ */
+export function countIntermediateStopsFromRouteLine(line: string | null | undefined): number | null {
+  if (!line?.trim()) return null
+  const legs = line.split(/\s+\/\s+/)
+  let best: number | null = null
+  for (const leg of legs) {
+    const n = countStopsInSingleChain(leg)
+    if (n == null) continue
+    best = best == null ? n : Math.max(best, n)
+  }
+  return best
 }
 
 function maxStopsFromLines(...lines: Array<string | null | undefined>): number | null {

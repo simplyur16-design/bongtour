@@ -28,6 +28,7 @@ import {
   formatFactTriState,
 } from '@/lib/supplier-product-fact-ssot'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
+import { isCompareClusterSupplierOrigin } from '@/lib/similar-itinerary-compare-supplier'
 import {
   CANONICAL_OVERSEAS_SUPPLIER_KEYS,
   isCanonicalOverseasSupplierKey,
@@ -374,8 +375,8 @@ export async function loadSimilarItineraryCompare(opts: {
           durationWantInput,
         )
         if (!comparePlaceClustersMatch(placeWant, place) || !durOk) return false
-        // REGRESSION-FREEZE[similar-itinerary-compare-week]: 기존 7개 공급사만(신규 공급사 추가 금지) — manifest
-        if (!isCanonicalOverseasSupplierKey(normalizeSupplierOrigin(p.originSource))) return false
+        // REGRESSION-FREEZE[similar-itinerary-compare-week]: 기존 7개 공급사만 · 공개 hanjintour 는 같은 출발 주간에 포함 — manifest
+        if (!isCompareClusterSupplierOrigin(p.originSource)) return false
         // REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 패키지 표에 FIT 금지·반대도 금지 — manifest
         return productMatchesSimilarItineraryCompareKind(p, compareKind)
       })

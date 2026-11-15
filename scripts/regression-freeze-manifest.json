@@ -29228,7 +29228,9 @@
           "file": "lib/detail-selected-departure-airline.ts",
           "mustInclude": [
             "export function alignDepartureFactsToSelectedAirline",
-            "export function resolveSelectedDepartureAirlineForDisplay"
+            "export function resolveSelectedDepartureAirlineForDisplay",
+            "displayedDepartureFlightNos",
+            "resolveDepartureRowAirlineForDisplay"
           ]
         },
         {
@@ -29241,11 +29243,19 @@
           "file": "app/components/travel/TravelProductDetail.tsx",
           "mustInclude": [
             "resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)",
+            "displayedDepartureFlightNos(calendarAlignedDepartureFacts)",
             "alignDepartureFactsToSelectedAirline(selectedDepartureFactsRaw, selectedAirlineFilter)"
           ],
           "mustNotInclude": [
             "selectedDepartureFacts?.airline?.trim() ?? product.airline",
             "airline: product.airline,"
+          ]
+        },
+        {
+          "file": "lib/flight-routing-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-display-roundtrip-stops]",
+            "split(/\\s+\\/\\s+/)"
           ]
         },
         {
@@ -30617,7 +30627,8 @@
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-week]",
             "기존 7개 공급사만",
-            "isCanonicalOverseasSupplierKey(normalizeSupplierOrigin(p.originSource))",
+            "isCompareClusterSupplierOrigin(p.originSource)",
+            "hanjintour",
             "applyWeekFilter",
             "weekPriceLabel",
             "weekDepartureLabel"

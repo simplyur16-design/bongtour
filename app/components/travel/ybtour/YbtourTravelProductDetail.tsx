@@ -1,7 +1,7 @@
 'use client'
 
 
-import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline } from '@/lib/detail-selected-departure-airline'
+import { resolveSelectedDepartureAirlineForDisplay, alignDepartureFactsToSelectedAirline, displayedDepartureFlightNos } from '@/lib/detail-selected-departure-airline'
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -806,7 +806,7 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
           originCode: product.heroOriginCodeDisplay || product.originCode,
           destination: product.destination,
           durationLabel: product.duration ?? '',
-          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline),
+          airline: resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline, displayedDepartureFlightNos(calendarAlignedDepartureFacts)),
           heroDepartureDisplay,
           duration: product.duration ?? '',
           heroPriceSsot,
@@ -857,7 +857,7 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
             {!isAirHotelFreeListingForUi(product.listingKind) ? (
             <TravelCoreInfoSection
               facts={calendarAlignedDepartureFacts}
-              productAirline={resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline)}
+              productAirline={resolveSelectedDepartureAirlineForDisplay(calendarAlignedDepartureFacts?.airline, product.airline, displayedDepartureFlightNos(calendarAlignedDepartureFacts))}
               periodContent={periodContent}
               travelCitiesLine={travelCitiesLine}
               reservationLine={reservationDisplayLine}
