@@ -1,14 +1,20 @@
 import type { MetadataRoute } from 'next'
 import { prisma } from '@/lib/prisma'
 import { getSiteOrigin } from '@/lib/site-metadata'
-import { publicProductWhereClause } from '@/lib/product-sales-policy'
-import { OVERSEAS_TRAINING_LISTING_KIND } from '@/lib/overseas-training-program-query'
+import {
+  SITEMAP_PRODUCT_TAKE,
+  SITEMAP_TRAINING_TAKE,
+  sitemapPublicProductWhere,
+  sitemapTrainingProgramWhere,
+} from '@/lib/sitemap-product-where'
 import { shouldSkipSitemapDbAtBuild } from '@/lib/sitemap-build'
 import { buildPublicSitemapEntries } from '@/lib/sitemap-public-entries'
 
 /**
  * 요청 시 DB 조회 — `revalidate` ISR 은 빌드 시점(DB 생략) 정적 결과가 굳어 상품 URL 0건으로 남았다.
  * 상품 URL = 공개 상세와 같은 판정(registered + publicProductWhereClause), slug 우선 주소.
+ * 등록·수정·삭제 시 `revalidateProductListingCaches` 가 /sitemap.xml 도 무효화하고 IndexNow 로 알린다(lib/seo/product-index-events.ts).
+ * REGRESSION-FREEZE[seo-sitemap-db-public-only]: DB 공개 상품만, lastmod=updatedAt — manifest
  */
 export const dynamic = 'force-dynamic'
 
@@ -23,26 +29,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let trainingPrograms: { id: string; slug: string | null; updatedAt: Date }[] = []
   try {
     registered = await prisma.product.findMany({
-      where: {
-        registrationStatus: 'registered',
-        AND: [
-          publicProductWhereClause(),
-          // 연수 프로그램은 /business/programs 주소로 따로 — listingKind NULL 상품은 포함(SQL NOT 의 NULL 제외 방지)
-          { OR: [{ listingKind: null }, { NOT: { listingKind: OVERSEAS_TRAINING_LISTING_KIND } }] },
-        ],
-      },
+      where: sitemapPublicProductWhere(),
       select: { id: true, slug: true, updatedAt: true },
-      take: 5000,
+      take: SITEMAP_PRODUCT_TAKE,
       orderBy: { updatedAt: 'desc' },
     })
 
     trainingPrograms = await prisma.product.findMany({
-      where: {
-        registrationStatus: 'registered',
-        listingKind: OVERSEAS_TRAINING_LISTING_KIND,
-      },
+      where: sitemapTrainingProgramWhere(),
       select: { id: true, slug: true, updatedAt: true },
-      take: 500,
+      take: SITEMAP_TRAINING_TAKE,
       orderBy: { updatedAt: 'desc' },
     })
   } catch (e) {

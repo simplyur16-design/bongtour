@@ -107,7 +107,8 @@ export default async function HomeMobileHub() {
                         <div className={`absolute inset-0 z-0 ${MOBILE_HUB_PHOTO_FILTER}`}>
                           <SafeImage
                             src={t.bgSrc!}
-                            alt=""
+                            // REGRESSION-FREEZE[seo-home-image-alt]: 요청서 C11
+                            alt={`${t.title} 대표 사진`}
                             fill
                             sizes="(max-width:768px) 50vw, (max-width:1024px) 50vw, 25vw"
                             quality={index === 0 ? 80 : 75}

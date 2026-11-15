@@ -158,7 +158,7 @@ export function ensureOrderPaidOutboxDrainAfterEnqueue(maxRounds = 16): void {
 }
 
 /**
- * REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]: claim → release → USIMSA HTTP → persist
+ * REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]: claim → 5-minute lease (no re-claim during USIMSA HTTP) → release pg conn → persist if settled
  */
 export async function processNextOrderPaidOutbox(): Promise<ProcessOrderPaidOutboxResult> {
   return withUsimsaInflightSlot(() => processNextOrderPaidOutboxUnlocked());
@@ -234,10 +234,11 @@ async function processNextOrderPaidOutboxUnlocked(): Promise<ProcessOrderPaidOut
       };
     }
 
+    // USIMSA 최대 timeout(120s)+여유보다 긴 lease. 만료 전 재claim 시 이중 POST 위험.
     await client.query(
       `UPDATE bongsim_outbox
           SET locked_at = now(),
-              available_at = now() + interval '2 minutes'
+              available_at = now() + interval '5 minutes'
         WHERE id = $1`,
       [row.id],
     );
@@ -274,6 +275,18 @@ async function processNextOrderPaidOutboxUnlocked(): Promise<ProcessOrderPaidOut
 
     const c2 = await pool.connect();
     try {
+      const settle = await c2.query<{ status: string }>(
+        `SELECT status FROM bongsim_fulfillment_job
+          WHERE order_id = $1
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        [orderId],
+      );
+      const jobStatus = settle.rows[0]?.status ?? null;
+      // job이 없는 경우는 오프라인 USIM 등 skip. queued/in_progress면 아직 공급사 확정 전.
+      if (jobStatus === "queued" || jobStatus === "in_progress") {
+        throw new Error(`fulfillment_unsettled:${jobStatus}`);
+      }
       await c2.query(
         `UPDATE bongsim_outbox
             SET processed_at = now(), locked_at = now(), available_at = now()

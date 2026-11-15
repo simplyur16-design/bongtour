@@ -45,3 +45,28 @@ export async function convertToWebp(
     height: outMeta.height ?? h,
   }
 }
+
+/**
+ * 상품 사진 저장 공통: 고른 사진을 WebP로 줄여 maxBytes 이하로 맞춘다.
+ * 먼저 가로 1200·품질 55까지 낮추고, 그래도 넘으면 더 줄인다.
+ * 끝까지 안 되면 null — 호출부는 저장하지 않고 사유만 남긴다.
+ * REGRESSION-FREEZE[photo-byte-cap-1115]: 대표 200,000B·일차 400,000B — manifest
+ */
+export async function fitProductPhotoToMaxBytes(
+  inputBuffer: Buffer,
+  opts: { maxBytes: number; maxWidth?: number; quality?: number },
+): Promise<{ buffer: Buffer; width: number; height: number } | null> {
+  const maxBytes = opts.maxBytes
+  if (!(maxBytes > 0)) return null
+  const widths = [opts.maxWidth ?? 2400, 1600, 1200, 800, 480].filter((w, i, arr) => w > 0 && arr.indexOf(w) === i)
+  const qualities = [opts.quality ?? 88, 70, 55, 40, 25].filter((q, i, arr) => arr.indexOf(q) === i)
+  let best: { buffer: Buffer; width: number; height: number } | null = null
+  for (const maxWidth of widths) {
+    for (const quality of qualities) {
+      const out = await convertToWebp(inputBuffer, { maxWidth, quality })
+      if (!best || out.buffer.length < best.buffer.length) best = out
+      if (out.buffer.length < maxBytes) return out
+    }
+  }
+  return best && best.buffer.length < maxBytes ? best : null
+}

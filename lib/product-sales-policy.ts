@@ -12,7 +12,7 @@
  *           `lastFutureDepartureDate`는 룰 A(180일) MAX라 “90일 내 출발 유무”를 증명할 수 없어
  *           공개 필터에는 적용하지 않음(Rule B KST + 마커만).
  *  - 룰 B — KST 달력일 기준: 마지막 출발일 − 3일까지 노출, − 2일 0시 KST부터 숨김.
- *           마커만 있고 lastFuture 없으면(미래 출발 0) 즉시 제외.
+ *           lastFuture 가 없으면(미래 출발 0·미평가) 즉시 제외 — fail-closed. 국외연수(otr)만 예외.
  *
  * 봇 차단 회피 — 트랙 ⑤ B' 가드(`waitForSupplierThrottle`/`acquireSupplierLock`/
  *   `humanDelayBeforeScrape`/`recordSupplierStart`/`recordSupplierFinished`)를 import 재사용.
@@ -49,6 +49,11 @@ import type { DepartureInput } from '@/lib/upsert-product-departures-hanatour'
 import { hasPricedFutureDepartureInput } from '@/lib/product-six-month-price-verification'
 import { departureInputToYmd, filterDepartureInputsOnOrAfterCalendarToday } from '@/lib/scrape-date-bounds'
 import { reconcileRuleAMarkersWithDbFutureDepartures } from '@/lib/future-priced-departure-guard'
+import {
+  DEPARTURE_CACHE_OTR_LISTING_KIND,
+  isOverseasTrainingListingKind,
+  recomputeProductDepartureCacheSafe,
+} from '@/lib/product-departure-cache'
 import { addDaysUtcYmd, kstTodayYmd } from '@/lib/calendar-ymd'
 import {
   acquireSupplierLock,
@@ -445,11 +450,21 @@ export async function runOneSalesPolicyCheck(
       lastSalesPolicyCheckedAt: new Date(),
     },
   })
+  // REGRESSION-FREEZE[departure-cache-from-rows]: 라이브 값으로 쓴 캐시를 출발 row 기준으로 되돌려 맞춤 — manifest
+  const recomputed = await recomputeProductDepartureCacheSafe(prisma, product.id, 'sales-policy-check')
 
   return {
     checked: true,
     marked: markers.marked,
-    lastFutureDate: markers.lastFutureDepartureDate,
+    lastFutureDate:
+      recomputed != null &&
+      recomputed.status !== 'skipped_otr' &&
+      recomputed.status !== 'not_found' &&
+      recomputed.status !== 'conflict'
+        ? recomputed.after.lastFutureDepartureDate != null
+          ? new Date(`${recomputed.after.lastFutureDepartureDate}T00:00:00.000Z`)
+          : null
+        : markers.lastFutureDepartureDate,
     supplierKey,
     skipReason: null,
   }
@@ -466,14 +481,17 @@ export async function runOneSalesPolicyCheck(
  *
  * - `lastFutureDepartureDate` 있음 → `last < publicListingCutoffUtcDate(now)` 이면 숨김
  *   (KST: lastYmd−3일 종일 표시, lastYmd−2일 00:00부터 숨김).
- * - `lastFutureDepartureDate` 없음 + 룰 A 마커 있음 → 미래 출발 0건 확정 → 숨김.
- * - 둘 다 없음(미평가) → 숨기지 않음.
+ * - `lastFutureDepartureDate` 없음 → fail-closed(숨김). 마커 유무와 무관(미평가도 숨김).
+ *   예외: 국외연수(`listingKind = overseas_training`, otr) 는 캐시·마커 둘 다 없을 때 숨기지 않음(마커만 있으면 숨김).
  * - `PUBLIC_DISPLAY_WINDOW_DAYS` 는 의도 상수만(필터 미적용).
+ *
+ * REGRESSION-FREEZE[departure-cache-from-rows]: 여행 상품은 캐시 비면 비공개(fail-closed), otr 만 예외 — manifest
  */
 export function isProductHiddenByPolicy(
   product: {
     noFutureDepartureConfirmedAt: Date | null
     lastFutureDepartureDate: Date | null
+    listingKind?: string | null
   },
   now: Date = new Date()
 ): boolean {
@@ -481,7 +499,10 @@ export function isProductHiddenByPolicy(
     const cutoff = publicListingCutoffUtcDate(now)
     return product.lastFutureDepartureDate.getTime() < cutoff.getTime()
   }
-  return product.noFutureDepartureConfirmedAt != null
+  if (isOverseasTrainingListingKind(product.listingKind)) {
+    return product.noFutureDepartureConfirmedAt != null
+  }
+  return true
 }
 
 /**
@@ -490,10 +511,11 @@ export function isProductHiddenByPolicy(
  *
  * 의미:
  *  - 마지막 미래 출발일 ≥ `publicListingCutoffUtcDate(now)` → 노출
- *  - 아직 미평가(last·마커 둘 다 null) → 노출
- *  - 그 외(마지막 출발이 cutoff 미만, 또는 마커+last null) → 제외
+ *  - 캐시 null(미평가·마커 유무 무관) → 제외(fail-closed). 단 국외연수(otr)는 캐시·마커 둘 다 null 이면 노출
+ *  - 마지막 출발이 cutoff 미만 → 제외
  *
  * 어드민 list 는 이 조건을 합치지 않음. DB 삭제가 아니라 쿼리 제외만.
+ * REGRESSION-FREEZE[departure-cache-from-rows]: 목록·상세·사이트맵 공통 판정 fail-closed — manifest
  */
 export function publicProductWhereClause(now: Date = new Date()): Prisma.ProductWhereInput {
   const cutoff = publicListingCutoffUtcDate(now)
@@ -501,7 +523,11 @@ export function publicProductWhereClause(now: Date = new Date()): Prisma.Product
     OR: [
       { lastFutureDepartureDate: { gte: cutoff } },
       {
-        AND: [{ lastFutureDepartureDate: null }, { noFutureDepartureConfirmedAt: null }],
+        AND: [
+          { listingKind: DEPARTURE_CACHE_OTR_LISTING_KIND },
+          { lastFutureDepartureDate: null },
+          { noFutureDepartureConfirmedAt: null },
+        ],
       },
     ],
   }

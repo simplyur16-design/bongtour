@@ -226,7 +226,7 @@ export async function processWelcomepayPaymentOutcome(
 
     await updateAttemptStatus("captured");
     const ref = input.paymentReference ?? `welcomepay_${input.providerEventId}`;
-    await client.query(
+    const paid = await client.query(
       `UPDATE bongsim_order
        SET status = 'paid',
            paid_at = now(),
@@ -234,9 +234,14 @@ export async function processWelcomepayPaymentOutcome(
            paid_amount_krw = $3,
            payment_provider = $4,
            updated_at = now()
-       WHERE order_id = $1`,
+       WHERE order_id = $1 AND status = 'awaiting_payment'`,
       [order.order_id, ref, grand, WELCOMEPAY_PROVIDER_ID],
     );
+    if ((paid.rowCount ?? 0) === 0) {
+      if (cur !== "captured") await updateAttemptStatus("captured");
+      await client.query("COMMIT");
+      return { ok: true, duplicate: false };
+    }
 
     const dedupeKey = `bongsim:order_paid:${order.order_id}`;
     try {

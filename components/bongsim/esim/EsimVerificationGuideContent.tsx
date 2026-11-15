@@ -1,4 +1,4 @@
-import { USIMSA_CX_CONTACT_URL, USIMSA_CX_KAKAO_CHAT_URL } from "@/lib/bongsim/constants";
+import { USIMSA_CX_CONTACT_URL } from "@/lib/bongsim/constants";
 import { CMLINK_TRAVELER_VERIFICATION_URL } from "@/lib/bongsim/esim/iccid-verification";
 
 export const ESIM_VERIFICATION_GUIDE_HOURS = "09:00-18:00 KST" as const;
@@ -40,18 +40,10 @@ export function EsimVerificationGuideContent({ className = "" }: Props) {
       <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
         <p className="text-xs font-semibold text-slate-800">고객센터</p>
         <a
-          href={USIMSA_CX_KAKAO_CHAT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-flex min-h-9 items-center justify-center rounded-lg bg-[#FEE500] px-4 py-2 text-xs font-semibold text-[#3C1E1E] shadow-sm transition hover:bg-[#f5dc00] lg:text-sm"
-        >
-          카카오톡 문의하기
-        </a>
-        <a
           href={USIMSA_CX_CONTACT_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 ml-2 inline-flex min-h-9 items-center text-xs font-medium text-teal-700 underline decoration-teal-300 underline-offset-4 lg:text-sm"
+          className="mt-2 inline-flex min-h-9 items-center text-xs font-medium text-teal-700 underline decoration-teal-300 underline-offset-4 lg:text-sm"
         >
           고객센터
         </a>

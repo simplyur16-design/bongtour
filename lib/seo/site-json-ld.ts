@@ -61,7 +61,7 @@ export function buildSiteJsonLdGraph(): Record<string, unknown> {
         description: HOME_PAGE_DESCRIPTION,
         inLanguage: 'ko-KR',
         isPartOf: { '@id': websiteId },
-        about: ['해외여행', '패키지여행', '자유여행', 'eSIM'],
+        about: ['해외여행', '패키지여행', '자유여행', '국외연수', 'eSIM(여행용)'],
         primaryImageOfPage: {
           '@type': 'ImageObject',
           url: logoUrl,
@@ -75,7 +75,16 @@ export function buildSiteJsonLdGraph(): Record<string, unknown> {
         url: origin,
         logo: logoUrl,
         description: HOME_PAGE_DESCRIPTION,
-        knowsAbout: ['해외여행 패키지', '자유여행', '항공호텔', '해외 eSIM', '우리끼리 여행'],
+        // REGRESSION-FREEZE[seo-search-copy-esim-travel]: 국외연수·eSIM(여행용) — manifest
+        knowsAbout: [
+          '해외여행 패키지',
+          '자유여행',
+          '항공호텔',
+          '국외연수',
+          '공공기관·지방의회 국외연수 기획',
+          'eSIM(여행용)',
+          '우리끼리 여행',
+        ],
         areaServed: { '@type': 'Country', name: 'KR' },
         ...(COMPANY_FOOTER.addressLine.trim()
           ? {
@@ -110,7 +119,7 @@ export function buildSiteJsonLdGraph(): Record<string, unknown> {
           {
             '@type': 'ListItem',
             position: 3,
-            name: '해외여행 eSIM',
+            name: 'eSIM(여행용)',
             url: `${originNoSlash}/travel/esim`,
           },
           {
@@ -118,6 +127,12 @@ export function buildSiteJsonLdGraph(): Record<string, unknown> {
             position: 4,
             name: '우리끼리 여행',
             url: `${originNoSlash}/travel/overseas/private-trip`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 5,
+            name: '국외연수',
+            url: `${originNoSlash}/business/programs`,
           },
         ],
       },

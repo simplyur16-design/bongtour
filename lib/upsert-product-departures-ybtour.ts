@@ -3,6 +3,7 @@
  * (productId, departureDate) 기준 upsert. 날짜 정규화·raw 보존·파생은 보수적으로.
  */
 import type { PrismaClient } from '@prisma/client'
+import { recomputeProductDepartureCacheSafe } from '@/lib/product-departure-cache'
 
 import { computeDepartureSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { reconcileLegacyYmdDepartureSlots } from '@/lib/departure-legacy-slot-reconcile'
@@ -484,6 +485,8 @@ export async function upsertProductDepartures(
     }
   }
   if (pairs.length > 0) await updateLastPriceObservedAt(prisma, productId)
+  // REGRESSION-FREEZE[departure-cache-from-rows]: 출발 row 쓰기 직후 캐시 재계산 — manifest
+  await recomputeProductDepartureCacheSafe(prisma, productId, 'upsert-ybtour')
   return pairs.length
 }
 

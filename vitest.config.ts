@@ -4,6 +4,11 @@ import path from 'node:path'
 // REGRESSION-FREEZE[simplyur-mobile-inapp-eximbay-checkout]: vitest include apps/simplyur-mobile — manifest
 // REGRESSION-FREEZE[simplyur-mobile-vitest-tsconfig]: apps/simplyur-mobile tsconfig standalone (no expo extend) — manifest
 export default defineConfig({
+  oxc: {
+    jsx: {
+      runtime: "automatic",
+    },
+  },
   test: {
     include: [
       'lib/**/*.test.ts',

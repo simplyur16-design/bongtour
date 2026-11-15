@@ -1,0 +1,948 @@
+{
+  "version": "2026-11-14.draft-1",
+  "defaultLocale": "ko",
+  "availableLocales": [
+    "ko"
+  ],
+  "support": {
+    "phone": {
+      "tel": "1661-0158",
+      "telOverseas": "+82-70-5097-6417"
+    },
+    "web": {
+      "url": "https://www.usimsa.com/board/contact-channel/"
+    }
+  },
+  "pages": {
+    "guide": {
+      "slug": "esim-install-guide"
+    },
+    "auth": {
+      "slug": "esim-traveler-auth"
+    }
+  },
+  "locales": {
+    "ko": {
+      "common": {
+        "brand": "봉투어",
+        "brandSub": "BONGTOUR",
+        "footer": "주식회사 봉투어 · bongtour.com · 안내 기준일 2026-11-14. 각 사 정책이 바뀌면 내용이 달라질 수 있습니다.",
+        "moreLabel": "자세히 보기"
+      },
+      "support": {
+        "label": "개통·장애 문의",
+        "phoneLabel": "전화",
+        "phone": "1661-0158",
+        "phoneOverseasLabel": "해외",
+        "phoneOverseas": "+82-70-5097-6417",
+        "webLabel": "문의 페이지"
+      },
+      "faq": {
+        "title": "자주 묻는 문제",
+        "columns": [
+          "증상",
+          "할 일"
+        ],
+        "items": [
+          {
+            "q": "등록이 안 됨",
+            "a": "신호 강한 Wi-Fi로 바꾸고(핫스팟 불가할 수 있음) 다시 시도 → 안 되면 QR 대신 설치 코드 직접 입력(아이폰·갤럭시 3단계 ‘자세히 보기’) → 그래도 안 되면 네트워크 설정 재설정 후 재시도(저장된 Wi-Fi 정보가 지워질 수 있음)"
+          },
+          {
+            "q": "설치했는데 데이터가 안 됨",
+            "a": "① 따라하기의 데이터 로밍 단계 확인(로컬망은 OFF) ② 비행기 모드 켰다 끄기 ③ 상품 페이지의 APN을 eSIM 회선에 직접 입력 후 재부팅 ④ 자동 망 선택을 끄고 현지 통신사 직접 선택"
+          },
+          {
+            "q": "‘이동통신사 설정 업데이트’ 창",
+            "a": "지금 안 함을 누르세요."
+          },
+          {
+            "q": "전화·문자가 되나요",
+            "a": "데이터 전용이라 현지 번호는 없습니다. 보이스톡·페이스타임처럼 데이터로 하는 통화는 됩니다."
+          },
+          {
+            "q": "핫스팟",
+            "a": "기본은 되지만 현지 통신사 정책에 따라 예고 없이 막힐 수 있습니다. 상품 페이지 핫스팟 항목을 보세요."
+          },
+          {
+            "q": "eSIM을 지웠어요",
+            "a": "임의로 지우지 마세요. 다시 설치할 수 있는지는 아래 개통·장애 문의로 먼저 문의하세요."
+          },
+          {
+            "q": "환불",
+            "a": "발급된 eSIM은 환불되지 않습니다. 개통이 안 되면 현지에서 바로 아래 개통·장애 문의로 알려야 하며, 사전 확인 없이 귀국 후 요청하면 처리되지 않습니다."
+          },
+          {
+            "q": "여행이 끝나면",
+            "a": "아이폰 설정 › 셀룰러 › 여행용 › eSIM 삭제, 갤럭시 설정 › 연결 › SIM 관리자 › eSIM 선택 › 삭제. 데이터 회선도 국내 회선으로 되돌리세요."
+          }
+        ],
+        "downloads": []
+      },
+      "guide": {
+        "breadcrumb": [
+          "eSIM",
+          "설치 안내"
+        ],
+        "title": "eSIM 설치 안내",
+        "intro": "봉투어 eSIM을 구매하신 분을 위한 안내입니다. 순서대로 따라 하면 됩니다. 메뉴 이름은 기종과 OS 버전에 따라 조금 다를 수 있습니다.",
+        "flow": {
+          "imageKey": "flow-general",
+          "imageAlt": "진행 순서: 문자 수신 → eSIM 설치 → 현지 도착 후 설정 → 귀국 후 삭제",
+          "items": [
+            {
+              "title": "① 문자 수신",
+              "lines": [
+                "설치 링크·QR",
+                "봉투어 발송"
+              ]
+            },
+            {
+              "title": "② eSIM 설치",
+              "lines": [
+                "상품 설치 기준대로",
+                "국내 또는 현지"
+              ]
+            },
+            {
+              "title": "③ 현지 도착",
+              "lines": [
+                "회선 켜기",
+                "데이터 로밍 설정"
+              ]
+            },
+            {
+              "title": "④ 귀국 후",
+              "lines": [
+                "eSIM 삭제",
+                "여행 끝난 뒤"
+              ]
+            }
+          ]
+        },
+        "authBanner": {
+          "title": "여행자 인증이 필요한 상품인가요?",
+          "description": "상품 페이지 신원인증(KYC)이 O라면 여행자 인증 안내를 먼저 보세요",
+          "page": "auth"
+        },
+        "tabs": [
+          {
+            "id": "prep",
+            "label": "출국 전 준비"
+          },
+          {
+            "id": "iphone",
+            "label": "아이폰"
+          },
+          {
+            "id": "galaxy",
+            "label": "갤럭시"
+          }
+        ],
+        "defaultTab": "prep",
+        "prep": {
+          "cards": [
+            {
+              "id": "check-product",
+              "title": "내 상품부터 확인하세요",
+              "blocks": [
+                {
+                  "type": "text",
+                  "text": "구매한 상품 페이지의 요금·망 정보와 사용·활성화 항목에 아래 값이 적혀 있습니다. 설치 전에 반드시 봅니다."
+                },
+                {
+                  "type": "table",
+                  "columns": [
+                    "항목",
+                    "표시 예",
+                    "뜻"
+                  ],
+                  "rows": [
+                    [
+                      "신원인증(KYC)",
+                      "O / X",
+                      "O면 인증형(여행자 인증 필요), X면 일반형"
+                    ],
+                    [
+                      "설치 기준",
+                      "국내(O) / 현지(O)",
+                      "국내·현지 중 어디서 설치해도 되는지"
+                    ],
+                    [
+                      "활성화 정책",
+                      "개통시점: 현지 도착 시",
+                      "사용 일수가 언제부터 차감되는지"
+                    ],
+                    [
+                      "망(로컬/로밍)",
+                      "Roaming / Local",
+                      "현지에서 데이터 로밍을 켤지 끌지 결정"
+                    ],
+                    [
+                      "APN",
+                      "상품별 값",
+                      "데이터가 안 될 때 직접 입력하는 값"
+                    ]
+                  ]
+                },
+                {
+                  "type": "note",
+                  "text": "※ 상품 페이지에 신원인증(KYC)이 O로 되어 있으면 이 안내서가 아니라 인증형 안내서를 보세요.",
+                  "links": [
+                    {
+                      "label": "인증형 안내서",
+                      "page": "auth"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "device",
+              "title": "기종 확인 (eSIM 지원·잠금 해제)",
+              "blocks": [
+                {
+                  "type": "heading",
+                  "text": "내 휴대폰이 eSIM을 지원하는지"
+                },
+                {
+                  "type": "table",
+                  "columns": [
+                    "기기",
+                    "지원 기준",
+                    "주의"
+                  ],
+                  "rows": [
+                    [
+                      "아이폰",
+                      "iPhone XS·XS Max·XR 및 이후 모델, iPhone SE(2세대·3세대)",
+                      "중국 본토·홍콩·마카오에서 출시된 아이폰은 eSIM 미지원이 원칙(일부 예외 모델 있음)"
+                    ],
+                    [
+                      "갤럭시(국내 구매)",
+                      "Z 폴드4·플립4 이후, S23 시리즈 이후, 퀀텀4·퀀텀5, A35 등",
+                      "국내 출시 S22 이하 모델은 지원 목록에 없음"
+                    ],
+                    [
+                      "갤럭시(해외 구매)",
+                      "지원 목록의 해외 모델만",
+                      "중국 본토·홍콩·마카오 출시 갤럭시는 미지원"
+                    ]
+                  ]
+                },
+                {
+                  "type": "note",
+                  "text": "※ 목록에 없거나 애매하면 설치하지 말고 먼저 아래 개통·장애 문의로 기종을 확인하세요."
+                },
+                {
+                  "type": "heading",
+                  "text": "통신사 잠금(컨트리락) 해제 여부"
+                },
+                {
+                  "type": "list",
+                  "items": [
+                    "아이폰: 아이폰 따라하기 1단계 화면(설정 › 일반 › 정보)에서 이동통신사 잠금이 ‘SIM 제한 없음’ 이면 됩니다. 다른 표시면 기존 통신사에 잠금 해제를 요청하세요.",
+                    "갤럭시: 해외에서 산 기기나 약정 단말은 구매처·통신사에 잠금 여부를 확인하세요."
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "wifi-install",
+              "title": "와이파이에서 미리 설치",
+              "blocks": [
+                {
+                  "type": "heading",
+                  "text": "설치할 때 필요한 환경"
+                },
+                {
+                  "type": "list",
+                  "items": [
+                    "Wi-Fi 또는 데이터 연결이 꼭 필요합니다. 통화 중에는 등록되지 않습니다.",
+                    "신호가 강한 Wi-Fi에서 하세요. ‘보안되지 않은 네트워크’, ‘네트워크 취약함’ 표시가 뜨는 Wi-Fi나 핫스팟에서는 등록이 안 될 수 있습니다.",
+                    "설치 기준이 국내 필수면 국내에서, 현지 필수면 도착 후에, 국내/현지 가능이면 국내에서 미리 설치하세요(권장).",
+                    "현지 필수 상품은 설치하는 즉시 개통되어 일수가 차감될 수 있습니다. 출국 전에 설치하지 마세요."
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "line-name",
+              "title": "회선 이름 정하기",
+              "blocks": [
+                {
+                  "type": "stepRef",
+                  "platform": "iphone",
+                  "number": 4,
+                  "label": "아이폰 4단계",
+                  "text": "회선 이름: 새 회선을 눌러 ① ‘여행용’으로 바꾸고 ② ‘계속’. 이름은 구분용입니다."
+                },
+                {
+                  "type": "stepRef",
+                  "platform": "galaxy",
+                  "number": 4,
+                  "label": "갤럭시 4단계",
+                  "text": "회선 이름: SIM 관리자 › 새 eSIM을 눌러 ① 이름을 ‘여행용’으로 정합니다(선택)."
+                },
+                {
+                  "type": "lineRoles"
+                }
+              ]
+            },
+            {
+              "id": "before-departure",
+              "title": "출국 전 설정 (데이터 로밍·기본 회선)",
+              "blocks": [
+                {
+                  "type": "stepRef",
+                  "platform": "iphone",
+                  "number": 5,
+                  "label": "아이폰 5단계",
+                  "text": "국내에서 설치했다면: 설정 › 셀룰러 › 여행용 › ① ‘이 회선 켜기’를 끄고 출국합니다."
+                },
+                {
+                  "type": "stepRef",
+                  "platform": "galaxy",
+                  "number": 5,
+                  "label": "갤럭시 5단계",
+                  "text": "국내에서 설치했다면: SIM 관리자에서 ① eSIM을 OFF로 두고 출국합니다."
+                },
+                {
+                  "type": "heading",
+                  "text": "현지에서의 회선 역할"
+                },
+                {
+                  "type": "text",
+                  "text": "상품 페이지의 망 값이 Roaming(로밍망) 이면 eSIM 데이터 로밍을 켜고, Local(로컬망) 이면 끕니다. 국내 회선의 데이터 로밍은 어느 경우든 끕니다."
+                }
+              ]
+            }
+          ]
+        },
+        "lineRoles": {
+          "imageKey": "line-roles",
+          "imageAlt": "국내 회선(메인)은 통화·문자용, 데이터 로밍 끔. eSIM(여행용)은 데이터 회선, 로밍망 상품은 데이터 로밍 켬, 로컬망 상품은 끔. 데이터 전환은 끔.",
+          "lines": [
+            {
+              "title": "국내 회선 (메인)",
+              "role": "home",
+              "lines": [
+                "통화·문자 수신용으로 켜 둠",
+                "데이터 로밍: 끔",
+                "기본 음성 회선: 메인"
+              ]
+            },
+            {
+              "title": "여행용 eSIM",
+              "role": "esim",
+              "lines": [
+                "모바일 데이터 회선으로 지정",
+                "로밍망 상품: 데이터 로밍 켬",
+                "로컬망 상품: 데이터 로밍 끔"
+              ]
+            }
+          ],
+          "footnote": "데이터 전환(셀룰러 데이터 전환 허용)은 끔 — 국내 회선 데이터로 넘어가지 않게"
+        },
+        "platforms": {
+          "iphone": {
+            "lead": "빨간 동그라미 번호 순서대로 누르면 됩니다. 문자의 ‘iPhone 바로 설치’ 링크(iOS 17.4 이상)를 눌렀다면 허용을 누른 뒤 3단계 ‘자세히 보기’의 ‘계속’ 화면부터 이어서 하세요. 링크로 설치했으면 QR로 또 설치하지 마세요.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "eSIM 지원 확인",
+                "phase": "지원 확인",
+                "imageKey": "ios-01",
+                "imageAlt": "아이폰 1단계 예시 화면",
+                "text": "설정 › 일반 › 정보. ① 모델이 iPhone XS·XR 이후인지 ② ‘이동통신사 잠금’이 ‘SIM 제한 없음’인지 봅니다.",
+                "details": []
+              },
+              {
+                "number": 2,
+                "title": "설정에서 eSIM 추가",
+                "phase": "설치",
+                "imageKey": "ios-02",
+                "imageAlt": "아이폰 2단계 예시 화면",
+                "text": "설정 › 셀룰러에서 ① ‘eSIM 추가’를 누릅니다. (문자의 ‘iPhone 바로 설치’ 링크를 눌렀다면 3단계 ‘자세히 보기’의 ‘계속’으로)",
+                "details": [
+                  {
+                    "phase": "설치",
+                    "imageKey": "ios-03",
+                    "imageAlt": "아이폰 2-1 예시 화면",
+                    "text": "① ‘QR 코드 사용’을 누릅니다."
+                  }
+                ]
+              },
+              {
+                "number": 3,
+                "title": "QR 스캔 (안 되면 직접 입력)",
+                "phase": "설치",
+                "imageKey": "ios-04",
+                "imageAlt": "아이폰 3단계 예시 화면",
+                "text": "① 다른 화면에 띄운 QR을 프레임에 맞춥니다. QR이 안 읽히면 ② ‘세부사항 직접 입력’.",
+                "details": [
+                  {
+                    "phase": "설치",
+                    "imageKey": "ios-05",
+                    "imageAlt": "아이폰 3-1 예시 화면",
+                    "text": "직접 입력할 때만: ① SM-DP+ 주소·활성화 코드를 붙여넣고 ② ‘다음’. 확인 코드는 비웁니다.",
+                    "tip": "값은 봉투어 문자의 QR·설치코드 페이지에서 복사합니다. 앞뒤 공백은 지우세요."
+                  },
+                  {
+                    "phase": "설치",
+                    "imageKey": "ios-06",
+                    "imageAlt": "아이폰 3-2 예시 화면",
+                    "text": "① ‘계속’을 누르고 끝날 때까지 기다립니다. 통화 중에는 설치되지 않습니다."
+                  }
+                ]
+              },
+              {
+                "number": 4,
+                "title": "회선 이름 ‘여행용’",
+                "phase": "회선 설정",
+                "imageKey": "ios-09",
+                "imageAlt": "아이폰 4단계 예시 화면",
+                "text": "회선 이름: 새 회선을 눌러 ① ‘여행용’으로 바꾸고 ② ‘계속’. 이름은 구분용입니다.",
+                "details": [
+                  {
+                    "phase": "회선 설정",
+                    "imageKey": "ios-07",
+                    "imageAlt": "아이폰 4-1 예시 화면",
+                    "text": "① ‘해외’를 고르고 ② ‘계속’."
+                  },
+                  {
+                    "phase": "회선 설정",
+                    "imageKey": "ios-08",
+                    "imageAlt": "아이폰 4-2 예시 화면",
+                    "text": "① ‘데이터 전용’을 고르고 ② ‘계속’."
+                  },
+                  {
+                    "phase": "회선 설정",
+                    "imageKey": "ios-10",
+                    "imageAlt": "아이폰 4-3 예시 화면",
+                    "text": "① 기본 회선은 ‘메인’ ② ‘계속’. 다음 iMessage 및 FaceTime 화면도 ‘메인’."
+                  },
+                  {
+                    "phase": "회선 설정",
+                    "imageKey": "ios-11",
+                    "imageAlt": "아이폰 4-4 예시 화면",
+                    "text": "데이터 회선: 국내에서 설치하면 ① ‘메인’(현지에서 설치하면 ‘여행용’). ② 전환 허용은 끕니다."
+                  }
+                ]
+              },
+              {
+                "number": 5,
+                "title": "출국 전 여행용 회선 끄기",
+                "phase": "출국 전",
+                "imageKey": "ios-12",
+                "imageAlt": "아이폰 5단계 예시 화면",
+                "text": "국내에서 설치했다면: 설정 › 셀룰러 › 여행용 › ① ‘이 회선 켜기’를 끄고 출국합니다.",
+                "details": []
+              },
+              {
+                "number": 6,
+                "title": "현지에서 여행용 회선 켜기",
+                "phase": "현지 도착 후",
+                "imageKey": "ios-13",
+                "imageAlt": "아이폰 6단계 예시 화면",
+                "text": "도착 후: 같은 화면에서 ① ‘이 회선 켜기’를 켭니다.",
+                "details": []
+              },
+              {
+                "number": 7,
+                "title": "데이터 회선 변경과 데이터 로밍 켜기",
+                "phase": "현지 도착 후",
+                "imageKey": "ios-14",
+                "imageAlt": "아이폰 7단계 예시 화면",
+                "text": "설정 › 셀룰러 › 셀룰러 데이터 › ① ‘여행용’ 선택. ② 전환 허용은 끔.",
+                "details": [
+                  {
+                    "phase": "현지 도착 후",
+                    "imageKey": "ios-15",
+                    "imageAlt": "아이폰 7-1 예시 화면",
+                    "text": "데이터 로밍: 설정 › 셀룰러 › 여행용 › ① ‘데이터 로밍’ 켬(로컬망 상품은 끔). ② 음성 및 데이터는 4G/LTE."
+                  },
+                  {
+                    "phase": "현지 도착 후",
+                    "imageKey": "ios-16",
+                    "imageAlt": "아이폰 7-2 예시 화면",
+                    "text": "설정 › 셀룰러 › 메인 › ① ‘데이터 로밍’은 끕니다. 국내 통신사 로밍 요금을 막습니다."
+                  },
+                  {
+                    "phase": "현지 도착 후",
+                    "imageKey": "ios-17",
+                    "imageAlt": "아이폰 7-3 예시 화면",
+                    "text": "최종 확인: ① 셀룰러 데이터 ‘여행용’ ② 기본 음성 ‘메인’ ③ 여행용 ‘켬’ ④ 신호 표시 2개."
+                  }
+                ]
+              }
+            ],
+            "localSetup": {
+              "title": "현지 설정 요약",
+              "blocks": [
+                {
+                  "type": "lineRoles"
+                },
+                {
+                  "type": "text",
+                  "text": "상품 페이지의 망 값이 Roaming(로밍망) 이면 eSIM 데이터 로밍을 켜고, Local(로컬망) 이면 끕니다. 국내 회선의 데이터 로밍은 어느 경우든 끕니다."
+                }
+              ]
+            }
+          },
+          "galaxy": {
+            "lead": "QR을 같은 휴대폰으로 받았다면 QR 이미지를 길게 눌러 갤러리에 저장(화면 캡처도 됨)한 뒤 시작하세요. One UI 버전에 따라 메뉴 이름이 조금 다를 수 있습니다.",
+            "steps": [
+              {
+                "number": 1,
+                "title": "eSIM 지원 확인",
+                "phase": "지원 확인",
+                "imageKey": "gx-01",
+                "imageAlt": "갤럭시 1단계 예시 화면",
+                "text": "설정 › 연결 › ① ‘SIM 관리자’를 누릅니다.",
+                "details": []
+              },
+              {
+                "number": 2,
+                "title": "설정에서 eSIM 추가",
+                "phase": "지원 확인",
+                "imageKey": "gx-02",
+                "imageAlt": "갤럭시 2단계 예시 화면",
+                "text": "① ‘eSIM 추가’가 보이면 eSIM 지원 기기입니다. 눌러서 설치를 시작합니다.",
+                "details": [
+                  {
+                    "phase": "설치",
+                    "imageKey": "gx-03",
+                    "imageAlt": "갤럭시 2-1 예시 화면",
+                    "text": "① ‘QR 코드 스캔’을 누릅니다."
+                  }
+                ]
+              },
+              {
+                "number": 3,
+                "title": "QR 스캔 (안 되면 직접 입력)",
+                "phase": "설치",
+                "imageKey": "gx-04",
+                "imageAlt": "갤럭시 3단계 예시 화면",
+                "text": "① 다른 화면의 QR을 맞추거나 ② 갤러리에 저장한 QR 선택. 코드로 넣으려면 ③ ‘활성화 코드 입력’.",
+                "details": [
+                  {
+                    "phase": "설치",
+                    "imageKey": "gx-05",
+                    "imageAlt": "갤럭시 3-1 예시 화면",
+                    "text": "직접 입력할 때만: ① 활성화 코드를 붙여넣고 다음으로 진행합니다.",
+                    "tip": "LPA:1$ 로 시작하는 코드 전체를 붙여넣습니다. 앞뒤 공백은 지우세요."
+                  },
+                  {
+                    "phase": "설치",
+                    "imageKey": "gx-06",
+                    "imageAlt": "갤럭시 3-2 예시 화면",
+                    "text": "① ‘추가’를 누르고 끝날 때까지 기다립니다. 시간이 조금 걸릴 수 있습니다."
+                  }
+                ]
+              },
+              {
+                "number": 4,
+                "title": "회선 이름 ‘여행용’",
+                "phase": "회선 설정",
+                "imageKey": "gx-07",
+                "imageAlt": "갤럭시 4단계 예시 화면",
+                "text": "회선 이름: SIM 관리자 › 새 eSIM을 눌러 ① 이름을 ‘여행용’으로 정합니다(선택).",
+                "details": []
+              },
+              {
+                "number": 5,
+                "title": "출국 전 여행용 회선 끄기",
+                "phase": "출국 전",
+                "imageKey": "gx-08",
+                "imageAlt": "갤럭시 5단계 예시 화면",
+                "text": "국내에서 설치했다면: SIM 관리자에서 ① eSIM을 OFF로 두고 출국합니다.",
+                "details": []
+              },
+              {
+                "number": 6,
+                "title": "현지에서 여행용 회선 켜기",
+                "phase": "현지 도착 후",
+                "imageKey": "gx-09",
+                "imageAlt": "갤럭시 6단계 예시 화면",
+                "text": "도착 후: SIM 관리자에서 ① eSIM을 ON.",
+                "details": []
+              },
+              {
+                "number": 7,
+                "title": "데이터 회선 변경",
+                "phase": "현지 도착 후",
+                "imageKey": "gx-10",
+                "imageAlt": "갤럭시 7단계 예시 화면",
+                "text": "데이터 회선: SIM 관리자 › 모바일 데이터 › ① ‘여행용(eSIM)’ ② ‘적용’.",
+                "details": [
+                  {
+                    "phase": "현지 도착 후",
+                    "imageKey": "gx-11",
+                    "imageAlt": "갤럭시 7-1 예시 화면",
+                    "text": "SIM 관리자 아래쪽: ① 모바일 데이터가 ‘여행용’인지 ② ‘데이터 전환’은 OFF."
+                  }
+                ]
+              },
+              {
+                "number": 8,
+                "title": "데이터 로밍 켜기",
+                "phase": "현지 도착 후",
+                "imageKey": "gx-12",
+                "imageAlt": "갤럭시 8단계 예시 화면",
+                "text": "데이터 로밍: 설정 › 연결 › 해외 로밍 › ① ‘데이터 로밍 사용’ ON(로밍망 상품).",
+                "tip": "로컬망 상품은 데이터 로밍을 끕니다.",
+                "details": [
+                  {
+                    "phase": "현지 도착 후",
+                    "imageKey": "gx-13",
+                    "imageAlt": "갤럭시 8-1 예시 화면",
+                    "text": "설정 › 연결 › 모바일 네트워크 › 데이터 네트워크 방식 eSIM › ① ‘LTE 우선모드’(5G 상품 제외)."
+                  },
+                  {
+                    "phase": "현지 도착 후",
+                    "imageKey": "gx-14",
+                    "imageAlt": "갤럭시 8-2 예시 화면",
+                    "text": "최종 확인: ① 신호 표시 2개 ② eSIM ON. 국내 유심을 꺼 두었다면 신호는 1개입니다."
+                  }
+                ]
+              }
+            ],
+            "localSetup": {
+              "title": "현지 설정 요약",
+              "blocks": [
+                {
+                  "type": "lineRoles"
+                },
+                {
+                  "type": "text",
+                  "text": "상품 페이지의 망 값이 Roaming(로밍망) 이면 eSIM 데이터 로밍을 켜고, Local(로컬망) 이면 끕니다. 국내 회선의 데이터 로밍은 어느 경우든 끕니다."
+                },
+                {
+                  "type": "note",
+                  "text": "※ 데이터 전환이 꺼져 있고 데이터 회선이 eSIM이면 국내 통신사 데이터 로밍 요금은 나오지 않습니다. 국내 번호로 걸려 온 전화·문자를 받으면 가입한 통신사의 로밍 요금이 붙습니다."
+                }
+              ]
+            }
+          }
+        }
+      },
+      "auth": {
+        "breadcrumb": [
+          "eSIM",
+          "설치 안내",
+          "여행자 인증"
+        ],
+        "title": "여행자 인증이 필요한 eSIM",
+        "intro": "여행자 인증이 필요한 상품용",
+        "installBanner": {
+          "title": "설치는 eSIM 설치 안내를 따르세요",
+          "description": "출국 전 준비 · 아이폰 · 갤럭시 따라하기",
+          "page": "guide"
+        },
+        "flow": {
+          "imageKey": "flow-auth",
+          "imageAlt": "진행 순서: 문자 수신 → 여행자 인증 → eSIM 설치 → 현지 도착 후 설정 → 귀국 후 삭제",
+          "items": [
+            {
+              "title": "① 문자 수신",
+              "lines": [
+                "설치 링크·QR",
+                "봉투어 발송"
+              ]
+            },
+            {
+              "title": "② 여행자 인증",
+              "lines": [
+                "ICCID·여권",
+                "CMLink 페이지"
+              ]
+            },
+            {
+              "title": "③ eSIM 설치",
+              "lines": [
+                "상품 설치 기준대로",
+                "국내 또는 현지"
+              ]
+            },
+            {
+              "title": "④ 현지 도착",
+              "lines": [
+                "회선 켜기",
+                "데이터 로밍 설정"
+              ]
+            },
+            {
+              "title": "⑤ 귀국 후",
+              "lines": [
+                "eSIM 삭제",
+                "여행 끝난 뒤"
+              ]
+            }
+          ]
+        },
+        "differences": {
+          "title": "일반형과 다른 점",
+          "blocks": [
+            {
+              "type": "table",
+              "columns": [
+                "구분",
+                "인증형",
+                "일반형"
+              ],
+              "rows": [
+                [
+                  "여행자(실명·여권) 인증",
+                  "필요. CMLink 여행자 인증 페이지에서 제출",
+                  "필요 없음"
+                ],
+                [
+                  "해당 상품",
+                  "홍콩·마카오, 대만 상품 중 ICCID가 8985234로 시작하는 eSIM",
+                  "그 외 상품"
+                ],
+                [
+                  "개통 시점·설치 시점",
+                  "상품 페이지의 활성화 정책·설치 기준을 따름",
+                  "상품 페이지의 활성화 정책·설치 기준을 따름"
+                ],
+                [
+                  "데이터 로밍",
+                  "망 종류에 따라 다름(로밍망 켬·로컬망 끔)",
+                  "망 종류에 따라 다름(로밍망 켬·로컬망 끔)"
+                ]
+              ]
+            },
+            {
+              "type": "note",
+              "text": "※ 개통 시점과 설치 시점은 상품 페이지 값을 따르세요."
+            }
+          ]
+        },
+        "verification": {
+          "title": "여행자 인증 따라하기",
+          "lead": {
+            "type": "text",
+            "text": "ICCID가 8985234로 시작하는 eSIM만 인증합니다. 다른 번호로 시작하면 이 장은 건너뜁니다. 인증 페이지 주소: global.cmlink.com/en/real-name",
+            "links": [
+              {
+                "label": "global.cmlink.com/en/real-name",
+                "url": "https://global.cmlink.com/en/real-name"
+              }
+            ]
+          },
+          "steps": [
+            {
+              "number": 1,
+              "phase": "여행자 인증",
+              "imageKey": "auth-01",
+              "imageAlt": "인증 1단계 예시 화면",
+              "text": "아이폰: 설정 › 일반 › 정보의 여행용 회선 항목에서 ① ICCID가 8985234로 시작하는지 봅니다."
+            },
+            {
+              "number": 2,
+              "phase": "여행자 인증",
+              "imageKey": "auth-02",
+              "imageAlt": "인증 2단계 예시 화면",
+              "text": "① ICCID 입력(여러 개면 ② [+]) ③ 여권 정보 입력(미성년자는 보호자 여권) ④ 제출."
+            }
+          ],
+          "note": {
+            "type": "note",
+            "text": "※ 갤럭시에서 ICCID를 찾기 어려우면 주문번호를 들고 아래 개통·장애 문의로 문의하세요. 인증은 출국 전에 미리 제출해 주세요. 자세한 조건은 상품 페이지와 아래 개통·장애 문의에서 확인할 수 있습니다."
+          }
+        },
+        "faq": {
+          "title": "인증이 안 될 때",
+          "items": [
+            {
+              "q": "여행자 인증이 안 됨",
+              "a": "ICCID가 8985234로 시작하는지, 여권 정보와 ICCID 숫자가 맞는지 다시 확인. 미성년자는 보호자 여권으로. 해결이 안 되면 아래 개통·장애 문의로."
+            }
+          ]
+        }
+      }
+    }
+  },
+  "assets": {
+    "screens": {
+      "ios-01": {
+        "ko": "img/screens/ko/ios-01.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-02": {
+        "ko": "img/screens/ko/ios-02.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-03": {
+        "ko": "img/screens/ko/ios-03.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-04": {
+        "ko": "img/screens/ko/ios-04.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-05": {
+        "ko": "img/screens/ko/ios-05.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-06": {
+        "ko": "img/screens/ko/ios-06.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-07": {
+        "ko": "img/screens/ko/ios-07.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-08": {
+        "ko": "img/screens/ko/ios-08.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-09": {
+        "ko": "img/screens/ko/ios-09.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-10": {
+        "ko": "img/screens/ko/ios-10.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-11": {
+        "ko": "img/screens/ko/ios-11.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-12": {
+        "ko": "img/screens/ko/ios-12.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-13": {
+        "ko": "img/screens/ko/ios-13.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-14": {
+        "ko": "img/screens/ko/ios-14.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-15": {
+        "ko": "img/screens/ko/ios-15.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-16": {
+        "ko": "img/screens/ko/ios-16.png",
+        "width": 600,
+        "height": 1300
+      },
+      "ios-17": {
+        "ko": "img/screens/ko/ios-17.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-01": {
+        "ko": "img/screens/ko/gx-01.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-02": {
+        "ko": "img/screens/ko/gx-02.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-03": {
+        "ko": "img/screens/ko/gx-03.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-04": {
+        "ko": "img/screens/ko/gx-04.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-05": {
+        "ko": "img/screens/ko/gx-05.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-06": {
+        "ko": "img/screens/ko/gx-06.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-07": {
+        "ko": "img/screens/ko/gx-07.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-08": {
+        "ko": "img/screens/ko/gx-08.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-09": {
+        "ko": "img/screens/ko/gx-09.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-10": {
+        "ko": "img/screens/ko/gx-10.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-11": {
+        "ko": "img/screens/ko/gx-11.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-12": {
+        "ko": "img/screens/ko/gx-12.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-13": {
+        "ko": "img/screens/ko/gx-13.png",
+        "width": 600,
+        "height": 1300
+      },
+      "gx-14": {
+        "ko": "img/screens/ko/gx-14.png",
+        "width": 600,
+        "height": 1300
+      },
+      "auth-01": {
+        "ko": "img/screens/ko/auth-01.png",
+        "width": 600,
+        "height": 1300
+      },
+      "auth-02": {
+        "ko": "img/screens/ko/auth-02.png",
+        "width": 600,
+        "height": 1300
+      }
+    },
+    "diagrams": {
+      "flow-general": {
+        "ko": "img/ko/flow-general.svg"
+      },
+      "flow-auth": {
+        "ko": "img/ko/flow-auth.svg"
+      },
+      "line-roles": {
+        "ko": "img/ko/line-roles.svg"
+      }
+    }
+  }
+}

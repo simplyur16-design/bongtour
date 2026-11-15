@@ -13,7 +13,7 @@ import { searchWikimediaCc0 } from '@/lib/photo-autofill-cc0'
 import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
 import type { AcquireDeps, StockTier } from '@/lib/photo-autofill-acquire'
-import type { AutofillCandidate } from '@/lib/photo-autofill-gate'
+import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, type AutofillCandidate } from '@/lib/photo-autofill-gate'
 
 /** 외부 호출 전 간격(사람처럼). Pexels 3.5초 가드 위에 얹는 지터다. */
 export const AUTOFILL_PAUSE_BASE_MS = 400
@@ -104,10 +104,12 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
       }
     },
     commit: async (c, ctx) => {
+      const maxBytes = ctx.kind === 'cover' ? AUTOFILL_COVER_MAX_BYTES : AUTOFILL_DAY_MAX_BYTES
       if (c.source === 'AI 생성') {
         if (!c.generatedBuffer) return { ok: false, reason: 'generate_no_buffer' }
         const saved = await savePhotoToPool(opts.prisma, c.generatedBuffer, opts.destination || ctx.label, ctx.label, 'AI 생성', {
           filenamePrefix: 'ai-generated',
+          maxBytes,
         })
         if (!saved?.filePath) return { ok: false, reason: 'pool_save_failed' }
         const m = await opts.probe(saved.filePath)
@@ -127,7 +129,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
           photographer: c.photographer ?? undefined,
           sourceUrl: c.originalLink ?? undefined,
           sourcePhotoId: c.id,
-        })
+        }, maxBytes)
         if (!saved?.filePath) return { ok: false, reason: 'pool_save_failed' }
         const m = await opts.probe(saved.filePath)
         return {
@@ -142,6 +144,25 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         }
       }
       if (c.source === 'PhotoPool') {
+        if (c.storedBytes != null && c.storedBytes > maxBytes) {
+          const saved = await savePhotoFromUrl(opts.prisma, c.url, opts.destination || ctx.label, ctx.label, 'PhotoPool', {
+            photographer: c.photographer ?? undefined,
+            sourceUrl: c.originalLink ?? undefined,
+            sourcePhotoId: c.id,
+          }, maxBytes)
+          if (!saved?.filePath) return { ok: false, reason: '사진이 기준 용량 이하로 줄지 않아 저장하지 않습니다.' }
+          const m = await opts.probe(saved.filePath)
+          return {
+            ok: true,
+            url: saved.filePath,
+            bytes: m.bytes,
+            width: m.width,
+            source: 'PhotoPool',
+            photographer: String(c.photographer ?? ''),
+            originalLink: String(c.originalLink ?? ''),
+            externalId: c.id,
+          }
+        }
         return {
           ok: true,
           url: c.url,
@@ -173,7 +194,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         photographer: c.photographer ?? undefined,
         sourceUrl: c.originalLink ?? undefined,
         sourcePhotoId: c.id,
-      })
+      }, maxBytes)
       if (!saved?.filePath) return { ok: false, reason: 'pool_save_failed' }
       const m = await opts.probe(saved.filePath)
       return {

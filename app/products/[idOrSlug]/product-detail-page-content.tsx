@@ -8,6 +8,8 @@ import {
   consumeProductDetailUnstableCacheMiss,
 } from '@/lib/product-detail-page-cache'
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
+import { isOverseasTrainingListingKind } from '@/lib/resolve-product-by-path-segment'
+import { trainingProgramPublicPath } from '@/lib/overseas-training-program-query'
 import { runWithQueryLogScope } from '@/lib/prisma-query-log'
 import { isMobileUserAgent } from '@/lib/product-detail-viewport-from-ua'
 import {
@@ -61,6 +63,15 @@ async function productDetailPageInner(idOrSlug: string) {
 
   if (allowAdminDraft) await connection()
 
+  // REGRESSION-FREEZE[seo-training-products-301]: middleware 조회 실패 시 폴백 — 국외연수는 정식 주소로
+  if (!allowAdminDraft && resolved.kind !== 'not_found' && isOverseasTrainingListingKind(resolved.listingKind)) {
+    permanentRedirect(
+      trainingProgramPublicPath({
+        id: resolved.kind === 'render' ? resolved.productId : resolved.slug,
+        slug: resolved.slug,
+      }),
+    )
+  }
   if (resolved.kind === 'redirect') {
     permanentRedirect(`/products/${resolved.slug}`)
   }

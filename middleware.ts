@@ -35,6 +35,7 @@ import {
 } from '@/lib/auth/simplyur-oauth-return-cookie'
 import {
   buildProductSlugRedirectLocation,
+  buildSameHostRedirectLocation,
   fetchProductPathStatus,
   parseProductDetailPathSegment,
 } from '@/lib/product-path-status'
@@ -305,6 +306,15 @@ export async function middleware(req: NextRequest) {
   const productSegment = req.method === 'GET' || req.method === 'HEAD' ? parseProductDetailPathSegment(pathname) : null
   if (productSegment) {
     const status = await fetchProductPathStatus(productSegment)
+    // REGRESSION-FREEZE[seo-training-products-301]: 국외연수 `/products/otr-bt-*` → `/business/programs/*` 301 (서치 콘솔 중복 주소)
+    if (status?.kind === 'redirect_path') {
+      return new NextResponse(null, {
+        status: 301,
+        headers: {
+          Location: buildSameHostRedirectLocation(status.path, req.nextUrl.search, req.headers),
+        },
+      })
+    }
     if (status?.kind === 'redirect') {
       return new NextResponse(null, {
         status: 308,

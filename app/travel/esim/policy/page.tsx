@@ -1,23 +1,21 @@
 import type { Metadata } from "next";
+import { buildEsimSearchMetadata, esimSearchTitle } from "@/lib/seo/esim-search-metadata";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { FileText, RefreshCw, Scale, ShieldAlert } from "lucide-react";
 import Header from "@/app/components/Header";
 import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
-import { bongsimPath, USIMSA_CX_CONTACT_URL, USIMSA_CX_KAKAO_CHAT_URL } from "@/lib/bongsim/constants";
+import { bongsimPath, USIMSA_CX_CONTACT_URL } from "@/lib/bongsim/constants";
 import { SITE_NAME } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
-  title: { absolute: `eSIM 환불·서비스 정책 | Bong투어 eSIM` },
-  description:
-    "Bong투어 eSIM의 서비스 제공기간, 환불·교환 정책 및 유의사항입니다. 결제 후 QR 발송, 활성화 기준, 미활성 시 환불 안내.",
-  alternates: { canonical: "/travel/esim/policy" },
-  openGraph: {
-    title: `eSIM 환불·서비스 정책 | ${SITE_NAME} eSIM`,
-    description: "서비스 제공기간, 환불·교환 정책, 유의사항.",
-    url: "/travel/esim/policy",
-    type: "website",
-  },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle("eSIM 환불·서비스 정책"),
+    description:
+      "Bong투어 eSIM(여행용)의 서비스 제공기간, 환불·교환 정책 및 유의사항입니다. 결제 후 QR 발송, 활성화 기준, 미활성 시 환불 안내.",
+    ogDescription: `${SITE_NAME} eSIM(여행용) 서비스 제공기간, 환불·교환 정책, 유의사항.`,
+    path: "/travel/esim/policy",
+  }),
 };
 
 const SECTIONS: Array<{
@@ -51,15 +49,6 @@ const SECTIONS: Array<{
         <li>제품 결함 시: 전액 환불 또는 재발급</li>
         <li>
           환불·이용 문의:{" "}
-          <a
-            href={USIMSA_CX_KAKAO_CHAT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-teal-800 underline decoration-teal-400 underline-offset-2 hover:text-teal-950"
-          >
-            카카오톡 문의
-          </a>
-          {" · "}
           <a
             href={USIMSA_CX_CONTACT_URL}
             target="_blank"

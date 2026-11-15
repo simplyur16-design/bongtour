@@ -248,6 +248,9 @@ async function main() {
       endpoint: ncloudEndpoint,
       credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
       forcePathStyle,
+      // 최신 SDK 기본 체크섬(WHEN_SUPPORTED)은 NCLOUD PutObject 를 AccessDenied 로 막는다.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     })
 
     for (const key of keys) {

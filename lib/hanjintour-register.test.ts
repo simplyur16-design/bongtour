@@ -72,6 +72,7 @@ describe('hanjintour pending enqueue', () => {
     expect(plan.ok).toBe(true)
     const writes: Array<Record<string, unknown>> = []
     const prisma = {
+      brand: { upsert: async () => ({ id: 'brand-hanjin', brandKey: 'hanjintour', displayName: '한진관광' }) },
       product: {
         findUnique: async () => ({ id: 'pub', registrationStatus: 'registered' }),
         update: async () => {
@@ -87,6 +88,7 @@ describe('hanjintour pending enqueue', () => {
     expect(skipped).toEqual({ ok: false, reason: 'already_public' })
 
     const fresh = {
+      brand: { upsert: async () => ({ id: 'brand-hanjin', brandKey: 'hanjintour', displayName: '한진관광' }) },
       product: {
         findUnique: async () => null,
         update: async () => { throw new Error('no update') },
@@ -104,7 +106,7 @@ describe('hanjintour pending enqueue', () => {
     }
     const applied = await applyHanjintourPendingPlan(fresh as never, plan)
     expect(applied).toEqual({ ok: true, productId: 'new-id', registrationStatus: 'pending' })
-    expect(writes[0]).toMatchObject({ originSource: 'hanjintour', registrationStatus: 'pending', priceFrom: 1990000 })
+    expect(writes[0]).toMatchObject({ originSource: 'hanjintour', registrationStatus: 'pending', priceFrom: 1990000, brandId: 'brand-hanjin' })
     expect(writes[1]).toMatchObject({ adultPrice: 1990000, childBedPrice: null })
     const statuses = new Set((plan.ok ? [plan.registrationStatus] : []))
     expect(statuses).toEqual(new Set(['pending']))

@@ -1,0 +1,926 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bongtour.com/schemas/esim-guide.schema.json",
+  "title": "eSIM install guide content (web + app)",
+  "description": "Content only: steps, plain text, image keys. No layout, CSS or markup. Locale keys (ko, en, ...) hold all text; assets map image keys to per-locale paths.",
+  "type": "object",
+  "required": [
+    "version",
+    "defaultLocale",
+    "availableLocales",
+    "support",
+    "pages",
+    "locales",
+    "assets"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "defaultLocale": {
+      "$ref": "#/$defs/localeCode"
+    },
+    "availableLocales": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/localeCode"
+      },
+      "minItems": 1
+    },
+    "support": {
+      "type": "object",
+      "required": [
+        "phone",
+        "web"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "phone": {
+          "type": "object",
+          "required": [
+            "tel"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "tel": {
+              "type": "string"
+            },
+            "telOverseas": {
+              "type": "string"
+            }
+          }
+        },
+        "web": {
+          "type": "object",
+          "required": [
+            "url"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        }
+      }
+    },
+    "pages": {
+      "type": "object",
+      "required": [
+        "guide",
+        "auth"
+      ],
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "slug"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "locales": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/localeCode"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/localeContent"
+      }
+    },
+    "assets": {
+      "type": "object",
+      "required": [
+        "screens",
+        "diagrams"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "screens": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/screenAsset"
+          }
+        },
+        "diagrams": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/localizedPath"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "localeCode": {
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Z]{2})?$"
+    },
+    "pageRef": {
+      "enum": [
+        "guide",
+        "auth"
+      ]
+    },
+    "localizedPath": {
+      "type": "object",
+      "description": "locale code -> relative file path",
+      "propertyNames": {
+        "$ref": "#/$defs/localeCode"
+      },
+      "additionalProperties": {
+        "type": "string"
+      },
+      "minProperties": 1
+    },
+    "screenAsset": {
+      "type": "object",
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
+      },
+      "patternProperties": {
+        "^[a-z]{2}(-[A-Z]{2})?$": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "link": {
+      "type": "object",
+      "required": [
+        "label"
+      ],
+      "additionalProperties": false,
+      "description": "label is a substring of the block text; url = external, page = internal page key",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "page": {
+          "$ref": "#/$defs/pageRef"
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "url"
+          ]
+        },
+        {
+          "required": [
+            "page"
+          ]
+        }
+      ]
+    },
+    "block": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "text"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "enum": [
+                "text",
+                "note"
+              ]
+            },
+            "text": {
+              "type": "string"
+            },
+            "links": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/link"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "text"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "heading"
+            },
+            "text": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "items"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "list"
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "columns",
+            "rows"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "table"
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "lineRoles"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "platform",
+            "number",
+            "label",
+            "text"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "stepRef"
+            },
+            "platform": {
+              "enum": [
+                "iphone",
+                "galaxy"
+              ]
+            },
+            "number": {
+              "type": "integer"
+            },
+            "label": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "flow": {
+      "type": "object",
+      "required": [
+        "imageKey",
+        "imageAlt",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "imageKey": {
+          "type": "string"
+        },
+        "imageAlt": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "title",
+              "lines"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "lines": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "banner": {
+      "type": "object",
+      "required": [
+        "title",
+        "description",
+        "page"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "page": {
+          "$ref": "#/$defs/pageRef"
+        }
+      }
+    },
+    "section": {
+      "type": "object",
+      "required": [
+        "title",
+        "blocks"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/block"
+          }
+        }
+      }
+    },
+    "faqItem": {
+      "type": "object",
+      "required": [
+        "q",
+        "a"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "q": {
+          "type": "string"
+        },
+        "a": {
+          "type": "string"
+        }
+      }
+    },
+    "download": {
+      "type": "object",
+      "required": [
+        "id",
+        "label",
+        "url"
+      ],
+      "additionalProperties": false,
+      "description": "future FAQ file download (empty for now)",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string"
+        }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "required": [
+        "lead",
+        "steps",
+        "localSetup"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "lead": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mainStep"
+          }
+        },
+        "localSetup": {
+          "$ref": "#/$defs/section"
+        }
+      }
+    },
+    "localeContent": {
+      "type": "object",
+      "required": [
+        "common",
+        "support",
+        "faq",
+        "guide",
+        "auth"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "common": {
+          "type": "object",
+          "required": [
+            "brand",
+            "footer",
+            "moreLabel"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "brand": {
+              "type": "string"
+            },
+            "brandSub": {
+              "type": "string"
+            },
+            "footer": {
+              "type": "string"
+            },
+            "moreLabel": {
+              "type": "string"
+            }
+          }
+        },
+        "support": {
+          "type": "object",
+          "required": [
+            "label",
+            "phoneLabel",
+            "phone",
+            "webLabel"
+          ],
+          "additionalProperties": false,
+          "description": "one small line at page bottom",
+          "properties": {
+            "label": {
+              "type": "string"
+            },
+            "phoneLabel": {
+              "type": "string"
+            },
+            "phone": {
+              "type": "string"
+            },
+            "phoneOverseasLabel": {
+              "type": "string"
+            },
+            "phoneOverseas": {
+              "type": "string"
+            },
+            "webLabel": {
+              "type": "string"
+            }
+          }
+        },
+        "faq": {
+          "type": "object",
+          "required": [
+            "title",
+            "columns",
+            "items",
+            "downloads"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "columns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/faqItem"
+              }
+            },
+            "downloads": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/download"
+              }
+            }
+          }
+        },
+        "guide": {
+          "type": "object",
+          "required": [
+            "title",
+            "intro",
+            "flow",
+            "authBanner",
+            "tabs",
+            "defaultTab",
+            "prep",
+            "lineRoles",
+            "platforms"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "breadcrumb": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "title": {
+              "type": "string"
+            },
+            "intro": {
+              "type": "string"
+            },
+            "flow": {
+              "$ref": "#/$defs/flow"
+            },
+            "authBanner": {
+              "$ref": "#/$defs/banner"
+            },
+            "tabs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "label"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "enum": [
+                      "prep",
+                      "iphone",
+                      "galaxy"
+                    ]
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "defaultTab": {
+              "enum": [
+                "prep",
+                "iphone",
+                "galaxy"
+              ]
+            },
+            "prep": {
+              "type": "object",
+              "required": [
+                "cards"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "cards": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "title",
+                      "blocks"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "blocks": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/$defs/block"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "lineRoles": {
+              "type": "object",
+              "required": [
+                "imageKey",
+                "imageAlt",
+                "lines",
+                "footnote"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "imageKey": {
+                  "type": "string"
+                },
+                "imageAlt": {
+                  "type": "string"
+                },
+                "footnote": {
+                  "type": "string"
+                },
+                "lines": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "title",
+                      "role",
+                      "lines"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "title": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "enum": [
+                          "home",
+                          "esim"
+                        ]
+                      },
+                      "lines": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "platforms": {
+              "type": "object",
+              "required": [
+                "iphone",
+                "galaxy"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "iphone": {
+                  "$ref": "#/$defs/platform"
+                },
+                "galaxy": {
+                  "$ref": "#/$defs/platform"
+                }
+              }
+            }
+          }
+        },
+        "auth": {
+          "type": "object",
+          "required": [
+            "title",
+            "intro",
+            "installBanner",
+            "flow",
+            "differences",
+            "verification",
+            "faq"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "breadcrumb": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "title": {
+              "type": "string"
+            },
+            "intro": {
+              "type": "string"
+            },
+            "installBanner": {
+              "$ref": "#/$defs/banner"
+            },
+            "flow": {
+              "$ref": "#/$defs/flow"
+            },
+            "differences": {
+              "$ref": "#/$defs/section"
+            },
+            "verification": {
+              "type": "object",
+              "required": [
+                "title",
+                "lead",
+                "steps",
+                "note"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "lead": {
+                  "$ref": "#/$defs/block"
+                },
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/simpleStep"
+                  }
+                },
+                "note": {
+                  "$ref": "#/$defs/block"
+                }
+              }
+            },
+            "faq": {
+              "type": "object",
+              "required": [
+                "title",
+                "items"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/faqItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "simpleStep": {
+      "type": "object",
+      "required": [
+        "number",
+        "phase",
+        "imageKey",
+        "imageAlt",
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "phase": {
+          "type": "string"
+        },
+        "imageKey": {
+          "type": "string"
+        },
+        "imageAlt": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "tip": {
+          "type": "string",
+          "description": "optional short extra hint shown under the step text"
+        }
+      }
+    },
+    "stepDetail": {
+      "type": "object",
+      "required": [
+        "phase",
+        "imageKey",
+        "imageAlt",
+        "text"
+      ],
+      "additionalProperties": false,
+      "description": "collapsed '자세히 보기' screen under a main step; display label is <step number>-<index+1>",
+      "properties": {
+        "phase": {
+          "type": "string"
+        },
+        "imageKey": {
+          "type": "string"
+        },
+        "imageAlt": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "tip": {
+          "type": "string"
+        }
+      }
+    },
+    "mainStep": {
+      "type": "object",
+      "required": [
+        "number",
+        "title",
+        "phase",
+        "imageKey",
+        "imageAlt",
+        "text",
+        "details"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "title": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "imageKey": {
+          "type": "string"
+        },
+        "imageAlt": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "tip": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stepDetail"
+          }
+        }
+      }
+    }
+  }
+}
