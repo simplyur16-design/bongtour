@@ -94,6 +94,18 @@ const productSelect = {
   ...PRODUCT_PRICE_FOR_BROWSE_INCLUDE,
 } as const
 
+/** 카드 가격·정렬은 오늘(KST) 이후 출발행만 — 지난 출발 최저가가 카드에 남지 않게 (공정13 검수). */
+// REGRESSION-FREEZE[process13-browse-fixes]: future departures only at call site — manifest
+function selectWithFutureDepartures(nowFloor: Date) {
+  return {
+    ...productSelect,
+    departures: {
+      ...PRODUCT_PRICE_FOR_BROWSE_INCLUDE.departures,
+      where: { departureDate: { gte: nowFloor } },
+    },
+  } as const
+}
+
 async function loadSeasonLinkedProductsMobileUncached(): Promise<ResultItem[]> {
   const now = new Date()
   const nowFloor = startOfTodayKst()
@@ -107,7 +119,7 @@ async function loadSeasonLinkedProductsMobileUncached(): Promise<ResultItem[]> {
       travelScope: 'overseas',
       AND: [publicProductWhereClause(now)],
     },
-    select: productSelect,
+    select: selectWithFutureDepartures(nowFloor),
   })
 
   const cityKeys = [...new Set(linked.map((p) => p.cityKey).filter((k): k is string => Boolean(k?.trim())))]
@@ -123,7 +135,7 @@ async function loadSeasonLinkedProductsMobileUncached(): Promise<ResultItem[]> {
         travelScope: 'overseas',
         AND: [publicProductWhereClause(now)],
       },
-      select: productSelect,
+      select: selectWithFutureDepartures(nowFloor),
       take: 24,
     })
   }

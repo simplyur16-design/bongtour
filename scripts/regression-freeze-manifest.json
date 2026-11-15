@@ -29831,6 +29831,75 @@
       ]
     },
     {
+      "id": "process13-browse-fixes",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "공정13: 카드 가격은 오늘 이후 출발만, 도시 카드 사진은 대표 도시 우선, 브루나이·알래스카 메뉴, 다른 열 도시 태그는 이름 근거",
+      "checks": [
+        {
+          "file": "lib/season-linked-products-mobile-data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[process13-browse-fixes]",
+            "function selectWithFutureDepartures(nowFloor: Date)",
+            "select: selectWithFutureDepartures(nowFloor)"
+          ]
+        },
+        {
+          "file": "lib/season-product-grid-data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[process13-browse-fixes]",
+            "function selectWithFutureDepartures(nowFloor: Date)",
+            "select: selectWithFutureDepartures(nowFloor)",
+            "take: 16"
+          ]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasRegisteredProductsSection.tsx",
+          "mustInclude": [
+            "where: { departureDate: { gte: startOfTodayKst() } }"
+          ]
+        },
+        {
+          "file": "lib/location-url-slugs.ts",
+          "mustInclude": [
+            "브루나이: 'brunei',"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-regions.data.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[process13-browse-fixes]",
+            "city('알래스카', ['알래스카', 'alaska', '앵커리지', 'anchorage'])], undefined, '미국')"
+          ]
+        },
+        {
+          "file": "lib/persona-curated-destinations.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[process13-browse-fixes]",
+            "const primaryCityList = list.filter((p) => p.cityKey === cityKey)"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-city-group-coherence.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[process13-browse-fixes]",
+            "export function filterCrossGroupCityKeysUnlessNamed"
+          ]
+        },
+        {
+          "file": "lib/sync-product-city-tags.ts",
+          "mustInclude": [
+            "filterCrossGroupCityKeysUnlessNamed(primaryGeo, filtered, haystack)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/mega-menu-city-group-coherence.test.ts"
+      ]
+    },
+    {
       "id": "process-images-preserve-route-text",
       "tier": [
         "prebuild",

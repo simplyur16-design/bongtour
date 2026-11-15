@@ -11,6 +11,12 @@ import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { publicProductPath } from '@/lib/product-public-path'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 
+function startOfTodayKst(): Date {
+  const seoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+  seoul.setHours(0, 0, 0, 0)
+  return seoul
+}
+
 function formatWon(n: number | null) {
   if (n == null) return '문의'
   return `${n.toLocaleString('ko-KR')}원~`
@@ -20,7 +26,13 @@ export default async function OverseasRegisteredProductsSection() {
   const rows = await prisma.product.findMany({
     where: { registrationStatus: 'registered', AND: [publicProductWhereClause()] },
     orderBy: { updatedAt: 'desc' },
-    include: PRODUCT_PRICE_FOR_BROWSE_INCLUDE,
+    include: {
+      ...PRODUCT_PRICE_FOR_BROWSE_INCLUDE,
+      departures: {
+        ...PRODUCT_PRICE_FOR_BROWSE_INCLUDE.departures,
+        where: { departureDate: { gte: startOfTodayKst() } },
+      },
+    },
   })
 
   const overseasRows = filterProductsForOverseasDestinationTree(rows)
