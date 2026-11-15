@@ -62,12 +62,18 @@ jobs:
   freeze:
     name: freeze
     needs: [freeze-reuse, freeze-shard]
-    if: always() && !cancelled() && needs.freeze-reuse.result == 'success'
+    # freeze-reuse 실패로 이 잡이 skipped 되면 required check 가 통과로 보이므로 조건에서 빼고 아래 단계에서 실패시킨다.
+    if: always() && !cancelled()
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
     steps:
+      - name: Reuse decision must succeed
+        if: needs.freeze-reuse.result != 'success'
+        run: |
+          echo "freeze-reuse result=${{ needs.freeze-reuse.result }}"
+          exit 1
       - name: Same tree already passed freeze
         if: needs.freeze-reuse.outputs.skip == 'true'
         run: echo "skip freeze — PR head tree matches and freeze succeeded"
