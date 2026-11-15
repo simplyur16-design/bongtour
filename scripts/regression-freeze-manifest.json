@@ -32748,6 +32748,15 @@
           ]
         },
         {
+          "file": "scripts/hanjintour-ingest-pending.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanjintour-register-pending-only]",
+            "handleParseAndRegisterHanjintourRequest",
+            "hanjintourDetailCollectAllowed",
+            "if (!opts.apply)"
+          ]
+        },
+        {
           "file": "app/admin/products/page.tsx",
           "mustInclude": [
             "ADMIN_PRODUCT_ORIGIN_FILTERS"
@@ -32756,7 +32765,8 @@
       ],
       "vitestSuites": [
         "lib/hanjintour-register.test.ts",
-        "lib/hanjintour-photo-uniqueness.test.ts"
+        "lib/hanjintour-photo-uniqueness.test.ts",
+        "lib/hanjintour-ingest-pending.test.ts"
       ]
     }
   ],
