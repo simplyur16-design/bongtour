@@ -29808,6 +29808,29 @@
       ]
     },
     {
+      "id": "airline-display-roundtrip-stops",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "슬래시로 이어 붙인 왕복은 A→B / B→A로 맞물릴 때만 방향별 경유. 오픈조는 한 줄로 세고, 허브 항공사 편명의 도착지가 허브가 아니면 최소 1회",
+      "checks": [
+        {
+          "file": "lib/flight-routing-meta.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-display-roundtrip-stops]",
+            "split(/\\s+\\/\\s+/)",
+            "ob.from === ib.to && ob.to === ib.from",
+            "HUB_CITY_BY_CARRIER",
+            "legStopsWithHubFloor"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/a5-airline-detail-1030.test.ts"
+      ]
+    },
+    {
       "id": "process-images-preserve-route-text",
       "tier": [
         "prebuild",
