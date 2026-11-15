@@ -200,9 +200,15 @@ function runStaticGuards(
   runNpmOnce: (script: string, label: string) => void,
   ranScripts: Set<string>,
   externalSkips: string[],
+  active: Set<string> | null = null,
+  owners: Map<string, string> | null = null,
+  completed: string[] | null = null,
 ): void {
   const guards = manifest.staticGuards.filter((g) => tierMatch(g.tier, runTier))
   for (const guard of guards) {
+    const key = `static:${guard.id}`
+    if (active && !active.has(key)) continue
+    const failuresBefore = failures.length
     for (const check of guard.checks ?? []) {
       const full = path.join(ROOT, check.file)
       if (!fs.existsSync(full)) {
@@ -229,11 +235,13 @@ function runStaticGuards(
         )
         continue
       }
+      const label = `${guard.id} → npm run ${nested.script}`
+      if (!npmOwnedHere(nested.script, label, active, owners)) continue
       try {
         if (nested.externalNetworkSkip) {
-          runExternalSkipNpmScript(nested.script, `${guard.id} → npm run ${nested.script}`, ranScripts, externalSkips)
+          runExternalSkipNpmScript(nested.script, label, ranScripts, externalSkips)
         } else {
-          runNpmOnce(nested.script, `${guard.id} → npm run ${nested.script}`)
+          runNpmOnce(nested.script, label)
         }
       } catch {
         console.error(`\n[FAIL] regression-freeze nested npm: ${guard.id} (${nested.script})`)
@@ -255,6 +263,7 @@ function runStaticGuards(
         }
       }
     }
+    if (completed && failures.length === failuresBefore) completed.push(key)
   }
 }
 
@@ -291,12 +300,17 @@ function vitestInstalled(): boolean {
   }
 }
 
-function runVitestSuites(manifest: Manifest, runTier: Tier): number {
+function runVitestSuites(
+  manifest: Manifest,
+  runTier: Tier,
+  active: Set<string> | null = null,
+  completed: string[] | null = null,
+): number {
   // Railway/Nixpacks build: NODE_ENV=production → npm install omits devDependencies (no vitest).
   if (runTier === 'prebuild') {
     return 0
   }
-  const suites = manifest.vitestSuites.filter((s) => tierMatch(s.tier, runTier))
+  const suites = manifest.vitestSuites.filter((s) => tierMatch(s.tier, runTier) && (!active || active.has(`vitest:${s.id}`)))
   if (suites.length === 0) return 0
   if (!vitestInstalled()) {
     throw new Error(
@@ -306,6 +320,7 @@ function runVitestSuites(manifest: Manifest, runTier: Tier): number {
   for (const suite of suites) {
     if (!Array.isArray(suite.files) || suite.files.length === 0) {
       console.warn(`[regression-freeze] ⊘ skip vitest suite ${suite.id} (no files — move to staticGuards?)`)
+      completed?.push(`vitest:${suite.id}`)
       continue
     }
     const nodeTestFiles = suite.files
@@ -330,6 +345,7 @@ function runVitestSuites(manifest: Manifest, runTier: Tier): number {
         env: process.env,
       })
     }
+    completed?.push(`vitest:${suite.id}`)
   }
   return suites.length
 }
@@ -382,9 +398,230 @@ function verifyRegressionFreezeMarkers(manifest: Manifest, failures: string[]): 
   }
 }
 
+/**
+ * CI 샤드 균형용 가중치(초). run 43695206293 실측에서 15초 이상인 항목만.
+ * 배치에만 쓰고, 가드를 빼거나 합치지 않는다.
+ */
+const SHARD_WEIGHT_SECONDS: Record<string, number> = {
+  'static:ybtour-register-taiwan-live-gate': 501,
+  'static:modetour-register-samples-live-gate': 151,
+  'npm:kyowontour-tour-event-tab-opt-shop': 91,
+  'static:modetour-register-danang-live-gate': 82,
+  'static:schedule-poi-regex-ssot': 46,
+  'static:register-schedule-trip-image-keyword-dedupe': 44,
+  'static:register-schedule-image-keyword-gemini-fill': 27,
+  'static:pexels-keyword-taiwan-poi': 27,
+  'static:naeiltour-register-2azz3346-airtel-live-gate': 23,
+  'static:hanatour-register-samples-live-gate': 22,
+  'vitest:vitest-regression-core': 22,
+  'static:register-schedule-forbidden-city-route-evidence': 18,
+  'static:register-hk-gogung-not-taipei-npm': 18,
+  'static:naeiltour-register-mezz32084-live-gate': 17,
+  'npm:register-confirm-mega-menu-image-guard': 17,
+  'static:hanatour-price-api-anchor-gate': 16,
+  'static:register-pre-photo-bare-city-middle-repeat': 16,
+  'static:modetour-105133652-live-gate': 15,
+  'static:lottetour-register-godid-hokkaido-live-gate': 15,
+}
+const DEFAULT_SHARD_WEIGHT_SECONDS = 1
+
+type WorkItem = { key: string; weight: number }
+
+function argvValue(argv: string[], name: string): string | undefined {
+  const eq = argv.find((a) => a.startsWith(`${name}=`))
+  if (eq) return eq.slice(name.length + 1)
+  const i = argv.indexOf(name)
+  if (i >= 0) return argv[i + 1]
+  return undefined
+}
+
+function tierExplicit(argv: string[]): boolean {
+  return argv.some((a) => a === '--tier' || a.startsWith('--tier='))
+}
+
+function parseShardSpec(raw: string): { index: number; count: number } {
+  const m = /^(\d+)\/(\d+)$/.exec(raw.trim())
+  if (!m) throw new Error(`--shard must be i/n, got ${raw}`)
+  const index = Number(m[1])
+  const count = Number(m[2])
+  if (!Number.isInteger(index) || !Number.isInteger(count) || count < 1 || index < 1 || index > count) {
+    throw new Error(`--shard out of range: ${raw}`)
+  }
+  return { index, count }
+}
+
+function ciWorkItems(manifest: Manifest, runTier: Tier): WorkItem[] {
+  const items: WorkItem[] = []
+  const push = (key: string) => {
+    items.push({ key, weight: SHARD_WEIGHT_SECONDS[key] ?? DEFAULT_SHARD_WEIGHT_SECONDS })
+  }
+  for (const guard of manifest.staticGuards) {
+    if (tierMatch(guard.tier, runTier)) push(`static:${guard.id}`)
+  }
+  for (const entry of manifest.npmScripts) {
+    if (tierMatch(entry.tier, runTier)) push(`npm:${entry.id}`)
+  }
+  for (const suite of manifest.vitestSuites) {
+    if (tierMatch(suite.tier, runTier)) push(`vitest:${suite.id}`)
+  }
+  const seen = new Set<string>()
+  for (const item of items) {
+    if (seen.has(item.key)) throw new Error(`duplicate freeze work key ${item.key}`)
+    seen.add(item.key)
+  }
+  return items
+}
+
+/** 무거운 항목부터 가장 가벼운 샤드에 넣는다. 샤드 안에서는 manifest 순서를 유지한다. */
+function assignShards(items: WorkItem[], count: number): WorkItem[][] {
+  const shards: WorkItem[][] = Array.from({ length: count }, () => [])
+  const load = Array.from({ length: count }, () => 0)
+  const byWeight = [...items].sort((a, b) => b.weight - a.weight || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+  for (const item of byWeight) {
+    let best = 0
+    for (let i = 1; i < count; i++) {
+      if (load[i] < load[best]) best = i
+    }
+    shards[best].push(item)
+    load[best] += item.weight
+  }
+  const order = new Map(items.map((item, index) => [item.key, index]))
+  for (const shard of shards) {
+    shard.sort((a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0))
+  }
+  assertShardPartition(items, shards)
+  return shards
+}
+
+/** 누락·중복이면 예외. 목록 출력·샤드 실행·리포트 검사가 같은 함수를 쓴다. */
+function assertShardPartition(items: WorkItem[], shards: WorkItem[][]): void {
+  const owner = new Map<string, number>()
+  for (let i = 0; i < shards.length; i++) {
+    for (const item of shards[i]) {
+      const prev = owner.get(item.key)
+      if (prev != null) throw new Error(`duplicate ${item.key} on shard ${prev} and ${i + 1}`)
+      owner.set(item.key, i + 1)
+    }
+  }
+  const missing = items.filter((item) => !owner.has(item.key)).map((item) => item.key)
+  if (missing.length > 0 || owner.size !== items.length) {
+    throw new Error(
+      `shard partition ${owner.size}/${items.length}, missing ${missing.slice(0, 8).join(', ')}`,
+    )
+  }
+}
+
+function printShardPlan(items: WorkItem[], shards: WorkItem[][]): void {
+  shards.forEach((shard, index) => {
+    const weight = shard.reduce((sum, item) => sum + item.weight, 0)
+    console.log(`shard ${index + 1}/${shards.length} items=${shard.length} weight=${weight}`)
+    for (const item of shard) console.log(`  ${item.key}`)
+  })
+  console.log(`partition ok items=${items.length} shards=${shards.length}`)
+}
+
+/**
+ * 동일 npm script 는 전체 CI에서 한 번만. 소유 가드가 다른 샤드면 여기서 다시 실행하지 않는다.
+ * 실행 순서는 샤드 없는 단일 실행과 같다(static → top-level npm).
+ */
+function buildNpmOwner(manifest: Manifest, runTier: Tier): Map<string, string> {
+  const owner = new Map<string, string>()
+  const claim = (script: string, key: string) => {
+    if (!owner.has(script)) owner.set(script, key)
+  }
+  for (const guard of manifest.staticGuards) {
+    if (!tierMatch(guard.tier, runTier)) continue
+    for (const nested of guardNpmScriptsForTier(guard, runTier)) {
+      if (nested.requiresDatabase && !databaseUrlConfigured()) continue
+      claim(nested.script, `static:${guard.id}`)
+    }
+  }
+  for (const entry of manifest.npmScripts) {
+    if (!tierMatch(entry.tier, runTier)) continue
+    if (entry.requiresDatabase && !databaseUrlConfigured()) continue
+    claim(entry.script, `npm:${entry.id}`)
+  }
+  return owner
+}
+
+function npmOwnedHere(script: string, label: string, active: Set<string> | null, owners: Map<string, string> | null): boolean {
+  if (!active || !owners) return true
+  const owner = owners.get(script)
+  if (owner && !active.has(owner)) {
+    console.log(`[regression-freeze] ⊘ npm ${script} runs on ${owner} (${label})`)
+    return false
+  }
+  return true
+}
+
+type ShardReport = { shard: number; count: number; tier: Tier; completed: string[] }
+
+function readShardReportFiles(dir: string): ShardReport[] {
+  const out: ShardReport[] = []
+  const walk = (current: string) => {
+    for (const ent of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, ent.name)
+      if (ent.isDirectory()) walk(full)
+      else if (ent.name === 'freeze-shard-report.json') {
+        out.push(JSON.parse(fs.readFileSync(full, 'utf8')) as ShardReport)
+      }
+    }
+  }
+  if (!fs.existsSync(dir)) throw new Error(`shard report dir missing: ${dir}`)
+  walk(dir)
+  return out
+}
+
+function checkShardReports(manifest: Manifest, runTier: Tier, dir: string, count: number): void {
+  const items = ciWorkItems(manifest, runTier)
+  const expected = assignShards(items, count)
+  const reports = readShardReportFiles(dir)
+  if (reports.length !== count) {
+    throw new Error(`shard reports ${reports.length}, expected ${count}`)
+  }
+  const seen = new Set<number>()
+  for (const report of reports) {
+    if (report.tier !== runTier || report.count !== count) {
+      throw new Error(`shard report header mismatch shard=${report.shard} tier=${report.tier} count=${report.count}`)
+    }
+    if (seen.has(report.shard)) throw new Error(`duplicate shard report ${report.shard}`)
+    seen.add(report.shard)
+    const want = expected[report.shard - 1]?.map((item) => item.key) ?? []
+    const got = report.completed
+    if (got.length !== want.length || got.some((key, index) => key !== want[index])) {
+      throw new Error(`shard ${report.shard} completed ${got.length} keys, expected ${want.length}`)
+    }
+  }
+  for (let shard = 1; shard <= count; shard++) {
+    if (!seen.has(shard)) throw new Error(`missing shard report ${shard}`)
+  }
+  console.log(`[ok] regression-freeze shard coverage items=${items.length} shards=${count}`)
+}
+
 function main() {
-  const runTier = parseTier(process.argv.slice(2))
+  const argv = process.argv.slice(2)
+  const runTier = parseTier(argv)
   const manifest = readManifest()
+  const listShardsRaw = argvValue(argv, '--list-shards')
+  const checkDir = argvValue(argv, '--check-shard-reports')
+  const shardRaw = argvValue(argv, '--shard')
+  const reportPath = argvValue(argv, '--shard-report')
+  const planTier: Tier = runTier === 'list' || !tierExplicit(argv) ? 'ci' : runTier
+
+  if (listShardsRaw != null) {
+    const count = Number(listShardsRaw)
+    if (!Number.isInteger(count) || count < 1) throw new Error(`--list-shards must be a positive integer, got ${listShardsRaw}`)
+    const items = ciWorkItems(manifest, planTier)
+    printShardPlan(items, assignShards(items, count))
+    return
+  }
+
+  if (checkDir) {
+    const count = shardRaw ? parseShardSpec(shardRaw).count : Number(argvValue(argv, '--shard-count') ?? '4')
+    if (!Number.isInteger(count) || count < 1) throw new Error(`--shard-count invalid`)
+    checkShardReports(manifest, planTier, checkDir, count)
+    return
+  }
 
   if (runTier === 'list') {
     printManifestList(manifest)
@@ -394,12 +631,24 @@ function main() {
   const failures: string[] = []
   const ranScripts = new Set<string>()
   const externalSkips: string[] = []
+  const completed: string[] = []
   const runNpmOnce = createNpmScriptRunner(ranScripts)
+  let active: Set<string> | null = null
+  let owners: Map<string, string> | null = null
+  let shardLabel = ''
+  if (shardRaw) {
+    const spec = parseShardSpec(shardRaw)
+    const items = ciWorkItems(manifest, runTier)
+    const shardItems = assignShards(items, spec.count)[spec.index - 1] ?? []
+    active = new Set(shardItems.map((item) => item.key))
+    owners = buildNpmOwner(manifest, runTier)
+    shardLabel = ` shard=${spec.index}/${spec.count} items=${active.size}`
+  }
 
-  console.log(`[regression-freeze] manifest=${manifest.version} tier=${runTier}`)
+  console.log(`[regression-freeze] manifest=${manifest.version} tier=${runTier}${shardLabel}`)
 
   verifyRegressionFreezeMarkers(manifest, failures)
-  runStaticGuards(manifest, runTier, failures, runNpmOnce, ranScripts, externalSkips)
+  runStaticGuards(manifest, runTier, failures, runNpmOnce, ranScripts, externalSkips, active, owners, completed)
 
   if (failures.length) {
     console.error('\n[FAIL] regression-freeze static/markers')
@@ -407,34 +656,47 @@ function main() {
     process.exit(1)
   }
 
-  const scripts = manifest.npmScripts.filter((s) => tierMatch(s.tier, runTier))
+  const scripts = manifest.npmScripts.filter((s) => tierMatch(s.tier, runTier) && (!active || active.has(`npm:${s.id}`)))
   for (const entry of scripts) {
     if (entry.requiresDatabase && !databaseUrlConfigured()) {
       console.warn(
         `[regression-freeze] ⊘ skip ${entry.id} (requiresDatabase — DATABASE_URL unset; run locally/Railway for DB tier)`,
       )
+      completed.push(`npm:${entry.id}`)
+      continue
+    }
+    const label = `${entry.id}: ${entry.summary}`
+    if (!npmOwnedHere(entry.script, label, active, owners)) {
+      completed.push(`npm:${entry.id}`)
       continue
     }
     try {
-      runNpmOnce(entry.script, `${entry.id}: ${entry.summary}`)
+      runNpmOnce(entry.script, label)
     } catch {
       console.error(`\n[FAIL] regression-freeze npm script: ${entry.id} (${entry.script})`)
       process.exit(1)
     }
+    completed.push(`npm:${entry.id}`)
   }
 
   let vitestCount = 0
   try {
-    vitestCount = runVitestSuites(manifest, runTier)
+    vitestCount = runVitestSuites(manifest, runTier, active, completed)
   } catch (err) {
     console.error('\n[FAIL] regression-freeze vitest suite')
     if (err instanceof Error && err.message) console.error(`  ${err.message}`)
     process.exit(1)
   }
 
+  if (shardRaw && reportPath) {
+    const spec = parseShardSpec(shardRaw)
+    const report: ShardReport = { shard: spec.index, count: spec.count, tier: runTier, completed }
+    fs.writeFileSync(path.join(ROOT, reportPath), JSON.stringify(report, null, 2))
+  }
+
   const vitestLabel = vitestCount > 0 ? ` + ${vitestCount} vitest` : ''
   const skipLabel = externalSkips.length > 0 ? `, ${externalSkips.length} SKIP[external]` : ''
-  console.log(`\n[ok] regression-freeze tier=${runTier} (${scripts.length} npm + static${vitestLabel}${skipLabel})`)
+  console.log(`\n[ok] regression-freeze tier=${runTier}${shardLabel} (${scripts.length} npm + static${vitestLabel}${skipLabel})`)
   if (externalSkips.length > 0) {
     for (const s of externalSkips) console.warn(`  SKIP[external] ${s}`)
     appendGithubStepSummary(

@@ -1,4 +1,5 @@
 # 교정 회귀 얼림 — PR·main push 시 manifest 가드 일괄 실행 (배포 전 회귀 차단)
+# CI tier 는 4샤드. 검사 항목은 줄이지 않고, 잡 이름 freeze 는 샤드 결과를 모은다.
 name: Regression Freeze
 
 on:
@@ -6,13 +7,35 @@ on:
   push:
     branches: [main, master]
 
+permissions:
+  contents: read
+  checks: read
+  pull-requests: read
+
 concurrency:
   group: regression-freeze-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  freeze:
+  freeze-reuse:
     runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.decide.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: decide
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/workflows/freeze-same-tree-skip.mjs
+
+  freeze-shard:
+    needs: freeze-reuse
+    if: needs.freeze-reuse.result == 'success' && needs.freeze-reuse.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       # vitest import chain may touch PrismaClient — CI has no .env; dummy URL is enough for module init
@@ -25,10 +48,61 @@ jobs:
           cache: npm
           package-manager-cache: false
       - run: npm ci
-      - name: List frozen guards
-        run: npm run verify:regression-freeze:list
-      - name: Run CI tier guards
-        run: npm run verify:regression-freeze:ci
+      - name: Run CI tier guards shard ${{ matrix.shard }}/4
+        run: npx tsx scripts/verify-regression-freeze.ts --tier ci --shard ${{ matrix.shard }}/4 --shard-report freeze-shard-report.json
+      - name: Upload shard coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: freeze-shard-${{ matrix.shard }}
+          path: freeze-shard-report.json
+          if-no-files-found: ignore
+
+  # 브랜치 보호의 required check 이름. 샤드가 빠지거나 겹치거나 실패하면 여기서 실패한다.
+  freeze:
+    name: freeze
+    needs: [freeze-reuse, freeze-shard]
+    # freeze-reuse 실패로 이 잡이 skipped 되면 required check 가 통과로 보이므로 조건에서 빼고 아래 단계에서 실패시킨다.
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci?schema=public
+    steps:
+      - name: Reuse decision must succeed
+        if: needs.freeze-reuse.result != 'success'
+        run: |
+          echo "freeze-reuse result=${{ needs.freeze-reuse.result }}"
+          exit 1
+      - name: Same tree already passed freeze
+        if: needs.freeze-reuse.outputs.skip == 'true'
+        run: echo "skip freeze — PR head tree matches and freeze succeeded"
+      - uses: actions/checkout@v5
+        if: needs.freeze-reuse.outputs.skip != 'true'
+      - uses: actions/setup-node@v5
+        if: needs.freeze-reuse.outputs.skip != 'true'
+        with:
+          node-version: 22
+          cache: npm
+          package-manager-cache: false
+      - run: npm ci
+        if: needs.freeze-reuse.outputs.skip != 'true'
+      - name: Shard jobs must succeed
+        if: needs.freeze-reuse.outputs.skip != 'true'
+        run: |
+          if [ "${{ needs.freeze-shard.result }}" != "success" ]; then
+            echo "freeze-shard result=${{ needs.freeze-shard.result }}"
+            exit 1
+          fi
+      - uses: actions/download-artifact@v4
+        if: needs.freeze-reuse.outputs.skip != 'true'
+        with:
+          pattern: freeze-shard-*
+          path: freeze-shard-reports
+          merge-multiple: false
+      - name: Require every guard in exactly one shard
+        if: needs.freeze-reuse.outputs.skip != 'true'
+        run: npx tsx scripts/verify-regression-freeze.ts --tier ci --check-shard-reports freeze-shard-reports --shard-count 4
 
   # 결제·유심사·솔라피 실호출 없는 eSIM 동시성 회귀. Postgres 서비스에서만 실행.
   esim-concurrency:
