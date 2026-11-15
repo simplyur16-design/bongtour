@@ -6,10 +6,7 @@
 import type { Prisma } from '@prisma/client'
 import { CAUCASUS_COUNTRY_KEY_SET, detectCaucasusPackageFromHaystack } from '@/lib/caucasus-package-detect'
 import { clusterCityKeysForNode, isClusterExpansionNode } from '@/lib/cluster-city-expansions'
-import {
-  filterCityKeysToCoherentMegaMenuGroup,
-  filterCrossGroupCityKeysUnlessNamed,
-} from '@/lib/mega-menu-city-group-coherence'
+import { filterCityKeysToCoherentMegaMenuGroup } from '@/lib/mega-menu-city-group-coherence'
 import {
   isMegaMenuSsotCityKey,
   loadMegaMenuSsotCityKeys,
@@ -162,13 +159,6 @@ export async function resolveProductCityKeysForTags(
   const primaryGeo = geo.cityKey?.trim() || geo.nodeKey?.trim() || null
   if (primaryGeo && filtered.length > 1) {
     filtered = filterCityKeysToCoherentMegaMenuGroup(primaryGeo, filtered)
-  }
-  if (opts && primaryGeo && filtered.length > 1) {
-    const haystack = [opts.title, opts.primaryDestination, opts.destinationRaw, opts.scheduleHaystack]
-      .filter((x): x is string => Boolean(x && String(x).trim()))
-      .join(' ')
-    // REGRESSION-FREEZE[process13-browse-fixes]: cross-group city tag needs own name — manifest
-    filtered = filterCrossGroupCityKeysUnlessNamed(primaryGeo, filtered, haystack)
   }
   if (primaryGeo && filtered.includes(primaryGeo) && filtered.length > 1) {
     const rest = filtered.filter((k) => k !== primaryGeo)

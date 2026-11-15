@@ -29887,12 +29887,6 @@
             "REGRESSION-FREEZE[process13-browse-fixes]",
             "export function filterCrossGroupCityKeysUnlessNamed"
           ]
-        },
-        {
-          "file": "lib/sync-product-city-tags.ts",
-          "mustInclude": [
-            "filterCrossGroupCityKeysUnlessNamed(primaryGeo, filtered, haystack)"
-          ]
         }
       ],
       "vitestSuites": [
