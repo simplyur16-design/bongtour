@@ -3084,7 +3084,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM 설치 안내는 데이터 JSON만 그리고, 카카오·PDF·공급사 이름은 화면에 없다",
+      "summary": "eSIM 설치 안내는 데이터 JSON만 그리고, 카카오·PDF·공급사 이름은 화면에 없다. 설치 탭 prep·iphone·galaxy는 서버 HTML에 모두 있고 비활성만 hidden",
       "checks": [
         {
           "file": "lib/bongsim/esim-install-guide.ts",
@@ -3122,6 +3122,22 @@
           "file": "lib/sitemap-public-entries.ts",
           "mustInclude": [
             "/travel/esim/guide/install"
+          ]
+        },
+        {
+          "file": "components/bongsim/esim/EsimGuideSiteView.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-install-guide-pages]",
+            "data-esim-guide-tab=\"prep\"",
+            "data-esim-guide-tab=\"iphone\"",
+            "data-esim-guide-tab=\"galaxy\"",
+            "hidden={tab !== \"prep\"}",
+            "hidden={tab !== \"iphone\"}",
+            "hidden={tab !== \"galaxy\"}"
+          ],
+          "mustNotInclude": [
+            "tab === \"prep\" ?",
+            "tab === \"iphone\" || tab === \"galaxy\""
           ]
         }
       ],
