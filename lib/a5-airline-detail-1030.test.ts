@@ -34,6 +34,13 @@ describe('왕복 routeRaw 경유 횟수', () => {
   it('한 방향 안에 중간 기착이 있으면 그 횟수', () => {
     expect(countIntermediateStopsFromRouteLine('인천 → 도쿄 → 호놀룰루 / 호놀룰루 → 인천')).toBe(1)
   })
+  it('오픈조·허브 환승은 직항으로 낮추지 않음', () => {
+    expect(countIntermediateStopsFromRouteLine('KE017 인천 → 멕시코시티 / KE7290 상파울로 → 인천')).toBe(1)
+    expect(countIntermediateStopsFromRouteLine('EK323 인천 → 바쿠 / 예레반 → 인천')).toBe(1)
+    expect(countIntermediateStopsFromRouteLine('EK325 인천 → 카이로 / EK924 카이로 → 인천')).toBe(1)
+    expect(countIntermediateStopsFromRouteLine('EK0323 인천국제공항 → 두바이 / EK0322 두바이 → 인천국제공항')).toBe(0)
+    expect(countIntermediateStopsFromRouteLine('가는편: 인천 2026.07.01 22:10 → 호놀룰루 2026.07.01 11:50 / YP151')).toBe(0)
+  })
 })
 
 describe('A-5 상세 — 상단/하단 항공사 같은 회차 facts', () => {

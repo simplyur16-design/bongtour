@@ -62,21 +62,62 @@ function countStopsInSingleChain(line: string): number | null {
   return Math.max(0, placeLike.length - 2)
 }
 
+/** 체인 양 끝 지명(앞 편명 제거). 지명이 2개 미만이면 null */
+function chainEndpoints(line: string): { from: string; to: string; flightPrefix: string | null } | null {
+  const raw = line
+    .replace(/\r/g, '\n')
+    .split(/\s*[→➝>＞]\s*/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (raw.length < 2) return null
+  const fm = raw[0]!.match(/^([A-Z]{2}|[A-Z]\d|\d[A-Z])\s?\d{2,4}[A-Z]?\s+/i)
+  const strip = (p: string) => p.replace(/^(?:[A-Z]{2}|[A-Z]\d|\d[A-Z])\s?\d{2,4}[A-Z]?\s+/i, '').replace(/\s+/g, '')
+  const from = strip(raw[0]!)
+  const to = strip(raw[raw.length - 1]!)
+  if (!from || !to) return null
+  return { from, to, flightPrefix: fm ? fm[1]!.toUpperCase() : null }
+}
+
+/** 허브 항공사 편명인데 도착지가 허브가 아니면 그 방향에 최소 1회 경유(문자열에 안 보이는 환승) */
+const HUB_CITY_BY_CARRIER: Readonly<Record<string, RegExp>> = {
+  EK: /두바이/,
+  QR: /도하/,
+  EY: /아부다비/,
+  TK: /이스탄불/,
+}
+
+function legStopsWithHubFloor(leg: string): number | null {
+  const n = countStopsInSingleChain(leg)
+  if (n == null) return null
+  const ep = chainEndpoints(leg)
+  const hub = ep?.flightPrefix ? HUB_CITY_BY_CARRIER[ep.flightPrefix] : undefined
+  if (hub && ep && !hub.test(ep.to) && !hub.test(ep.from)) return Math.max(n, 1)
+  return n
+}
+
 /**
  * 화살표 체인에서 공항/도시 꼭짓점 개수로 경유 횟수(중간 기착) 추정.
- * `가는편 / 오는편` 을 한 줄로 붙인 routeRaw 는 방향마다 센다(왕복을 경유 1회로 세지 않음).
+ * `A → B / B → A` 처럼 가는편·오는편이 정확히 맞물린 왕복만 방향별로 센다(왕복을 경유 1회로 세지 않음).
+ * 그 외(오픈조·3구간 이상·편명 꼬리)는 기존처럼 한 줄 전체로 센다 — 실제 경유를 직항으로 낮추지 않는다.
  * REGRESSION-FREEZE[airline-display-roundtrip-stops]: 슬래시로 나뉜 왕복은 방향별 경유 — vitest
  */
 export function countIntermediateStopsFromRouteLine(line: string | null | undefined): number | null {
   if (!line?.trim()) return null
   const legs = line.split(/\s+\/\s+/)
-  let best: number | null = null
-  for (const leg of legs) {
-    const n = countStopsInSingleChain(leg)
-    if (n == null) continue
-    best = best == null ? n : Math.max(best, n)
+  if (legs.length === 2) {
+    const ob = chainEndpoints(legs[0]!)
+    const ib = chainEndpoints(legs[1]!)
+    if (ob && ib && ob.from === ib.to && ob.to === ib.from) {
+      let best: number | null = null
+      for (const leg of legs) {
+        const n = legStopsWithHubFloor(leg)
+        if (n == null) continue
+        best = best == null ? n : Math.max(best, n)
+      }
+      if (best != null) return best
+    }
   }
-  return best
+  return countStopsInSingleChain(line)
 }
 
 function maxStopsFromLines(...lines: Array<string | null | undefined>): number | null {

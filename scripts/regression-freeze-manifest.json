@@ -30627,8 +30627,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[similar-itinerary-compare-week]",
             "기존 7개 공급사만",
-            "isCompareClusterSupplierOrigin(p.originSource)",
-            "hanjintour",
+            "isCanonicalOverseasSupplierKey(normalizeSupplierOrigin(p.originSource))",
             "applyWeekFilter",
             "weekPriceLabel",
             "weekDepartureLabel"
