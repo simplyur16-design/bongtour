@@ -615,7 +615,9 @@ const AM: MegaMenuCountryGroupDef[] = [
     city('나이아가라', ['나이아가라', 'niagara', '캐나다']),
     city('옐로우나이프', ['옐로우나이프', 'yellowknife', '캐나다']),
   ]),
-  G('알래스카', [LC('알래스카', ['알래스카', 'alaska', '앵커리지', 'anchorage'])]),
+  // 공정13 검수: country=alaska 는 미주 카드(canada·united-states)와 교집합이 비어 0건. 미국+city=alaska.
+  // REGRESSION-FREEZE[process13-browse-fixes]: alaska leaf is united-states city — manifest
+  G('알래스카', [city('알래스카', ['알래스카', 'alaska', '앵커리지', 'anchorage'])], undefined, '미국'),
 ]
 
 /**

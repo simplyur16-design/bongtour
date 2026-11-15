@@ -224,10 +224,16 @@ async function loadPersonaCuratedDestinationsUncached(
     }
 
     let imageUrl: string | null = null
-    if (list.length > 0) {
-      const start = stablePickIndex(`${seedBase}:${cityKey}`, list.length)
-      for (let step = 0; step < list.length; step++) {
-        const p = list[(start + step) % list.length]!
+    // 카드 사진은 그 도시가 대표 도시(cityKey)인 상품을 먼저 본다 — 호주·뉴질랜드 묶음 상품 사진이
+    // 시드니·오클랜드 카드에 서로 뒤바뀌어 붙던 문제(공정13 검수). 없으면 기존 목록 전체로 폴백.
+    // 해외 허브 히어로(overseas-hub-season-destination-hero)도 이 imageUrl 을 그대로 쓴다.
+    // REGRESSION-FREEZE[process13-browse-fixes]: primary cityKey photo first — manifest
+    const primaryCityList = list.filter((p) => p.cityKey === cityKey)
+    for (const pool of primaryCityList.length > 0 ? [primaryCityList, list] : [list]) {
+      if (imageUrl) break
+      const start = stablePickIndex(`${seedBase}:${cityKey}`, pool.length)
+      for (let step = 0; step < pool.length; step++) {
+        const p = pool[(start + step) % pool.length]!
         const scheduleDays = getScheduleFromProduct(p)
         const url = getHomeHubCoverImageUrl({ bgImageUrl: p.bgImageUrl, scheduleDays })?.trim() ?? null
         if (url) {

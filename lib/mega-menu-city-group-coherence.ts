@@ -4,6 +4,7 @@
  */
 // REGRESSION-FREEZE[mega-menu-same-region-multi-column-city-tags]: 동일 region 다열 cityKey 유지 — manifest
 import { resolveBrowseCityKeysForFilter } from '@/lib/browse-country-url-resolve'
+import { termAppearsInHaystack } from '@/lib/geo-haystack-match'
 import { countrySlugFromLabel, citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
 import { MEGA_MENU_TAB_DEFINITIONS } from '@/lib/mega-menu-regions.data'
 
@@ -69,4 +70,47 @@ export function filterCityKeysToCoherentMegaMenuGroup(
   if (sameRegion.includes(primary)) return sameRegion
 
   return primary && keys.includes(primary) ? [primary] : keys
+}
+
+/** 도시 leaf 의 표시명·cityKey 만. 다른 도시 별칭(샤먼 잎의 천저우 등)은 근거로 쓰지 않는다. */
+function cityOwnNames(cityKey: string): string[] {
+  const names = new Set<string>([cityKey])
+  for (const tab of MEGA_MENU_TAB_DEFINITIONS) {
+    for (const group of tab.groups) {
+      for (const leaf of group.cities) {
+        if (leaf.kind !== 'city') continue
+        const slug = citySlugFromTermsAndLabel(leaf.label, leaf.terms)
+        const owns =
+          slug === cityKey ||
+          leaf.terms.some((t) => t.trim().toLowerCase() === cityKey)
+        if (owns) names.add(leaf.label)
+      }
+    }
+  }
+  return [...names]
+}
+
+/**
+ * primary 와 다른 메가메뉴 열의 도시는 제목·일정에 그 도시 이름이 있을 때만 남긴다.
+ * 같은 열(간사이·홋카이도·하와이)은 그대로 둔다.
+ * REGRESSION-FREEZE[process13-browse-fixes]: cross-group city tag needs own name — manifest
+ */
+export function filterCrossGroupCityKeysUnlessNamed(
+  primaryCityKey: string | null | undefined,
+  cityKeys: string[],
+  haystack: string,
+): string[] {
+  const keys = [...new Set(cityKeys.map((k) => k.trim()).filter(Boolean))]
+  const primary = (primaryCityKey ?? '').trim()
+  const primaryPlace = primary ? megaMenuPlacementForCityKey(primary) : null
+  const hay = haystack.trim()
+  if (!primaryPlace || !hay) return keys
+  return keys.filter((k) => {
+    if (k === primary) return true
+    const place = megaMenuPlacementForCityKey(k)
+    if (place && place.regionId === primaryPlace.regionId && place.menuGroupSlug === primaryPlace.menuGroupSlug) {
+      return true
+    }
+    return cityOwnNames(k).some((name) => termAppearsInHaystack(name, hay))
+  })
 }

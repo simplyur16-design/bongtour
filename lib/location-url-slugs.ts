@@ -27,6 +27,9 @@ const COUNTRY_SLUG_BY_LABEL: Record<string, string> = {
   인도네시아: 'indonesia',
   라오스: 'laos',
   몰디브: 'maldives',
+  // 공정13 검수: 메가메뉴 브루나이 링크가 country=브루나이(한글)로 나가 공개 2건(brunei)이 0건으로 보이던 문제
+  // REGRESSION-FREEZE[process13-browse-fixes]: brunei country slug — manifest
+  브루나이: 'brunei',
   인도: 'india',
   네팔: 'nepal',
   스리랑카: 'srilanka',
