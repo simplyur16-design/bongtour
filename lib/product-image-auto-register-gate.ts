@@ -15,6 +15,7 @@ import {
   type ImageCandidate,
   type ImagePolicyResult,
 } from '@/lib/product-image-source-policy'
+import { isUnsplashProfileUrl } from '@/lib/unsplash-credit'
 
 export const IMAGE_POLICY_AUTO_REGISTER_ENV = 'BONGTOUR_IMAGE_POLICY_AUTO_REGISTER'
 
@@ -59,7 +60,7 @@ export function applyAutoCoverDecisionToUpdateData<T extends Record<string, unkn
   measured: { width: number; height: number } | null,
   aiPrompt: string | null = null,
   now: Date = new Date(),
-  credit: { authorName: string; authorProfileUrl: string; externalId: string | null } | null = null
+  credit: { authorName: string; authorProfileUrl: string; photoPageUrl?: string; externalId: string | null } | null = null
 ): T {
   if (decision.action === 'legacy') return base
   const out: Record<string, unknown> = { ...base }
@@ -148,7 +149,7 @@ export async function gatedAutoCoverUpdateData<T extends Record<string, unknown>
   const name = String(photo.photographer ?? '').trim()
   const profile = String(photo.authorProfileUrl ?? photo.originalLink ?? '').trim()
   const credit =
-    decision.action === 'write' && decision.policy.tier === 'unsplash' && name && profile
+    decision.action === 'write' && decision.policy.tier === 'unsplash' && name && isUnsplashProfileUrl(profile)
       ? { authorName: name, authorProfileUrl: profile, externalId: photo.externalId != null ? String(photo.externalId) : null }
       : null
   return applyAutoCoverDecisionToUpdateData(data, decision, measured, isGen ? prompt : null, new Date(), credit)

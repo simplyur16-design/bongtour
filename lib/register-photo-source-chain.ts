@@ -14,6 +14,7 @@ import {
   type UnsplashHeroCandidate,
 } from '@/lib/unsplash-service'
 import { IMAGE_MIN_WIDTH } from '@/lib/product-image-source-policy'
+import { unsplashPhotoPageUrl } from '@/lib/unsplash-credit'
 import { altSaysMonochrome, isMonochromePhotoUrl } from '@/lib/register-photo-monochrome'
 
 export const PHOTO_CHAIN_STOCK_ORDER = ['pexels', 'unsplash', 'cc0'] as const
@@ -30,8 +31,10 @@ export type ChainCandidate = {
   url: string
   source: 'Pexels' | 'Unsplash'
   photographer: string
-  /** Pexels: 사진 페이지 / Unsplash: 작가 프로필(크레딧) */
+  /** Pexels: 사진 페이지 / Unsplash: 작가 프로필(bgImageSourceUrl). 사진 페이지는 pageUrl. */
   originalLink: string
+  /** Unsplash 크레딧용 작가 프로필. 출처 URL 과 같다. */
+  authorProfileUrl?: string | null
   externalId: string
   width: number
   height: number
@@ -120,13 +123,14 @@ function fromUnsplash(u: UnsplashHeroCandidate): ChainCandidate | null {
     source: 'Unsplash',
     photographer: u.authorName,
     originalLink: u.authorProfileUrl,
+    authorProfileUrl: u.authorProfileUrl,
     externalId: u.unsplashId,
     width: w,
     height: h,
     altText: u.altText,
     ...(u.description ? { description: u.description } : {}),
     ...(u.tags ? { tags: u.tags } : {}),
-    pageUrl: null,
+    pageUrl: unsplashPhotoPageUrl(u.unsplashId),
     downloadLocation: u.downloadLocation,
     queryUsed: u.queryUsed,
     avgColor: u.avgColor ?? null,

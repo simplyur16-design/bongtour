@@ -7,6 +7,7 @@
 
 import type { PrismaClient } from '@prisma/client'
 import sharp from 'sharp'
+import { AUTOFILL_DAY_MAX_BYTES } from '@/lib/photo-autofill-gate'
 import {
   uploadStorageObject,
   getImageStorageBucket,
@@ -135,7 +136,7 @@ export async function rehostPexelsScheduleDayImageIfNeeded(
   const uploadContentType =
     contentType?.split(';')[0]?.trim() ||
     (ext === 'jpg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : `image/${ext}`)
-  const up = await uploadStorageObject({ objectKey, body: buffer, contentType: uploadContentType })
+  const up = await uploadStorageObject({ objectKey, body: buffer, contentType: uploadContentType, maxBytes: AUTOFILL_DAY_MAX_BYTES })
   return {
     publicUrl: up.publicUrl,
     objectKey: up.objectKey,

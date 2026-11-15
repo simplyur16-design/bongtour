@@ -13,6 +13,20 @@ import { canonicalProductImageSourceKey } from '@/lib/product-image-source-attri
 export const UNSPLASH_UTM_QUERY = 'utm_source=bongtour&utm_medium=referral'
 export const UNSPLASH_HOME_URL = 'https://unsplash.com/'
 
+/** 사진 페이지 — https://unsplash.com/photos/<id>. 출처(SourceUrl)는 이 주소다. */
+export function unsplashPhotoPageUrl(photoId: string): string {
+  return `https://unsplash.com/photos/${encodeURIComponent(photoId.trim())}`
+}
+
+export function isUnsplashPhotoPageUrl(url: string | null | undefined): boolean {
+  try {
+    const u = new URL(String(url ?? '').trim())
+    return u.protocol === 'https:' && (u.hostname === 'unsplash.com' || u.hostname === 'www.unsplash.com') && /^\/photos\/[^/]+\/?$/.test(u.pathname)
+  } catch {
+    return false
+  }
+}
+
 /** 작가 프로필 주소인지 — https://unsplash.com/@아이디 만 */
 export function isUnsplashProfileUrl(url: string | null | undefined): boolean {
   try {

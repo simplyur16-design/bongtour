@@ -7,6 +7,7 @@ import type { PrismaClient } from '@prisma/client'
 import { isObjectStorageConfigured } from '@/lib/object-storage'
 import { isExternalCdnImageUrl } from '@/lib/external-cdn-image-ssot'
 import { savePhotoFromUrlWithRetry, type PhotoPoolAttribution } from '@/lib/photo-pool'
+import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES } from '@/lib/photo-autofill-gate'
 
 /** 최종 상품/일정/히어로에 남기면 안 되는 외부 `http(s)` 이미지 URL — Memory #5 SSOT */
 export function isExternalHttpProductImageUrl(url: string): boolean {
@@ -48,7 +49,10 @@ export async function internalizeProductCoverImageUrl(
     sourceUrl: input.pexelsPageUrl,
     sourcePhotoId: input.pexelsPhotoId != null ? String(input.pexelsPhotoId) : null,
   }
-  const pooled = await savePhotoFromUrlWithRetry(prisma, u, city, attraction, poolSrc, { attribution })
+  const pooled = await savePhotoFromUrlWithRetry(prisma, u, city, attraction, poolSrc, {
+    attribution,
+    maxBytes: AUTOFILL_COVER_MAX_BYTES,
+  })
   if (pooled) return pooled.filePath
 
   throw new Error(
@@ -88,7 +92,10 @@ export async function internalizeHeroDisplayUrl(
     sourceUrl: input.pexelsPageUrl,
     sourcePhotoId: input.pexelsPhotoId != null ? String(input.pexelsPhotoId) : null,
   }
-  const pooled = await savePhotoFromUrlWithRetry(prisma, u, city, stem, 'Pexels', { attribution })
+  const pooled = await savePhotoFromUrlWithRetry(prisma, u, city, stem, 'Pexels', {
+    attribution,
+    maxBytes: AUTOFILL_DAY_MAX_BYTES,
+  })
   if (pooled) return pooled.filePath
 
   throw new Error(

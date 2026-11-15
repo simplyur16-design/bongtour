@@ -85,7 +85,12 @@ export type CoverPreviousValue = {
 
 /** 대표 사진 칸만 바꾸는 갱신 값(다른 칸 없음) */
 export function coverReplacementData(photo: ReplacementPhoto): Record<string, unknown> {
-  return { bgImageUrl: photo.url, ...resolveProductBgImageFieldsFromPhoto(photo) }
+  const place = String(photo.sight ?? photo.matched ?? '').trim()
+  return {
+    bgImageUrl: photo.url,
+    ...resolveProductBgImageFieldsFromPhoto(photo),
+    ...(place ? { bgImagePlaceName: place } : {}),
+  }
 }
 
 export type ReplaceNote = {

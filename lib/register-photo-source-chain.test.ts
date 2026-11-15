@@ -48,6 +48,8 @@ describe('register-photo-source-chain', () => {
     })
     expect(r.photo?.source).toBe('Unsplash')
     expect(r.photo?.originalLink).toBe('https://unsplash.com/@u')
+    expect(r.photo?.pageUrl).toBe('https://unsplash.com/photos/abc')
+    expect(r.photo?.authorProfileUrl).toBe('https://unsplash.com/@u')
     expect(r.photo?.width).toBeGreaterThanOrEqual(1200)
     expect(triggerDownload).toHaveBeenCalledWith('https://api.unsplash.com/photos/abc/download')
   })

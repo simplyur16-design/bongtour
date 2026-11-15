@@ -1,8 +1,8 @@
 import type { PrismaClient } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { isPendingRegistrationStatus, pendingRegistrationWriteWhere } from '@/lib/register-pre-photo-pending-queue-query'
 import { fetchPexelsPhotoObject, isPexelsFallbackUrl, type PexelsPhotoObject } from '@/lib/pexels-service'
 import { extractPexelsPhotoIdFromCdnUrl } from '@/lib/product-pexels-image-rehost'
-import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { buildImageCacheFromDb, getCachedPhoto, type CachedPhotoObject } from '@/lib/image-cache'
 import { mapDestination } from '@/lib/pexels-keyword'
 import {
@@ -99,7 +99,8 @@ import { probeStoredImage } from '@/lib/register-auto-photo-register-job'
 import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-ai-label'
 // REGRESSION-FREEZE[photo-autofill-route-strict]: 자동 채움(photoChain v2 + fillMissingOnly)은 검증된 방문지 사진만 — manifest
 import { acquireVerifiedPhoto } from '@/lib/photo-autofill-acquire'
-import { photoIdentityKeys } from '@/lib/photo-autofill-gate'
+import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, bytesFitSlotLimit, coverPoolCandidateOk, photoIdentityKeys } from '@/lib/photo-autofill-gate'
+import { probeImageDimensions } from '@/lib/image-dimension-probe'
 import { createLiveAcquireDeps } from '@/lib/photo-autofill-live-deps'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
 import { destinationTermsOf } from '@/lib/photo-gate-runner'
@@ -465,6 +466,15 @@ export const maxDuration = 60
  * Phase 2: productId 기반 이미지 수확.
  * 메인 1 = 상품 대표(landmark). 일정 1~4 = 일차별 POI 우선, 메인·타 일차와 URL/출처/id 중복 제외.
  */
+async function writeProductPhotoRow(id: string, data: Record<string, unknown>, requirePending: boolean): Promise<boolean> {
+  if (!requirePending) {
+    await prisma.product.update({ where: { id }, data })
+    return true
+  }
+  const wrote = await prisma.product.updateMany({ where: pendingRegistrationWriteWhere(id), data })
+  return wrote.count === 1
+}
+
 export async function POST(req: Request) {
   const admin = await requireAdmin()
   if (!admin)
@@ -478,6 +488,7 @@ export async function POST(req: Request) {
     const photoChainV2 = isPhotoChainV2Enabled(body)
     const fillMissingOnly = body.fillMissingOnly === true
     const preserveHeroRequested = body.preserveHero === true
+    const requirePendingRegistration = body.requirePendingRegistration === true
     const strictAutofill = photoChainV2 && fillMissingOnly
     const strictExceptions: PhotoException[] = []
     if (productId == null) {
@@ -496,6 +507,7 @@ export async function POST(req: Request) {
         schedule: true,
         duration: true,
         bgImageRehostSearchLabel: true,
+        bgImagePlaceName: true,
         registrationStatus: true,
         bgImageUrl: true,
         bgImageSource: true,
@@ -506,6 +518,14 @@ export async function POST(req: Request) {
       return jsonWithLeakGuard({ success: false, error: '상품을 찾을 수 없습니다.' }, 'travel.process-images.not-found', {
         status: 404,
       })
+    }
+    const registrationStatus = (product as { registrationStatus?: string | null }).registrationStatus
+    if (requirePendingRegistration && !isPendingRegistrationStatus(registrationStatus)) {
+      return jsonWithLeakGuard(
+        { success: false, filled: 0, reason: 'not_pending' },
+        'travel.process-images.not-pending',
+        { status: 409 },
+      )
     }
 
     const destination = (product.destination ?? '').trim() || '미지정'
@@ -632,13 +652,15 @@ export async function POST(req: Request) {
         destination,
         itineraryRows
       )
-      await prisma.product.update({
-        where: { id: product.id as string },
+      const pooledCover = {
         data: await gatedAutoCoverUpdateData(product, toPoolResult(mainRec), null, {
           bgImageUrl: mainUrl,
           schedule: scheduleStr,
         }),
-      })
+      }
+      if (!(await writeProductPhotoRow(product.id as string, pooledCover.data, requirePendingRegistration))) {
+        return jsonWithLeakGuard({ success: false, filled: 0, reason: 'not_pending' }, 'travel.process-images.not-pending', { status: 409 })
+      }
       return replyWithFilledCount(
         countNewlyFilledPhotoSlots({
           beforeDayUrls: scheduleArr.map((item) => item.imageUrl),
@@ -710,13 +732,15 @@ export async function POST(req: Request) {
         destination,
         itineraryRows
       )
-      await prisma.product.update({
-        where: { id: product.id as string },
+      const premadeCover = {
         data: await gatedAutoCoverUpdateData(product, mainSealed, null, {
           bgImageUrl: mainSealed.url,
           schedule: scheduleStrPre,
         }),
-      })
+      }
+      if (!(await writeProductPhotoRow(product.id as string, premadeCover.data, requirePendingRegistration))) {
+        return jsonWithLeakGuard({ success: false, filled: 0, reason: 'not_pending' }, 'travel.process-images.not-pending', { status: 409 })
+      }
       return replyWithFilledCount(
         countNewlyFilledPhotoSlots({
           beforeDayUrls: scheduleArr.map((item) => item.imageUrl),
@@ -738,8 +762,10 @@ export async function POST(req: Request) {
     const usedSemanticKeys = new Set<string>()
     const chainTrace: Array<{ slot: string; tried: string[]; picked: string | null }> = []
     /** v2: 출처 순서 후보 → Pexels 는 풀 저장(재호스팅), Unsplash 는 핫링크 + 크레딧 */
-    const adoptChainPhoto = async (c: ChainCandidate, label: string): Promise<PhotoResult | null> => {
+    const adoptChainPhoto = async (c: ChainCandidate, label: string, maxBytes: number): Promise<PhotoResult | null> => {
       if (c.tier === 'unsplash') {
+        const measured = await probeStoredImage(c.url)
+        if (!bytesFitSlotLimit(measured.bytes, maxBytes)) return null
         return {
           url: c.url,
           source: 'Unsplash',
@@ -752,7 +778,7 @@ export async function POST(req: Request) {
         photographer: c.photographer,
         sourceUrl: c.originalLink,
         sourcePhotoId: c.externalId,
-      })
+      }, maxBytes)
       return photoFromPoolSave(saved)
     }
     const chainAccept = (extra?: (c: ChainCandidate) => boolean, gateCtx?: MatchGateContext) => (c: ChainCandidate) => {
@@ -826,7 +852,9 @@ export async function POST(req: Request) {
         },
       })
       newFetchCount++
-      const adoptedRaw = r.photo ? await adoptChainPhoto(r.photo, label) : null
+      const adoptedRaw = r.photo
+        ? await adoptChainPhoto(r.photo, label, isMainSlot ? AUTOFILL_COVER_MAX_BYTES : AUTOFILL_DAY_MAX_BYTES)
+        : null
       const adopted = adoptedRaw && cityMatch ? { ...adoptedRaw, cityMatch } : adoptedRaw
       chainTrace.push({ slot, tried: r.tried, picked: adopted ? adopted.source : null })
       return adopted
@@ -846,7 +874,7 @@ export async function POST(req: Request) {
       itineraryDays: buildHeroKeywordInputsFromSchedule(product.schedule, itineraryRows),
       destinationKr: destination,
       cityEn: mapDestination((product as { primaryDestination?: string | null }).primaryDestination ?? destination),
-      cachedHeroPlaceKeyword: (product as { bgImageRehostSearchLabel?: string | null }).bgImageRehostSearchLabel,
+      cachedHeroPlaceKeyword: (product as { bgImagePlaceName?: string | null }).bgImagePlaceName,
     })
     const mainQuery =
       heroPick.keyword ||
@@ -859,7 +887,20 @@ export async function POST(req: Request) {
     const existingHeroUrl = String(product.bgImageUrl ?? '').trim()
     // REGRESSION-FREEZE[auto-photo-missing-day-fill]: 기존 대표 URL·출처는 유지 — manifest
     let preserveHero = preserveHeroRequested && existingHeroUrl.length > 0
-    const poolMain = preserveHero ? undefined : poolBySlot.get(-1)
+    let poolMain = preserveHero ? undefined : poolBySlot.get(-1)
+    if (poolMain) {
+      const measured = await probeStoredImage(poolMain.filePath)
+      const dim = await probeImageDimensions(poolMain.filePath)
+      if (
+        !coverPoolCandidateOk({
+          bytes: measured.bytes,
+          width: dim?.width ?? null,
+          height: dim?.height ?? null,
+        })
+      ) {
+        poolMain = undefined
+      }
+    }
 
     // 자동 채움: 방문지 검증 + 공개 상품과 중복 금지. 검색은 순차·간격+지터, 읽기 재시도 1회, AI 생성 없음.
     const strictTerms = destinationTermsOf({
@@ -938,27 +979,25 @@ export async function POST(req: Request) {
               slot: 'main',
             })
           : null
-        // v2: 재고 사진이 없을 때만 AI 생성(아래 Gemini 분기)으로 간다
         const pexelsMain = photoChainV2 ? null : await fetchPexelsPhotoObject(mainQuery)
         if (!photoChainV2) newFetchCount++
         if (chainMain) {
           mainPhoto = chainMain
           console.log(`[CHAIN] 메인 ${chainMain.source}`)
         } else if (!pexelsMain || isPexelsFallbackUrl(pexelsMain.url)) {
-          const geminiBuffer = await generateImageWithGemini({ prompt: mainQuery })
-          if (geminiBuffer) {
-            const saved = await savePhotoToPool(prisma, geminiBuffer, destination, mainQuery, 'Gemini', {
-              convertToWebpFirst: true,
-            })
-            const fromPool = photoFromPoolSave(saved)
-            if (!fromPool) {
-              throw new Error('메인 제미나이 이미지를 PhotoPool에 저장하지 못했습니다.')
-            }
-            mainPhoto = fromPool
-            console.log(`[POOL] 메인 제미나이 생성 → 풀 저장`)
-          } else {
-            throw new Error('메인 이미지 생성(Gemini)에 실패했습니다.')
-          }
+          mainPhoto = { url: '', source: '', photographer: '', originalLink: '' }
+          preserveHero = true
+          await strictRecord({
+            productId: String(product.id),
+            day: null,
+            kind: 'cover',
+            sight: mainQuery || null,
+            query: mainQuery || null,
+            reason: 'no_stock_photo',
+            detail: '자동 경로에서는 이미지를 생성하지 않고 칸을 비워 둔다',
+            origin: 'autofill',
+            at: new Date().toISOString(),
+          })
         } else {
           const saved = await savePhotoFromUrl(
             prisma,
@@ -966,7 +1005,8 @@ export async function POST(req: Request) {
             destination,
             mainQuery,
             'Pexels',
-            pexelsPoolAttribution(pexelsMain)
+            pexelsPoolAttribution(pexelsMain),
+            AUTOFILL_COVER_MAX_BYTES,
           )
           const fromPool = photoFromPoolSave(saved)
           if (!fromPool) {
@@ -977,7 +1017,7 @@ export async function POST(req: Request) {
         }
       }
     }
-    if (!preserveHero) {
+    if (!preserveHero && mainPhoto.url) {
       mainPhoto = await sealProductCoverPhoto(prisma, destination, mainPhoto, mainQuery, mainPhoto.source)
     }
     if (mainPhoto.url) usage.mark(mainPhoto)
@@ -1277,7 +1317,8 @@ export async function POST(req: Request) {
             destination,
             attractionLabel,
             'Pexels',
-            pexelsPoolAttribution(pexelsPhoto)
+            pexelsPoolAttribution(pexelsPhoto),
+            AUTOFILL_DAY_MAX_BYTES,
           )
           photo = photoFromPoolSave(saved)
           fallbackReason = photo ? 'fallback-pexels' : 'fallback-pool-save-failed'
@@ -1490,7 +1531,8 @@ export async function POST(req: Request) {
         destination,
         attractionLabel,
         'Pexels',
-        pexelsPoolAttribution(pexelsPhoto)
+        pexelsPoolAttribution(pexelsPhoto),
+        AUTOFILL_DAY_MAX_BYTES,
       )
       const fromPool = photoFromPoolSave(saved)
       if (!fromPool) continue
@@ -1604,18 +1646,20 @@ export async function POST(req: Request) {
     )
     const bgMeta = resolveProductBgImageFieldsFromPhoto(bgPhoto)
     const strictNoCover = strictAutofill && !existingHeroUrl && !bgPhoto.url
-    if (strictNoCover) {
-      await prisma.product.update({ where: { id: product.id as string }, data: { schedule: scheduleStrFinal } })
-    } else await prisma.product.update({
-      where: { id: product.id as string },
+    const gatedCover = {
       data: await gatedAutoCoverUpdateData(product, bgPhoto, mainQuery, {
         ...processImagesProductUpdate(preserveHero, scheduleStrFinal, {
           bgImageUrl: bgPhoto.url,
           bgImageRehostSearchLabel: mainQuery.slice(0, 120),
           ...bgMeta,
+          ...(String(bgPhoto.sight ?? '').trim() ? { bgImagePlaceName: String(bgPhoto.sight).trim() } : {}),
         }),
       }),
-    })
+    }
+    const finalData = strictNoCover ? { schedule: scheduleStrFinal } : gatedCover.data
+    if (!(await writeProductPhotoRow(product.id as string, finalData, requirePendingRegistration))) {
+      return jsonWithLeakGuard({ success: false, filled: 0, reason: 'not_pending' }, 'travel.process-images.not-pending', { status: 409 })
+    }
 
     for (const row of updatedSchedule) {
       const prev = prevByDay.get(Number(row.day))

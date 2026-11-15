@@ -25,6 +25,7 @@ import {
 import { isObjectStorageConfigured } from '@/lib/object-storage'
 import { extractPexelsPhotoIdFromCdnUrl } from '@/lib/product-pexels-image-rehost'
 import { savePhotoFromUrlWithRetry, savePhotoToPool, type PoolPhotoRecord } from '@/lib/photo-pool'
+import { AUTOFILL_DAY_MAX_BYTES } from '@/lib/photo-autofill-gate'
 import { internalizeHeroDisplayUrl, isExternalHttpProductImageUrl } from '@/lib/travel-product-image-internalize'
 import { buildHeroPexelsQuerySet, type PexelsQuerySet } from '@/lib/pexels-hero-query'
 import {
@@ -524,6 +525,7 @@ export async function generateGeminiFallbackImage(opts: {
   if (!buf) return null
   const saved = await savePhotoToPool(opts.prisma, buf, opts.destination, opts.attractionName, 'Gemini', {
     convertToWebpFirst: true,
+    maxBytes: AUTOFILL_DAY_MAX_BYTES,
   })
   return saved ? { pool: saved, prompt: primaryPrompt } : null
 }

@@ -248,6 +248,8 @@ async function main() {
       endpoint: ncloudEndpoint,
       credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
       forcePathStyle,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     })
 
     for (const key of keys) {

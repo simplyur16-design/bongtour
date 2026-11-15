@@ -18,6 +18,37 @@ export const AUTOFILL_MAX_CANDIDATES_PER_SLOT = 5
 export const AUTOFILL_MIN_WIDTH = IMAGE_MIN_WIDTH
 export const AUTOFILL_COVER_MAX_BYTES = 200_000
 export const AUTOFILL_DAY_MAX_BYTES = DAY_PHOTO_DETAIL_MAX_BYTES
+/**
+ * 목록 카드 대표 후보만. 1600×565 파노라마(세로 565, 가로/세로 ≈2.83)를 막는다.
+ * 기존 가로 1200·가로형·용량은 그대로다. 가로 1200의 16:9 는 세로 675 라서
+ * 세로 하한은 그 아래인 640. 2:1(2.0)은 두고 2.2 를 넘는 띠 사진만 거절한다.
+ */
+export const AUTOFILL_COVER_MIN_HEIGHT = 640
+export const AUTOFILL_COVER_MAX_WIDTH_OVER_HEIGHT = 2.2
+
+/** 대표 사진의 세로·가로/세로. 1600×565 같은 납작한 파노라마를 거절한다. */
+export function coverFrameReasons(width: number, height: number): Array<'cover_short' | 'cover_panorama'> {
+  const reasons: Array<'cover_short' | 'cover_panorama'> = []
+  if (!(height >= AUTOFILL_COVER_MIN_HEIGHT)) reasons.push('cover_short')
+  if (height > 0 && width / height > AUTOFILL_COVER_MAX_WIDTH_OVER_HEIGHT) reasons.push('cover_panorama')
+  return reasons
+}
+
+/** 측정된 바이트가 칸 한도 안일 때만 재사용·핫링크를 허용한다. 모르면(null) 허용하지 않는다. */
+export function bytesFitSlotLimit(bytes: number | null | undefined, maxBytes: number): boolean {
+  return typeof bytes === 'number' && Number.isFinite(bytes) && bytes > 0 && bytes <= maxBytes
+}
+
+/** 풀에 있는 대표 사진을 다시 쓰기 전: 200,000B 이하이고 세로·비율을 통과해야 한다. */
+export function coverPoolCandidateOk(input: {
+  bytes: number | null
+  width: number | null
+  height: number | null
+}): boolean {
+  if (!bytesFitSlotLimit(input.bytes, AUTOFILL_COVER_MAX_BYTES)) return false
+  if (input.width == null || input.height == null) return false
+  return coverFrameReasons(input.width, input.height).length === 0
+}
 
 export type AutofillSlotKind = 'day' | 'cover'
 
@@ -46,6 +77,8 @@ export type AutofillCandidate = {
 export type AutofillRejectReason =
   | 'low_res'
   | 'portrait_orientation'
+  | 'cover_short'
+  | 'cover_panorama'
   | 'no_description'
   | 'missing_attribution'
   | 'no_sight_match'
@@ -274,6 +307,9 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
 
   if (!(c.width >= AUTOFILL_MIN_WIDTH)) reasons.add('low_res')
   if (c.width > 0 && c.height > c.width) reasons.add('portrait_orientation')
+  if (input.slotKind === 'cover') {
+    for (const reason of coverFrameReasons(c.width, c.height)) reasons.add(reason)
+  }
   if (!String(c.id ?? '').trim() || !(String(c.photographer ?? '').trim() || String(c.originalLink ?? '').trim())) {
     reasons.add('missing_attribution')
   }
