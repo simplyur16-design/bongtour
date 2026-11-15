@@ -1,14 +1,17 @@
 import type { Metadata } from 'next'
+import { buildEsimSearchMetadata, esimSearchTitle } from '@/lib/seo/esim-search-metadata'
 import Link from 'next/link'
 import Header from '@/app/components/Header'
 import { bongsimPath } from '@/lib/bongsim/constants'
 
 export const metadata: Metadata = {
-  title: 'eSIM 이용 가능 기기',
-  description:
-    'iPhone·Galaxy·Pixel 등 Bong투어 eSIM을 사용할 수 있는 기기를 정리했어요. 구매 전 내 스마트폰의 eSIM 지원 여부를 꼭 확인해 주세요.',
-  alternates: { canonical: '/travel/esim/help/device-compatibility' },
-  robots: { index: true, follow: true },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle('eSIM 이용 가능 기기'),
+    description:
+      'iPhone·Galaxy·Pixel 등 Bong투어 eSIM(여행용)을 사용할 수 있는 기기를 정리했어요. 구매 전 내 스마트폰의 eSIM 지원 여부를 꼭 확인해 주세요.',
+    path: '/travel/esim/help/device-compatibility',
+    robots: { index: true, follow: true },
+  }),
 }
 
 type DeviceGroup = {

@@ -21,6 +21,8 @@ import {
 import { publicProductPath } from '@/lib/product-public-path'
 import { loadProductForMetadataCached } from '@/lib/product-detail-page-cache'
 import { resolveProductPageAccess } from '@/lib/resolve-product-page-access'
+import { isOverseasTrainingListingKind } from '@/lib/resolve-product-by-path-segment'
+import { trainingProgramPublicPath } from '@/lib/overseas-training-program-query'
 import { runWithQueryLogScope } from '@/lib/prisma-query-log'
 import { ProductDetailPageContent } from '@/app/products/[idOrSlug]/product-detail-page-content'
 import ProductDetailPageSkeleton from '@/components/products/ProductDetailPageSkeleton'
@@ -46,6 +48,13 @@ async function generateMetadataInner(idOrSlug: string): Promise<Metadata> {
   if (allowAdminDraft) await connection()
   if (resolved.kind === 'redirect') {
     return { title: '상품' }
+  }
+  // REGRESSION-FREEZE[seo-training-products-301]: 국외연수는 301 대상 — 혹시 렌더돼도 canonical 은 정식 주소
+  if (resolved.kind === 'render' && isOverseasTrainingListingKind(resolved.listingKind)) {
+    return {
+      title: '국외연수 프로그램',
+      alternates: { canonical: trainingProgramPublicPath({ id: resolved.productId, slug: resolved.slug }) },
+    }
   }
   if (resolved.kind === 'not_found') {
     return { title: '상품' }

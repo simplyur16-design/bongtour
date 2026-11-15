@@ -1,4 +1,5 @@
 const path = require('path')
+const { SEO_HTML_LIMITED_BOTS } = require('./lib/seo/html-limited-bots')
 
 let withBundleAnalyzer = (config) => config
 if (process.env.ANALYZE === 'true') {
@@ -61,6 +62,11 @@ function buildContentSecurityPolicy() {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   productionBrowserSourceMaps: false,
+  /**
+   * REGRESSION-FREEZE[seo-html-limited-bots-googlebot]: Googlebot 등 검색 크롤러는 metadata 를 <head> 에 바로 받는다
+   * (기본값이면 canonical·og 가 <body> 로 스트리밍되어 서치 콘솔 '표준 없는 중복'). lib/seo/html-limited-bots.js
+   */
+  htmlLimitedBots: SEO_HTML_LIMITED_BOTS,
   serverExternalPackages: [
     '@prisma/client',
     'prisma',

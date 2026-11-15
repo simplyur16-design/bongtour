@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import { buildEsimSearchMetadata, esimSearchTitle } from "@/lib/seo/esim-search-metadata";
 import { EsimBenefitPageShell } from "@/components/bongsim/EsimBenefitPageShell";
 import { ESIM_BENEFIT_ROAMING_COUNTRIES } from "@/lib/bongsim/esim-benefit-content";
 
 export const metadata: Metadata = {
-  title: { absolute: "ChatGPT 데이터 무료 | Bong투어 eSIM" },
-  description:
-    "여행 중 ChatGPT 번역·정보 검색을 데이터 부담 없이 이용할 수 있는 Bong투어 eSIM 혜택을 안내합니다.",
-  alternates: { canonical: "/travel/esim/benefits/chatgpt" },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle("ChatGPT 데이터 무료"),
+    description:
+      "여행 중 ChatGPT 번역·정보 검색을 데이터 부담 없이 이용할 수 있는 Bong투어 eSIM(여행용) 혜택을 안내합니다.",
+    path: "/travel/esim/benefits/chatgpt",
+  }),
 };
 
 export default function EsimChatGptBenefitPage() {

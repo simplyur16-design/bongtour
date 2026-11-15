@@ -720,6 +720,8 @@ export function ProductResultCard({
   hubSquareSmall?: boolean
 }) {
   const cardSrc = (item.coverImageUrl ?? item.bgImageUrl ?? '').trim()
+  // REGRESSION-FREEZE[seo-home-image-alt]: 상품 사진 alt = 여행지 사진 설명(빈 alt 금지, 요청서 C11) — manifest
+  const cardImageAlt = `${(item.primaryDestination ?? '').trim() || '여행지'} 여행 사진`
   const cardBlur = Boolean(cardSrc) && isSrcOptimizableByNextImage(cardSrc)
   const laneLabel = resolvePublicListingIsFit({
     listingKind: item.listingKind,
@@ -789,7 +791,7 @@ export function ProductResultCard({
           <>
             <SafeImage
               src={cardSrc}
-              alt=""
+              alt={cardImageAlt}
               fill
               className="object-cover"
               // REGRESSION-FREEZE[product-card-image-object-position]: slug별 카드 자르는 위치 (lib/product-card-image-position.ts)

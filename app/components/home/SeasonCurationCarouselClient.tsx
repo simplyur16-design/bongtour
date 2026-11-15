@@ -144,12 +144,13 @@ export function SeasonCurationCardLink({
             hero ? (
               <div className={`absolute inset-0 ${SEASON_CURATION_PHOTO_FILTER}`}>
                 {/* REGRESSION-FREEZE[home-hero-lcp-and-section-titles]: 첫 장만 priority — manifest */}
-                <CinemaHeroImage src={img} sizes="100vw" priority={priority} loading={priority ? undefined : 'lazy'} />
+                <CinemaHeroImage src={img} alt={title} sizes="100vw" priority={priority} loading={priority ? undefined : 'lazy'} />
               </div>
             ) : (
               <SafeImage
                 src={img}
-                alt=""
+                // REGRESSION-FREEZE[seo-home-image-alt]: 시즌 추천 사진 alt = 추천 제목 (요청서 C11)
+                alt={title}
                 fill
                 className="object-cover object-center"
                 sizes={
