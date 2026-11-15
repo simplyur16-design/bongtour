@@ -1,14 +1,19 @@
 import type { Metadata } from 'next'
 import TrainingProgramsCatalog from '@/components/training/TrainingProgramsCatalog'
 import { listPublishedTrainingPrograms } from '@/lib/overseas-training-program-query'
-import { SITE_NAME } from '@/lib/site-metadata'
+import {
+  buildTrainingProgramsListJsonLd,
+  buildTrainingProgramsListMetadata,
+  jsonLdScriptHtml,
+  TRAINING_PROGRAMS_TITLE,
+} from '@/lib/seo/training-json-ld'
 
 export const revalidate = 300
 
+// REGRESSION-FREEZE[seo-training-og-jsonld]: 페이지별 og(홈 기본값 금지)·BreadcrumbList+ItemList — manifest
 export const metadata: Metadata = {
-  title: { absolute: `국외연수 프로그램 | ${SITE_NAME}` },
-  description: '공무·기업 국외연수 프로그램 카탈로그. 가격은 상담 후 안내합니다.',
-  alternates: { canonical: '/business/programs' },
+  ...buildTrainingProgramsListMetadata(),
+  title: { absolute: TRAINING_PROGRAMS_TITLE },
 }
 
 type Props = {
@@ -20,10 +25,16 @@ export default async function BusinessProgramsPage({ searchParams }: Props) {
   const programs = await listPublishedTrainingPrograms({ limit: 100 })
 
   return (
-    <TrainingProgramsCatalog
-      programs={programs}
-      initialAudience={sp.audience ?? null}
-      initialCategory={sp.category ?? null}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScriptHtml(buildTrainingProgramsListJsonLd(programs)) }}
+      />
+      <TrainingProgramsCatalog
+        programs={programs}
+        initialAudience={sp.audience ?? null}
+        initialCategory={sp.category ?? null}
+      />
+    </>
   )
 }

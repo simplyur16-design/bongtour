@@ -18,6 +18,7 @@ import {
   type HanjintourScheduleDay,
 } from '@/lib/hanjintour-parse'
 import { HANJINTOUR_SUPPLIER_KEY } from '@/lib/hanjintour-supplier-key'
+import { ensureBrandIdForKey } from '@/lib/ensure-product-brand'
 import { computeDepartureSlotKeyFromDate } from '@/lib/departure-slot-key'
 
 export const HANJINTOUR_PENDING_STATUS = 'pending' as const
@@ -162,6 +163,7 @@ export async function applyHanjintourPendingPlan(
   })
   if (existing?.registrationStatus === 'registered') return { ok: false, reason: 'already_public' }
 
+  const brandId = await ensureBrandIdForKey(prisma, HANJINTOUR_SUPPLIER_KEY)
   const data = {
     originSource: plan.originSource,
     originCode: plan.originCode,
@@ -174,6 +176,7 @@ export async function applyHanjintourPendingPlan(
     airline: plan.airline,
     duration: plan.duration,
     originUrl: plan.originUrl,
+    ...(brandId ? { brandId } : {}),
   }
 
   const product = existing

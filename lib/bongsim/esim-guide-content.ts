@@ -1,4 +1,9 @@
 // lib/bongsim/esim-guide-content.ts
+import {
+  ESIM_INSTALL_FAQ_QUESTION,
+  ESIM_INSTALL_GUIDE_PATH,
+  ESIM_TRAVELER_AUTH_PATH,
+} from "@/lib/bongsim/esim-install-guide";
 
 // ─────────────────────────────────────────────────────────────
 // eSIM 설치 가이드 콘텐츠 SSOT
@@ -41,6 +46,7 @@ export interface GuideFaq {
   a: string;
   /** 답변 아래 봉투어 CS(카톡) 버튼 블록 */
   showBongsimCs?: boolean;
+  links?: ReadonlyArray<{ href: string; label: string }>;
 }
 
 /** eSIM 가이드 — 설치·사용 CS 이메일 (mailto) */
@@ -352,6 +358,14 @@ export const ANDROID_STEPS: GuideStep[] = [
 
 // ── 공통 FAQ (활성화·사용) ─────────────────────────────────────
 export const COMMON_FAQ: GuideFaq[] = [
+  {
+    q: ESIM_INSTALL_FAQ_QUESTION,
+    a: "출국 전 준비, 아이폰, 갤럭시 단계는 설치 안내를 따라 하세요. 인증이 필요한 상품은 여행자 인증 안내를 먼저 보세요.",
+    links: [
+      { href: ESIM_INSTALL_GUIDE_PATH, label: "eSIM 설치 안내" },
+      { href: ESIM_TRAVELER_AUTH_PATH, label: "여행자 인증" },
+    ],
+  },
   {
     q: "다른 휴대폰으로 옮길 수 있나요?",
     a: "재등록이 어렵습니다. 휴대폰을 바꾸면 새 eSIM을 구매해 주세요. (동일 기기 재등록은 가능한 경우가 있습니다.)",

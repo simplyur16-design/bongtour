@@ -1944,7 +1944,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "OrderPaid 발급 — USIMSA HTTP 중 pg 커넥션 미점유 (무상발급 connect timeout 500 방지)",
+      "summary": "OrderPaid 발급 — USIMSA HTTP 중 pg 커넥션은 미점유(connect timeout 방지)하되 outbox lease는 5분 유지(호출 중 재claim·이중 POST 금지). 미확정 job이면 processed 처리하지 않음",
       "checks": [
         {
           "file": "lib/bongsim/fulfillment/process-fulfillment-job.ts",
@@ -1958,6 +1958,10 @@
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-fulfill-release-during-usimsa]",
             "advanceFulfillmentForPaidOrderReleasingDuringSubmit",
+            "available_at = now() + interval '5 minutes'",
+            "fulfillment_unsettled"
+          ],
+          "mustNotInclude": [
             "available_at = now() + interval '2 minutes'"
           ]
         },
@@ -2809,7 +2813,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM LMS — iPhone·Galaxy 원클릭 URL 본문. LPA면 항상 LMS, 없으면 알림톡 실패·미설정 시에만 폴백",
+      "summary": "eSIM LMS — iPhone·Galaxy 원클릭 URL 본문. 알림톡 실패·미설정 시에만 LMS 폴백 (LPA여도 동시 발송하지 않음)",
       "checks": [
         {
           "file": "lib/bongsim/notifications/esim-qr-lms.ts",
@@ -2855,86 +2859,121 @@
         "lib/bongsim/notifications/esim-qr-lms.test.ts"
       ]
     },
-    {
+        {
       "id": "bongsim-esim-purchase-notify-usimsa-cs",
       "tier": [
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM 구매 발송(LMS·QR메일) 고객센터 링크는 유심사 CX — 봉투어 카카오/bongtour.com 문의 금지",
+      "summary": "eSIM 구매 발송(LMS·QR메일·쿠폰·환불메일) 고객센터 링크는 유심사 고객센터 페이지만 — 카카오(_fqTkK·_xlxjrxlX) 금지",
       "checks": [
         {
           "file": "lib/bongsim/notifications/esim-qr-lms.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]",
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL",
             "고객센터"
           ],
           "mustNotInclude": [
             "문의: 카카오 09:00-18:00 · bongtour.com",
             "유심사 고객센터",
-            "open.kakao.com/o/",
-            "pf.kakao.com/_xlxjrxlX"
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX",
+            "open.kakao.com/o/"
           ]
         },
         {
           "file": "lib/bongsim/email/travel-esim-order-qr-mail.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-esim-purchase-notify-usimsa-cs]",
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL",
             "── 고객센터 ──"
           ],
           "mustNotInclude": [
             "BONGSIM_KAKAO_CHANNEL_URL",
             "봉투어 고객센터",
-            "유심사 고객센터"
+            "유심사 고객센터",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX"
           ]
         },
         {
           "file": "lib/simplyur/email/simplyur-esim-qr-mail.ts",
           "mustInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL",
             "Customer support"
           ],
           "mustNotInclude": [
             "BONGSIM_KAKAO_CHANNEL_URL",
-            "유심사"
+            "유심사",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX"
+          ]
+        },
+        {
+          "file": "lib/bongsim/email/travel-esim-gratitude-coupon-mail.ts",
+          "mustInclude": [
+            "USIMSA_CX_CONTACT_URL",
+            "고객센터"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX"
+          ]
+        },
+        {
+          "file": "lib/bongsim/email/travel-esim-refund-done-mail.ts",
+          "mustInclude": [
+            "USIMSA_CX_CONTACT_URL",
+            "고객센터"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX"
           ]
         },
         {
           "file": "lib/bongsim/constants.ts",
           "mustInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
-            "https://pf.kakao.com/_fqTkK/chat",
             "USIMSA_CX_CONTACT_URL",
             "https://www.usimsa.com/board/contact-channel/"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK"
           ]
         }
       ],
       "vitestSuites": [
         "lib/bongsim/notifications/esim-qr-lms.test.ts",
-        "lib/simplyur/email/simplyur-esim-qr-mail.test.ts"
+        "lib/simplyur/email/simplyur-esim-qr-mail.test.ts",
+        "lib/bongsim/esim-customer-cs-links.test.ts"
       ]
     },
-    {
+        {
       "id": "bongsim-esim-web-install-usimsa-cs",
       "tier": [
         "prebuild",
         "ci"
       ],
-      "summary": "eSIM 홈·가이드·기기 설치 문의 UI는 유심사 CX — 봉투어 카카오 링크 금지",
+      "summary": "eSIM 홈·가이드·기기·정책·CS 카드 설치 문의 UI는 유심사 고객센터 페이지만 — 카카오(_fqTkK·_xlxjrxlX) 금지",
       "checks": [
         {
           "file": "app/travel/esim/EsimLandingWhySection.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[bongsim-esim-web-install-usimsa-cs]",
-            "USIMSA_CX_KAKAO_CHAT_URL"
+            "USIMSA_CX_CONTACT_URL",
+            "BONGSIM_ESIM_SUPPORT_CARD_BODY"
           ],
           "mustNotInclude": [
-            "BONGSIM_KAKAO_CHANNEL_URL"
+            "BONGSIM_KAKAO_CHANNEL_URL",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK"
           ]
         },
         {
@@ -2943,7 +2982,8 @@
             "EsimMypageUsimsaCsLinks"
           ],
           "mustNotInclude": [
-            "EsimBongsimCsLinks"
+            "EsimBongsimCsLinks",
+            "kakaoLabel"
           ]
         },
         {
@@ -2952,35 +2992,42 @@
             "EsimMypageUsimsaCsLinks"
           ],
           "mustNotInclude": [
-            "EsimBongsimCsLinks"
+            "EsimBongsimCsLinks",
+            "kakaoLabel"
           ]
         },
         {
           "file": "components/bongsim/EsimMypageUsimsaCsLinks.tsx",
           "mustInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "BONGSIM_KAKAO_CHANNEL_URL"
           ]
         },
         {
           "file": "components/bongsim/esim/EsimVerificationGuideContent.tsx",
           "mustInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL"
           ],
           "mustNotInclude": [
-            "BONGSIM_KAKAO_CHANNEL_URL"
+            "BONGSIM_KAKAO_CHANNEL_URL",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK"
           ]
         },
         {
           "file": "components/bongsim/EsimSupportFootnote.tsx",
           "mustInclude": [
-            "USIMSA_CX_KAKAO_CHAT_URL",
             "USIMSA_CX_CONTACT_URL"
           ],
           "mustNotInclude": [
             "open.kakao.com/o/",
-            "BONGSIM_KAKAO_CHANNEL_URL"
+            "BONGSIM_KAKAO_CHANNEL_URL",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK"
           ]
         },
         {
@@ -3001,7 +3048,101 @@
           "mustNotInclude": [
             "open.kakao.com/o/"
           ]
+        },
+        {
+          "file": "app/travel/esim/policy/page.tsx",
+          "mustInclude": [
+            "USIMSA_CX_CONTACT_URL",
+            "EsimMypageUsimsaCsLinks"
+          ],
+          "mustNotInclude": [
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "카카오톡 문의"
+          ]
+        },
+        {
+          "file": "components/bongsim/EsimBongsimCsLinks.tsx",
+          "mustInclude": [
+            "USIMSA_CX_CONTACT_URL"
+          ],
+          "mustNotInclude": [
+            "BONGSIM_KAKAO_CHANNEL_URL",
+            "USIMSA_CX_KAKAO_CHAT_URL",
+            "pf.kakao.com/_fqTkK",
+            "pf.kakao.com/_xlxjrxlX"
+          ]
         }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim-customer-cs-links.test.ts"
+      ]
+    },
+    {
+      "id": "bongsim-esim-install-guide-pages",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 설치 안내는 데이터 JSON만 그리고, 카카오·PDF·공급사 이름은 화면에 없다. 설치 탭 prep·iphone·galaxy는 서버 HTML에 모두 있고 비활성만 hidden",
+      "checks": [
+        {
+          "file": "lib/bongsim/esim-install-guide.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-install-guide-pages]",
+            "/travel/esim/guide/install",
+            "/travel/esim/guide/traveler-auth",
+            "https://www.usimsa.com/board/contact-channel/",
+            "eSIM 설치 방법"
+          ],
+          "mustNotInclude": [
+            "_fqTkK",
+            "_xlxjrxlX",
+            "pf.kakao.com"
+          ]
+        },
+        {
+          "file": "lib/bongsim/esim-guide-site/esim-guide.data.json",
+          "mustInclude": [
+            "자세히 보기",
+            "출국 전 준비",
+            "https://www.usimsa.com/board/contact-channel/",
+            "\"downloads\": []"
+          ],
+          "mustNotInclude": [
+            "_fqTkK",
+            "_xlxjrxlX",
+            "pf.kakao.com",
+            ".pdf",
+            "유심사",
+            "USIMSA"
+          ]
+        },
+        {
+          "file": "lib/sitemap-public-entries.ts",
+          "mustInclude": [
+            "/travel/esim/guide/install"
+          ]
+        },
+        {
+          "file": "components/bongsim/esim/EsimGuideSiteView.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[bongsim-esim-install-guide-pages]",
+            "data-esim-guide-tab=\"prep\"",
+            "data-esim-guide-tab=\"iphone\"",
+            "data-esim-guide-tab=\"galaxy\"",
+            "hidden={tab !== \"prep\"}",
+            "hidden={tab !== \"iphone\"}",
+            "hidden={tab !== \"galaxy\"}"
+          ],
+          "mustNotInclude": [
+            "tab === \"prep\" ?",
+            "tab === \"iphone\" || tab === \"galaxy\""
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/bongsim/esim-install-guide.test.ts"
       ]
     },
     {
@@ -3010,7 +3151,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "LPA가 있으면 알림톡 성공과 무관하게 iPhone·Android 원클릭 LMS를 반드시 발송",
+      "summary": "LPA 원클릭 헬퍼는 유지하되, 발송 경로는 알림톡 우선·LMS는 실패·미설정 폴백만 (동시 발송 금지)",
       "checks": [
         {
           "file": "lib/bongsim/notifications/esim-qr-lms.ts",
@@ -3024,9 +3165,13 @@
         {
           "file": "lib/bongsim/fulfillment/esim-delivery.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]",
+            "REGRESSION-FREEZE[bongsim-esim-lms-quick-install]",
+            "shouldSendLmsFallback"
+          ],
+          "mustNotInclude": [
             "shouldSendBongtourEsimOsQuickInstallLms",
-            "os_install_lms_failed"
+            "os_install_lms_failed",
+            "REGRESSION-FREEZE[bongsim-esim-qr-os-install-lms-always]"
           ]
         }
       ],
@@ -31261,6 +31406,52 @@
       ]
     },
     {
+      "id": "photo-byte-cap-1115",
+      "tier": ["prebuild", "ci"],
+      "summary": "고른 상품 사진은 대표 200,000B·일차 400,000B 이하로 줄여 저장한다. 폭 1200·품질 55 다음에도 더 줄이고, 그래도 안 되면 원본을 올리지 않는다. 사진 선택은 바꾸지 않는다.",
+      "checks": [
+        {
+          "file": "lib/image-to-webp.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-byte-cap-1115]",
+            "export async function fitProductPhotoToMaxBytes",
+            "800, 480",
+            "40, 25"
+          ]
+        },
+        {
+          "file": "lib/object-storage.ts",
+          "mustInclude": [
+            "fitProductPhotoToMaxBytes",
+            "원본 바이트로 되돌아가 저장하지 않는다",
+            "if (params.maxBytes) throw err instanceof Error ? err : new Error(String(err))"
+          ]
+        },
+        {
+          "file": "lib/photo-pool.ts",
+          "mustInclude": [
+            "fitProductPhotoToMaxBytes",
+            "if (!(typeof bytes === 'number' && bytes > limit)) return existing",
+            "사진이 기준 용량 이하로 줄지 않아 저장하지 않습니다."
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-live-deps.ts",
+          "mustInclude": [
+            "if (c.storedBytes != null && c.storedBytes > maxBytes)",
+            "generateImageWithGemini"
+          ],
+          "mustNotInclude": [
+            "bytesFitSlotLimit",
+            "auto_generate_disabled"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-byte-cap-1115.test.ts"
+      ]
+    },
+    {
       "id": "photo-autofill-acquire",
       "tier": [
         "prebuild",
@@ -32052,6 +32243,392 @@
       "vitestSuites": ["lib/product-bookable-derived-sync.test.ts"]
     },
     {
+      "id": "seo-business-programs-cta",
+      "tier": ["prebuild", "ci"],
+      "summary": "/business/programs 실제 업무 범위 문구 + 문의 버튼 2개",
+      "checks": [
+        {
+          "file": "components/training/TrainingProgramsCatalog.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-business-programs-cta]", "/inquiry?type=training", "/inquiry?type=institution"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-fix-1114",
+      "tier": ["prebuild", "ci"],
+      "summary": "검색노출 수정 1114 vitest",
+      "checks": [
+        {
+          "file": "lib/seo/seo-fix-1114.test.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-fix-1114]"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-home-image-alt",
+      "tier": ["prebuild", "ci"],
+      "summary": "홈·목록 상품/도시 사진 alt 비우지 않음",
+      "checks": [
+        {
+          "file": "app/components/home/HomeMobileHub.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+        },
+        {
+          "file": "app/components/home/HomeReviewsGridClient.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+        },
+        {
+          "file": "app/components/home/PersonaTabsClient.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+        },
+        {
+          "file": "app/components/home/SeasonCurationCarouselClient.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+        },
+        {
+          "file": "app/components/home/ServiceInfoCards.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+        },
+        {
+          "file": "components/products/ProductResultsList.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-html-limited-bots-googlebot",
+      "tier": ["prebuild", "ci"],
+      "summary": "Googlebot·bingbot 등 검색 크롤러는 metadata(canonical 등)를 <head> 에 받는다 — Next 15 스트리밍 메타 시 body 로 밀려 서치 콘솔 \"사용자 선택 표준 없음 중복\" 원인",
+      "checks": [
+        {
+          "file": "lib/seo/html-limited-bots.js",
+          "mustInclude": ["REGRESSION-FREEZE[seo-html-limited-bots-googlebot]", "Googlebot", "bingbot", "Yeti"]
+        },
+        {
+          "file": "next.config.js",
+          "mustInclude": ["REGRESSION-FREEZE[seo-html-limited-bots-googlebot]", "htmlLimitedBots: SEO_HTML_LIMITED_BOTS"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-image-sitemap-valid-xml",
+      "tier": ["prebuild", "ci"],
+      "summary": "이미지 사이트맵 XML 유효(제어문자 제거·절대 https·중복 제거)·국외연수 정식 주소",
+      "checks": [
+        {
+          "file": "app/sitemap-images.xml/route.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-image-sitemap-valid-xml]", "buildImageSitemapXml", "trainingProgramPublicPath"]
+        },
+        {
+          "file": "lib/seo/image-sitemap.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-image-sitemap-valid-xml]"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-indexnow-skip-on-failure",
+      "tier": ["prebuild", "ci"],
+      "summary": "상품 등록·수정·삭제 → 사이트맵 무효화 + IndexNow(키 없으면 SKIP, 실패 SKIP, 재시도 최대 1회, 비차단). Google Indexing API 금지",
+      "checks": [
+        {
+          "file": "app/api/admin/products/[id]/route.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"]
+        },
+        {
+          "file": "app/api/admin/products/route.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"]
+        },
+        {
+          "file": "app/indexnow-key.txt/route.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"]
+        },
+        {
+          "file": "lib/seo/indexnow.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]", "INDEXNOW_KEY", "retryDelayMs"],
+          "mustNotInclude": ["indexing.googleapis.com"]
+        },
+        {
+          "file": "lib/seo/product-index-events.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"],
+          "mustNotInclude": ["indexing.googleapis.com"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-inquiry-og-image",
+      "tier": ["prebuild", "ci"],
+      "summary": "/inquiry og·twitter 이미지 비어 있음 금지",
+      "checks": [
+        {
+          "file": "app/inquiry/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-inquiry-og-image]", "DEFAULT_OG_IMAGE_PATH"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-list-ssr-index",
+      "tier": ["prebuild", "ci"],
+      "summary": "목록 페이지 JS 없는 HTML 에 h1 + 공개 상품 링크",
+      "checks": [
+        {
+          "file": "app/components/travel/overseas/OverseasBrowseSlot.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasHubCatalogRoot.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+        },
+        {
+          "file": "app/products/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+        },
+        {
+          "file": "app/travel/overseas/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+        },
+        {
+          "file": "components/seo/PublicProductSsrIndex.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+        },
+        {
+          "file": "lib/public-product-ssr-index.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-product-detail-single-h1",
+      "tier": ["prebuild", "ci"],
+      "summary": "상품 상세 문서 h1 1개 (sticky 카드 제목은 p)",
+      "checks": [
+        {
+          "file": "app/components/detail/product-detail-visual.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-product-detail-single-h1]"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-root-layout-no-og-url-robots",
+      "tier": ["prebuild", "ci"],
+      "summary": "루트 layout 에 og:url=/ 기본값·robots 기본값 금지 (하위 페이지 og:url=홈, 404 noindex 충돌)",
+      "checks": [
+        {
+          "file": "app/layout.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-root-layout-no-og-url-robots]"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-search-copy-esim-travel",
+      "tier": ["prebuild", "ci"],
+      "summary": "검색 노출 문구(title·description·og·JSON-LD)는 eSIM(여행용)·고객센터 — 공급사(유심사/USIMSA) 이름 금지",
+      "checks": [
+        {
+          "file": "app/travel/esim/product/[optionApiId]/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-search-copy-esim-travel]"]
+        },
+        {
+          "file": "lib/home-page-metadata.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-search-copy-esim-travel]", "eSIM(여행용)", "국외연수"],
+          "mustNotInclude": ["USIMSA", "유심사 eSIM"]
+        },
+        {
+          "file": "lib/seo/esim-search-metadata.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-search-copy-esim-travel]", "'eSIM(여행용)'", "'고객센터'"]
+        },
+        {
+          "file": "lib/seo/site-json-ld.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-search-copy-esim-travel]"],
+          "mustNotInclude": ["USIMSA", "유심사 eSIM"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-sitemap-db-public-only",
+      "tier": ["prebuild", "ci"],
+      "summary": "사이트맵은 DB 공개 상품만(lastmod=updatedAt), 삭제·비공개 제외",
+      "checks": [
+        {
+          "file": "app/sitemap.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-sitemap-db-public-only]", "sitemapPublicProductWhere"]
+        },
+        {
+          "file": "lib/revalidate-product-listing-caches.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-sitemap-db-public-only]"]
+        },
+        {
+          "file": "lib/sitemap-product-where.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-sitemap-db-public-only]"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-training-og-jsonld",
+      "tier": ["prebuild", "ci"],
+      "summary": "/business·/business/programs·상세 페이지별 og·BreadcrumbList·ItemList/TouristTrip JSON-LD",
+      "checks": [
+        {
+          "file": "app/business/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-og-jsonld]"]
+        },
+        {
+          "file": "app/business/programs/[slug]/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-og-jsonld]"]
+        },
+        {
+          "file": "app/business/programs/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-og-jsonld]"]
+        },
+        {
+          "file": "lib/seo/training-json-ld.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-og-jsonld]"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "seo-training-products-301",
+      "tier": ["prebuild", "ci"],
+      "summary": "국외연수 /products/otr-bt-* → /business/programs/* 301 (같은 프로그램 정식 주소)",
+      "checks": [
+        {
+          "file": "app/api/public/product-path-status/route.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+        },
+        {
+          "file": "app/products/[idOrSlug]/page.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+        },
+        {
+          "file": "app/products/[idOrSlug]/product-detail-page-content.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+        },
+        {
+          "file": "lib/product-path-status-from-lookup.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+        },
+        {
+          "file": "lib/product-path-status.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+        },
+        {
+          "file": "lib/resolve-product-by-path-segment.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+        },
+        {
+          "file": "middleware.ts",
+          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]", "status?.kind === 'redirect_path'"]
+        }
+      ],
+      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+    },
+    {
+      "id": "departure-cache-from-rows",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "마지막 출발일 캐시(lastFutureDepartureDate)는 실제 ProductDeparture row(오늘 KST 이후 성인가>0 MAX)에서 재계산하고, 출발 row를 쓰는 모든 경로가 쓰기 직후 재계산한다. 공개 판정은 publicProductWhereClause 한 곳이며 여행 상품은 캐시가 비면 비공개(fail-closed), 국외연수(overseas_training, otr)만 예외.",
+      "checks": [
+        {
+          "file": "lib/product-departure-cache.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-from-rows]",
+            "export async function recomputeProductDepartureCache(",
+            "maxFuturePricedDepartureDate(prisma, productId, todayYmd)",
+            "export const DEPARTURE_CACHE_OTR_LISTING_KIND = 'overseas_training'",
+            "prisma.product.updateMany({"
+          ],
+          "mustNotInclude": [
+            "await prisma.product.update({"
+          ]
+        },
+        {
+          "file": "lib/product-sales-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-from-rows]",
+            "DEPARTURE_CACHE_OTR_LISTING_KIND",
+            "recomputeProductDepartureCacheSafe(prisma, product.id"
+          ],
+          "mustNotInclude": [
+            "AND: [{ lastFutureDepartureDate: null }, { noFutureDepartureConfirmedAt: null }]"
+          ]
+        },
+        {
+          "file": "lib/season-curation.ts",
+          "mustInclude": [
+            "publicProductWhereClause(now)"
+          ],
+          "mustNotInclude": [
+            "OR: [{ lastFutureDepartureDate: null }"
+          ]
+        },
+        {
+          "file": "lib/upsert-product-departures-hanatour.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-from-rows]",
+            "recomputeProductDepartureCacheSafe(prisma, productId"
+          ]
+        },
+        {
+          "file": "lib/hanatour-sweep.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-from-rows]",
+            "recomputeProductDepartureCacheSafe(prisma, product.id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "departure-cache-nightly-reconcile",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "야간(KST 00:40) 점검이 캐시 vs 실제 출발 row 불일치(otr 제외)를 탐지·재계산하고 고친 건수와 되돌리기 기록(rollback 항목·SQL)을 로그로 남긴다. instrumentation 에 등록 필수.",
+      "checks": [
+        {
+          "file": "lib/departure-cache-reconcile.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-nightly-reconcile]",
+            "COALESCE(p.\"listingKind\", '') <> 'overseas_training'",
+            "export function buildDepartureCacheRollbackSql("
+          ]
+        },
+        {
+          "file": "lib/instrumentation-departure-cache-reconcile-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-cache-nightly-reconcile]",
+            "'40 0 * * *'",
+            "rollback",
+            "DEPARTURE_CACHE_RECONCILE_BOOT_DELAY_MS"
+          ]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "startInstrumentationDepartureCacheReconcileCron"
+          ]
+        }
+      ]
+    },
+    {
       "id": "hanjintour-supplier-collect",
       "tier": [
         "prebuild",
@@ -32133,7 +32710,8 @@
             "REGRESSION-FREEZE[hanjintour-register-pending-only]",
             "classifyHanjintourListing(",
             "hanjintourShouldEnqueuePending(",
-            "registrationStatus: HANJINTOUR_PENDING_STATUS"
+            "registrationStatus: HANJINTOUR_PENDING_STATUS",
+            "ensureBrandIdForKey"
           ],
           "mustNotInclude": [
             "registrationStatus: 'registered'"
@@ -32776,6 +33354,29 @@
       "summary": "내일투어 MEZZ32084 녹화 fixture — live gate 확인 항목 전부(포함/불포함·hasOptionalTour=false 등)·상세묶음 1회 수집·부분실패 unknown_fetch_failed·변조 fixture FAIL·SKIP 종료코드 집계",
       "files": [
         "lib/naeiltour-register-api-detail.fixture.test.ts"
+      ]
+    },
+    {
+      "id": "departure-cache-from-rows-tests",
+      "tier": [
+        "ci"
+      ],
+      "summary": "캐시 재계산·공개 fail-closed·otr 예외·CPP7883/JKB130/EPP0211 사례 재현·쓰기 경로 정적 가드",
+      "files": [
+        "lib/product-departure-cache.test.ts",
+        "lib/product-sales-policy.test.ts",
+        "lib/departure-cache-write-paths.test.ts"
+      ]
+    },
+    {
+      "id": "departure-cache-nightly-reconcile-tests",
+      "tier": [
+        "ci"
+      ],
+      "summary": "야간 캐시 불일치 탐지·재계산·건수·되돌리기 기록·dryRun·상한·otr 제외",
+      "files": [
+        "lib/departure-cache-reconcile.test.ts",
+        "lib/departure-cache-pr112-fix.test.ts"
       ]
     }
   ]

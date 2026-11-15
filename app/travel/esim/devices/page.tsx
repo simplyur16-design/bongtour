@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { buildEsimSearchMetadata, esimSearchTitle } from "@/lib/seo/esim-search-metadata";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import Header from "@/app/components/Header";
@@ -6,10 +7,12 @@ import { bongsimCountryPickerHref, bongsimPath } from "@/lib/bongsim/constants";
 import { EsimMypageUsimsaCsLinks } from "@/components/bongsim/EsimMypageUsimsaCsLinks";
 
 export const metadata: Metadata = {
-  title: { absolute: "eSIM 지원 기기 확인 | Bong투어 eSIM" },
-  description:
-    "여행자님, 구매 전 사용 중인 휴대폰이 eSIM을 지원하는지 확인해 보세요. 삼성·애플·픽셀 기준과 기종 확인 방법을 안내합니다.",
-  alternates: { canonical: "/travel/esim/devices" },
+  ...buildEsimSearchMetadata({
+    title: esimSearchTitle("eSIM 지원 기기 확인"),
+    description:
+      "여행자님, 구매 전 사용 중인 휴대폰이 eSIM(여행용)을 지원하는지 확인해 보세요. 삼성·애플·픽셀 기준과 기종 확인 방법을 안내합니다.",
+    path: "/travel/esim/devices",
+  }),
 };
 
 function SectionCard({ title, children }: { title: string; children: ReactNode }) {
@@ -137,7 +140,6 @@ export default function EsimDevicesPage() {
             </p>
             <div className="mt-4 flex justify-center">
               <EsimMypageUsimsaCsLinks
-                kakaoLabel="카카오톡 문의하기"
                 showHeading={false}
                 className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center"
               />

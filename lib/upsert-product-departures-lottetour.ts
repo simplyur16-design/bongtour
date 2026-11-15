@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[lottetour-multi-grade-departure-slots]: departureSlotKey — manifest
  */
 import type { PrismaClient } from '@prisma/client'
+import { recomputeProductDepartureCacheSafe } from '@/lib/product-departure-cache'
 
 import {
   computeDepartureSlotKeyFromDate,
@@ -493,6 +494,8 @@ export async function upsertProductDepartures(
     }
   }
   if (pairs.length > 0) await updateLastPriceObservedAt(prisma, productId)
+  // REGRESSION-FREEZE[departure-cache-from-rows]: 출발 row 쓰기 직후 캐시 재계산 — manifest
+  await recomputeProductDepartureCacheSafe(prisma, productId, 'upsert-lottetour')
   return pairs.length
 }
 

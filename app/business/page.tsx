@@ -7,6 +7,7 @@ import { resolveTrainingPageSectionImages } from '@/lib/home-hub-resolve-images'
 import { listPublishedTrainingPrograms } from '@/lib/overseas-training-program-query'
 import { ogImagesForMetadata } from '@/lib/og-images-db'
 import { SITE_NAME } from '@/lib/site-metadata'
+import { buildBusinessHubJsonLd, jsonLdScriptHtml } from '@/lib/seo/training-json-ld'
 
 export const revalidate = 300
 
@@ -19,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: { canonical: '/business' },
     openGraph: {
       title: `공공·기업 | ${SITE_NAME}`,
-      description: '공공·기업 연수·교육여행 관련 안내와 문의 접수.',
+      description: '지방의회·지자체·공공기관·기업 국외연수 — 연수기관 섭외, 일정 기획, 제안서, 설명회까지 상담 후 진행합니다.',
       url: '/business',
       type: 'website',
       images,
@@ -39,6 +40,8 @@ export default async function BusinessPage() {
   const { hero } = resolveTrainingPageSectionImages()
   return (
     <>
+      {/* REGRESSION-FREEZE[seo-training-og-jsonld]: /business 허브 BreadcrumbList+Service JSON-LD — manifest */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptHtml(buildBusinessHubJsonLd()) }} />
       <TrainingHub heroImageUrl={hero} programsSlot={<TrainingProgramsPreview programs={programs} />} />
       <PartnerOrganizationsSectionGate />
     </>

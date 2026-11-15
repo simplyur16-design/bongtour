@@ -99,7 +99,7 @@ import { probeStoredImage } from '@/lib/register-auto-photo-register-job'
 import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-ai-label'
 // REGRESSION-FREEZE[photo-autofill-route-strict]: 자동 채움(photoChain v2 + fillMissingOnly)은 검증된 방문지 사진만 — manifest
 import { acquireVerifiedPhoto } from '@/lib/photo-autofill-acquire'
-import { photoIdentityKeys } from '@/lib/photo-autofill-gate'
+import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, photoIdentityKeys } from '@/lib/photo-autofill-gate'
 import { createLiveAcquireDeps } from '@/lib/photo-autofill-live-deps'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
 import { destinationTermsOf } from '@/lib/photo-gate-runner'
@@ -738,7 +738,7 @@ export async function POST(req: Request) {
     const usedSemanticKeys = new Set<string>()
     const chainTrace: Array<{ slot: string; tried: string[]; picked: string | null }> = []
     /** v2: 출처 순서 후보 → Pexels 는 풀 저장(재호스팅), Unsplash 는 핫링크 + 크레딧 */
-    const adoptChainPhoto = async (c: ChainCandidate, label: string): Promise<PhotoResult | null> => {
+    const adoptChainPhoto = async (c: ChainCandidate, label: string, maxBytes: number): Promise<PhotoResult | null> => {
       if (c.tier === 'unsplash') {
         return {
           url: c.url,
@@ -752,7 +752,7 @@ export async function POST(req: Request) {
         photographer: c.photographer,
         sourceUrl: c.originalLink,
         sourcePhotoId: c.externalId,
-      })
+      }, maxBytes)
       return photoFromPoolSave(saved)
     }
     const chainAccept = (extra?: (c: ChainCandidate) => boolean, gateCtx?: MatchGateContext) => (c: ChainCandidate) => {
@@ -826,7 +826,9 @@ export async function POST(req: Request) {
         },
       })
       newFetchCount++
-      const adoptedRaw = r.photo ? await adoptChainPhoto(r.photo, label) : null
+      const adoptedRaw = r.photo
+        ? await adoptChainPhoto(r.photo, label, isMainSlot ? AUTOFILL_COVER_MAX_BYTES : AUTOFILL_DAY_MAX_BYTES)
+        : null
       const adopted = adoptedRaw && cityMatch ? { ...adoptedRaw, cityMatch } : adoptedRaw
       chainTrace.push({ slot, tried: r.tried, picked: adopted ? adopted.source : null })
       return adopted
@@ -859,7 +861,46 @@ export async function POST(req: Request) {
     const existingHeroUrl = String(product.bgImageUrl ?? '').trim()
     // REGRESSION-FREEZE[auto-photo-missing-day-fill]: 기존 대표 URL·출처는 유지 — manifest
     let preserveHero = preserveHeroRequested && existingHeroUrl.length > 0
-    const poolMain = preserveHero ? undefined : poolBySlot.get(-1)
+    let poolMain = preserveHero ? undefined : poolBySlot.get(-1)
+    let coverCompressRefused = false
+    if (poolMain) {
+      const measured = await probeStoredImage(poolMain.filePath)
+      if (measured.bytes != null && measured.bytes > AUTOFILL_COVER_MAX_BYTES) {
+        const compressed = await savePhotoFromUrl(
+          prisma,
+          poolMain.filePath,
+          destination,
+          poolMain.attractionName || 'cover',
+          poolMain.source || 'PhotoPool',
+          {
+            photographer: poolMain.photographer,
+            sourceUrl: poolMain.sourceUrl,
+            sourcePhotoId: poolMain.sourcePhotoId,
+          },
+          AUTOFILL_COVER_MAX_BYTES,
+        )
+        if (compressed?.filePath) poolMain = compressed
+        else {
+          console.warn('[process-images] 대표 풀 사진을 기준 용량 이하로 줄이지 못해 저장하지 않습니다.', {
+            url: poolMain.filePath,
+            bytes: measured.bytes,
+          })
+          await recordPhotoException({
+            productId: String(product.id),
+            day: null,
+            kind: 'cover',
+            sight: poolMain.attractionName || null,
+            query: null,
+            reason: 'photo_over_bytes',
+            detail: '사진이 기준 용량 이하로 줄지 않아 저장하지 않습니다.',
+            origin: 'autofill',
+            at: new Date().toISOString(),
+          })
+          poolMain = undefined
+          coverCompressRefused = true
+        }
+      }
+    }
 
     // 자동 채움: 방문지 검증 + 공개 상품과 중복 금지. 검색은 순차·간격+지터, 읽기 재시도 1회, AI 생성 없음.
     const strictTerms = destinationTermsOf({
@@ -880,7 +921,10 @@ export async function POST(req: Request) {
       strictExceptions.push(e)
       await recordPhotoException(e)
     }
-    if (strictAutofill && !preserveHero && !poolMain) {
+    if (coverCompressRefused) {
+      mainPhoto = { url: '', source: '', photographer: '', originalLink: '' }
+      preserveHero = true
+    } else if (strictAutofill && !preserveHero && !poolMain) {
       const sights = [...new Set([mainQuery, heroPick.keyword].map((x) => String(x ?? '').trim()).filter(Boolean))]
       const res = await acquireVerifiedPhoto(
         {
@@ -949,6 +993,7 @@ export async function POST(req: Request) {
           if (geminiBuffer) {
             const saved = await savePhotoToPool(prisma, geminiBuffer, destination, mainQuery, 'Gemini', {
               convertToWebpFirst: true,
+              maxBytes: AUTOFILL_COVER_MAX_BYTES,
             })
             const fromPool = photoFromPoolSave(saved)
             if (!fromPool) {
@@ -966,7 +1011,8 @@ export async function POST(req: Request) {
             destination,
             mainQuery,
             'Pexels',
-            pexelsPoolAttribution(pexelsMain)
+            pexelsPoolAttribution(pexelsMain),
+            AUTOFILL_COVER_MAX_BYTES,
           )
           const fromPool = photoFromPoolSave(saved)
           if (!fromPool) {
@@ -1277,7 +1323,8 @@ export async function POST(req: Request) {
             destination,
             attractionLabel,
             'Pexels',
-            pexelsPoolAttribution(pexelsPhoto)
+            pexelsPoolAttribution(pexelsPhoto),
+            AUTOFILL_DAY_MAX_BYTES,
           )
           photo = photoFromPoolSave(saved)
           fallbackReason = photo ? 'fallback-pexels' : 'fallback-pool-save-failed'
@@ -1490,7 +1537,8 @@ export async function POST(req: Request) {
         destination,
         attractionLabel,
         'Pexels',
-        pexelsPoolAttribution(pexelsPhoto)
+        pexelsPoolAttribution(pexelsPhoto),
+        AUTOFILL_DAY_MAX_BYTES,
       )
       const fromPool = photoFromPoolSave(saved)
       if (!fromPool) continue

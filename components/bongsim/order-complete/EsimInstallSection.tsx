@@ -3,6 +3,7 @@
 /**
  * REGRESSION-FREEZE[bongsim-esim-multi-qty-qr]: multi eSIM install UI — manifest
  */
+import { EsimInstallGuideLinks } from "@/components/bongsim/esim/EsimInstallGuideLinks";
 import type { BongsimOrderPublicEsimInstallV1 } from "@/lib/bongsim/contracts/order-public.v1";
 import { useState } from "react";
 
@@ -176,6 +177,7 @@ export function EsimInstallSection({
           <li>QR·설치코드는 1회성 — 여행 끝나기 전 삭제하지 마세요</li>
           <li>상세 단계: /travel/esim/guide (iPhone · Android)</li>
         </ul>
+        <EsimInstallGuideLinks className="mt-2 block text-[12px]" />
       </div>
 
       <div className="mt-4 space-y-4">

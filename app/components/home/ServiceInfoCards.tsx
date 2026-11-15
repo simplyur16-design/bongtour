@@ -58,7 +58,8 @@ export default function ServiceInfoCards({ oceanWarm = false }: { oceanWarm?: bo
               <div className="absolute inset-0 z-0 [filter:brightness(0.98)_saturate(1.04)] transition group-hover:[filter:brightness(1.0)_saturate(1.08)]">
                 <SafeImage
                   src={privateImg}
-                  alt=""
+                  // REGRESSION-FREEZE[seo-home-image-alt]: 요청서 C11
+                  alt="가족·소그룹 우리끼리 해외여행"
                   fill
                   className="object-cover object-center"
                   sizes="(max-width:768px) 100vw, 50vw"
@@ -94,7 +95,7 @@ export default function ServiceInfoCards({ oceanWarm = false }: { oceanWarm?: bo
               <div className="absolute inset-0 z-0 [filter:brightness(0.98)_saturate(1.04)] transition group-hover:[filter:brightness(1.0)_saturate(1.08)]">
                 <SafeImage
                   src={trainingImg}
-                  alt=""
+                  alt="공공·기업 국외연수 단체"
                   fill
                   className="object-cover object-[center_38%]"
                   sizes="(max-width:768px) 100vw, 50vw"

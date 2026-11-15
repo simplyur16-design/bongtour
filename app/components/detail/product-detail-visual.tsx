@@ -257,9 +257,10 @@ export function ProductDetailTitle({
       : 'bt-wrap text-2xl font-black leading-[1.8] tracking-[0.02em] text-bt-title sm:text-3xl'
 
   // REGRESSION-FREEZE[public-detail-hero-sticky-fit-title]: sticky는 line-clamp·인라인 (블록 줄바꿈이 clamp 깨뜨림) — manifest
+  // REGRESSION-FREEZE[seo-product-detail-single-h1]: 데스크톱 sticky 카드 제목은 <p> — 문서 h1 은 본문 카드 1개만 (요청서 C10) — manifest
   if (dataHeroStickyTitle) {
     return (
-      <h1
+      <p
         className={className ?? defaultCls}
         style={style}
         title={displayTitle}
@@ -274,7 +275,7 @@ export function ProductDetailTitle({
             </span>
           )
         })}
-      </h1>
+      </p>
     )
   }
 
@@ -292,11 +293,11 @@ export function ProductDetailTitle({
   )
 }
 
-/** 데스크톱 히어로(어두운 배경) — 짧은 표시 제목 + 최대 3줄 */
+/** 데스크톱 히어로(어두운 배경) — 짧은 표시 제목 + 최대 3줄. 문서 h1 아님(<p>) — seo-product-detail-single-h1 */
 export function ProductHeroTitleLines({ title, className, style }: Omit<TitleProps, 'tone'>) {
   const lines = productHeroTitleLinesForDisplay(title)
   return (
-    <h1
+    <p
       className={
         className ??
         'text-2xl font-bold leading-[1.35] tracking-[0.02em] text-white sm:text-3xl lg:text-4xl lg:leading-[1.35]'
@@ -309,7 +310,7 @@ export function ProductHeroTitleLines({ title, className, style }: Omit<TitlePro
           {line}
         </span>
       ))}
-    </h1>
+    </p>
   )
 }
 

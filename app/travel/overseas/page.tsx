@@ -44,6 +44,8 @@ export default async function OverseasTravelPage() {
       <Header />
       <OverseasRegionMegaNav />
       <main>
+        {/* REGRESSION-FREEZE[seo-list-ssr-index]: 해외 허브 문서 h1 (화면 비노출, 홈 HomeDocumentH1 과 같은 방식) — manifest */}
+        <h1 className="sr-only">해외여행 패키지 상품</h1>
         {/* REGRESSION-FREEZE[season-curation-keep-orphan-product-cards]: hero blocking SSR — Suspense empty shell 금지 — manifest */}
         <OverseasHeroSlot
           selectedCountrySlug={null}
