@@ -192,8 +192,10 @@
       "qr": "取得 QR 碼"
     },
     "stepOf": "第 {n} 步，共 3 步",
-    "signInTitle": "登入後付款",
-    "signInBody": "購買的 eSIM 和 QR 碼會保存在「我的 eSIM」，換手機也找得到。",
+    "signInTitle": "登入（選填）",
+    "signInBody": "登入後購買的訂單也會保存在「我的 eSIM」，換手機也找得到 QR 碼。",
+    "guestNote": "免註冊，填寫電子郵件即可下單，QR 碼會寄到該信箱。登入為選填。",
+    "signInOptional": "已有帳號？登入（選填）",
     "emailInvalid": "請輸入有效的電子郵件地址，QR 碼會寄到這個信箱。",
     "termsRequired": "請勾選同意購買條款，並確認您的手機支援 eSIM。",
     "deliveryTitle": "QR 碼接收方式",

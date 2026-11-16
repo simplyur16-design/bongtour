@@ -33,6 +33,17 @@ describe("simplyurPlanBenefits", () => {
     );
   });
 
+  it("shows the hotspot note on local-network plans as well as roaming, in every locale", () => {
+    for (const [locale, note] of Object.entries(SIMPLYUR_HOTSPOT_NOTE)) {
+      for (const network_family of ["roaming", "local"]) {
+        expect(
+          simplyurPlanBenefits({ network_family, plan_name: "대한민국" }, locale as keyof typeof SIMPLYUR_HOTSPOT_NOTE)
+            .hotspot_note,
+        ).toBe(note);
+      }
+    }
+  });
+
   it("sets the unused-refund flag from the existing refund policy", () => {
     expect(simplyurPlanBenefits({ network_family: "roaming", plan_name: "x" }, "vi").unused_refund).toBe(true);
   });

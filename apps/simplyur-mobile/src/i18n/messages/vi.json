@@ -192,8 +192,10 @@
       "qr": "Nhận mã QR"
     },
     "stepOf": "Bước {n}/3",
-    "signInTitle": "Đăng nhập để thanh toán",
-    "signInBody": "eSIM và mã QR được lưu trong mục eSIM của tôi, đổi điện thoại vẫn xem lại được.",
+    "signInTitle": "Đăng nhập (tùy chọn)",
+    "signInBody": "Đơn hàng khi đã đăng nhập cũng được lưu trong mục eSIM của tôi, đổi điện thoại vẫn xem lại được mã QR.",
+    "guestNote": "Thanh toán không cần tài khoản, chỉ cần email — mã QR sẽ được gửi về email đó. Đăng nhập là tùy chọn.",
+    "signInOptional": "Đã có tài khoản? Đăng nhập (tùy chọn)",
     "emailInvalid": "Vui lòng nhập email hợp lệ — mã QR sẽ được gửi đến đó.",
     "termsRequired": "Vui lòng đánh dấu ô đồng ý điều khoản mua hàng và xác nhận điện thoại hỗ trợ eSIM.",
     "deliveryTitle": "Cách nhận mã QR",

@@ -7,7 +7,8 @@ import type { SimplyurLocale } from "@/lib/simplyur/constants";
  *
  * - free_apps_data: Google Maps · ChatGPT data not counted. Same rule bongsim already uses
  *   (`esimHasFreeData`: roaming network + plan_name whitelist in lib/bongsim/constants.ts), read-only.
- * - hotspot_note: owner wording (ko SSOT below), localized per simplyur locale. Applies to all Korea plans.
+ * - hotspot_note: owner wording (ko SSOT below), localized per simplyur locale. Applies to all Korea plans,
+ *   roaming and local network alike (사장님 확인 2026-11-17: 로컬망 상품에도 핫스팟 문구 유지).
  * - unused_refund: existing Refund & Service Policy ("Unused QR (not activated): full refund available",
  *   lib/simplyur/legal-document-en.tsx). Copy must point to that policy; no new refund terms here.
  */

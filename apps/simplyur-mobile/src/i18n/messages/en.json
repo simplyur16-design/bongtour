@@ -192,8 +192,10 @@
       "qr": "Get your QR"
     },
     "stepOf": "Step {n} of 3",
-    "signInTitle": "Sign in to pay",
-    "signInBody": "Your eSIM and QR code are saved to My eSIM, so you can find them again on any phone.",
+    "signInTitle": "Sign in (optional)",
+    "signInBody": "Signed-in orders are also saved to My eSIM, so you can find your QR again on any phone.",
+    "guestNote": "Pay as a guest with just your email — your QR code is sent there. Sign-in is optional.",
+    "signInOptional": "Have an account? Sign in (optional)",
     "emailInvalid": "Enter a valid email address — your QR code is sent there.",
     "termsRequired": "Please tick the box to agree to the purchase terms and confirm your phone supports eSIM.",
     "deliveryTitle": "How you'll get your QR",

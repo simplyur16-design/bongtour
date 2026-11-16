@@ -65,7 +65,7 @@ type Phase = 'form' | 'auth' | 'completing';
  * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: checkout funnel telemetry — manifest
  * REGRESSION-FREEZE[simplyur-device-card-wallet]: card-save UI removed from checkout (proposal 5) — manifest
  * REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: no EXIMPay+ link on our form; Eximbay-page store links only — manifest
- * Proposal 2/5: sign-in asked here (not on first launch), 3-step indicator, QR delivery choice, USD total.
+ * Proposal 2/5: guest checkout (email only); sign-in is an optional card here (not on first launch), 3-step indicator, QR delivery choice, USD total.
  * REGRESSION-FREEZE[simplyur-launch-discount-14pct]: first-purchase preview 14% — manifest
  * REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]: same-frame pay + no overlay cover — manifest
  * REGRESSION-FREEZE[simplyur-purchase-dock-cta]: docked submit CTA — manifest
@@ -88,6 +88,7 @@ export default function CheckoutScreen() {
   const [phone, setPhone] = useState('');
   const [qrChannel, setQrChannel] = useState<QrExtraChannel>('none');
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [showSignIn, setShowSignIn] = useState(false);
   const [usdProduct, setUsdProduct] = useState<PlanProduct | null>(null);
   const [terms, setTerms] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -127,7 +128,7 @@ export default function CheckoutScreen() {
     };
   }, [id, locale]);
 
-  // Signed in from the inline buttons on this screen → reveal the form, prefill email.
+  // Optional sign-in from the inline buttons on this screen → hide the card, prefill email.
   useEffect(
     () =>
       subscribeSimplyurSession(() => {
@@ -251,10 +252,6 @@ export default function CheckoutScreen() {
   async function onSubmit() {
     if (!product || busy) return;
     setErr('');
-    if (!signedIn) {
-      setErr(t('checkout.signInTitle'));
-      return;
-    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setErr(t('checkout.emailInvalid'));
       return;
@@ -537,13 +534,24 @@ export default function CheckoutScreen() {
 
           {signedIn === false ? (
             <View style={styles.signInCard}>
-              <Text style={styles.sectionTitle}>{t('checkout.signInTitle')}</Text>
-              <Text style={styles.body}>{t('checkout.signInBody')}</Text>
-              <SocialAuthButtons navigateOnSuccess={false} inlineEmail />
+              <Text style={styles.body}>{t('checkout.guestNote')}</Text>
+              {showSignIn ? (
+                <>
+                  <Text style={styles.sectionTitle}>{t('checkout.signInTitle')}</Text>
+                  <Text style={styles.body}>{t('checkout.signInBody')}</Text>
+                  <SocialAuthButtons navigateOnSuccess={false} inlineEmail />
+                </>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setShowSignIn(true)}>
+                  <Text style={styles.legalLink}>{t('checkout.signInOptional')}</Text>
+                </Pressable>
+              )}
             </View>
           ) : null}
 
-          {signedIn ? (
+          {signedIn !== null ? (
             <>
               <Text style={styles.label}>{t('checkout.email')}</Text>
               <TextInput
@@ -634,7 +642,7 @@ export default function CheckoutScreen() {
         </>
       )}
     </ScrollView>
-      {product && signedIn ? (
+      {product && signedIn !== null ? (
         <SimplyurDockCta
           label={payLabel}
           onPress={() => void onSubmit()}

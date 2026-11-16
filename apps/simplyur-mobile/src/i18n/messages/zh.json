@@ -192,8 +192,10 @@
       "qr": "获取二维码"
     },
     "stepOf": "第 {n} 步，共 3 步",
-    "signInTitle": "登录后付款",
-    "signInBody": "购买的 eSIM 和二维码会保存在“我的 eSIM”中，换手机也能找到。",
+    "signInTitle": "登录（可选）",
+    "signInBody": "登录后购买的订单也会保存在「我的 eSIM」，换手机也能找回 QR 码。",
+    "guestNote": "无需注册，填写邮箱即可下单，QR 码会发送到该邮箱。登录为可选。",
+    "signInOptional": "已有账号？登录（可选）",
     "emailInvalid": "请输入有效的邮箱地址，二维码将发送到该邮箱。",
     "termsRequired": "请勾选同意购买条款，并确认您的手机支持 eSIM。",
     "deliveryTitle": "二维码接收方式",
