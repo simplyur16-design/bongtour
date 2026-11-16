@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
+import { ESIM_AGENT_CHAT_LABEL, ESIM_AGENT_CHAT_URL } from '@/lib/talktalk-draft/esim-agent-chat'
 
 type Candidate = {
   productId: string
@@ -20,6 +21,7 @@ type FaqGroup = { id: string; label: string; items: FaqHit[] }
 type DraftResponse = {
   sent: false
   draftText: string
+  esimAgentChat?: boolean
   candidates: Candidate[]
   faq: FaqHit[]
   needsAnswer: Need[]
@@ -42,6 +44,7 @@ export default function TalktalkDraftClient({
   const [budgetKrw, setBudgetKrw] = useState('')
   const [partySize, setPartySize] = useState('')
   const [duration, setDuration] = useState('')
+  const [productCode, setProductCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -63,6 +66,7 @@ export default function TalktalkDraftClient({
           budgetKrw: budgetKrw.trim() ? Number(budgetKrw.replace(/,/g, '')) : null,
           partySize: partySize.trim() ? Number(partySize) : null,
           duration,
+          productCode,
         }),
       })
       const data = (await res.json()) as DraftResponse
@@ -147,6 +151,15 @@ export default function TalktalkDraftClient({
             />
           </label>
           <label className="block text-sm font-medium text-slate-800 sm:col-span-2">
+            상품코드
+            <input
+              value={productCode}
+              onChange={(e) => setProductCode(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              placeholder="1인실 금액을 읽을 때 사용합니다."
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-800 sm:col-span-2">
             박·일
             <input
               value={duration}
@@ -179,6 +192,11 @@ export default function TalktalkDraftClient({
               {copied ? '복사함' : '복사'}
             </button>
           </div>
+          {result.esimAgentChat ? (
+            <a href={ESIM_AGENT_CHAT_URL} target="_blank" rel="noreferrer">
+              {ESIM_AGENT_CHAT_LABEL}
+            </a>
+          ) : null}
           <textarea
             readOnly
             value={result.draftText}
