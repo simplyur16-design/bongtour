@@ -248,7 +248,7 @@ export function ItineraryViewPackageMain({
                   onClick={() => setActivePage(pageNum)}
                   className={`px-5 py-2 rounded-full text-sm whitespace-nowrap transition ${
                     activePage === pageNum
-                      ? 'bg-[#1F1B2D] text-white font-medium'
+                      ? 'bg-bt-text-navy text-white font-medium'
                       : 'bg-[#F5F2EA] fit-tx-meta hover:bg-[#E5DFC8] font-semibold'
                   }`}
                 >
@@ -261,7 +261,7 @@ export function ItineraryViewPackageMain({
               type="button"
               onClick={() => setActivePage('all')}
               className={`px-5 py-2 rounded-full text-sm whitespace-nowrap transition ${
-                activePage === 'all' ? 'bg-[#d9a81e] fit-tx-primary font-bold' : 'bg-[#FAEED4] fit-tx-price hover:bg-[#F5E5B8] font-semibold'
+                activePage === 'all' ? 'bg-bt-brand-gold-strong fit-tx-primary font-bold' : 'bg-[#FAEED4] fit-tx-price hover:bg-[#F5E5B8] font-semibold'
               }`}
             >
               전체 일정 펼치기
@@ -281,7 +281,7 @@ export function ItineraryViewPackageMain({
 
       {schedule.length > 0 ? (
         <section className="space-y-8">
-          <h2 className="border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
+          <h2 className="border-l-4 border-bt-text-navy pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
             일정
           </h2>
           {isAirHotelFree ? (
@@ -333,14 +333,14 @@ export function ItineraryViewPackageMain({
         <section aria-labelledby="product-flight-heading">
           <h2
             id="product-flight-heading"
-            className="mb-3 border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary"
+            className="mb-3 border-l-4 border-bt-text-navy pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary"
           >
             항공편
           </h2>
           <div className="rounded-2xl bg-white border border-[#DAD4EE] px-6 py-5 space-y-3">
             {flightDisplay.outbound ? (
               <div className="flex flex-wrap items-center gap-3 text-sm fit-tx-primary">
-                <span className="rounded-full bg-[#1F1B2D] text-white px-2.5 py-1 text-xs font-bold">출국</span>
+                <span className="rounded-full bg-bt-text-navy text-white px-2.5 py-1 text-xs font-bold">출국</span>
                 {flightDisplay.outbound.from ? <span className="font-semibold">{flightDisplay.outbound.from}</span> : null}
                 {flightDisplay.outbound.departureAt ? (
                   <span className="tabular-nums">{flightDisplay.outbound.departureAt}</span>
@@ -354,7 +354,7 @@ export function ItineraryViewPackageMain({
             ) : null}
             {flightDisplay.inbound ? (
               <div className="flex flex-wrap items-center gap-3 text-sm fit-tx-primary">
-                <span className="rounded-full bg-[#1F1B2D] text-white px-2.5 py-1 text-xs font-bold">귀국</span>
+                <span className="rounded-full bg-bt-text-navy text-white px-2.5 py-1 text-xs font-bold">귀국</span>
                 {flightDisplay.inbound.from ? <span className="font-semibold">{flightDisplay.inbound.from}</span> : null}
                 {flightDisplay.inbound.departureAt ? (
                   <span className="tabular-nums">{flightDisplay.inbound.departureAt}</span>
@@ -374,7 +374,7 @@ export function ItineraryViewPackageMain({
 
       {mustKnowFiltered.length > 0 ? (
         <section>
-          <h2 className="mb-3 border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
+          <h2 className="mb-3 border-l-4 border-bt-text-navy pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
             핵심 정보
           </h2>
           <div className="rounded-2xl border border-[#DAD4EE] bg-white p-4 sm:p-6">

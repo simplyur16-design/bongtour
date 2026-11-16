@@ -91,7 +91,7 @@ export function ScheduleDaySupplierOriginalToggle({ day, defaultOpen = false }: 
         'aria-controls': panelId,
         onClick: () => setOpen((v) => !v),
         className:
-          'flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-left text-sm font-semibold fit-tx-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2f8fc7]',
+          'flex w-full items-center justify-between gap-2 rounded-2xl px-4 py-3 text-left text-sm font-semibold fit-tx-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-bt-brand-blue-strong',
       },
       h('span', null, '자세한 일정 보기'),
       h('span', { 'aria-hidden': true, className: `text-xs transition-transform ${open ? 'rotate-180' : ''}` }, '▼'),

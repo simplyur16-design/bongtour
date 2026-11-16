@@ -8,7 +8,7 @@ import PasteBlocksReaderView from '@/app/components/detail/PasteBlocksReaderView
 
 const CARD_CLASS = 'rounded-2xl border border-[#DAD4EE] bg-white px-4 py-4 sm:px-5'
 const TABLE_HEAD = 'bg-[#EFEDF8] text-[11px] font-bold uppercase tracking-wide text-[#534AB7]'
-const TABLE_CELL = 'px-3 py-2.5 text-sm text-[#1F1B2D] align-top'
+const TABLE_CELL = 'px-3 py-2.5 text-sm text-bt-text-navy align-top'
 
 type Props = {
   stops: ShoppingStopRow[] | null | undefined
@@ -96,7 +96,7 @@ export default function PackageShoppingTable({
 
   return (
     <section className={CARD_CLASS} aria-label="쇼핑">
-      <h3 className="text-base font-bold text-[#1F1B2D]">
+      <h3 className="text-base font-bold text-bt-text-navy">
         쇼핑
         {countLabel}
       </h3>
@@ -127,7 +127,7 @@ export default function PackageShoppingTable({
       ) : null}
 
       {showItems ? (
-        <ul className="mt-3 space-y-1.5 text-sm text-[#1F1B2D]">
+        <ul className="mt-3 space-y-1.5 text-sm text-bt-text-navy">
           {itemsList.map((item, i) => (
             <li key={i} className="bt-wrap">
               <span className="mr-2 font-semibold tabular-nums text-[#534AB7]">{i + 1}.</span>
@@ -148,7 +148,7 @@ export default function PackageShoppingTable({
       ) : null}
 
       {showNotice ? (
-        <p className="mt-3 whitespace-pre-wrap rounded-xl border border-[#DAD4EE]/60 bg-[#FAFAFC] p-3 text-sm text-[#1F1B2D] bt-wrap">
+        <p className="mt-3 whitespace-pre-wrap rounded-xl border border-[#DAD4EE]/60 bg-[#FAFAFC] p-3 text-sm text-bt-text-navy bt-wrap">
           {noticeTrim}
         </p>
       ) : null}

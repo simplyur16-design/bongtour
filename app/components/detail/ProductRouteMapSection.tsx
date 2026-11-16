@@ -19,7 +19,7 @@ export default function ProductRouteMapSection({ routeMap }: Props) {
     <section className="space-y-3" aria-labelledby="product-route-map-heading">
       <h2
         id="product-route-map-heading"
-        className="border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary"
+        className="border-l-4 border-bt-text-navy pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary"
       >
         동선지도
       </h2>

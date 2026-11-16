@@ -62,7 +62,7 @@ export default function ProductDetailHeroOasis({
               <button
                 type="button"
                 onClick={onPrimaryCta}
-                className="inline-flex items-center rounded-full bg-[#d9a81e] px-8 py-4 text-base font-semibold text-[#1F1B2D] transition hover:bg-[#c79a1c] md:text-lg"
+                className="inline-flex items-center rounded-full bg-bt-brand-gold-strong px-8 py-4 text-base font-semibold text-bt-text-navy transition hover:bg-[#c79a1c] md:text-lg"
               >
                 {primaryCtaLabel} ↗
               </button>

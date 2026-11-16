@@ -22126,6 +22126,24 @@
       "vitestSuites": ["lib/optional-tours-stored-money.test.ts"]
     },
     {
+      "id": "public-brand-token-exact-hex",
+      "tier": ["prebuild", "ci"],
+      "summary": "공개 상세·홈의 기존 브랜드 hex는 같은 값의 토큰 클래스를 쓴다",
+      "checks": [
+        {
+          "file": "app/components/detail/ProductLiveQuoteCard.tsx",
+          "mustInclude": ["bg-bt-text-navy", "border-bt-brand-blue-strong"],
+          "mustNotInclude": ["#1F1B2D", "#2f8fc7"]
+        },
+        {
+          "file": "app/components/home/PersonaTabsClient.tsx",
+          "mustInclude": ["ring-bt-brand-gold-strong"],
+          "mustNotInclude": ["#d9a81e"]
+        }
+      ],
+      "vitestSuites": ["lib/public-brand-token-swap.test.ts"]
+    },
+    {
       "id": "product-jsonld-canonical-url",
       "tier": [
         "prebuild",

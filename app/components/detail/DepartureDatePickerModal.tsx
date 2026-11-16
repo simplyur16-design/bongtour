@@ -400,7 +400,7 @@ function DepartureCalendarBlock({
               <span className="mt-0.5 flex flex-wrap justify-center gap-0.5">
                 {isUrgentDeal ? (
                   // REGRESSION-FREEZE[supplier-urgent-deal-baseline]: 달력 긴급모객 — manifest
-                  <span className="rounded bg-[#d9a81e] px-1 text-[9px] font-bold text-[#1F1B2D] sm:text-[10px]">
+                  <span className="rounded bg-bt-brand-gold-strong px-1 text-[9px] font-bold text-bt-text-navy sm:text-[10px]">
                     긴급모객
                   </span>
                 ) : null}
@@ -492,7 +492,7 @@ function DepartureListBlock({
                         <span className="ml-1 text-[10px] font-bold text-emerald-800">이달 최저가</span>
                       ) : null}
                       {vm.isUrgentDeal && vm.isAvailable ? (
-                        <span className="ml-1 text-[10px] font-bold text-[#1F1B2D]">긴급모객</span>
+                        <span className="ml-1 text-[10px] font-bold text-bt-text-navy">긴급모객</span>
                       ) : null}
                     </button>
                     {vm.seatStatus ? <div className="text-[10px] text-bt-meta">{vm.seatStatus}</div> : null}

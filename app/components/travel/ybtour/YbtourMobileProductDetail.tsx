@@ -666,7 +666,7 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
           <button
             type="button"
             onClick={handleChangeDepartureDate}
-            className="w-full rounded-xl bg-[#1F1B2D] py-2.5 font-medium text-white transition hover:bg-[#2c2740]"
+            className="w-full rounded-xl bg-bt-text-navy py-2.5 font-medium text-white transition hover:bg-[#2c2740]"
           >
             출발일 변경
           </button>

@@ -48,8 +48,8 @@ export default function PersonaTabsClient({ cards }: Props) {
               onClick={() => setTab(key)}
               className={`rounded-full px-3.5 py-2 text-sm font-semibold transition sm:px-4 ${
                 active
-                  ? 'bg-bt-text-navy text-white shadow-md ring-2 ring-[#d9a81e]/90'
-                  : 'bg-white text-bt-text-navy ring-1 ring-bt-border-soft/80 hover:ring-[#d9a81e]/50'
+                  ? 'bg-bt-text-navy text-white shadow-md ring-2 ring-bt-brand-gold-strong/90'
+                  : 'bg-white text-bt-text-navy ring-1 ring-bt-border-soft/80 hover:ring-bt-brand-gold-strong/50'
               }`}
             >
               {label}

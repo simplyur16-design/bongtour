@@ -112,7 +112,7 @@ export default function FitItineraryHeroSection({
           <div className="mx-auto w-full max-w-7xl px-6 pb-14 pr-6 text-white lg:px-8 lg:pb-20 lg:pr-48">
             <div className="max-w-4xl pointer-events-auto">
               <div className="mb-4 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-[#d9a81e] px-3 py-1 text-xs font-bold text-[#1F1B2D] shadow-md md:text-sm">
+                <span className="inline-flex items-center rounded-full bg-bt-brand-gold-strong px-3 py-1 text-xs font-bold text-bt-text-navy shadow-md md:text-sm">
                   예시일정
                 </span>
                 {supplierLabel ? (
@@ -148,7 +148,7 @@ export default function FitItineraryHeroSection({
                 <button
                   type="button"
                   onClick={onScrollToExampleItinerary}
-                  className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-[#d9a81e] px-5 py-2.5 text-[15px] font-bold tracking-wide text-white shadow-md transition hover:bg-[#c89619] md:gap-2 md:px-6 md:py-3 md:text-[18px]"
+                  className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-bt-brand-gold-strong px-5 py-2.5 text-[15px] font-bold tracking-wide text-white shadow-md transition hover:bg-[#c89619] md:gap-2 md:px-6 md:py-3 md:text-[18px]"
                 >
                   예시일정보기
                   <span aria-hidden className="text-[0.9em] leading-none">

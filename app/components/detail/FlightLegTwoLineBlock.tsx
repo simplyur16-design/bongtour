@@ -24,7 +24,7 @@ export default function FlightLegTwoLineBlock({
   label: string
   leg: FlightLegTwoLineDisplay | null | undefined
 }) {
-  const rowClass = 'bt-wrap text-sm leading-snug text-[#1F1B2D]'
+  const rowClass = 'bt-wrap text-sm leading-snug text-bt-text-navy'
   if (!leg) return null
 
   const departureAirport = isPlaceholderFlightAirportLabel(leg.departureAirport)
@@ -63,7 +63,7 @@ export default function FlightLegTwoLineBlock({
             {leg.flightNo ? `(${leg.flightNo})` : '\u00a0'}
           </span>
           <span
-            className={`${rowClass} col-start-2 row-start-2 text-center text-[#1F1B2D]/55`}
+            className={`${rowClass} col-start-2 row-start-2 text-center text-bt-text-navy/55`}
             aria-hidden
           >
             →

@@ -8,7 +8,7 @@
 export default function HomeHubPhotoPlaceholder() {
   return (
     <div
-      className="pointer-events-none absolute inset-0 z-[1] flex flex-col items-center justify-center bg-[#1F1B2D]"
+      className="pointer-events-none absolute inset-0 z-[1] flex flex-col items-center justify-center bg-bt-text-navy"
       aria-hidden
     >
       <svg
