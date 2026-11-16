@@ -377,7 +377,7 @@ export default function CurationEventsAdminClient() {
         <p className="text-sm text-bt-body/70">불러오는 중…</p>
       ) : events.length === 0 ? (
         <p className="rounded-lg border border-bt-border-strong bg-white p-6 text-sm text-bt-body/70">
-          표시할 이벤트가 없습니다. 콘텐츠 자동화에서 [전체 이벤트 갱신] 후 다시 확인하세요.
+          표시할 이벤트가 없습니다. 매주 월요일 03:00(KST) 수집 뒤에 이 탭에서 다시 확인하세요.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-bt-border-strong bg-white shadow-sm">
