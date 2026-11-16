@@ -6,6 +6,7 @@ import {
   type ProductJsonLdItineraryItem,
 } from '@/lib/seo/product-json-ld'
 import { absoluteUrl, toAbsoluteImageUrl } from '@/lib/site-metadata'
+import { jsonLdScriptHtml } from '@/lib/seo/training-json-ld'
 import { publicProductPath } from '@/lib/product-public-path'
 
 export type {
@@ -32,6 +33,7 @@ type Props = {
  * REGRESSION-FREEZE[product-jsonld-requires-offers]: omit Product when no offers — manifest
  * REGRESSION-FREEZE[product-jsonld-requires-offers]: TouristTrip only with Product, no price offers — manifest
  * REGRESSION-FREEZE[product-jsonld-canonical-url]: Product.url = publicProductPath — manifest
+ * REGRESSION-FREEZE[public-jsonld-script-escape]: JSON-LD script 종료 탈출 — manifest
  */
 export default function ProductJsonLd({
   productId,
@@ -84,13 +86,13 @@ export default function ProductJsonLd({
   return (
     <>
       {productData ? (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productData) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptHtml(productData) }} />
       ) : null}
       {breadcrumbLd ? (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptHtml(breadcrumbLd) }} />
       ) : null}
       {touristTripLd ? (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(touristTripLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptHtml(touristTripLd) }} />
       ) : null}
     </>
   )

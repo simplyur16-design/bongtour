@@ -122,13 +122,19 @@ function isKrwCurrencyToken(c: string | null | undefined): boolean {
   return /^(KRW|원|￦|WON|₩|원화)$/i.test(t)
 }
 
+// REGRESSION-FREEZE[optional-tour-money-no-assumed-krw]: 통화 없으면 원·₩ 추정 금지 — manifest
+/** 공개 금액: 원화만 '원'. 외화 코드는 그대로. 통화가 없으면 숫자만(원·₩로 추정하지 않음). */
+export function formatStoredMoneyLabel(amount: number, currency: string | null): string {
+  const n = amount.toLocaleString('ko-KR')
+  if (isKrwCurrencyToken(currency)) return `${n}원`
+  const code = (currency ?? '').trim()
+  if (code) return `${code.toUpperCase()} ${n}`
+  return n
+}
+
 /** 공개 옵션 표: 통화 원문 유지, 숫자만일 때 임의 `원` 부착 금지 */
 function formatOptionalTourFeePart(label: string, amount: number, currency: string | null): string {
-  const n = amount.toLocaleString('ko-KR')
-  if (isKrwCurrencyToken(currency)) return `${label} ${n}원`
-  const code = (currency ?? '').trim()
-  if (code) return `${label} ${code.toUpperCase()} ${n}`
-  return `${label} ${n}`
+  return `${label} ${formatStoredMoneyLabel(amount, currency)}`
 }
 
 /**
@@ -564,7 +570,9 @@ export function getPackageOptionalTourRowsFromProduct(
         minPaxText: null,
         guideText: null,
         waitingText: null,
-        priceDisplay: t.priceText?.trim() || (t.priceValue != null ? `₩${t.priceValue.toLocaleString('ko-KR')}` : '문의'),
+        priceDisplay:
+          t.priceText?.trim() ||
+          (t.priceValue != null ? formatStoredMoneyLabel(t.priceValue, t.currency ?? null) : '문의'),
         bookingType: t.bookingType ?? 'unknown',
       }))
     )

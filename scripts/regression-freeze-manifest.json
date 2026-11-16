@@ -22065,6 +22065,67 @@
       ]
     },
     {
+      "id": "public-jsonld-script-escape",
+      "tier": ["prebuild", "ci"],
+      "summary": "홈·상품 JSON-LD 스크립트는 </script>를 탈출한다",
+      "checks": [
+        {
+          "file": "app/components/seo/ProductJsonLd.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-jsonld-script-escape]",
+            "jsonLdScriptHtml("
+          ]
+        },
+        {
+          "file": "app/components/seo/SiteJsonLd.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-jsonld-script-escape]",
+            "jsonLdScriptHtml(data)"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/seo/product-json-ld.test.ts"]
+    },
+    {
+      "id": "public-card-from-price-shared",
+      "tier": ["prebuild", "ci"],
+      "summary": "해외 목록 카드의 동일한 최저가 표기만 한 함수로 둔다",
+      "checks": [
+        {
+          "file": "lib/public-card-from-price.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-card-from-price-shared]",
+            "export function formatPublicCardFromPrice"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/public-card-from-price.test.ts"]
+    },
+    {
+      "id": "optional-tour-money-no-assumed-krw",
+      "tier": ["prebuild", "ci"],
+      "summary": "선택관광 금액은 저장된 통화만. 없으면 원·₩로 추정하지 않음",
+      "checks": [
+        {
+          "file": "lib/optional-tours-ui-model.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[optional-tour-money-no-assumed-krw]",
+            "export function formatStoredMoneyLabel"
+          ]
+        },
+        {
+          "file": "app/components/detail/PackageOptionalToursTable.tsx",
+          "mustInclude": [
+            "formatStoredMoneyLabel(row.adultPrice, row.currency)"
+          ],
+          "mustNotInclude": [
+            "row.currency ?? '₩'"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/optional-tours-stored-money.test.ts"]
+    },
+    {
       "id": "product-jsonld-canonical-url",
       "tier": [
         "prebuild",
