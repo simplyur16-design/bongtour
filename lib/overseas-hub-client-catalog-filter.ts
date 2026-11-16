@@ -176,6 +176,11 @@ function filterOverseasHubCatalogByMenuGroup(
   const pool = regionPool.length > 0 ? regionPool : items
   const cityKeys = resolveMegaMenuGroupCityKeys(regionId, mg)
   if (cityKeys.length > 0) {
+    // REGRESSION-FREEZE[yokohama-menu-city-terms]: 태그 없는 서버 geo 결과를 중분류 필터가 0으로 비우지 않음 — manifest
+    const poolHasGeoTags = pool.some(
+      (it) => (it.cityTags?.length ?? 0) > 0 || (it.countryTags?.length ?? 0) > 0,
+    )
+    if (!poolHasGeoTags) return pool
     return filterItemsByMenuGroupCityKeys(pool, regionId, mg)
   }
 
@@ -233,6 +238,10 @@ export function filterOverseasHubCatalogByUrl(
         const geo = buildBrowseUrlGeoFromParams(region, country, cityParam)
         const byGeo = filterItemsByBrowseUrlGeo(byMenuGroup, geo)
         if (byGeo) return byGeo
+        const groupHasGeoTags = byMenuGroup.some(
+          (it) => (it.cityTags?.length ?? 0) > 0 || (it.countryTags?.length ?? 0) > 0,
+        )
+        if (!groupHasGeoTags) return byMenuGroup
         return filterItemsByCityNeedle(byMenuGroup, cityParam)
       }
       return byMenuGroup

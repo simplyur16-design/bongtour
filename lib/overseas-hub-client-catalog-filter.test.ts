@@ -156,6 +156,47 @@ describe('filterOverseasHubCatalogByUrl menuGroup', () => {
     )
     expect(out.map((it) => it.id)).toEqual(['osaka'])
   })
+
+  // REGRESSION-FREEZE[yokohama-menu-city-terms]: 태그 없는 서버 geo 행은 요코하마 URL에서 유지 — manifest
+  it('keeps tagless server geo rows for the yokohama leaf', () => {
+    const items = [
+      { id: 'pkg-vg-0055', title: '동경/하코네/야마나시 온천 4일', listingKind: 'travel', productType: 'travel' },
+      { id: 'pkg-yb-0066', title: '동경4일 가마쿠라', listingKind: 'travel', productType: 'travel' },
+    ] as ResultItem[]
+    const out = filterOverseasHubCatalogByUrl(
+      items,
+      new URLSearchParams('scope=overseas&region=japan&country=japan&menuGroup=kanto&city=yokohama'),
+    )
+    expect(out.map((it) => it.id)).toEqual(['pkg-vg-0055', 'pkg-yb-0066'])
+  })
+
+  it('still drops a tokyo-only tagged product from the yokohama leaf', () => {
+    const items = [
+      {
+        id: 'yoko',
+        title: '동경 4일',
+        listingKind: 'travel',
+        productType: 'travel',
+        browseMegaRegionTabId: 'japan',
+        cityTags: [{ cityKey: 'yokohama' }],
+        countryTags: [{ countryKey: 'japan', nodeKey: 'yokohama' }],
+      },
+      {
+        id: 'tokyo',
+        title: '도쿄 3일',
+        listingKind: 'travel',
+        productType: 'travel',
+        browseMegaRegionTabId: 'japan',
+        cityTags: [{ cityKey: 'tokyo' }],
+        countryTags: [{ countryKey: 'japan', nodeKey: 'tokyo' }],
+      },
+    ] as ResultItem[]
+    const out = filterOverseasHubCatalogByUrl(
+      items,
+      new URLSearchParams('scope=overseas&region=japan&country=japan&menuGroup=kanto&city=yokohama'),
+    )
+    expect(out.map((it) => it.id)).toEqual(['yoko'])
+  })
 })
 
 describe('filterOverseasHubCatalogByUrl travel type', () => {
