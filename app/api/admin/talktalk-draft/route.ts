@@ -4,7 +4,9 @@ import { pickTalktalkCompareCandidates } from '@/lib/talktalk-draft/compare-cand
 import { buildTalktalkDraft } from '@/lib/talktalk-draft/draft'
 import { ADMIN_DRAFT_FAQ, TALKTALK_FAQ_NEEDS_ANSWER, faqCountByCategory } from '@/lib/talktalk-draft/faq'
 import { loadTalktalkCompareProducts } from '@/lib/talktalk-draft/load-compare-pool'
+import { loadStoredSingleRoomByProductCode } from '@/lib/talktalk-draft/load-single-room'
 import { parseTalktalkInquiryText } from '@/lib/talktalk-draft/parse-inquiry'
+import { singleRoomAmountLabelFromStored } from '@/lib/talktalk-draft/single-room-amount'
 import { resolveComparePlaceCluster } from '@/lib/similar-itinerary-compare-cluster'
 
 export const dynamic = 'force-dynamic'
@@ -16,6 +18,7 @@ type Body = {
   budgetKrw?: unknown
   partySize?: unknown
   duration?: unknown
+  productCode?: unknown
 }
 
 function str(v: unknown): string {
@@ -77,6 +80,10 @@ export async function POST(request: Request) {
     duration,
     products,
   })
+  const asksSingleRoom = /1인실|싱글룸|싱글\s*차지|싱글차지/.test(inquiryText)
+  const productCode = str(body.productCode)
+  const storedSingle = asksSingleRoom && productCode ? await loadStoredSingleRoomByProductCode(productCode) : null
+  const singleRoomLabel = asksSingleRoom ? singleRoomAmountLabelFromStored(storedSingle) : null
   const draft = buildTalktalkDraft({
     inquiryText,
     placeLabel: picked.placeLabel,
@@ -84,6 +91,7 @@ export async function POST(request: Request) {
     weekFellBack: picked.weekFellBack,
     durationNote: !duration,
     candidates: picked.candidates,
+    singleRoomLabel,
   })
 
   return NextResponse.json({

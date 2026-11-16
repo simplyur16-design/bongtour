@@ -911,59 +911,122 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '휴대폰에서 eSIM을 어떻게 지우나요?',
     '아이폰은 설정 > 셀룰러 > 해당 eSIM > eSIM 제거입니다. 안드로이드는 설정 > 연결 > SIM카드 관리자 > 해당 eSIM > 삭제입니다. QR은 한 번만 쓸 수 있고 지우면 다시 설치하지 못하는 경우가 많으니, 쓰는 동안에는 지우지 않습니다.',
   ),
+  inquiry(
+    'boss-hotel-only-later',
+    '호텔만 단독으로 예약하는 절차는 무엇인가요?',
+    '추후 API 연결 후 안내',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['booking'],
+    'hotel',
+  ),
+  inquiry(
+    'boss-quote-hours',
+    '견적서는 몇 시간 안에 나오나요?',
+    '3시간',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['process'],
+    'common',
+    ['package', 'fit', 'air', 'hotel', 'training', 'institution', 'private', 'bus'],
+  ),
+  inquiry(
+    'boss-passport-remain',
+    '여권 잔여 유효기간은 얼마나 있어야 하나요?',
+    '출발일을 기준으로 계산',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['passport'],
+    'common',
+    ['package', 'fit', 'private', 'training'],
+  ),
+  inquiry(
+    'boss-visa-free',
+    '무비자 국가 안내는 어떻게 구분하나요?',
+    '무비자 국가 안내',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['visa'],
+    'common',
+    ['package', 'fit', 'private', 'training'],
+  ),
+  inquiry(
+    'boss-visa-required',
+    '사전 비자가 필요한 국가 안내는 어떻게 구분하나요?',
+    '사전 비자 필요 국가 안내',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['visa'],
+    'common',
+    ['package', 'fit', 'private', 'training'],
+  ),
+  inquiry(
+    'boss-cancel-fee',
+    '출발 며칠 전 취소 수수료는 몇 %인가요?',
+    '상품별로 고지된 금액 기준',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['cancel', 'refund'],
+    'common',
+    ['package', 'fit', 'air', 'hotel', 'private', 'training'],
+  ),
+  inquiry(
+    'boss-deposit',
+    '예약금·계약금은 얼마인가요?',
+    '추후 안내',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['payment'],
+    'common',
+    ['package', 'fit', 'private', 'training', 'bus'],
+  ),
+  inquiry(
+    'boss-child-age',
+    '아동·유아 요금은 성인 요금의 몇 %인가요?',
+    '각 여행상품에 적힌 나이 기준을 따름',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['payment'],
+    'package',
+    ['fit', 'private'],
+  ),
+  inquiry(
+    'boss-optional-tour',
+    '선택관광은 필수인가요, 비용은 얼마인가요?',
+    '필수 아님(선택)',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['booking'],
+    'package',
+  ),
+  inquiry(
+    'boss-single-room',
+    '1인실 추가 금액은 얼마인가요?',
+    '해당 상품은 1인실 금액 확인 후 안내',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['payment'],
+    'package',
+  ),
+  inquiry(
+    'boss-name-fix',
+    '발권 후 영문 이름을 어떻게 고치나요?',
+    '항공사 규약에 따릅니다',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['booking'],
+    'air',
+    ['package', 'fit', 'private'],
+  ),
+  inquiry(
+    'boss-esim-topup',
+    '데이터가 떨어지면 고객이 어떻게 충전하나요?',
+    '상품별로 다름',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['esim'],
+    'esim',
+  ),
+  inquiry(
+    'boss-esim-speed',
+    '어느 정도 속도가 정상인가요?',
+    '상품별 고지 내용을 확인해 주세요',
+    'docs/talktalk-faq-inventory-1116.md',
+    ['esim'],
+    'esim',
+  ),
 ]
 
-/** 저장소·확인한 공식 페이지 본문에 답이 없는 질문 */
-export const TALKTALK_FAQ_NEEDS_ANSWER: readonly { question: string; why: string }[] = [
-  {
-    question: '호텔만 단독으로 예약하는 절차는 무엇인가요?',
-    why: '자유여행 안내는 항공과 호텔을 함께 말하며, 호텔만의 접수 화면은 없습니다.',
-  },
-  {
-    question: '견적서는 몇 시간 안에 나오나요?',
-    why: '답변 시점이 달라질 수 있다는 안내만 있고, 견적 소요 시간 숫자는 없습니다.',
-  },
-  {
-    question: '여권 잔여 유효기간은 얼마나 있어야 하나요?',
-    why: '고객 약관·고객지원 문구에 잔여 기간 숫자가 없습니다.',
-  },
-  {
-    question: '이 국가는 무비자인가요, 비자가 필요한가요?',
-    why: '목적지별 비자 규정이 공통 안내로 없습니다.',
-  },
-  {
-    question: '출발 며칠 전 취소 수수료는 몇 %인가요?',
-    why: '일수·비율표는 저장소 약관에 없고, 브랜드 취소 수수료는 DB 약관 필드에만 있습니다.',
-  },
-  {
-    question: '예약금·계약금은 얼마인가요?',
-    why: '금액이 적힌 공통 예약금 안내가 없습니다.',
-  },
-  {
-    question: '아동·유아 요금은 성인 요금의 몇 %인가요?',
-    why: '공통 산식이 없습니다. 출발 행에 저장된 금액만 쓸 수 있습니다.',
-  },
-  {
-    question: '선택관광은 필수인가요, 비용은 얼마인가요?',
-    why: '상품마다 표가 다르고, 필수 여부와 금액을 정한 공통 문장이 없습니다.',
-  },
-  {
-    question: '1인실 추가 금액은 얼마인가요?',
-    why: '상담 화면의 1인실 요청 외에 금액 규정이 없습니다.',
-  },
-  {
-    question: '발권 후 영문 이름을 어떻게 고치나요?',
-    why: '여행자 정보를 받는다는 문구만 있고, 정정 절차는 없습니다.',
-  },
-  {
-    question: '데이터가 떨어지면 고객이 어떻게 충전하나요?',
-    why: '연장은 연동 문서의 파트너 요청으로만 있고, 고객 화면 절차와 금액은 없습니다.',
-  },
-  {
-    question: '어느 정도 속도가 정상인가요?',
-    why: '느리다면 고객센터로 문의하라는 문장만 있고, 속도 숫자는 없습니다.',
-  },
-]
+/** 사장님 확인 후 남은 빈 질문. 12건은 모두 확정되어 비어 있다. */
+export const TALKTALK_FAQ_NEEDS_ANSWER: readonly { question: string; why: string }[] = []
 
 export function faqMemberships(item: TalktalkDraftFaqItem): TalktalkFaqCategory[] {
   return [item.category, ...(item.also ?? [])]

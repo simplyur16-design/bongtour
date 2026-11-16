@@ -4,7 +4,7 @@
  * REGRESSION-FREEZE[talktalk-draft-no-send-no-price-invent]: 발송·가격 생성 금지 — manifest
  */
 import type { TalktalkCompareCandidate } from '@/lib/talktalk-draft/compare-candidates'
-import { selectDraftFaq, type TalktalkDraftFaqItem } from '@/lib/talktalk-draft/faq'
+import { ADMIN_DRAFT_FAQ, selectDraftFaq, type TalktalkDraftFaqItem } from '@/lib/talktalk-draft/faq'
 
 const WON_RE = /\d{1,3}(?:,\d{3})+원|\d+원/g
 
@@ -15,6 +15,8 @@ export type TalktalkDraftInput = {
   weekFellBack: boolean
   durationNote: boolean
   candidates: readonly TalktalkCompareCandidate[]
+  /** 문의 상품의 저장 1인실 금액. 없으면 null. */
+  singleRoomLabel?: string | null
 }
 
 export function wonAmountsIn(text: string): string[] {
@@ -73,7 +75,14 @@ export function buildTalktalkDraft(input: TalktalkDraftInput, polish?: DraftPoli
   text: string
   faq: TalktalkDraftFaqItem[]
 } {
-  const faq = selectDraftFaq(input.inquiryText)
+  let faq = selectDraftFaq(input.inquiryText)
+  if (input.singleRoomLabel) {
+    const base = ADMIN_DRAFT_FAQ.find((item) => item.id === 'boss-single-room')
+    if (base) {
+      const withAmount = { ...base, answer: input.singleRoomLabel }
+      faq = [withAmount, ...faq.filter((item) => item.id !== base.id)]
+    }
+  }
   const lines = [
     '안녕하세요. 남겨주신 내용을 기준으로 등록된 상품만 비교해 보았습니다.',
     input.placeLabel ? `목적지: ${input.placeLabel}` : '목적지를 메가메뉴 도시로 특정하지 못했습니다.',

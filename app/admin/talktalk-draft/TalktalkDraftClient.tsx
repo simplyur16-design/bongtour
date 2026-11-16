@@ -42,6 +42,7 @@ export default function TalktalkDraftClient({
   const [budgetKrw, setBudgetKrw] = useState('')
   const [partySize, setPartySize] = useState('')
   const [duration, setDuration] = useState('')
+  const [productCode, setProductCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -63,6 +64,7 @@ export default function TalktalkDraftClient({
           budgetKrw: budgetKrw.trim() ? Number(budgetKrw.replace(/,/g, '')) : null,
           partySize: partySize.trim() ? Number(partySize) : null,
           duration,
+          productCode,
         }),
       })
       const data = (await res.json()) as DraftResponse
@@ -144,6 +146,15 @@ export default function TalktalkDraftClient({
               onChange={(e) => setPartySize(e.target.value)}
               inputMode="numeric"
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-800 sm:col-span-2">
+            상품코드
+            <input
+              value={productCode}
+              onChange={(e) => setProductCode(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              placeholder="1인실 금액을 읽을 때 사용합니다."
             />
           </label>
           <label className="block text-sm font-medium text-slate-800 sm:col-span-2">

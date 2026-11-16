@@ -88,12 +88,22 @@ describe('buildTalktalkDraft', () => {
     for (const need of TALKTALK_FAQ_NEEDS_ANSWER) {
       expect(blob).not.toContain(need.question)
     }
-    expect(TALKTALK_FAQ_NEEDS_ANSWER.map((item) => item.question)).toEqual(
-      expect.arrayContaining([
-        '여권 잔여 유효기간은 얼마나 있어야 하나요?',
-        '출발 며칠 전 취소 수수료는 몇 %인가요?',
-      ]),
-    )
+    expect(TALKTALK_FAQ_NEEDS_ANSWER).toEqual([])
+    expect(blob).toContain('추후 API 연결 후 안내')
+    expect(blob).toContain('3시간')
+    expect(blob).toContain('출발일을 기준으로 계산')
+    expect(blob).toContain('무비자 국가 안내')
+    expect(blob).toContain('사전 비자 필요 국가 안내')
+    expect(blob).toContain('상품별로 고지된 금액 기준')
+    expect(blob).toContain('추후 안내')
+    expect(blob).toContain('각 여행상품에 적힌 나이 기준을 따름')
+    expect(blob).toContain('필수 아님(선택)')
+    expect(blob).toContain('해당 상품은 1인실 금액 확인 후 안내')
+    expect(blob).toContain('항공사 규약에 따릅니다')
+    expect(blob).not.toContain('가능, 무료')
+    expect(blob).toContain('상품별로 다름')
+    expect(blob).toContain('상품별 고지 내용을 확인해 주세요')
+    expect(blob).not.toMatch(/무비자\s*:\s*[가-힣]{2,}(?:,|·)/)
   })
 
   it('초안 모듈은 발송 코드를 가져오지 않는다', () => {
