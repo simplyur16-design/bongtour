@@ -4983,7 +4983,8 @@
         {
           "file": "apps/simplyur-mobile/store-listing/aso/listing.json",
           "mustInclude": [
-            "simplyur: Korea eSIM",
+            "\"title\": \"Simplyur eSIM\"",
+            "\"homeScreenName\": \"Simplyur eSIM\"",
             "com.bongtour.simplyur",
             "en-US",
             "ja",

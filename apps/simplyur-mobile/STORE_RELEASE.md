@@ -163,7 +163,7 @@ Set `EXPO_PUBLIC_SENTRY_DSN` in local `.env` for device builds. Empty DSN = tele
 **SSOT:** [`store-listing/aso/listing.json`](./store-listing/aso/listing.json) · guide [`store-listing/aso/ASO.md`](./store-listing/aso/ASO.md)  
 **Verify:** `npm run verify:simplyur-aso-listing` (repo root)
 
-Home-screen label stays **`simplyur`**. Store title is **`simplyur: Korea eSIM`** (and localized equivalents).
+Home-screen label (Expo `name` → iOS `CFBundleDisplayName` / Android `app_name`) and store title are both **`Simplyur eSIM`** in every locale (approved 2026-11-17). Bundle id / package stay `com.bongtour.simplyur`.
 
 ### Play Console — English (US) default
 
@@ -171,7 +171,7 @@ Paste `locales.en-US` from `listing.json`:
 
 | Field | Value |
 |-------|--------|
-| App name (≤30) | `simplyur: Korea eSIM` |
+| App name (≤30) | `Simplyur eSIM` |
 | Short description (≤80) | see `playShort` |
 | Full description | see `description` |
 | What's new | see `whatsNew` |

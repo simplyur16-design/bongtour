@@ -20,7 +20,7 @@
   "locales": {
     "en-US": {
       "storeLocale": { "play": "en-US", "ios": "en-US" },
-      "title": "simplyur: Korea eSIM",
+      "title": "Simplyur eSIM",
       "iosSubtitle": "QR before you fly",
       "iosKeywords": "south,travel,sim,data,plan,visitor,tourist,seoul,busan,jeju,wifi,roaming,prepaid,install,activate",
       "iosPromo": "Korea eSIM for visitors. Get your QR by email, install before you fly, connect when you land.",
@@ -37,7 +37,7 @@
     },
     "ja": {
       "storeLocale": { "play": "ja-JP", "ios": "ja" },
-      "title": "simplyur: 韓国eSIM",
+      "title": "Simplyur eSIM",
       "iosSubtitle": "出発前にQRを設定",
       "iosKeywords": "訪韓,データ通信,旅行,ソウル,釜山,済州,観光,プリペイド,空港,ローミング,sim,wifi,インストール,全国,到着,回線,海外旅行,インバウンド,データプラン,観光客",
       "iosPromo": "訪韓向け韓国eSIM。QRをメールで受け取り、出発前に設定、到着ですぐ接続。",
@@ -54,7 +54,7 @@
     },
     "zh-CN": {
       "storeLocale": { "play": "zh-CN", "ios": "zh-Hans" },
-      "title": "simplyur: 韩国eSIM",
+      "title": "Simplyur eSIM",
       "iosSubtitle": "出发前安装二维码",
       "iosKeywords": "赴韩,流量,旅游,首尔,釜山,济州,游客,预付,机场,漫游,sim,wifi,安装,激活,全国,上网,出境游,数据套餐,旅行者,落地",
       "iosPromo": "赴韩游客韩国eSIM。邮件收码，出发前安装，落地连网。",
@@ -71,7 +71,7 @@
     },
     "zh-TW": {
       "storeLocale": { "play": "zh-TW", "ios": "zh-Hant" },
-      "title": "simplyur: 韓國eSIM",
+      "title": "Simplyur eSIM",
       "iosSubtitle": "出發前安裝QR",
       "iosKeywords": "赴韓,流量,旅遊,首爾,釜山,濟州,旅客,預付,機場,漫遊,sim,wifi,安裝,啟用,全國,上網,出境遊,數據方案,旅行者,落地",
       "iosPromo": "赴韓旅客韓國eSIM。郵件收碼，出發前安裝，落地連線。",
@@ -88,7 +88,7 @@
     },
     "vi": {
       "storeLocale": { "play": "vi-VN", "ios": "vi" },
-      "title": "simplyur: eSIM Han Quoc",
+      "title": "Simplyur eSIM",
       "iosSubtitle": "Cai QR truoc khi bay",
       "iosKeywords": "dulich,data,seoul,busan,jeju,khach,traphi,sanbay,roaming,sim,wifi,caidat,kichhoat",
       "iosPromo": "eSIM Han Quoc cho khach. Nhan QR email, cai truoc bay, online khi ha canh.",
@@ -104,7 +104,7 @@
       ]
     }
   },
-  "homeScreenName": "simplyur",
+  "homeScreenName": "Simplyur eSIM",
   "contactEmail": "bongtour24@naver.com",
   "privacyPolicyUrl": "https://bongtour.com/simplyur/en/legal/privacy",
   "androidVersionCode": 12,

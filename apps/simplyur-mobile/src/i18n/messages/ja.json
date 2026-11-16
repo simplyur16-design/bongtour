@@ -56,7 +56,7 @@
     "checking": "確認中…"
   },
   "why": {
-    "title": "simplyURの特長",
+    "title": "Simplyur eSIMの特長",
     "items": {
       "instant": {
         "title": "すぐ使える",
@@ -267,7 +267,7 @@
   },
   "auth": {
     "title": "ログイン",
-    "welcomeTitle": "Simply URへようこそ",
+    "welcomeTitle": "Simplyur eSIMへようこそ",
     "welcomeSubtitle": "eSIMを管理するにはサインインしてください",
     "skip": "スキップ",
     "continueEmail": "メールで続行",

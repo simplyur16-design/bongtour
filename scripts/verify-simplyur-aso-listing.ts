@@ -83,7 +83,8 @@ function main() {
   const doc = JSON.parse(raw) as ListingDoc
   if (doc.product !== 'simplyur') fail('product must be simplyur')
   if (doc.bundleId !== 'com.bongtour.simplyur') fail('bundleId must be com.bongtour.simplyur')
-  if (doc.homeScreenName !== 'simplyur') fail('homeScreenName must stay brand-only simplyur')
+  // 2026-11-17 사장님 승인: app display name + store title → "Simplyur eSIM" (bundle id unchanged).
+  if (doc.homeScreenName !== 'Simplyur eSIM') fail('homeScreenName must be Simplyur eSIM')
   if (!String(doc.privacyPolicyUrl).includes('bongtour.com/simplyur')) {
     fail('privacyPolicyUrl must be bongtour.com/simplyur…')
   }
@@ -103,6 +104,7 @@ function main() {
     assertMax(`${key}.playShort`, loc.playShort, L.playShort, 70)
     assertMax(`${key}.description`, loc.description, L.description, 1200)
     assertMax(`${key}.whatsNew`, loc.whatsNew, Math.min(L.playWhatsNew, L.iosWhatsNew), 120)
+    if (loc.title !== 'Simplyur eSIM') fail(`${key}.title must be "Simplyur eSIM"`)
     if (!/korea|한국|韓國|hàn quốc|esim/i.test(loc.title)) {
       fail(`${key}.title must include Korea/eSIM intent`)
     }
