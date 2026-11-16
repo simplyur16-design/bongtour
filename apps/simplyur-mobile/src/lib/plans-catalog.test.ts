@@ -5,6 +5,7 @@ import {
   SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS,
   collectAvailableDays,
   filterProductsByDays,
+  formatPlanCount,
   resolvePlanDataHint,
   snapTripDaysToAvailable,
 } from './plans-catalog';
@@ -58,5 +59,23 @@ describe('plans-catalog auto-select', () => {
     expect(
       resolvePlanDataHint({ data_label: 'Unlimited', data_hint: 'from api' }, t),
     ).toBe('from api');
+  });
+});
+
+describe('formatPlanCount', () => {
+  const en: Record<string, string> = {
+    'recommend.durationChip': '{N} days',
+    'recommend.durationChipOne': '1 day',
+  };
+  const ja: Record<string, string> = { 'recommend.durationChip': '{N}日間' };
+  const tFor = (m: Record<string, string>) => (k: string) => m[k] ?? k;
+
+  it('uses the singular template for 1 when the locale has one', () => {
+    expect(formatPlanCount(tFor(en), 'recommend.durationChip', 1)).toBe('1 day');
+    expect(formatPlanCount(tFor(en), 'recommend.durationChip', 5)).toBe('5 days');
+  });
+
+  it('falls back to the plural template when no singular key exists', () => {
+    expect(formatPlanCount(tFor(ja), 'recommend.durationChip', 1)).toBe('1日間');
   });
 });

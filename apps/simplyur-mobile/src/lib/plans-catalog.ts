@@ -79,3 +79,21 @@ export function minFormattedPrice(products: PlanProduct[]): string | null {
 export function formatPlanMessage(template: string, days: number): string {
   return template.replace(/\{N\}/g, String(days));
 }
+
+/**
+ * Singular-aware lookup: when n === 1 and the locale defines `${key}One` (en "1 day"), use it;
+ * otherwise the plural key. Locales without plural forms (ja/zh/vi) simply omit `${key}One`.
+ */
+export function pickCountTemplate(t: (k: string) => string, key: string, n: number): string {
+  if (n === 1) {
+    const oneKey = `${key}One`;
+    const one = t(oneKey);
+    if (one && one !== oneKey) return one;
+  }
+  return t(key);
+}
+
+/** `{N}` template with singular/plural pick — e.g. recommend.durationChip → "1 day" / "5 days". */
+export function formatPlanCount(t: (k: string) => string, key: string, n: number): string {
+  return formatPlanMessage(pickCountTemplate(t, key, n), n);
+}

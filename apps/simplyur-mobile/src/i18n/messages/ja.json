@@ -30,12 +30,12 @@
   "hero": {
     "eyebrow": "simplyur",
     "headline": "グローバル接続を、シンプルに",
-    "titleLine1": "韓国で",
-    "titleHighlight": "つながる",
+    "titleLine1": "韓国に着いたら、",
+    "titleHighlight": "すぐネット。",
     "subtitle": "購入後すぐメールでQRコードをお届け。出発前にインストールし、到着と同時に有効化できます。",
-    "cta": "Find my eSIM",
+    "cta": "韓国のeSIMプランを見る",
     "deviceLink": "対応端末 →",
-    "guideLink": "Install guide →"
+    "guideLink": "インストール方法 →"
   },
   "home": {
     "popularPlans": "人気の韓国プラン",
@@ -63,8 +63,8 @@
         "body": "店舗不要・物理SIM不要 — QRコードから数分でインストール。"
       },
       "support": {
-        "title": "英語サポート",
-        "body": "旅行前後、わかりやすい英語でサポート。"
+        "title": "困ったときも安心",
+        "body": "出発前も旅行中も、お問い合わせ窓口がサポートします。"
       },
       "refund": {
         "title": "かんたん返金",
@@ -105,10 +105,10 @@
     "perDay": "{amount}/日",
     "checkoutSoon": "決済を一時停止中です",
     "price": "料金",
-    "durationLabel": "滞在は何日ですか？",
+    "durationLabel": "韓国には何日滞在しますか？",
     "durationHint": "販売中の日数のみ表示されます。",
     "durationCaption": "1日＝アクティベーションから24時間（プランにより異なります）",
-    "durationChip": "{N}日",
+    "durationChip": "{N}日間",
     "plansPlaceholder": "上で滞在日数を選ぶとプランが表示されます。",
     "showingPlansPrefix": "",
     "showingPlansSuffix": "日プランを表示中",
@@ -120,10 +120,13 @@
     "errorBody": "接続を確認してもう一度お試しください。",
     "retry": "再試行",
     "unlimitedHint": "容量切れなし · 日常利用向け（プランの最大速度）",
-    "fullUnlimitedHint": "1日のGB上限なし · 動画やヘビー利用向け（公正利用あり）"
+    "fullUnlimitedHint": "1日のGB上限なし · 動画やヘビー利用向け（公正利用あり）",
+    "durationChipOne": "1日間",
+    "showingPlansSuffixOne": "日プランを表示中",
+    "noPlansForDaysOne": "1日のプランは現在ありません。別の日数をお試しください。"
   },
   "product": {
-    "buyNow": "購入する",
+    "buyNow": "次へ",
     "checkoutSoon": "決済を一時停止中です",
     "checkoutSoonHint": "オンライン決済は現在ご利用いただけません。しばらくしてから再度お試しください。",
     "details": "プラン詳細",
@@ -135,17 +138,29 @@
     "notFound": "プランが見つかりません",
     "backToPlans": "プラン一覧へ",
     "payInBrowserHint": "安全な決済はアプリ内で開きます（モバイル決済画面）。",
-    "payInAppHint": "安全な決済はアプリ内で開きます（Eximbayモバイル決済）。"
+    "payInAppHint": "次の画面でEximbayの安全な決済に進みます",
+    "includedTitle": "プラン内容",
+    "validity": "利用期間",
+    "validityNote": "韓国で最初に接続した時点から開始",
+    "qrDelivery": "QRコード",
+    "qrDeliveryValue": "メール＋マイeSIM（WeChat・SMSも選べます）",
+    "checkTitle": "ご購入前の確認",
+    "checkBody": "eSIM対応で、SIMロックが解除された端末が必要です。",
+    "checkDial": "かんたん確認：*#06# に発信して、EID番号が表示されればeSIM対応です。",
+    "checkIos": "iPhone：設定 → モバイル通信 →「eSIMを追加」があるか確認",
+    "checkAndroid": "Galaxy：設定 → 接続 → SIMマネージャー →「eSIMを追加」があるか確認",
+    "checkThisPhone": "この端末：{model}",
+    "checkDevicesLink": "対応端末を見る →"
   },
   "checkout": {
-    "title": "チェックアウト",
+    "title": "ご購入手続き",
     "email": "メール",
     "emailHint": "QRコードの送信先",
     "emailFromAccountHint": "ログイン中のアカウントのメールです（変更可）。QRはここに届きます",
     "phone": "電話（任意）",
     "phoneHint": "空欄のままで大丈夫です。入れる場合は国番号を含めてください。",
-    "phoneRequired": "番号の形式を確認してください。空欄のまま進むこともできます。",
-    "terms": "購入条件に同意します",
+    "phoneRequired": "番号の形式が正しくありません。ご確認いただくか、「メールのみ」を選んでください。",
+    "terms": "購入条件に同意し、端末がeSIM対応かつSIMロック解除済みであることを確認しました",
     "submit": "支払いへ進む",
     "summary": "注文内容",
     "quantity": "数量",
@@ -163,16 +178,31 @@
     "continueInBrowser": "決済を続ける",
     "continueInApp": "決済を続ける",
     "stayInAppOnly": "この支払い方法は別アプリが必要です。カードなどアプリ内の方法を選んでください。",
-    "eximbayAppOptional": "Eximbay（EXIMPay+）アプリは任意です。インストールしなくてもカードで支払えます。",
-    "eximbayAppInstallLink": "EXIMPay+ をインストール（任意）",
     "eximbayAppOpenedHint": "ストアを開きました。アプリは不要です。こちらでカード決済を続けられます。",
-    "saveCardTitle": "この端末のカード",
-    "saveCardToggle": "この端末にカードを記憶",
-    "saveCardHint": "次の決済でこの端末の自動入力（Autofill）がカードを入れられます。simplyurは番号を保存しません。",
-    "saveCardLast4": "下4桁",
-    "saveCardExpiry": "有効期限（MM/YY）",
-    "saveCardBrand": "ブランド",
-    "saveCardRemove": "削除"
+    "steps": {
+      "details": "お客様情報",
+      "pay": "お支払い",
+      "qr": "QRを受け取る"
+    },
+    "stepOf": "ステップ {n}/3",
+    "signInTitle": "ログインしてお支払いへ",
+    "signInBody": "購入したeSIMとQRコードは「マイeSIM」に保存され、別の端末からも確認できます。",
+    "emailInvalid": "有効なメールアドレスを入力してください。QRコードはこのアドレスに届きます。",
+    "termsRequired": "購入条件への同意と、端末がeSIMに対応していることの確認にチェックを入れてください。",
+    "deliveryTitle": "QRコードの受け取り方法",
+    "deliveryAlways": "メールと、アプリの「マイeSIM」に必ず届きます。",
+    "alsoSendTo": "他の受け取り方法（任意）",
+    "channelNone": "メールのみ",
+    "channelSms": "SMS（韓国の番号）",
+    "channelWeChat": "WeChat",
+    "smsPhoneLabel": "韓国の携帯番号",
+    "smsHint": "SMSは韓国の携帯番号（+82 10… または 010…）にのみ送信されます。",
+    "smsOverseas": "韓国の携帯番号ではないため、SMSは送信されません。QRコードはメールと「マイeSIM」で受け取れます。",
+    "wechatHint": "お支払い後、「マイeSIM」で「共有」をタップすると、QRコードをWeChatに送れます。",
+    "totalUsd": "合計（米ドル）",
+    "chargedInUsd": "カードへのご請求は米ドル（USD）です。円の金額は目安です。",
+    "securedBy": "クレジットカード・銀聯（UnionPay）· Eximbayの安全な決済",
+    "payAmount": "{amount}を支払う"
   },
   "guide": {
     "title": "eSIMのインストール",

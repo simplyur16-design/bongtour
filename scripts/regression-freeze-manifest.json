@@ -23529,7 +23529,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "Simplyur 카드 알림은 고객 폰 SecureStore만 — PAN/CVV·서버 저장 금지",
+      "summary": "Simplyur 카드 알림은 고객 폰 SecureStore만 — PAN/CVV·서버 저장 금지. 결제 화면 카드 기억 UI는 제거(2026-11-17 제안 5)",
       "checks": [
         {
           "file": "apps/simplyur-mobile/src/lib/device-card-wallet.ts",
@@ -23559,9 +23559,11 @@
           "file": "apps/simplyur-mobile/app/checkout.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-device-card-wallet]",
+            "importantForAutofill"
+          ],
+          "mustNotInclude": [
             "saveCardOnPhone",
-            "importantForAutofill",
-            "savePreferPhoneCardFill"
+            "checkout.saveCardToggle"
           ]
         }
       ],
@@ -23620,7 +23622,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "EXIMPay+ 앱은 결제 필수 아님 — 설치 희망자만 스토어 링크",
+      "summary": "EXIMPay+ 앱은 결제 필수 아님 — 우리 결제 폼에는 설치 링크 없음(2026-11-17 제안 5), Eximbay 결제창 안의 스토어 링크만 처리",
       "checks": [
         {
           "file": "apps/simplyur-mobile/src/lib/checkout-webview-nav.ts",
@@ -23636,7 +23638,9 @@
           "mustInclude": [
             "REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]",
             "openOptionalEximbayStore",
-            "Linking.openURL",
+            "Linking.openURL"
+          ],
+          "mustNotInclude": [
             "eximbayAppInstallLink"
           ]
         }

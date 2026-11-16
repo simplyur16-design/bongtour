@@ -1,6 +1,7 @@
 import { Link, router, useLocalSearchParams } from 'expo-router';
+import * as Device from 'expo-device';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fetchKoreaProduct, openSimplyurInAppCheckout, type PlanProduct } from '@/src/api/simplyur';
@@ -19,7 +20,10 @@ import {
   networkLabelFromFamily,
 } from '@/src/lib/product-title';
 
-/** design_handoff_product — Product detail [05] */
+/**
+ * design_handoff_product — Product detail [05]
+ * Proposal 4: "What's included" + "Before you buy" (eSIM / unlock check) so buyers can decide here.
+ */
 // REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: 5xx ≠ Plan not found — manifest
 // REGRESSION-FREEZE[simplyur-purchase-dock-cta]: docked buy CTA — manifest
 export default function ProductScreen() {
@@ -145,17 +149,37 @@ export default function ProductScreen() {
           </View>
 
           <View style={styles.panel}>
+            <Text style={styles.panelTitle}>{t('product.includedTitle')}</Text>
+            <DetailRow
+              label={t('recommend.data')}
+              value={product.data_label}
+              sub={product.data_hint ?? undefined}
+              bordered
+            />
+            <DetailRow
+              label={t('product.validity')}
+              value={product.days_label}
+              sub={t('product.validityNote')}
+              bordered
+            />
             <DetailRow label={t('product.network')} value={network} bordered />
-            <DetailRow label={t('recommend.duration')} value={product.days_label} bordered />
-            <DetailRow label={t('recommend.data')} value={product.data_label} />
+            <DetailRow label={t('product.qrDelivery')} value={t('product.qrDeliveryValue')} />
           </View>
+
+          <CompatibilityCard t={t} />
         </View>
       ) : null}
     </ScrollView>
       {showDock ? (
         checkoutEnabled ? (
           <SimplyurDockCta
-            label={openingPay ? t('checkout.processing') : t('product.buyNow')}
+            label={
+              openingPay
+                ? t('checkout.processing')
+                : product?.simplyur_display?.formatted
+                  ? `${t('product.buyNow')} · ${product.simplyur_display.formatted}`
+                  : t('product.buyNow')
+            }
             hint={t('product.payInAppHint')}
             onPress={() => void onBuy()}
             busy={openingPay}
@@ -178,16 +202,50 @@ export default function ProductScreen() {
 function DetailRow({
   label,
   value,
+  sub,
   bordered,
 }: {
   label: string;
   value: string;
+  sub?: string;
   bordered?: boolean;
 }) {
   return (
     <View style={[styles.row, bordered && styles.rowBorder]}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
+      <View style={styles.rowValueWrap}>
+        <Text style={styles.rowValue}>{value}</Text>
+        {sub ? <Text style={styles.rowSub}>{sub}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
+/** Before you buy — eSIM support + carrier unlock. Device model is shown when the OS reports it. */
+function CompatibilityCard({ t }: { t: (k: string) => string }) {
+  const model = (Device.modelName ?? '').trim();
+  const platformLines =
+    Platform.OS === 'ios'
+      ? [t('product.checkIos')]
+      : Platform.OS === 'android'
+        ? [t('product.checkAndroid')]
+        : [t('product.checkIos'), t('product.checkAndroid')];
+  return (
+    <View style={styles.checkCard}>
+      <Text style={styles.panelTitle}>{t('product.checkTitle')}</Text>
+      <Text style={styles.checkBody}>{t('product.checkBody')}</Text>
+      {model ? (
+        <Text style={styles.checkModel}>{t('product.checkThisPhone').replace('{model}', model)}</Text>
+      ) : null}
+      {[t('product.checkDial'), ...platformLines].map((line) => (
+        <View key={line} style={styles.checkLineRow}>
+          <Text style={styles.checkBullet}>•</Text>
+          <Text style={styles.checkLine}>{line}</Text>
+        </View>
+      ))}
+      <Pressable onPress={() => router.push('/devices')} hitSlop={8} accessibilityRole="link">
+        <Text style={styles.checkLink}>{t('product.checkDevicesLink')}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -242,13 +300,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: D.cardPadding,
     paddingVertical: 6,
   },
+  panelTitle: { fontSize: 15, ...fp('700'), color: D.navy, paddingTop: 10, paddingBottom: 4 },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    gap: 12,
     paddingVertical: 12,
   },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: D.divider },
   rowLabel: { fontSize: 13, ...fp('400'), color: D.muted },
-  rowValue: { fontSize: 14, ...fp('700'), color: D.navy },
+  rowValueWrap: { flexShrink: 1, alignItems: 'flex-end', gap: 2 },
+  rowValue: { fontSize: 14, ...fp('700'), color: D.navy, textAlign: 'right' },
+  rowSub: { fontSize: 12, lineHeight: 17, ...fp('400'), color: D.faint, textAlign: 'right' },
+  checkCard: {
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: D.cardRadius,
+    backgroundColor: '#fff',
+    paddingHorizontal: D.cardPadding,
+    paddingBottom: 16,
+    gap: 8,
+  },
+  checkBody: { fontSize: 13, lineHeight: 19.5, ...fp('600'), color: D.navy },
+  checkModel: { fontSize: 12.5, ...fp('400'), color: D.muted },
+  checkLineRow: { flexDirection: 'row', gap: 6 },
+  checkBullet: { fontSize: 13, lineHeight: 19.5, color: D.muted },
+  checkLine: { flex: 1, fontSize: 13, lineHeight: 19.5, ...fp('400'), color: D.muted },
+  checkLink: { marginTop: 4, fontSize: 13, ...fp('600'), color: D.coral },
 });

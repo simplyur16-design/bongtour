@@ -22,7 +22,8 @@ import {
   SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS,
   collectAvailableDays,
   filterProductsByDays,
-  formatPlanMessage,
+  formatPlanCount,
+  pickCountTemplate,
   minFormattedPrice,
   resolvePlanDataHint,
   snapTripDaysToAvailable,
@@ -215,7 +216,7 @@ export default function PlansScreen() {
                 <Text style={styles.selectedText}>
                   {t('recommend.showingPlansPrefix')}
                   <Text style={styles.selectedDays}>{selectedDays}</Text>
-                  {t('recommend.showingPlansSuffix')}
+                  {pickCountTemplate(t, 'recommend.showingPlansSuffix', selectedDays)}
                 </Text>
                 <Pressable onPress={scrollToChips} hitSlop={8}>
                   <Text style={styles.changeLink}>{t('recommend.change')}</Text>
@@ -223,7 +224,7 @@ export default function PlansScreen() {
               </View>
 
               {showNoMatch ? (
-                <Placeholder>{formatPlanMessage(t('recommend.noPlansForDays'), selectedDays)}</Placeholder>
+                <Placeholder>{formatPlanCount(t, 'recommend.noPlansForDays', selectedDays)}</Placeholder>
               ) : (
                 <>
                   <PlanSection
@@ -309,7 +310,7 @@ function DurationPicker({
                 selected ? styles.chipSelected : styles.chipIdle,
               ]}>
               <Text style={[styles.chipText, selected ? styles.chipTextSelected : styles.chipTextIdle]}>
-                {formatPlanMessage(t('recommend.durationChip'), d)}
+                {formatPlanCount(t, 'recommend.durationChip', d)}
               </Text>
             </Pressable>
           );

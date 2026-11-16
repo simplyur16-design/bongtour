@@ -11,7 +11,7 @@
   },
   "nav": {
     "home": "首页",
-    "findPlan": "查找 eSIM",
+    "findPlan": "选购 eSIM",
     "guide": "安装指南",
     "devices": "兼容设备",
     "support": "客服",
@@ -30,12 +30,12 @@
   "hero": {
     "eyebrow": "simplyur",
     "headline": "全球连接，化繁为简",
-    "titleLine1": "在",
-    "titleHighlight": "韩国",
-    "subtitle": "购买后邮件即时发送 QR 码。出发前安装，落地即可激活。",
-    "cta": "Find my eSIM",
+    "titleLine1": "一落地韩国，",
+    "titleHighlight": "马上就能上网",
+    "subtitle": "购买后立即通过邮件发送二维码。出发前装好，落地即可开通。",
+    "cta": "查看韩国 eSIM 套餐",
     "deviceLink": "兼容设备 →",
-    "guideLink": "Install guide →"
+    "guideLink": "安装指南 →"
   },
   "home": {
     "popularPlans": "热门韩国套餐",
@@ -63,8 +63,8 @@
         "body": "无需实体 SIM、无需到店 — 扫码数分钟即可安装。"
       },
       "support": {
-        "title": "英文客服",
-        "body": "出行前后均可获得清晰的英文客服支持。"
+        "title": "随时提供帮助",
+        "body": "出发前和旅途中遇到问题，都可以联系客服。"
       },
       "refund": {
         "title": "轻松退款",
@@ -90,7 +90,7 @@
     ]
   },
   "recommend": {
-    "title": "查找韩国 eSIM",
+    "title": "选购韩国 eSIM",
     "subtitle": "先选择停留天数，再选择流量套餐。",
     "koreaOnly": "先选择停留天数，再选择流量套餐。",
     "loading": "加载中…",
@@ -105,7 +105,7 @@
     "perDay": "{amount}/天",
     "checkoutSoon": "结账暂时不可用",
     "price": "价格",
-    "durationLabel": "您行程几天？",
+    "durationLabel": "在韩国待几天？",
     "durationHint": "仅显示在售的天数。",
     "durationCaption": "1 天 = 自激活起 24 小时（因套餐而异）",
     "durationChip": "{N} 天",
@@ -120,10 +120,13 @@
     "errorBody": "请检查网络后重试。",
     "retry": "重试",
     "unlimitedHint": "用不完流量 · 日常地图/聊天（有最高速度）",
-    "fullUnlimitedHint": "无每日 GB 额度 · 更适合视频与重度使用（可能有合理使用）"
+    "fullUnlimitedHint": "无每日 GB 额度 · 更适合视频与重度使用（可能有合理使用）",
+    "durationChipOne": "1 天",
+    "showingPlansSuffixOne": " 天套餐",
+    "noPlansForDaysOne": "暂无 1 天套餐，请尝试其他天数。"
   },
   "product": {
-    "buyNow": "立即购买",
+    "buyNow": "继续",
     "checkoutSoon": "结账暂时不可用",
     "checkoutSoonHint": "在线支付暂时暂停，请稍后再试。",
     "details": "套餐详情",
@@ -135,17 +138,29 @@
     "notFound": "未找到套餐",
     "backToPlans": "返回套餐列表",
     "payInBrowserHint": "安全结账将在应用内打开（移动支付界面）。",
-    "payInAppHint": "安全结账将在应用内打开（Eximbay 移动支付）。"
+    "payInAppHint": "下一步通过 Eximbay 安全支付",
+    "includedTitle": "套餐包含",
+    "validity": "有效期",
+    "validityNote": "自在韩国首次连网起计算",
+    "qrDelivery": "二维码",
+    "qrDeliveryValue": "邮箱 + 我的 eSIM（可选微信或短信）",
+    "checkTitle": "购买前请确认",
+    "checkBody": "您的手机需支持 eSIM，且未被运营商锁定。",
+    "checkDial": "快速检查：拨打 *#06#，如果显示 EID 号码，说明手机支持 eSIM。",
+    "checkIos": "iPhone：设置 → 蜂窝网络 → 查看是否有“添加 eSIM”",
+    "checkAndroid": "Galaxy：设置 → 连接 → SIM 卡管理器 → 查看是否有“添加 eSIM”",
+    "checkThisPhone": "本机：{model}",
+    "checkDevicesLink": "查看兼容设备 →"
   },
   "checkout": {
-    "title": "结账",
+    "title": "确认订单",
     "email": "邮箱",
     "emailHint": "QR 码将发送至此邮箱",
     "emailFromAccountHint": "已填入登录账号邮箱（可修改），QR 码将发送至此",
     "phone": "电话（选填）",
     "phoneHint": "可以留空。如果填写，请包含国家区号。",
-    "phoneRequired": "号码格式不对。可以留空，或加上国家区号。",
-    "terms": "我同意购买条款",
+    "phoneRequired": "号码格式不正确。请检查，或选择“仅邮箱”。",
+    "terms": "我同意购买条款，并确认手机支持 eSIM 且未被运营商锁定",
     "submit": "继续支付",
     "summary": "订单摘要",
     "quantity": "数量",
@@ -163,16 +178,31 @@
     "continueInBrowser": "继续结账",
     "continueInApp": "继续结账",
     "stayInAppOnly": "该付款方式需要打开其他应用。请选择可在 simplyur 内完成的银行卡等方式。",
-    "eximbayAppOptional": "Eximbay（EXIMPay+）应用为可选项。不安装也可以在此用卡支付。",
-    "eximbayAppInstallLink": "安装 EXIMPay+（可选）",
     "eximbayAppOpenedHint": "已打开商店。应用不是必须的，可继续在此用卡付款。",
-    "saveCardTitle": "本机保存的卡",
-    "saveCardToggle": "在本机记住此卡",
-    "saveCardHint": "下次付款时，本机自动填充可填入卡号。simplyur 不保存卡号。",
-    "saveCardLast4": "卡号后四位",
-    "saveCardExpiry": "有效期（MM/YY）",
-    "saveCardBrand": "卡组织",
-    "saveCardRemove": "删除"
+    "steps": {
+      "details": "填写信息",
+      "pay": "支付",
+      "qr": "获取二维码"
+    },
+    "stepOf": "第 {n} 步，共 3 步",
+    "signInTitle": "登录后付款",
+    "signInBody": "购买的 eSIM 和二维码会保存在“我的 eSIM”中，换手机也能找到。",
+    "emailInvalid": "请输入有效的邮箱地址，二维码将发送到该邮箱。",
+    "termsRequired": "请勾选同意购买条款，并确认您的手机支持 eSIM。",
+    "deliveryTitle": "二维码接收方式",
+    "deliveryAlways": "一定会发送到邮箱，并显示在本应用的“我的 eSIM”中。",
+    "alsoSendTo": "同时发送到（可选）",
+    "channelNone": "仅邮箱",
+    "channelSms": "短信（韩国号码）",
+    "channelWeChat": "微信",
+    "smsPhoneLabel": "韩国手机号",
+    "smsHint": "短信只能发送到韩国手机号（+82 10… 或 010…）。",
+    "smsOverseas": "这不是韩国手机号，因此不会发送短信。二维码仍会发送到邮箱，并显示在“我的 eSIM”中。",
+    "wechatHint": "付款后，在“我的 eSIM”中点击“分享”，即可把二维码发送到微信。",
+    "totalUsd": "合计（美元）",
+    "chargedInUsd": "银行卡将以美元（USD）扣款，人民币金额仅供参考。",
+    "securedBy": "银行卡或银联 · 由 Eximbay 提供安全支付",
+    "payAmount": "支付 {amount}"
   },
   "guide": {
     "title": "安装 eSIM",
