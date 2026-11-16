@@ -190,23 +190,25 @@ export function clusterMemberCityKeyForBrowseAlias(param: string | null | undefi
   return null
 }
 
-/** 메뉴 leaf는 그 도시 + 소속 클러스터 노드. 형제 도시 키는 빼되, 노드 슬러그 URL은 구성 도시를 유지한다. */
-// REGRESSION-FREEZE[menu-city-no-sibling-expand]: 형제 도시 키 확장 금지, 클러스터 노드 키는 유지 — manifest
+/**
+ * 메뉴 leaf는 그 도시만. 노드 슬러그 URL은 구성 도시를 유지한다.
+ * 예외: 도야·후라노·센다이 leaf는 기존 freeze 테스트(japan-mega-menu-browse-city-keys)대로 노드·구성 도시를 함께 본다.
+ * 그 밖의 클러스터(dalian-harbin·phuket-krabi-khaolak·changbai·sichuan·yokohama-kamakura 등) 노드 키를 leaf에 넣으면
+ * countryTag.nodeKey가 노드인 상품이 구성 도시 leaf에 다시 뜬다(하얼빈·끄라비·심양·중경·요코하마 오염 복귀).
+ */
+const LEGACY_LEAF_KEEPS_CLUSTER = new Set(['toya-jozankei', 'furano-biei', 'akita-sendai'])
+
+// REGRESSION-FREEZE[menu-city-no-sibling-expand]: 형제 도시·노드 키 확장 금지(도야·후라노·센다이만 예외) — manifest
 export function menuCityKeysOnly(cityParam: string | null | undefined, expanded: readonly string[]): string[] {
   const member = clusterMemberCityKeyForBrowseAlias(cityParam)
   if (!member) return [...expanded]
   const node = CITY_KEY_TO_CLUSTER_NODE[member]
-  const keep = new Set<string>([member])
-  if (node) {
-    keep.add(node)
-    // japan-mega-menu-browse-city-keys.test.ts 가 도야·후라노·센다이 잎의 다른 구성 도시를 요구한다.
-    if (node === 'toya-jozankei' || node === 'furano-biei' || node === 'akita-sendai') {
-      for (const row of CLUSTER_CITY_EXPANSIONS[node] ?? []) keep.add(row.cityKey)
-    }
-  }
+  if (!node || !LEGACY_LEAF_KEEPS_CLUSTER.has(node)) return [member]
+  const keep = new Set<string>([member, node])
+  for (const row of CLUSTER_CITY_EXPANSIONS[node] ?? []) keep.add(row.cityKey)
   const out: string[] = []
   const seen = new Set<string>()
-  for (const raw of [...expanded, member, ...(node ? [node] : [])]) {
+  for (const raw of [member, node, ...expanded]) {
     const k = raw.trim().toLowerCase()
     if (!k || seen.has(k) || !keep.has(k)) continue
     seen.add(k)

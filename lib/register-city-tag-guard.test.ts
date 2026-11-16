@@ -74,6 +74,31 @@ describe('register city tag visit guard', () => {
     expect(sanitizeCityVisitText('#고베공항 #교토 일주')).toContain('교토')
   })
 
+  // REGRESSION-FREEZE[register-city-tag-visit-guard]: 「도시+공항」은 공항 토막만 근거에서 빠지고, 다른 곳의 도시 표기는 남음 — manifest
+  it('도시+공항은 그 토막만 지운다 — 공항만이면 근거 없음, 시내 방문이 따로 있으면 근거 유지', () => {
+    const airportOnly = buildRegisterCityVisitHaystackFromSchedule([
+      { title: null, routeText: '후쿠오카 공항 - 유후인카이카테이', description: '후쿠오카 공항 도착 후 료칸 체크인' },
+      { title: '우미카지 테라스', routeText: '오키나와 나하 국제공항', description: null },
+    ])
+    expect(haystackCityKeyHasVisitEvidence(['후쿠오카'], airportOnly ?? '')).toBe(false)
+    expect(haystackCityKeyHasVisitEvidence(['나하'], airportOnly ?? '')).toBe(false)
+    expect(haystackCityKeyHasVisitEvidence(['오키나와'], airportOnly ?? '')).toBe(true)
+    const visited = buildRegisterCityVisitHaystackFromSchedule([
+      { title: '후쿠오카 시내', routeText: '후쿠오카 공항 - 후쿠오카 타워 - 캐널시티', description: null },
+    ])
+    expect(haystackCityKeyHasVisitEvidence(['후쿠오카'], visited ?? '')).toBe(true)
+    expect(haystackCityKeyHasVisitEvidence(['싱가포르'], sanitizeCityVisitText('싱가포르를 경유하여 인천 도착'))).toBe(false)
+    expect(haystackCityKeyHasVisitEvidence(['이스탄불'], sanitizeCityVisitText('터키 항공은 이스탄불을 경유하므로'))).toBe(false)
+  })
+
+  it('샤먼 상품 사진 캐션 「중경 고속열차」「광주-계림 고속열차 내부」는 근거가 아니다', () => {
+    const visit = sanitizeCityVisitText('고속열차 이동 - 중경 고속열차 - 광주-계림 고속열차 내부 - 구랑위 페리 - 고랑서')
+    expect(haystackCityKeyHasVisitEvidence(['중경', '충칭'], visit)).toBe(false)
+    expect(haystackCityKeyHasVisitEvidence(['계림', '구이린'], visit)).toBe(false)
+    expect(haystackCityKeyHasVisitEvidence(['고랑서'], visit)).toBe(true)
+    expect(haystackCityKeyHasVisitEvidence(['계림'], sanitizeCityVisitText('계림 - 이강 유람'))).toBe(true)
+  })
+
   it('상해 일정의 「남경」(남경로 약칭)·호치민 생가는 근거가 아니다', () => {
     expect(haystackCityKeyHasVisitEvidence(['남경'], sanitizeCityVisitText('상해 - 우캉 - 남경 - 외탄'))).toBe(false)
     expect(haystackCityKeyHasVisitEvidence(['남경'], sanitizeCityVisitText('예원 · 남경'))).toBe(false)
