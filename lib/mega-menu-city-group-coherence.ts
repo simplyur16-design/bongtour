@@ -4,6 +4,7 @@
  */
 // REGRESSION-FREEZE[mega-menu-same-region-multi-column-city-tags]: 동일 region 다열 cityKey 유지 — manifest
 import { resolveBrowseCityKeysForFilter } from '@/lib/browse-country-url-resolve'
+import { CLUSTER_CITY_EXPANSIONS } from '@/lib/cluster-city-expansions'
 import { termAppearsInHaystack } from '@/lib/geo-haystack-match'
 import { countrySlugFromLabel, citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
 import { MEGA_MENU_TAB_DEFINITIONS } from '@/lib/mega-menu-regions.data'
@@ -29,6 +30,14 @@ function buildCityPlacementIndex(): Map<string, MegaMenuCityPlacement> {
         }
       }
     }
+  }
+  // 메뉴 leaf가 아닌 클러스터 구성 도시(하롱·비에이·죠잔케이 등)·노드 키도 같은 region 배치를 물려받는다.
+  // browse 형제 확장 제거와 별개로, 등록 태그 region 정합 판정에서 탈락하지 않게. — manifest register-city-tag-visit-guard
+  for (const [node, rows] of Object.entries(CLUSTER_CITY_EXPANSIONS)) {
+    const placed = rows.map((r) => map.get(r.cityKey)).find(Boolean) ?? map.get(node)
+    if (!placed) continue
+    if (!map.has(node)) map.set(node, placed)
+    for (const r of rows) if (!map.has(r.cityKey)) map.set(r.cityKey, placed)
   }
   return map
 }

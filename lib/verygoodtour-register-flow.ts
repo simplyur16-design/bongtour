@@ -24,7 +24,10 @@ import { resolveRegisterItineraryDayDraftsForAdminPreview } from '@/lib/register
 import { extractHighlightFromVerygoodtour } from '@/lib/extract-highlight-verygoodtour'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
-import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
+import {
+  buildRegisterCityVisitHaystackFromSchedule,
+  buildRegisterGeoHaystackFromSchedule,
+} from '@/lib/register-geo-schedule-haystack'
 import { registerGeoTagSyncOpts, resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
 import { syncProductGeoTagsForRegister } from '@/lib/sync-product-geo-tags'
 import {
@@ -1567,6 +1570,7 @@ export async function runVerygoodtourRegisterFlow(request: Request, flowOptions:
       ? null
       : buildRegisterPublicImageHeroSeoLineCandidate(registerHeroSeoInput)
     const scheduleHaystack = buildRegisterGeoHaystackFromSchedule(schedule)
+    const cityVisitHaystack = buildRegisterCityVisitHaystackFromSchedule(schedule)
     const geoInput = {
       title: titlePair.prismaTitle,
       originSource: effectiveOriginSource,
@@ -1717,7 +1721,12 @@ export async function runVerygoodtourRegisterFlow(request: Request, flowOptions:
     })
     timing.mark('after-pending-save')
 
-    await syncProductGeoTagsForRegister(prisma, productId, geo, registerGeoTagSyncOpts(geoInput, scheduleHaystack))
+    await syncProductGeoTagsForRegister(
+      prisma,
+      productId,
+      geo,
+      registerGeoTagSyncOpts(geoInput, scheduleHaystack, cityVisitHaystack),
+    )
 
     const departureInputsForSave = enrichVerygoodDepartureInputsFromProductPriceTable(
       departureInputs,

@@ -5,8 +5,13 @@
  */
 import type { Prisma } from '@prisma/client'
 import { CAUCASUS_COUNTRY_KEY_SET, detectCaucasusPackageFromHaystack } from '@/lib/caucasus-package-detect'
-import { clusterCityKeysForNode, isClusterExpansionNode } from '@/lib/cluster-city-expansions'
+import {
+  CLUSTER_CITY_EXPANSIONS,
+  clusterCityKeysForNode,
+  isClusterExpansionNode,
+} from '@/lib/cluster-city-expansions'
 import { filterCityKeysToCoherentMegaMenuGroup } from '@/lib/mega-menu-city-group-coherence'
+import { sanitizeCityVisitText } from '@/lib/register-city-tag-guard'
 import {
   isMegaMenuSsotCityKey,
   loadMegaMenuSsotCityKeys,
@@ -19,10 +24,19 @@ export type SyncProductCityTagsOpts = {
   title?: string
   primaryDestination?: string | null
   destinationRaw?: string | null
-  /** 일정 title·description·routeText — 메가메뉴 도시 토큰 매칭용 */
+  /** 일정 title·description·routeText — 국가 판정용. 도시 추가 근거로는 쓰지 않는다. */
   scheduleHaystack?: string | null
+  /** 일차 제목·장소만. 도시 태그 추가 근거. */
+  cityVisitHaystack?: string | null
   /** ProductCountryTag·다국가 plan — cityTag는 이 countryKey 집합에 속한 도시만 */
   allowedCountryKeys?: readonly string[]
+}
+
+function clusterMemberLabelsFor(node: string, cityKey: string): string[] {
+  return (CLUSTER_CITY_EXPANSIONS[node] ?? [])
+    .filter((r) => r.cityKey === cityKey)
+    .map((r) => r.koreanLabel.trim())
+    .filter(Boolean)
 }
 
 function clusterNodeKeyFromGeo(geo: ProductLocationKeyPrismaFields): string | null {
@@ -119,16 +133,36 @@ export async function resolveProductCityKeysForTags(
 
   const clusterNode = clusterNodeKeyFromGeo(geo)
   if (clusterNode) {
-    candidates.push(...clusterCityKeysForNode(clusterNode))
+    // REGRESSION-FREEZE[register-city-tag-visit-guard]: 클러스터 구성 도시도 방문 근거가 있을 때만 — manifest
+    const visitText = sanitizeCityVisitText(
+      [opts?.title, opts?.primaryDestination, opts?.destinationRaw, opts?.cityVisitHaystack]
+        .filter((x): x is string => Boolean(x && String(x).trim()))
+        .join('\n'),
+    )
+    // 노드 공용 토큰(「백두산」「동북3성」 등)은 구성 도시 전부에 걸리므로 구성 도시 자체 표기만 근거로 본다.
+    const primaryCity = geo.cityKey?.trim() || null
+    const members = clusterCityKeysForNode(clusterNode)
+    const kept = opts
+      ? members.filter(
+          (k) =>
+            k === primaryCity ||
+            clusterMemberLabelsFor(clusterNode, k).some((t) => t.length >= 2 && visitText.includes(t)),
+        )
+      : members
+    candidates.push(...kept)
   }
 
   const single = await resolveSingleMegaMenuCityKey(db, geo)
   if (single) candidates.push(single)
 
   if (opts) {
-    const haystack = [opts.title, opts.primaryDestination, opts.destinationRaw, opts.scheduleHaystack]
-      .filter((x): x is string => Boolean(x && String(x).trim()))
-      .join(' ')
+    // REGRESSION-FREEZE[register-city-tag-visit-guard]: 도시 추가는 방문 제목·장소만 — manifest
+    const visitSource = opts.cityVisitHaystack ?? ''
+    const haystack = sanitizeCityVisitText(
+      [opts.title, opts.primaryDestination, opts.destinationRaw, visitSource]
+        .filter((x): x is string => Boolean(x && String(x).trim()))
+        .join('\n'),
+    )
     if (haystack) {
       candidates.push(...(await matchMegaMenuSsotCityKeysInHaystack(db, haystack)))
     }

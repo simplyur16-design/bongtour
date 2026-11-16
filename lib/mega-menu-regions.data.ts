@@ -438,8 +438,7 @@ const CN: MegaMenuCountryGroupDef[] = [
       '하문',
       'xiamen',
       '厦门',
-      '천저우',
-      '망산',
+      // 천저우·망산(호남 침주)은 샤먼이 아님 — 계림/천저우 상품에 xiamen 태그가 붙던 원인(공정13 pkg-hn-0208)
       'zhangzhou',
       '중국',
     ]),

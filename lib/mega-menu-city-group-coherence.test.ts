@@ -85,8 +85,10 @@ describe('mega-menu-city-group-coherence', () => {
     const cityKeys = resolveBrowseCityKeysForFilter('yokohama')
     const groupKeys = resolveMegaMenuGroupCityKeys('japan', 'kanto')
     const filtered = cityKeys.filter((k) => groupKeys.includes(k))
-    expect(cityKeys).toEqual(expect.arrayContaining(['yokohama', 'yokohama-kamakura', 'kamakura', 'yamanashi']))
-    expect(filtered).toContain('yokohama')
+    expect(cityKeys).toEqual(['yokohama'])
+    expect(cityKeys).not.toContain('yamanashi')
+    expect(cityKeys).not.toContain('kamakura')
+    expect(filtered).toEqual(['yokohama'])
   })
 
   it('guizhou cityKey places under china-hk-mo / huanan', () => {
