@@ -13,22 +13,30 @@ type Candidate = {
   href: string
 }
 
-type FaqHit = { id: string; category: 'inquiry' | 'esim'; question: string; answer: string; source: string }
+type FaqHit = { id: string; question: string; answer: string; source: string }
 type Need = { question: string; why: string }
+type FaqGroup = { id: string; label: string; items: FaqHit[] }
 
 type DraftResponse = {
   sent: false
   draftText: string
   candidates: Candidate[]
   faq: FaqHit[]
-  faqCatalog: FaqHit[]
-  faqCount: { inquiry: number; esim: number }
   needsAnswer: Need[]
   error?: string
 }
 
-export default function TalktalkDraftClient() {
+export default function TalktalkDraftClient({
+  groups,
+  needsAnswer,
+}: {
+  groups: FaqGroup[]
+  needsAnswer: Need[]
+}) {
   const [inquiryText, setInquiryText] = useState('')
+  const [activeCategory, setActiveCategory] = useState(groups[0]?.id ?? '')
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [destination, setDestination] = useState('')
   const [departureDate, setDepartureDate] = useState('')
   const [budgetKrw, setBudgetKrw] = useState('')
@@ -194,34 +202,103 @@ export default function TalktalkDraftClient() {
               초안에 넣은 근거: {result.faq.map((f) => `${f.question} (${f.source})`).join(' · ')}
             </p>
           ) : null}
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">
-              FAQ {result.faqCount.inquiry + result.faqCount.esim}건 (문의 {result.faqCount.inquiry} · eSIM {result.faqCount.esim})
-            </h3>
-            <ul className="mt-2 space-y-2 text-sm text-slate-700">
-              {result.faqCatalog.map((item) => (
-                <li key={item.id}>
-                  <span className="font-medium text-slate-900">
-                    {item.category === 'esim' ? 'eSIM' : '문의'} · {item.question}
-                  </span>
-                  <span className="mt-0.5 block whitespace-pre-wrap text-slate-700">{item.answer}</span>
-                  <span className="block text-xs text-slate-500">{item.source}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">답 필요</h3>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
-              {result.needsAnswer.map((item) => (
-                <li key={item.question}>
-                  {item.question} — {item.why}
-                </li>
-              ))}
-            </ul>
-          </div>
         </section>
       ) : null}
+
+      <FaqBrowser
+        groups={groups}
+        activeCategory={activeCategory}
+        setActiveCategory={setActiveCategory}
+        openId={openId}
+        setOpenId={setOpenId}
+        copiedId={copiedId}
+        setCopiedId={setCopiedId}
+      />
+      <div className="mt-8">
+        <h3 className="text-sm font-semibold text-slate-900">답 필요</h3>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+          {needsAnswer.map((item) => (
+            <li key={item.question}>
+              {item.question} — {item.why}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
+  )
+}
+
+function FaqBrowser({
+  groups,
+  activeCategory,
+  setActiveCategory,
+  openId,
+  setOpenId,
+  copiedId,
+  setCopiedId,
+}: {
+  groups: FaqGroup[]
+  activeCategory: string
+  setActiveCategory: (id: string) => void
+  openId: string | null
+  setOpenId: (id: string | null) => void
+  copiedId: string | null
+  setCopiedId: (id: string | null) => void
+}) {
+  const group = groups.find((item) => item.id === activeCategory) ?? groups[0]
+  return (
+    <section className="mt-10">
+      <h2 className="text-base font-semibold text-slate-900">FAQ</h2>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {groups.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => {
+              setActiveCategory(item.id)
+              setOpenId(null)
+            }}
+            className={
+              item.id === group?.id
+                ? 'rounded-full bg-bt-text-navy px-3 py-1.5 text-sm font-semibold text-white'
+                : 'rounded-full border border-slate-300 px-3 py-1.5 text-sm text-slate-800'
+            }
+          >
+            {item.label} {item.items.length}
+          </button>
+        ))}
+      </div>
+      <ul className="mt-4 divide-y divide-slate-200 rounded-lg border border-slate-200">
+        {(group?.items ?? []).map((item) => {
+          const open = openId === item.id
+          return (
+            <li key={item.id} className="px-3 py-2">
+              <button
+                type="button"
+                className="w-full text-left text-sm font-medium text-slate-900"
+                onClick={() => setOpenId(open ? null : item.id)}
+              >
+                {item.question}
+              </button>
+              {open ? (
+                <div className="mt-2">
+                  <p className="whitespace-pre-wrap text-sm text-slate-700">{item.answer}</p>
+                  <p className="mt-1 text-xs text-slate-500">{item.source}</p>
+                  <button
+                    type="button"
+                    className="mt-2 rounded-lg border border-slate-300 px-3 py-1 text-sm"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(item.answer).then(() => setCopiedId(item.id))
+                    }}
+                  >
+                    {copiedId === item.id ? '복사함' : '답변 복사'}
+                  </button>
+                </div>
+              ) : null}
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }

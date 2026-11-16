@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { buildTalktalkDraft, draftKeepsStoredFacts, finalizeTalktalkDraft } from '@/lib/talktalk-draft/draft'
-import { ADMIN_DRAFT_FAQ, TALKTALK_FAQ_NEEDS_ANSWER, customerFaqBlob, faqCountByCategory } from '@/lib/talktalk-draft/faq'
+import { ADMIN_DRAFT_FAQ, TALKTALK_FAQ_CATEGORIES, TALKTALK_FAQ_NEEDS_ANSWER, customerFaqBlob, faqCountByCategory } from '@/lib/talktalk-draft/faq'
+import { inferTalktalkFaqCategory } from '@/lib/talktalk-draft/parse-inquiry'
 import type { TalktalkCompareCandidate } from '@/lib/talktalk-draft/compare-candidates'
 
 const candidate: TalktalkCompareCandidate = {
@@ -67,8 +68,19 @@ describe('buildTalktalkDraft', () => {
     expect(blob).not.toMatch(/A54|발급 전만|귀국 후/)
     expect(blob).toContain('상품 안내 또는 고객센터')
     expect(TALKTALK_FAQ_NEEDS_ANSWER.map((item) => item.question).join('\n')).not.toMatch(/APN에 어떤 주소/)
-    expect(faqCountByCategory().inquiry).toBeGreaterThan(0)
-    expect(faqCountByCategory().esim).toBeGreaterThan(0)
+    expect(blob).not.toMatch(/하나투어|모두투어|노랑풍선|참좋은|교원투어|롯데관광|내일투어|한진관광|hanatour|modetour|ybtour|verygoodtour/i)
+    const counts = faqCountByCategory()
+    for (const category of TALKTALK_FAQ_CATEGORIES) {
+      expect(counts[category.id]).toBeGreaterThan(0)
+    }
+    for (const item of ADMIN_DRAFT_FAQ) {
+      const nums = item.answer.match(/\d+/g) ?? []
+      if (!item.source.includes('/')) continue
+      const src = readFileSync(item.source, 'utf8')
+      for (const n of nums) expect(src, `${item.id} ${n}`).toContain(n)
+    }
+    expect(inferTalktalkFaqCategory('국외연수 견적 부탁드립니다')).toBe('training')
+    expect(inferTalktalkFaqCategory('eSIM QR이 안 와요')).toBe('esim')
   })
 
   it('근거 없는 질문은 초안 문장으로 넣지 않고 답 필요 목록에만 둔다', () => {

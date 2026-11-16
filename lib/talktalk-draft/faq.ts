@@ -14,6 +14,7 @@ import {
   type GuideBlock,
   type GuideStep,
 } from '@/lib/bongsim/esim-guide-content'
+import { inferTalktalkFaqCategory } from '@/lib/talktalk-draft/parse-inquiry'
 import {
   supportFaqItems,
   supportOpenKakaoNotice,
@@ -21,7 +22,30 @@ import {
   supportReceiptInfo,
 } from '@/lib/support-content'
 
-export type TalktalkFaqCategory = 'inquiry' | 'esim'
+export type TalktalkFaqCategory =
+  | 'package'
+  | 'fit'
+  | 'air'
+  | 'hotel'
+  | 'training'
+  | 'institution'
+  | 'private'
+  | 'bus'
+  | 'common'
+  | 'esim'
+
+export const TALKTALK_FAQ_CATEGORIES: readonly { id: TalktalkFaqCategory; label: string }[] = [
+  { id: 'package', label: '패키지' },
+  { id: 'fit', label: '자유여행' },
+  { id: 'air', label: '항공만' },
+  { id: 'hotel', label: '호텔만' },
+  { id: 'training', label: '국외연수' },
+  { id: 'institution', label: '연수기관 섭외' },
+  { id: 'private', label: '우리끼리' },
+  { id: 'bus', label: '전세버스' },
+  { id: 'common', label: '공통 접수·약관' },
+  { id: 'esim', label: 'eSIM' },
+]
 
 export type TalktalkFaqTopic =
   | 'cancel'
@@ -100,8 +124,9 @@ function inquiry(
   answer: string,
   source: string,
   topics: readonly TalktalkFaqTopic[],
+  category: TalktalkFaqCategory = 'common',
 ): TalktalkDraftFaqItem {
-  return { id, category: 'inquiry', question, answer, source, sourceUrl: null, sourceNote: null, topics }
+  return { id, category, question, answer, source, sourceUrl: null, sourceNote: null, topics }
 }
 
 function esim(
@@ -136,9 +161,9 @@ function officialEsim(
     category: 'esim',
     question,
     answer,
-    source: 'usimsa 공식 FAQ BDT002',
+    source: 'docs/talktalk-faq-inventory-1116.md',
     sourceUrl: BDT002_URL,
-    sourceNote: '조회 2026-11-16',
+    sourceNote: '공식 FAQ BDT002, 조회 2026-11-16',
     topics,
   }
 }
@@ -171,6 +196,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '맞춤 견적은 희망 여행지 또는 국가/도시, 출발 희망일 또는 출발 희망월 중 하나, 1명 이상의 인원, 그리고 문의 내용이 필요합니다. 문의 내용은 10자 이상입니다.',
     'lib/customer-inquiry-intake.ts',
     ['booking'],
+    'private',
   ),
   inquiry(
     'inquiry-training-quote',
@@ -178,13 +204,15 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '국외연수는 필요한 서비스를 고릅니다. 견적 모드이면 희망 국가 또는 도시, 출발 희망일 또는 출발 희망월, 1명 이상의 예상 인원, 이메일이 필요합니다. 필수 항목만으로도 접수는 가능하고, 접수만으로 예약·확정이 되지는 않습니다.',
     'lib/customer-inquiry-intake.ts',
     ['booking'],
+    'training',
   ),
   inquiry(
     'inquiry-group-bus',
     '단체·전세버스 견적은 어떻게 하나요?',
-    '전세·단체 버스는 1명 이상의 예상 인원과 이메일이 필요합니다. 예상 인원만으로도 접수할 수 있고, 왕복 기준이며 노선·일정·차량은 상담하면서 맞춥니다. 접수만으로 배차가 확정되지는 않습니다.',
+    '예상 인원만으로도 접수할 수 있습니다. 전세버스는 왕복 기준이며, 노선·일정·차량은 상담하면서 맞춰 드립니다. 접수만으로 배차가 확정되지는 않습니다.',
     'lib/inquiry-page.ts',
     ['booking'],
+    'bus',
   ),
   inquiry(
     'inquiry-not-confirmed',
@@ -269,6 +297,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     supportAnswer('faq-12'),
     'lib/support-content.ts',
     ['booking'],
+    'package',
   ),
   inquiry(
     'inquiry-passport-name',
@@ -290,6 +319,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     supportAnswer('faq-12'),
     'lib/support-content.ts',
     ['booking'],
+    'package',
   ),
   inquiry(
     'inquiry-change-itinerary',
@@ -297,6 +327,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     supportAnswer('faq-9'),
     'lib/support-content.ts',
     ['cancel'],
+    'package',
   ),
   inquiry(
     'inquiry-change-request',
@@ -318,6 +349,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '항공 예약·발권으로 항공권 예매를 진행할 수 있습니다. 항공사와 운임 조건에 따라 발권 방식이 다를 수 있으며, 필요한 절차는 진행 과정에서 안내합니다.',
     'lib/air-ticketing-content.ts',
     ['booking'],
+    'air',
   ),
   inquiry(
     'inquiry-single-room',
@@ -325,6 +357,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '예약 상담 화면에서 1인실 사용을 요청할 수 있습니다. 그 화면에는 가능 여부나 추가 금액이 적혀 있지 않습니다.',
     'app/components/travel/BookingIntakeModal.tsx',
     ['booking'],
+    'package',
   ),
   inquiry(
     'inquiry-shopping',
@@ -332,6 +365,63 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '쇼핑 일정·환불 규정은 현지 및 공급사 운영에 따라 달라질 수 있습니다.',
     'app/components/detail/ModetourShoppingTable.tsx',
     ['refund'],
+    'package',
+  ),
+  inquiry(
+    'fit-what',
+    '자유여행은 무엇을 준비하나요?',
+    '항공과 호텔을 함께 준비하고, 추천일정까지 참고할 수 있는 자유여행 상품입니다.',
+    'app/travel/air-hotel/page.tsx',
+    ['booking'],
+    'fit',
+  ),
+  inquiry(
+    'hotel-only',
+    '호텔만 필요할 때는 어떤 안내를 보나요?',
+    '항공과 호텔만 필요할 때. 국내 유명 여행사에서 검증된 호텔과 저렴한 항공권으로 가는 자유여행.',
+    'app/components/home/AirHotelProductGridClient.tsx',
+    ['booking'],
+    'hotel',
+  ),
+  inquiry(
+    'training-hub',
+    '국외연수는 어떤 범위로 문의하나요?',
+    '정부·공공·기업 목적의 국외 연수·교육여행 안내와 문의 접수입니다. 연수·전세버스·발권·통역 운영은 상담 후 안내됩니다.',
+    'app/business/page.tsx',
+    ['booking'],
+    'training',
+  ),
+  inquiry(
+    'institution-what',
+    '연수기관 섭외는 어떤 문의인가요?',
+    '해외 기관 방문·교류·레퍼런스 확인 등 기관 측 섭외가 필요한 경우에 맞춰 접수합니다. 일반 패키지 여행 상담과 성격이 다를 수 있습니다.',
+    'lib/inquiry-page.ts',
+    ['booking'],
+    'institution',
+  ),
+  inquiry(
+    'private-what',
+    '우리끼리는 어떤 여행인가요?',
+    '가족·지인·소규모 단체가 함께하는 단독 일정으로, 동선과 속도를 맞춰 제안합니다.',
+    'lib/main-hub-copy.ts',
+    ['booking'],
+    'private',
+  ),
+  inquiry(
+    'bus-info',
+    '전세버스 견적에 어떤 정보를 남기나요?',
+    '이용 인원, 출발지와 도착지, 이용 날짜, 출발 시간과 종료 예상 시간, 왕복·대기, 경유지, 차량 종류, 기사 대기 시간을 확인합니다. 차량 종류 예시에는 9인승, 25인승, 28인승, 45인승이 있습니다.',
+    'app/components/charter-bus/CharterBusLanding.tsx',
+    ['booking'],
+    'bus',
+  ),
+  inquiry(
+    'package-entry',
+    '패키지 상담은 어디서 시작하나요?',
+    '해외여행상품은 상담 후 확정하는 안내입니다. 상담 신청은 여행 상담 접수로 이어집니다. 즉시 결제·자동 확정이 아닌 상담·접수 창구입니다.',
+    'lib/main-hub-copy.ts',
+    ['booking'],
+    'package',
   ),
   inquiry(
     'inquiry-organizer',
@@ -540,6 +630,10 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
 /** 저장소·확인한 공식 페이지 본문에 답이 없는 질문 */
 export const TALKTALK_FAQ_NEEDS_ANSWER: readonly { question: string; why: string }[] = [
   {
+    question: '호텔만 단독으로 예약하는 절차는 무엇인가요?',
+    why: '자유여행 안내는 항공과 호텔을 함께 말하며, 호텔만의 접수 화면은 없습니다.',
+  },
+  {
     question: '견적서는 몇 시간 안에 나오나요?',
     why: '답변 시점이 달라질 수 있다는 안내만 있고, 견적 소요 시간 숫자는 없습니다.',
   },
@@ -586,10 +680,29 @@ export const TALKTALK_FAQ_NEEDS_ANSWER: readonly { question: string; why: string
 ]
 
 export function faqCountByCategory(): Record<TalktalkFaqCategory, number> {
-  return {
-    inquiry: ADMIN_DRAFT_FAQ.filter((item) => item.category === 'inquiry').length,
-    esim: ADMIN_DRAFT_FAQ.filter((item) => item.category === 'esim').length,
-  }
+  const counts = Object.fromEntries(TALKTALK_FAQ_CATEGORIES.map((c) => [c.id, 0])) as Record<
+    TalktalkFaqCategory,
+    number
+  >
+  for (const item of ADMIN_DRAFT_FAQ) counts[item.category] += 1
+  return counts
+}
+
+export function talktalkFaqAdminGroups(): Array<{
+  id: TalktalkFaqCategory
+  label: string
+  items: Array<{ id: string; question: string; answer: string; source: string }>
+}> {
+  return TALKTALK_FAQ_CATEGORIES.map((category) => ({
+    id: category.id,
+    label: category.label,
+    items: ADMIN_DRAFT_FAQ.filter((item) => item.category === category.id).map((item) => ({
+      id: item.id,
+      question: item.question,
+      answer: item.answer,
+      source: item.source,
+    })),
+  }))
 }
 
 export function customerFaqBlob(items: readonly TalktalkDraftFaqItem[] = ADMIN_DRAFT_FAQ): string {
@@ -598,6 +711,7 @@ export function customerFaqBlob(items: readonly TalktalkDraftFaqItem[] = ADMIN_D
 
 export function selectDraftFaq(inquiryText: string, limit = 4): TalktalkDraftFaqItem[] {
   const text = String(inquiryText ?? '')
+  const category = inferTalktalkFaqCategory(text)
   const topics = new Set<TalktalkFaqTopic>()
   if (/취소|환불|변경/.test(text)) {
     topics.add('cancel')
@@ -609,5 +723,8 @@ export function selectDraftFaq(inquiryText: string, limit = 4): TalktalkDraftFaq
   if (/진행|순서|상담/.test(text)) topics.add('process')
   if (/e\s*sim|이심|qr|설치|로밍|apn|갤럭시|아이폰|핫스팟|테더|사용량/i.test(text)) topics.add('esim')
   if (topics.size === 0) topics.add('booking')
-  return ADMIN_DRAFT_FAQ.filter((item) => item.topics.some((topic) => topics.has(topic))).slice(0, limit)
+  const topical = ADMIN_DRAFT_FAQ.filter((item) => item.topics.some((topic) => topics.has(topic)))
+  const inCategory = topical.filter((item) => item.category === category || item.category === 'common')
+  const pool = category === 'esim' ? topical.filter((item) => item.category === 'esim') : inCategory
+  return (pool.length > 0 ? pool : topical).slice(0, limit)
 }

@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     sent: false,
-    parsed: { destination, departureDate, budgetKrw, partySize, duration },
+    parsed: { destination, departureDate, budgetKrw, partySize, duration, category: parsed.category },
     placeLabel: picked.placeLabel,
     weekStartYmd: picked.weekStartYmd,
     weekFellBack: picked.weekFellBack,
