@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { getCachedSeasonLinkedProductIds } from '@/lib/season-curation-content'
 import { computeEffectivePricePerPersonKrwFromRow, PRODUCT_PRICE_FOR_BROWSE_INCLUDE } from '@/lib/product-price-per-person'
+import { fetchCardFutureMinAdultPriceByProductIds } from '@/lib/card-future-min-adult-price'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import type { ResultItem } from '@/components/products/ProductResultsList'
@@ -30,6 +31,7 @@ function earliestFutureDeparture(departures: { departureDate: Date }[], nowFloor
 }
 
 function toResultItem(p: {
+  cardFutureMinAdultPrice?: number | null
   id: string
   slug?: string | null
   title: string
@@ -140,9 +142,17 @@ async function loadSeasonLinkedProductsMobileUncached(): Promise<ResultItem[]> {
     })
   }
 
+  // REGRESSION-FREEZE[card-min-price-beyond-row-cap]: 시즌 카드 최저가는 미래 출발 전체 집계 — manifest
+  const futureMinById = await fetchCardFutureMinAdultPriceByProductIds(
+    [...linked, ...related].map((p) => p.id),
+    nowFloor,
+  )
   const score = (p: (typeof linked)[number]) => {
     const earliest = earliestFutureDeparture(p.departures, nowFloor)
-    const price = computeEffectivePricePerPersonKrwFromRow(p)
+    const price = computeEffectivePricePerPersonKrwFromRow({
+      ...p,
+      cardFutureMinAdultPrice: futureMinById.get(p.id) ?? null,
+    })
     return { p, earliest, price }
   }
 
@@ -164,7 +174,7 @@ async function loadSeasonLinkedProductsMobileUncached(): Promise<ResultItem[]> {
   const airports = await fetchEarliestOutboundDepartureAirportByProductIds(merged.map(({ p }) => p.id))
   return merged.map(({ p }) =>
     toResultItem(
-      p,
+      { ...p, cardFutureMinAdultPrice: futureMinById.get(p.id) ?? null },
       classifyMobileDepartureGroup({
         departureAirportLabel: p.departureAirportLabel,
         localDepartureTags: p.localDepartureTag,
@@ -177,7 +187,7 @@ async function loadSeasonLinkedProductsMobileUncached(): Promise<ResultItem[]> {
 export async function getCachedSeasonLinkedProductItemsForMobile(): Promise<ResultItem[]> {
   const run = unstable_cache(
     () => loadSeasonLinkedProductsMobileUncached(),
-    ['season-linked-products-mobile-v2'],
+    ['season-linked-products-mobile-v3'],
     { revalidate: 21_600 },
   )
   return run()

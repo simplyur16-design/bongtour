@@ -26,6 +26,11 @@ export type ProductPriceSelect = {
   }>
   /** 달력/가격표 행 — 출발행 미물질화 시 폴백 */
   prices?: Array<{ adult: number | null }>
+  /**
+   * 미래 출발 전체 집계 최저가. 있으면 take로 잘린 departures 최저가보다 우선한다.
+   * REGRESSION-FREEZE[card-min-price-beyond-row-cap]: 카드 표시는 이 값 — manifest
+   */
+  cardFutureMinAdultPrice?: number | null
 }
 
 function computeDeparturesAdultPriceMin(
@@ -56,6 +61,10 @@ export function computeEffectivePricePerPersonKrwFromRow(
   p: ProductPriceSelect,
   opts?: { seatAware?: boolean },
 ): number | null {
+  if (p.cardFutureMinAdultPrice != null && p.cardFutureMinAdultPrice > 0) {
+    return p.cardFutureMinAdultPrice
+  }
+
   const seatAware = opts?.seatAware ?? false
   const depMin = computeDeparturesAdultPriceMin(p.departures, seatAware)
   if (depMin != null && depMin > 0) return depMin
