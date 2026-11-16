@@ -29831,6 +29831,24 @@
       ]
     },
     {
+      "id": "cinema-hero-lcp-not-lazy-blur",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "시네마 히어로 첫 장은 뒤 블러 레이어도 eager — lazy 풀화면이 LCP로 늦게 잡히지 않게",
+      "checks": [
+        {
+          "file": "app/components/CinemaHeroImage.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cinema-hero-lcp-not-lazy-blur]",
+            "priority={priority}",
+            "loading={priority ? 'eager' : 'lazy'}"
+          ]
+        }
+      ]
+    },
+    {
       "id": "process13-browse-fixes",
       "tier": [
         "prebuild",
