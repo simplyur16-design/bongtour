@@ -106,5 +106,6 @@ export async function POST(request: Request) {
     faqCount: faqCountByCategory(),
     needsAnswer: TALKTALK_FAQ_NEEDS_ANSWER,
     draftText: draft.text,
+    esimAgentChat: draft.esimAgentChat,
   })
 }

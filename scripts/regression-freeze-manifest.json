@@ -22157,11 +22157,17 @@
           "file": "lib/talktalk-draft/draft.ts",
           "mustInclude": ["REGRESSION-FREEZE[talktalk-draft-no-send-no-price-invent]", "문의"],
           "mustNotInclude": ["sendStaffInquiryReply", "openai"]
+        },
+        {
+          "file": "lib/talktalk-draft/esim-agent-chat.ts",
+          "mustInclude": ["https://usimsa.channel.io/home", "고객센터 연결링크"],
+          "mustNotInclude": ["유심사", "USIMSA", "sendStaffInquiryReply"]
         }
       ],
       "vitestSuites": [
         "lib/talktalk-draft/compare-candidates.test.ts",
-        "lib/talktalk-draft/draft.test.ts"
+        "lib/talktalk-draft/draft.test.ts",
+        "lib/talktalk-draft/esim-agent-chat.test.ts"
       ]
     },
     {

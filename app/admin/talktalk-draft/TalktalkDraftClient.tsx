@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import AdminPageHeader from '@/app/admin/components/AdminPageHeader'
+import { ESIM_AGENT_CHAT_LABEL, ESIM_AGENT_CHAT_URL } from '@/lib/talktalk-draft/esim-agent-chat'
 
 type Candidate = {
   productId: string
@@ -20,6 +21,7 @@ type FaqGroup = { id: string; label: string; items: FaqHit[] }
 type DraftResponse = {
   sent: false
   draftText: string
+  esimAgentChat?: boolean
   candidates: Candidate[]
   faq: FaqHit[]
   needsAnswer: Need[]
@@ -190,6 +192,11 @@ export default function TalktalkDraftClient({
               {copied ? '복사함' : '복사'}
             </button>
           </div>
+          {result.esimAgentChat ? (
+            <a href={ESIM_AGENT_CHAT_URL} target="_blank" rel="noreferrer">
+              {ESIM_AGENT_CHAT_LABEL}
+            </a>
+          ) : null}
           <textarea
             readOnly
             value={result.draftText}

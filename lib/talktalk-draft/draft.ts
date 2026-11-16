@@ -4,6 +4,7 @@
  * REGRESSION-FREEZE[talktalk-draft-no-send-no-price-invent]: 발송·가격 생성 금지 — manifest
  */
 import type { TalktalkCompareCandidate } from '@/lib/talktalk-draft/compare-candidates'
+import { esimAgentChatLine, shouldAttachEsimAgentChat } from '@/lib/talktalk-draft/esim-agent-chat'
 import { ADMIN_DRAFT_FAQ, selectDraftFaq, type TalktalkDraftFaqItem } from '@/lib/talktalk-draft/faq'
 
 const WON_RE = /\d{1,3}(?:,\d{3})+원|\d+원/g
@@ -74,6 +75,7 @@ function faqBlock(items: readonly TalktalkDraftFaqItem[]): string {
 export function buildTalktalkDraft(input: TalktalkDraftInput, polish?: DraftPolisher): {
   text: string
   faq: TalktalkDraftFaqItem[]
+  esimAgentChat: boolean
 } {
   let faq = selectDraftFaq(input.inquiryText)
   if (input.singleRoomLabel) {
@@ -100,6 +102,8 @@ export function buildTalktalkDraft(input: TalktalkDraftInput, polish?: DraftPoli
     '',
     '요금·출발일·잔여석은 저장된 값만 적었고, 없는 항목은 문의입니다. 이 문안은 발송하지 않았습니다.',
   ].filter((line) => line !== '')
+  const esimAgentChat = shouldAttachEsimAgentChat(input.inquiryText)
+  if (esimAgentChat) lines.push(esimAgentChatLine())
   const text = finalizeTalktalkDraft(lines.join('\n'), input.candidates, polish)
-  return { text, faq }
+  return { text, faq, esimAgentChat }
 }
