@@ -30,6 +30,7 @@ export default function CinemaHeroImage({
   const fitStyle = { objectPosition, objectFit: 'cover' as const }
   return (
     <div className="relative h-full w-full min-h-0 overflow-hidden">
+      {/* REGRESSION-FREEZE[cinema-hero-lcp-not-lazy-blur]: 첫 장 priority면 뒤 블러도 eager — 늦은 LCP 방지 — manifest */}
       <SafeImage
         src={src}
         alt=""
@@ -38,7 +39,8 @@ export default function CinemaHeroImage({
         className="scale-105 object-cover opacity-40 blur-md saturate-110"
         style={fitStyle}
         sizes={sizes}
-        loading="lazy"
+        priority={priority}
+        loading={priority ? 'eager' : 'lazy'}
       />
       <SafeImage
         src={src}
