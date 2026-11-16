@@ -150,7 +150,14 @@
     "checkIos": "iPhone: Cài đặt → Di động → tìm “Thêm eSIM”",
     "checkAndroid": "Galaxy: Cài đặt → Kết nối → Trình quản lý SIM → tìm “Thêm eSIM”",
     "checkThisPhone": "Máy này: {model}",
-    "checkDevicesLink": "Xem thiết bị tương thích →"
+    "checkDevicesLink": "Xem thiết bị tương thích →",
+    "freeApps": "Google Maps, ChatGPT không tính dung lượng",
+    "freeAppsLabel": "Ứng dụng miễn phí data",
+    "freeAppsNote": "Không trừ vào dung lượng của gói",
+    "hotspotLabel": "Hotspot",
+    "unusedRefund": "Chưa kích hoạt? Hoàn tiền 100%",
+    "refundLabel": "Hoàn tiền",
+    "refundPolicyLink": "Xem chính sách hoàn tiền →"
   },
   "checkout": {
     "title": "Thanh toán",

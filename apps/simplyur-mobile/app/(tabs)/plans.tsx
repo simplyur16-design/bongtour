@@ -372,6 +372,7 @@ function PlanCard({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) 
         <View style={styles.dataBlock}>
           <Text style={styles.dataLabel}>{plan.data_label}</Text>
           {hint ? <Text style={styles.dataHint}>{hint}</Text> : null}
+          <PlanBenefitChips plan={plan} t={t} />
         </View>
         <View style={styles.priceBlock}>
           <Text style={styles.price} numberOfLines={1} adjustsFontSizeToFit>
@@ -389,8 +390,36 @@ function PlanCard({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) 
   );
 }
 
+/** Proposal 3 — benefit chips from optional API fields; nothing renders on older servers. */
+function PlanBenefitChips({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) {
+  const chips: string[] = [];
+  if (plan.free_apps_data) chips.push(t('product.freeApps'));
+  if (plan.hotspot_note) chips.push(plan.hotspot_note);
+  if (plan.unused_refund) chips.push(t('product.unusedRefund'));
+  if (chips.length === 0) return null;
+  return (
+    <View style={styles.benefitRow}>
+      {chips.map((c) => (
+        <View key={c} style={styles.benefitChip}>
+          <Text style={styles.benefitText}>{c}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  benefitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  benefitChip: {
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    backgroundColor: '#EEF4F1',
+    borderWidth: 1,
+    borderColor: '#D5E4DC',
+  },
+  benefitText: { fontSize: 11.5, ...fp('600'), color: '#2F5D4A' },
   // Prefer stackItem margins over contentContainerStyle gap (Android scroll overshoot).
   content: { paddingHorizontal: D.paddingH },
   stackItem: { marginBottom: D.sectionGap },

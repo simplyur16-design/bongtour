@@ -163,7 +163,36 @@ export default function ProductScreen() {
               bordered
             />
             <DetailRow label={t('product.network')} value={network} bordered />
-            <DetailRow label={t('product.qrDelivery')} value={t('product.qrDeliveryValue')} />
+            {product.free_apps_data ? (
+              <DetailRow
+                label={t('product.freeAppsLabel')}
+                value={t('product.freeApps')}
+                sub={t('product.freeAppsNote')}
+                bordered
+              />
+            ) : null}
+            {product.hotspot_note ? (
+              <DetailRow label={t('product.hotspotLabel')} value={product.hotspot_note} bordered />
+            ) : null}
+            <DetailRow
+              label={t('product.qrDelivery')}
+              value={t('product.qrDeliveryValue')}
+              bordered={Boolean(product.unused_refund)}
+            />
+            {product.unused_refund ? (
+              <View style={styles.row}>
+                <Text style={styles.rowLabel}>{t('product.refundLabel')}</Text>
+                <View style={styles.rowValueWrap}>
+                  <Text style={styles.rowValue}>{t('product.unusedRefund')}</Text>
+                  <Pressable
+                    onPress={() => router.push({ pathname: '/legal', params: { doc: 'refund' } })}
+                    hitSlop={8}
+                    accessibilityRole="link">
+                    <Text style={styles.checkLink}>{t('product.refundPolicyLink')}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
           </View>
 
           <CompatibilityCard t={t} />

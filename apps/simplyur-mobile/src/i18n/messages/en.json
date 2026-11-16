@@ -150,7 +150,14 @@
     "checkIos": "iPhone: Settings → Cellular — look for “Add eSIM”.",
     "checkAndroid": "Galaxy: Settings → Connections → SIM manager — look for “Add eSIM”.",
     "checkThisPhone": "This phone: {model}",
-    "checkDevicesLink": "See compatible devices →"
+    "checkDevicesLink": "See compatible devices →",
+    "freeApps": "Google Maps · ChatGPT data free",
+    "freeAppsLabel": "Free apps",
+    "freeAppsNote": "Doesn't count toward your plan data",
+    "hotspotLabel": "Hotspot",
+    "unusedRefund": "Not activated? Full refund",
+    "refundLabel": "Refund",
+    "refundPolicyLink": "See refund policy →"
   },
   "checkout": {
     "title": "Checkout",

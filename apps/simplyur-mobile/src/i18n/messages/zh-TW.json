@@ -150,7 +150,14 @@
     "checkIos": "iPhone：設定 → 行動服務 → 查看是否有「加入 eSIM」",
     "checkAndroid": "Galaxy：設定 → 連接 → SIM 卡管理員 → 查看是否有「新增 eSIM」",
     "checkThisPhone": "本機：{model}",
-    "checkDevicesLink": "查看相容裝置 →"
+    "checkDevicesLink": "查看相容裝置 →",
+    "freeApps": "Google 地圖、ChatGPT 不扣流量",
+    "freeAppsLabel": "免流量 App",
+    "freeAppsNote": "不計入方案流量",
+    "hotspotLabel": "熱點",
+    "unusedRefund": "未啟用可全額退款",
+    "refundLabel": "退款",
+    "refundPolicyLink": "查看退款政策 →"
   },
   "checkout": {
     "title": "確認訂單",

@@ -150,7 +150,14 @@
     "checkIos": "iPhone：設定 → モバイル通信 →「eSIMを追加」があるか確認",
     "checkAndroid": "Galaxy：設定 → 接続 → SIMマネージャー →「eSIMを追加」があるか確認",
     "checkThisPhone": "この端末：{model}",
-    "checkDevicesLink": "対応端末を見る →"
+    "checkDevicesLink": "対応端末を見る →",
+    "freeApps": "GoogleマップとChatGPTはデータ消費なし",
+    "freeAppsLabel": "データ無料アプリ",
+    "freeAppsNote": "プランのデータ容量にカウントされません",
+    "hotspotLabel": "テザリング",
+    "unusedRefund": "未開通なら全額返金",
+    "refundLabel": "返金",
+    "refundPolicyLink": "返金ポリシーを見る →"
   },
   "checkout": {
     "title": "ご購入手続き",

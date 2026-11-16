@@ -150,7 +150,14 @@
     "checkIos": "iPhone：设置 → 蜂窝网络 → 查看是否有“添加 eSIM”",
     "checkAndroid": "Galaxy：设置 → 连接 → SIM 卡管理器 → 查看是否有“添加 eSIM”",
     "checkThisPhone": "本机：{model}",
-    "checkDevicesLink": "查看兼容设备 →"
+    "checkDevicesLink": "查看兼容设备 →",
+    "freeApps": "Google 地图、ChatGPT 免流量",
+    "freeAppsLabel": "免流应用",
+    "freeAppsNote": "不计入套餐流量",
+    "hotspotLabel": "热点",
+    "unusedRefund": "未激活可全额退款",
+    "refundLabel": "退款",
+    "refundPolicyLink": "查看退款政策 →"
   },
   "checkout": {
     "title": "确认订单",
