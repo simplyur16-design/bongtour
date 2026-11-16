@@ -63,7 +63,10 @@ describe('buildTalktalkDraft', () => {
     }).text
     expect(text).not.toMatch(/유심사|usimsa/i)
     expect(text).toMatch(/설치|QR/)
-    expect(ADMIN_DRAFT_FAQ.some((item) => item.category === 'esim' && item.sourceUrl?.includes('usimsa.com'))).toBe(true)
+    expect(ADMIN_DRAFT_FAQ.some((item) => item.sourceNote?.includes('BDT002') || item.source.includes('BDT002'))).toBe(true)
+    expect(blob).not.toMatch(/A54|발급 전만|귀국 후/)
+    expect(blob).toContain('상품 안내 또는 고객센터')
+    expect(TALKTALK_FAQ_NEEDS_ANSWER.map((item) => item.question).join('\n')).not.toMatch(/APN에 어떤 주소/)
     expect(faqCountByCategory().inquiry).toBeGreaterThan(0)
     expect(faqCountByCategory().esim).toBeGreaterThan(0)
   })

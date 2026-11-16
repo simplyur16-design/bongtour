@@ -1,7 +1,7 @@
 /**
  * 관리자 답변 초안용 FAQ. 고객 공개 페이지는 바꾸지 않는다.
  * 상품 문의·견적 문장은 저장소 화면·약관만, eSIM 문장은 저장소 정책·설치 안내만 사용한다.
- * 공식 FAQ 페이지(https://www.usimsa.com/board/faq)는 2026-11-16에 열렸으나 본문이 비어 문장을 가져오지 못했다.
+ * 공식 FAQ BDT002는 2026-11-16 조회분 요지를 내부 메타로만 둔다. 다시 호출하지 않는다.
  * 고객에게 보이는 question·answer에는 공급사 이름을 넣지 않는다.
  */
 import { airTicketingPaymentBlocks } from '@/lib/air-ticketing-content'
@@ -119,6 +119,26 @@ function esim(
     source,
     sourceUrl: ESIM_FAQ_URL,
     sourceNote: ESIM_SOURCE_NOTE,
+    topics,
+  }
+}
+
+const BDT002_URL = 'https://apps-usimsa-prod-webapi-01.azurewebsites.net/esim/v1/boards/BDT002'
+
+function officialEsim(
+  id: string,
+  question: string,
+  answer: string,
+  topics: readonly TalktalkFaqTopic[] = ['esim'],
+): TalktalkDraftFaqItem {
+  return {
+    id,
+    category: 'esim',
+    question,
+    answer,
+    source: 'usimsa 공식 FAQ BDT002',
+    sourceUrl: BDT002_URL,
+    sourceNote: '조회 2026-11-16',
     topics,
   }
 }
@@ -258,6 +278,62 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     ['passport', 'booking'],
   ),
   inquiry(
+    'inquiry-confirm-when',
+    '예약 확정 안내는 언제 오나요?',
+    `${supportAnswer('faq-1')} 상담연결형 상품의 계약은 외부 공급사 또는 실제 계약 당사자의 승낙 및 예약 확정 시에 성립합니다.`,
+    'lib/support-content.ts',
+    ['booking', 'process'],
+  ),
+  inquiry(
+    'inquiry-departure-fixed',
+    '단체 상품의 출발은 언제 확정되나요?',
+    supportAnswer('faq-12'),
+    'lib/support-content.ts',
+    ['booking'],
+  ),
+  inquiry(
+    'inquiry-change-itinerary',
+    '일정은 바꿀 수 있나요?',
+    supportAnswer('faq-9'),
+    'lib/support-content.ts',
+    ['cancel'],
+  ),
+  inquiry(
+    'inquiry-change-request',
+    '접수한 일정·인원·조건을 다시 바꿀 수 있나요?',
+    supportAnswer('faq-16'),
+    'lib/support-content.ts',
+    ['booking'],
+  ),
+  inquiry(
+    'inquiry-traveler-info',
+    '예약할 때 여행자 정보를 내야 하나요?',
+    '예약 신청 또는 상품 진행 상담 시, 실제 예약·발권·숙박·보험·행사에 필요한 경우에 한해 여행자 정보(성명, 생년월일 등)와 여권정보, 영문명, 비자 관련 정보를 추가로 받습니다.',
+    'app/privacy/page.tsx',
+    ['passport', 'booking'],
+  ),
+  inquiry(
+    'inquiry-air-separate',
+    '여행상품과 따로 항공권만 예매할 수 있나요?',
+    '항공 예약·발권으로 항공권 예매를 진행할 수 있습니다. 항공사와 운임 조건에 따라 발권 방식이 다를 수 있으며, 필요한 절차는 진행 과정에서 안내합니다.',
+    'lib/air-ticketing-content.ts',
+    ['booking'],
+  ),
+  inquiry(
+    'inquiry-single-room',
+    '1인실을 요청할 수 있나요?',
+    '예약 상담 화면에서 1인실 사용을 요청할 수 있습니다. 그 화면에는 가능 여부나 추가 금액이 적혀 있지 않습니다.',
+    'app/components/travel/BookingIntakeModal.tsx',
+    ['booking'],
+  ),
+  inquiry(
+    'inquiry-shopping',
+    '쇼핑 환불은 어떻게 되나요?',
+    '쇼핑 일정·환불 규정은 현지 및 공급사 운영에 따라 달라질 수 있습니다.',
+    'app/components/detail/ModetourShoppingTable.tsx',
+    ['refund'],
+  ),
+  inquiry(
     'inquiry-organizer',
     '행사와 판매는 누가 하나요?',
     '본 상품은 [브랜드명]의 상품으로, 실제 행사는 해당 여행사와 현지 랜드사에서 진행합니다. 판매 대행은 Bong투어입니다.',
@@ -361,6 +437,104 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     guideFaq('사전 설치가 안 되는 상품을 실수로 미리 설치했어요.', PRECHECK_FAQ),
     'lib/bongsim/esim-guide-content.ts',
   ),
+  officialEsim(
+    'esim-reg-wifi',
+    '등록이 안 될 때 Wi-Fi는 무엇을 확인하나요?',
+    'Wi-Fi 신호를 확인하세요. 보안되지 않은 네트워크 같은 보안 경고가 있는 Wi-Fi에서는 등록이 되지 않을 수 있고, 핫스팟으로 등록하는 것도 되지 않을 수 있습니다.',
+  ),
+  officialEsim(
+    'esim-reg-manual-ios',
+    'QR이 안 읽히면 아이폰에서 어떻게 직접 입력하나요?',
+    '설정 > 셀룰러 > eSIM 추가(또는 셀룰러 요금제 추가) > QR 코드 사용 > 세부사항 직접 입력에서 SM-DP 주소와 활성화 코드를 붙여 넣습니다. 확인코드는 비웁니다. 붙여 넣을 때 공백을 지웁니다.',
+  ),
+  officialEsim(
+    'esim-reg-manual-android',
+    'QR이 안 읽히면 안드로이드에서 어떻게 직접 입력하나요?',
+    '설정 > 연결 > SIM 관리자 > eSIM 추가 > 활성화 코드 입력입니다. 붙여 넣을 때 공백을 지웁니다.',
+  ),
+  officialEsim(
+    'esim-reg-reset',
+    '그래도 등록이 안 되면 네트워크 설정을 지우나요?',
+    '아이폰은 설정 > 일반 > 전송 또는 iPhone 재설정 > 재설정 > 네트워크 설정 재설정입니다. 안드로이드는 설정 > 일반 > 초기화 > 네트워크 설정 초기화입니다. 저장된 Wi-Fi 정보가 지워질 수 있습니다. 그래도 안 되면 고객센터로 문의합니다.',
+  ),
+  officialEsim(
+    'esim-carrier-popup',
+    '설치 후 이동통신사 설정 업데이트 팝업은 어떻게 하나요?',
+    '지금 안 함을 누릅니다.',
+  ),
+  officialEsim(
+    'esim-add-ios',
+    '아이폰 설정에서 eSIM을 어떻게 추가하나요?',
+    '설정 > 셀룰러 > 셀룰러 요금제 추가 또는 eSIM 추가에서 QR을 스캔하거나 직접 입력합니다. 기기마다 메뉴 이름이 다를 수 있고, 설치에는 데이터나 Wi-Fi가 필요합니다.',
+  ),
+  officialEsim(
+    'esim-add-android',
+    '안드로이드 설정에서 eSIM을 어떻게 추가하나요?',
+    '설정 > 연결 > SIM 카드 관리자 > 모바일 요금제 추가 또는 eSIM 추가에서 QR을 스캔하거나 개통 코드를 입력합니다. 기기마다 메뉴 이름이 다를 수 있고, 설치에는 데이터나 Wi-Fi가 필요합니다.',
+  ),
+  {
+    id: 'esim-models',
+    category: 'esim',
+    question: '어떤 기종이 eSIM을 지원하나요?',
+    answer:
+      '이용 가능 기기 화면 기준입니다. 2018년에 나온 iPhone XR·XS 이후와 iPhone SE 2·3세대를 지원합니다. 국내 출시 삼성은 Z Fold4·Flip4와 S23 시리즈 이후이며, Galaxy S22 이전 국내 출시 모델은 지원되지 않습니다. 해외판은 규격이 다를 수 있으니 설정에 eSIM 추가 메뉴가 있는지 확인합니다. 중국 본토 내수용 iPhone은 대부분 지원되지 않습니다.',
+    source: 'app/travel/esim/help/device-compatibility/page.tsx',
+    sourceUrl: BDT002_URL,
+    sourceNote:
+      'usimsa 공식 FAQ BDT002, 조회 2026-11-16. 공식 목록의 A54·A55·A35, 해외 삼성 S20 이후, 홍콩·마카오 출시 단말은 이 페이지와 달라 고객 답에 넣지 않음.',
+    topics: ['esim'],
+  },
+  officialEsim(
+    'esim-data-roaming',
+    'eSIM의 데이터 로밍은 켜야 하나요?',
+    'eSIM 데이터 로밍을 켭니다. 현지 통신사 직접 상품은 로밍을 꺼야 할 수 있으니 상품 안내를 따릅니다.',
+  ),
+  officialEsim(
+    'esim-airplane',
+    '연결이 안 되면 비행기 모드를 어떻게 하나요?',
+    '비행기 모드를 켰다가 끕니다.',
+  ),
+  officialEsim(
+    'esim-apn',
+    'APN은 어디에 넣고 값은 무엇인가요?',
+    '아이폰은 설정 > 셀룰러 > 셀룰러 데이터 옵션 > 셀룰러 데이터 네트워크입니다. 안드로이드는 설정 > 연결 > 모바일 네트워크 > 액세스 포인트 이름 > eSIM > 추가입니다. APN 값은 국가·상품마다 다르므로 상품 안내 또는 고객센터에서 확인합니다.',
+  ),
+  officialEsim(
+    'esim-install-window',
+    '국내에서 미리 설치해도 되나요?',
+    '상품에 따라 미리 설치할 수 있는 것과 없는 것이 있습니다. 미리 설치가 안 되는 상품은 설치하는 순간 개통되어 일수가 줄어들 수 있으니 설치 전에 상품 안내를 확인합니다.',
+  ),
+  officialEsim(
+    'esim-local-install-error',
+    '현지 통신사 상품을 국내에서 설치하면 실패로 보이나요?',
+    '현지 통신사 상품을 국내에서 미리 설치하면 아이폰은 활성화 중 또는 eSIM 활성화에 실패, 안드로이드는 알 수 없음 또는 현재 사업자에서는 서비스가 지원되지 않습니다가 나올 수 있습니다. 이 표시는 정상일 수 있고 현지에서 사용할 수 있습니다.',
+  ),
+  officialEsim(
+    'esim-voice',
+    'eSIM으로 전화할 수 있나요?',
+    '데이터 전용이며 현지 번호는 없습니다. 일부 상품은 예외일 수 있습니다. 보이스톡·페이스타임처럼 데이터로 하는 통화는 가능합니다. 듀얼심으로 한국 번호를 쓰고 받는 것은 가능하지만, 가입 통신사 로밍 요금이 나올 수 있어 그 정책은 통신사에 확인합니다.',
+  ),
+  officialEsim(
+    'esim-hotspot',
+    '핫스팟이나 테더링이 되나요?',
+    '기본적으로 됩니다. 현지 통신사 정책과 트래픽에 따라 미리 알리지 않고 제한될 수 있습니다.',
+  ),
+  officialEsim(
+    'esim-usage-phone',
+    '휴대폰 설정에서 사용량은 어디서 보나요?',
+    '아이폰은 설정 > 셀룰러 > 로밍 데이터 사용량입니다. 안드로이드는 설정 > 연결 > 데이터 사용 > 모바일 데이터 사용량입니다. 일부 상품은 남은 양을 볼 수 없습니다.',
+  ),
+  esim(
+    'esim-usage-mypage',
+    '마이페이지에서 사용량은 어디서 보나요?',
+    'eSIM 주문에서 데이터 사용량 확인을 누르면 사용한 양을 보여 줍니다. 한도가 있으면 사용한 양과 총량을 함께 보여 줍니다.',
+    'app/mypage/esim/MyEsimOrdersClient.tsx',
+  ),
+  officialEsim(
+    'esim-remove-steps',
+    '휴대폰에서 eSIM을 어떻게 지우나요?',
+    '아이폰은 설정 > 셀룰러 > 해당 eSIM > eSIM 제거입니다. 안드로이드는 설정 > 연결 > SIM카드 관리자 > 해당 eSIM > 삭제입니다. QR은 한 번만 쓸 수 있고 지우면 다시 설치하지 못하는 경우가 많으니, 쓰는 동안에는 지우지 않습니다.',
+  ),
 ]
 
 /** 저장소·확인한 공식 페이지 본문에 답이 없는 질문 */
@@ -390,8 +564,16 @@ export const TALKTALK_FAQ_NEEDS_ANSWER: readonly { question: string; why: string
     why: '공통 산식이 없습니다. 출발 행에 저장된 금액만 쓸 수 있습니다.',
   },
   {
-    question: 'eSIM APN에 어떤 주소를 입력하나요?',
-    why: '설치 안내에 APN 주소 값이 없고, 공식 FAQ 본문도 확인하지 못했습니다.',
+    question: '선택관광은 필수인가요, 비용은 얼마인가요?',
+    why: '상품마다 표가 다르고, 필수 여부와 금액을 정한 공통 문장이 없습니다.',
+  },
+  {
+    question: '1인실 추가 금액은 얼마인가요?',
+    why: '상담 화면의 1인실 요청 외에 금액 규정이 없습니다.',
+  },
+  {
+    question: '발권 후 영문 이름을 어떻게 고치나요?',
+    why: '여행자 정보를 받는다는 문구만 있고, 정정 절차는 없습니다.',
   },
   {
     question: '데이터가 떨어지면 고객이 어떻게 충전하나요?',
@@ -425,7 +607,7 @@ export function selectDraftFaq(inquiryText: string, limit = 4): TalktalkDraftFaq
   if (/예약|확정|접수|견적|단체|맞춤/.test(text)) topics.add('booking')
   if (/여권|영문/.test(text)) topics.add('passport')
   if (/진행|순서|상담/.test(text)) topics.add('process')
-  if (/e\s*sim|이심|qr|설치|로밍|apn|갤럭시|아이폰/i.test(text)) topics.add('esim')
+  if (/e\s*sim|이심|qr|설치|로밍|apn|갤럭시|아이폰|핫스팟|테더|사용량/i.test(text)) topics.add('esim')
   if (topics.size === 0) topics.add('booking')
   return ADMIN_DRAFT_FAQ.filter((item) => item.topics.some((topic) => topics.has(topic))).slice(0, limit)
 }
