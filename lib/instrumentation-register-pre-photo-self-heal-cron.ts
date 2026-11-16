@@ -121,6 +121,26 @@ async function tickRegisterPrePhotoHealOnlyCron(): Promise<void> {
       healLimit: budget.healLimit,
     })
     console.log('[register-pre-photo-heal-only-cron]', result)
+    // REGRESSION-FREEZE[register-auto-photo-register-schedule]: 셀프힐과 같은 KST 시각에 사진 작업. 스위치가 모두 꺼지면 호출하지 않음. 이 틱의 healOnlyTickRunning 이 겹침을 막음 — manifest
+    const { autoRegisterSwitches, runAutoPhotoRegisterJob } = await import(
+      '@/lib/register-auto-photo-register-job'
+    )
+    const switches = autoRegisterSwitches()
+    if (!switches.fill && !switches.flip && !switches.record) {
+      console.log('[register-pre-photo-heal-only-cron] auto-photo skip: switches_off')
+    } else {
+      const photo = await runAutoPhotoRegisterJob({ limit: 50 })
+      console.log(
+        '[register-pre-photo-heal-only-cron] auto-photo-done',
+        JSON.stringify({
+          scanned: photo.scanned,
+          filled: photo.filled,
+          fillFailed: photo.fillFailed,
+          fillFailByReason: photo.fillFailByReason,
+          heldByReason: photo.heldByReason,
+        }),
+      )
+    }
     const { recordRegisterPrePhotoIngestDigestFromJobResult, maybeSendRegisterPrePhotoIngestDigest } =
       await import('@/lib/register-pre-photo-ingest-digest')
     recordRegisterPrePhotoIngestDigestFromJobResult(result)

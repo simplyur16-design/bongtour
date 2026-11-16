@@ -37,8 +37,20 @@ describe('register-auto-photo-register schedule', () => {
   })
   it('the existing self-heal workflow calls it after the heal, with scheduled=1', () => {
     const yml = readFileSync('.github/workflows/register-pre-photo-self-heal.yml', 'utf8')
+    expect(yml).toContain('workflow_dispatch:')
+    expect(yml).not.toContain('schedule:')
+    expect(yml).not.toContain('cron:')
     expect(yml).toContain('needs: register-pre-photo-self-heal')
     expect(yml).toContain('/api/cron/register-auto-photo-register?scheduled=1&limit=50')
     expect(yml).toContain('skipIngest=1&probe=0&limit=200')
+  })
+
+  it('worker heal cron runs the photo job in the same tick unless every switch is off', () => {
+    const cron = readFileSync('lib/instrumentation-register-pre-photo-self-heal-cron.ts', 'utf8')
+    expect(cron).toContain("REGISTER_PRE_PHOTO_HEAL_ONLY_CRON = '15 6,14,22 * * *'")
+    expect(cron).toContain('runAutoPhotoRegisterJob')
+    expect(cron).toContain('switches_off')
+    expect(cron).toContain('if (healOnlyTickRunning) return')
+    expect(cron).toContain('auto-photo-done')
   })
 })

@@ -1,11 +1,8 @@
 name: register-pre-photo-self-heal
 
 on:
-  schedule:
-    # UTC — KST 06:15 / 14:15 / 22:15 (서버 heal-only cron과 맞춤)
-    - cron: '15 21 * * *'
-    - cron: '15 5 * * *'
-    - cron: '15 13 * * *'
+  # KST 06:15 / 14:15 / 22:15 는 worker 의 heal-only cron 이 셀프힐과 사진 작업을 같이 실행한다.
+  # GitHub schedule 을 두면 같은 시각에 두 번 돈다. 수동 실행만 남긴다.
   workflow_dispatch:
 
 jobs:
