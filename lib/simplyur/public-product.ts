@@ -3,6 +3,7 @@ import type { SimplyurLocale } from "@/lib/simplyur/constants";
 import type { SimplyurFxRates } from "@/lib/simplyur/currency";
 import { formatSimplyurPlanDisplay } from "@/lib/simplyur/plan-display";
 import { mapProductToSimplyurIntl } from "@/lib/simplyur/map-intl-product";
+import { simplyurPlanBenefits } from "@/lib/simplyur/catalog/simplyur-plan-benefits";
 
 /** Client-safe plan row — no Korean DB fields, no ISO codes. */
 export type SimplyurPublicProduct = {
@@ -29,6 +30,16 @@ export type SimplyurPublicProduct = {
   } | null;
   /** KRW 청구 단가 — 첫구매 할인 프리뷰·결제 SSOT */
   simplyur_sell_price_krw: number | null;
+  /**
+   * Simplyur-only, optional additive fields (2026-11-17, proposal 3). Code constants, not DB columns —
+   * see lib/simplyur/catalog/simplyur-plan-benefits.ts. Older clients ignore them.
+   */
+  /** Google Maps & ChatGPT data free (not counted). */
+  free_apps_data?: boolean;
+  /** Localized "Hotspot available (may be limited by carrier policy)". */
+  hotspot_note?: string;
+  /** Unused (not activated) eSIM refundable — wording follows the Refund & Service Policy. */
+  unused_refund?: boolean;
 };
 
 export function toSimplyurPublicProduct(
@@ -50,5 +61,6 @@ export function toSimplyurPublicProduct(
     simplyur_display: intl.simplyur_display,
     simplyur_display_per_day: intl.simplyur_display_per_day,
     simplyur_sell_price_krw: intl.simplyur_sell_price_krw,
+    ...simplyurPlanBenefits(product, locale),
   };
 }

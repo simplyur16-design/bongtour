@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "simplyur",
+    "name": "Simplyur eSIM",
     "slug": "simplyur",
     "version": "1.0.0",
     "orientation": "default",
@@ -25,6 +25,7 @@
         "applinks:www.bongtour.com"
       ],
       "infoPlist": {
+        "CFBundleDisplayName": "Simplyur eSIM",
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleAllowMixedLocalizations": true,
         "UIBackgroundModes": ["remote-notification"]

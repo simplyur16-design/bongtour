@@ -22,7 +22,8 @@ import {
   SIMPLYUR_KOREA_DEFAULT_TRIP_DAYS,
   collectAvailableDays,
   filterProductsByDays,
-  formatPlanMessage,
+  formatPlanCount,
+  pickCountTemplate,
   minFormattedPrice,
   resolvePlanDataHint,
   snapTripDaysToAvailable,
@@ -215,7 +216,7 @@ export default function PlansScreen() {
                 <Text style={styles.selectedText}>
                   {t('recommend.showingPlansPrefix')}
                   <Text style={styles.selectedDays}>{selectedDays}</Text>
-                  {t('recommend.showingPlansSuffix')}
+                  {pickCountTemplate(t, 'recommend.showingPlansSuffix', selectedDays)}
                 </Text>
                 <Pressable onPress={scrollToChips} hitSlop={8}>
                   <Text style={styles.changeLink}>{t('recommend.change')}</Text>
@@ -223,7 +224,7 @@ export default function PlansScreen() {
               </View>
 
               {showNoMatch ? (
-                <Placeholder>{formatPlanMessage(t('recommend.noPlansForDays'), selectedDays)}</Placeholder>
+                <Placeholder>{formatPlanCount(t, 'recommend.noPlansForDays', selectedDays)}</Placeholder>
               ) : (
                 <>
                   <PlanSection
@@ -309,7 +310,7 @@ function DurationPicker({
                 selected ? styles.chipSelected : styles.chipIdle,
               ]}>
               <Text style={[styles.chipText, selected ? styles.chipTextSelected : styles.chipTextIdle]}>
-                {formatPlanMessage(t('recommend.durationChip'), d)}
+                {formatPlanCount(t, 'recommend.durationChip', d)}
               </Text>
             </Pressable>
           );
@@ -371,6 +372,7 @@ function PlanCard({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) 
         <View style={styles.dataBlock}>
           <Text style={styles.dataLabel}>{plan.data_label}</Text>
           {hint ? <Text style={styles.dataHint}>{hint}</Text> : null}
+          <PlanBenefitChips plan={plan} t={t} />
         </View>
         <View style={styles.priceBlock}>
           <Text style={styles.price} numberOfLines={1} adjustsFontSizeToFit>
@@ -388,8 +390,36 @@ function PlanCard({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) 
   );
 }
 
+/** Proposal 3 — benefit chips from optional API fields; nothing renders on older servers. */
+function PlanBenefitChips({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) {
+  const chips: string[] = [];
+  if (plan.free_apps_data) chips.push(t('product.freeApps'));
+  if (plan.hotspot_note) chips.push(plan.hotspot_note);
+  if (plan.unused_refund) chips.push(t('product.unusedRefund'));
+  if (chips.length === 0) return null;
+  return (
+    <View style={styles.benefitRow}>
+      {chips.map((c) => (
+        <View key={c} style={styles.benefitChip}>
+          <Text style={styles.benefitText}>{c}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  benefitRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  benefitChip: {
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    backgroundColor: '#EEF4F1',
+    borderWidth: 1,
+    borderColor: '#D5E4DC',
+  },
+  benefitText: { fontSize: 11.5, ...fp('600'), color: '#2F5D4A' },
   // Prefer stackItem margins over contentContainerStyle gap (Android scroll overshoot).
   content: { paddingHorizontal: D.paddingH },
   stackItem: { marginBottom: D.sectionGap },

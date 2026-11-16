@@ -43,17 +43,13 @@ import {
   firstSearchParam,
   storeUrlToOpen,
 } from '@/src/lib/checkout-webview-nav';
+import { SocialAuthButtons } from '@/src/components/auth/SocialAuthButtons';
 import {
-  formatDeviceSavedCardLabel,
-} from '@/src/lib/device-card-wallet';
-import {
-  loadDeviceSavedCards,
-  loadPreferPhoneCardFill,
-  removeDeviceSavedCard,
-  savePreferPhoneCardFill,
-  type DeviceSavedCard,
-} from '@/src/lib/device-card-store';
-import { loadSimplyurSession } from '@/src/lib/session';
+  isKoreaMobileForSms,
+  qrExtraChannelOrder,
+  type QrExtraChannel,
+} from '@/src/lib/korea-mobile';
+import { loadSimplyurSession, subscribeSimplyurSession } from '@/src/lib/session';
 import { captureSimplyurError, trackSimplyurEvent } from '@/src/lib/telemetry';
 
 type Phase = 'form' | 'auth' | 'completing';
@@ -67,8 +63,9 @@ type Phase = 'form' | 'auth' | 'completing';
  * REGRESSION-FREEZE[simplyur-mobile-checkout-email-editable]: session email prefill but always editable (Apple Hide My Email) — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-polish]: offline banner on checkout form — manifest
  * REGRESSION-FREEZE[simplyur-mobile-p2-ops]: checkout funnel telemetry — manifest
- * REGRESSION-FREEZE[simplyur-device-card-wallet]: phone-only card reminder — manifest
- * REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: EXIMPay+ store link only — manifest
+ * REGRESSION-FREEZE[simplyur-device-card-wallet]: card-save UI removed from checkout (proposal 5) — manifest
+ * REGRESSION-FREEZE[simplyur-eximbay-app-install-optional]: no EXIMPay+ link on our form; Eximbay-page store links only — manifest
+ * Proposal 2/5: guest checkout (email only); sign-in is an optional card here (not on first launch), 3-step indicator, QR delivery choice, USD total.
  * REGRESSION-FREEZE[simplyur-launch-discount-14pct]: first-purchase preview 14% — manifest
  * REGRESSION-FREEZE[simplyur-mobile-pay-window-visible]: same-frame pay + no overlay cover — manifest
  * REGRESSION-FREEZE[simplyur-purchase-dock-cta]: docked submit CTA — manifest
@@ -89,6 +86,10 @@ export default function CheckoutScreen() {
   const [email, setEmail] = useState('');
   const [emailFromAccount, setEmailFromAccount] = useState(false);
   const [phone, setPhone] = useState('');
+  const [qrChannel, setQrChannel] = useState<QrExtraChannel>('none');
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [usdProduct, setUsdProduct] = useState<PlanProduct | null>(null);
   const [terms, setTerms] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -97,24 +98,22 @@ export default function CheckoutScreen() {
   const [payLoading, setPayLoading] = useState(false);
   const [externalBlocked, setExternalBlocked] = useState(false);
   const [storeLinkHint, setStoreLinkHint] = useState(false);
-  const [savedCards, setSavedCards] = useState<DeviceSavedCard[]>([]);
-  const [saveCardOnPhone, setSaveCardOnPhone] = useState(false);
   const [firstPurchase, setFirstPurchase] = useState<SimplyurFirstPurchasePreview | null>(null);
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
     void (async () => {
-      const [p, session, cards, preferFill] = await Promise.all([
+      const [p, usd, session] = await Promise.all([
         fetchKoreaProduct(id, locale).catch(() => null),
+        // Eximbay charges USD — read the same plan in USD for the total line (display only).
+        locale === 'en' ? Promise.resolve(null) : fetchKoreaProduct(id, 'en').catch(() => null),
         loadSimplyurSession(),
-        loadDeviceSavedCards().catch(() => [] as DeviceSavedCard[]),
-        loadPreferPhoneCardFill().catch(() => false),
       ]);
       if (cancelled) return;
       setProduct(p);
-      setSavedCards(cards);
-      setSaveCardOnPhone(preferFill);
+      setUsdProduct(usd);
+      setSignedIn(Boolean(session?.accessToken));
       const fromSession = (session?.email ?? '').trim();
       const fromCheckout = loadCheckoutBuyerEmail();
       const picked = fromSession || fromCheckout;
@@ -128,6 +127,22 @@ export default function CheckoutScreen() {
       cancelled = true;
     };
   }, [id, locale]);
+
+  // Optional sign-in from the inline buttons on this screen → hide the card, prefill email.
+  useEffect(
+    () =>
+      subscribeSimplyurSession(() => {
+        void loadSimplyurSession().then((session) => {
+          setSignedIn(Boolean(session?.accessToken));
+          const fromSession = (session?.email ?? '').trim();
+          if (fromSession.includes('@')) {
+            setEmail((cur) => (cur.trim().includes('@') ? cur : fromSession));
+            setEmailFromAccount(true);
+          }
+        });
+      }),
+    [],
+  );
 
   useEffect(() => {
     const buyer = email.trim();
@@ -237,28 +252,29 @@ export default function CheckoutScreen() {
   async function onSubmit() {
     if (!product || busy) return;
     setErr('');
-    if (!email.trim().includes('@')) {
-      setErr(t('checkout.errorGeneric'));
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setErr(t('checkout.emailInvalid'));
       return;
     }
-    const phoneDigits = phone.replace(/\D/g, '');
+    // Phone only when the buyer picked SMS. Server texts Korean mobiles only (overseas → email + My eSIM).
+    const buyerPhone = qrChannel === 'sms' ? phone : '';
+    const phoneDigits = buyerPhone.replace(/\D/g, '');
     // REGRESSION-FREEZE[simplyur-esim-solapi-sms]: app checkout phone optional — manifest
-    if (phone.trim() && (phoneDigits.length < 8 || phoneDigits.length > 15)) {
+    if (buyerPhone.trim() && (phoneDigits.length < 8 || phoneDigits.length > 15)) {
       setErr(t('checkout.phoneRequired'));
       return;
     }
     if (!terms) {
-      setErr(t('checkout.errorGeneric'));
+      setErr(t('checkout.termsRequired'));
       return;
     }
     setBusy(true);
-    trackSimplyurEvent('checkout_start', { optionApiId: product.option_api_id });
+    trackSimplyurEvent('checkout_start', { optionApiId: product.option_api_id, qrChannel });
     try {
-      await savePreferPhoneCardFill(saveCardOnPhone);
       const order = await confirmSimplyurCheckout({
         optionApiId: product.option_api_id,
         email,
-        phone,
+        phone: buyerPhone,
         locale,
         idempotencyKey: idemRef.current,
       });
@@ -285,22 +301,53 @@ export default function CheckoutScreen() {
   }
 
   const price = product?.simplyur_display?.formatted ?? '—';
-  const discountedPrice = (() => {
-    if (!firstPurchase || !product?.simplyur_display || product.simplyur_display.amount <= 0) return null;
-    const listKrw = firstPurchase.subtotal_krw > 0 ? firstPurchase.subtotal_krw : product.simplyur_sell_price_krw;
+  const discountRatio = (() => {
+    if (!firstPurchase) return null;
+    const listKrw = firstPurchase.subtotal_krw > 0 ? firstPurchase.subtotal_krw : product?.simplyur_sell_price_krw;
     if (!listKrw || listKrw <= 0) return null;
-    const ratio = 1 - firstPurchase.discount_krw / listKrw;
-    const displayAmt = Math.max(0, Math.round(product.simplyur_display.amount * ratio));
+    return 1 - firstPurchase.discount_krw / listKrw;
+  })();
+  const formatDiscounted = (
+    display: PlanProduct['simplyur_display'] | undefined,
+    tag: string,
+  ): string | null => {
+    if (discountRatio == null || !display || display.amount <= 0) return null;
+    const cents = display.currency === 'USD';
+    const raw = display.amount * discountRatio;
+    const amt = Math.max(0, cents ? Math.round(raw * 100) / 100 : Math.round(raw));
     try {
-      return new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale, {
+      return new Intl.NumberFormat(tag, {
         style: 'currency',
-        currency: product.simplyur_display.currency,
-        maximumFractionDigits: product.simplyur_display.currency === 'KRW' ? 0 : 2,
-      }).format(displayAmt);
+        currency: display.currency,
+        maximumFractionDigits: cents ? 2 : 0,
+      }).format(amt);
     } catch {
       return null;
     }
-  })();
+  };
+  const discountedPrice = formatDiscounted(product?.simplyur_display, locale === 'en' ? 'en-US' : locale);
+  // Eximbay charges USD. en display is already USD; other locales read the USD plan row.
+  const usdDisplay =
+    locale === 'en'
+      ? product?.simplyur_display?.currency === 'USD'
+        ? product.simplyur_display
+        : null
+      : usdProduct?.simplyur_display?.currency === 'USD'
+        ? usdProduct.simplyur_display
+        : null;
+  const usdTotal = usdDisplay ? (formatDiscounted(usdDisplay, 'en-US') ?? usdDisplay.formatted) : null;
+  const payLabel = usdTotal
+    ? t('checkout.payAmount').replace('{amount}', usdTotal)
+    : t('checkout.submit');
+  const channelOrder = qrExtraChannelOrder(locale);
+  const smsDigits = phone.replace(/\D/g, '');
+  const smsOverseas = qrChannel === 'sms' && smsDigits.length >= 8 && !isKoreaMobileForSms(phone);
+  const channelLabel = (c: QrExtraChannel) =>
+    c === 'sms'
+      ? t('checkout.channelSms')
+      : c === 'wechat'
+        ? t('checkout.channelWeChat')
+        : t('checkout.channelNone');
 
   if (!checkoutEnabled) {
     return (
@@ -332,8 +379,9 @@ export default function CheckoutScreen() {
 
   if (phase === 'completing') {
     return (
-      <View style={[styles.root, { paddingTop: insets.top + 40, backgroundColor: LOGIN_1B.bg }]}>
-        <ActivityIndicator color={LOGIN_1B.coral} size="large" />
+      <View style={[styles.root, { paddingTop: insets.top + 16, backgroundColor: LOGIN_1B.bg }]}>
+        <CheckoutSteps current={3} t={t} />
+        <ActivityIndicator color={LOGIN_1B.coral} size="large" style={{ marginTop: 24 }} />
         <Text style={[styles.body, { textAlign: 'center', marginTop: 16 }]}>
           {t('checkout.completing')}
         </Text>
@@ -355,6 +403,9 @@ export default function CheckoutScreen() {
             {t('checkout.authTitle')}
           </Text>
           <View style={styles.toolbarSpacer} />
+        </View>
+        <View style={styles.authSteps}>
+          <CheckoutSteps current={2} t={t} />
         </View>
         <Text style={styles.authHint}>{t('checkout.authHint')}</Text>
 
@@ -449,6 +500,7 @@ export default function CheckoutScreen() {
 
       <OfflineBanner />
       <Text style={styles.title}>{t('checkout.title')}</Text>
+      <CheckoutSteps current={1} t={t} />
 
       {!product ? (
         <ActivityIndicator color={LOGIN_1B.coral} style={{ marginTop: 24 }} />
@@ -470,102 +522,164 @@ export default function CheckoutScreen() {
             ) : (
               <Text style={styles.summaryPrice}>{price}</Text>
             )}
+            {usdTotal ? (
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>{t('checkout.totalUsd')}</Text>
+                <Text style={styles.totalValue}>{usdTotal}</Text>
+              </View>
+            ) : null}
+            {locale !== 'en' ? <Text style={styles.hint}>{t('checkout.chargedInUsd')}</Text> : null}
+            <Text style={styles.secured}>🔒 {t('checkout.securedBy')}</Text>
           </View>
 
-          <Text style={styles.label}>{t('checkout.email')}</Text>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            editable
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            placeholder={t('checkout.emailHint')}
-            placeholderTextColor={LOGIN_1B.faint}
-            style={styles.input}
-          />
-          <Text style={styles.hint}>
-            {emailFromAccount ? t('checkout.emailFromAccountHint') : t('checkout.emailHint')}
-          </Text>
+          {signedIn === false ? (
+            <View style={styles.signInCard}>
+              <Text style={styles.body}>{t('checkout.guestNote')}</Text>
+              {showSignIn ? (
+                <>
+                  <Text style={styles.sectionTitle}>{t('checkout.signInTitle')}</Text>
+                  <Text style={styles.body}>{t('checkout.signInBody')}</Text>
+                  <SocialAuthButtons navigateOnSuccess={false} inlineEmail />
+                </>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setShowSignIn(true)}>
+                  <Text style={styles.legalLink}>{t('checkout.signInOptional')}</Text>
+                </Pressable>
+              )}
+            </View>
+          ) : null}
 
-          <Text style={styles.label}>{t('checkout.saveCardTitle')}</Text>
-          {savedCards.map((card) => (
-            <View key={card.id} style={styles.savedCardRow}>
-              <Text style={styles.savedCardLabel}>{formatDeviceSavedCardLabel(card)}</Text>
+          {signedIn !== null ? (
+            <>
+              <Text style={styles.label}>{t('checkout.email')}</Text>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                editable
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+                placeholder={t('checkout.emailHint')}
+                placeholderTextColor={LOGIN_1B.faint}
+                style={styles.input}
+              />
+              <Text style={styles.hint}>
+                {emailFromAccount ? t('checkout.emailFromAccountHint') : t('checkout.emailHint')}
+              </Text>
+
+              <Text style={styles.label}>{t('checkout.deliveryTitle')}</Text>
+              <Text style={styles.hint}>{t('checkout.deliveryAlways')}</Text>
+              <Text style={styles.subLabel}>{t('checkout.alsoSendTo')}</Text>
+              <View style={styles.brandRow} accessibilityRole="radiogroup">
+                {channelOrder.map((c) => {
+                  const on = qrChannel === c;
+                  return (
+                    <Pressable
+                      key={c}
+                      onPress={() => setQrChannel(c)}
+                      style={[styles.brandChip, on ? styles.brandChipOn : null]}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: on }}>
+                      <Text style={[styles.brandChipText, on ? styles.brandChipTextOn : null]}>
+                        {channelLabel(c)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {qrChannel === 'sms' ? (
+                <>
+                  <Text style={styles.label}>{t('checkout.smsPhoneLabel')}</Text>
+                  <TextInput
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    autoComplete="tel"
+                    placeholder="010-0000-0000"
+                    placeholderTextColor={LOGIN_1B.faint}
+                    style={styles.input}
+                  />
+                  <Text style={smsOverseas ? styles.warn : styles.hint}>
+                    {smsOverseas ? t('checkout.smsOverseas') : t('checkout.smsHint')}
+                  </Text>
+                </>
+              ) : null}
+              {qrChannel === 'wechat' ? (
+                <Text style={styles.hint}>{t('checkout.wechatHint')}</Text>
+              ) : null}
+
               <Pressable
                 onPress={() => {
-                  void removeDeviceSavedCard(card.id).then(() =>
-                    loadDeviceSavedCards().then(setSavedCards),
-                  );
+                  setTerms((v) => !v);
+                  if (err === t('checkout.termsRequired')) setErr('');
                 }}
-                hitSlop={8}>
-                <Text style={styles.link}>{t('checkout.saveCardRemove')}</Text>
+                style={styles.termsRow}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: terms }}>
+                <View style={[styles.checkbox, terms ? styles.checkboxOn : null]}>
+                  {terms ? <Text style={styles.checkMark}>✓</Text> : null}
+                </View>
+                <Text style={styles.termsText}>{t('checkout.terms')}</Text>
               </Pressable>
-            </View>
-          ))}
-          <Pressable
-            onPress={() => {
-              setSaveCardOnPhone((v) => {
-                const next = !v;
-                void savePreferPhoneCardFill(next);
-                return next;
-              });
-            }}
-            style={styles.termsRow}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: saveCardOnPhone }}>
-            <View style={[styles.checkbox, saveCardOnPhone ? styles.checkboxOn : null]}>
-              {saveCardOnPhone ? <Text style={styles.checkMark}>✓</Text> : null}
-            </View>
-            <Text style={styles.termsText}>{t('checkout.saveCardToggle')}</Text>
-          </Pressable>
-          <Text style={styles.hint}>{t('checkout.saveCardHint')}</Text>
 
-          <Text style={styles.label}>{t('checkout.phone')}</Text>
-          <TextInput
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            placeholder={t('checkout.phoneHint')}
-            placeholderTextColor={LOGIN_1B.faint}
-            style={styles.input}
-          />
+              <View style={styles.legalRow}>
+                <Pressable
+                  onPress={() =>
+                    router.push({ pathname: '/legal', params: { doc: 'terms' } })
+                  }>
+                  <Text style={styles.legalLink}>{t('legal.termsTitle')}</Text>
+                </Pressable>
+                <Pressable onPress={() => router.push('/devices')}>
+                  <Text style={styles.legalLink}>{t('nav.devices')}</Text>
+                </Pressable>
+              </View>
 
-          <Pressable
-            onPress={() => setTerms((v) => !v)}
-            style={styles.termsRow}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: terms }}>
-            <View style={[styles.checkbox, terms ? styles.checkboxOn : null]}>
-              {terms ? <Text style={styles.checkMark}>✓</Text> : null}
-            </View>
-            <Text style={styles.termsText}>{t('checkout.terms')}</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() =>
-              router.push({ pathname: '/legal', params: { doc: 'terms' } })
-            }>
-            <Text style={styles.legalLink}>{t('legal.termsTitle')}</Text>
-          </Pressable>
-
-          <Text style={styles.hint}>{t('checkout.eximbayAppOptional')}</Text>
-          <Pressable onPress={() => openOptionalEximbayStore()} hitSlop={8}>
-            <Text style={styles.legalLink}>{t('checkout.eximbayAppInstallLink')}</Text>
-          </Pressable>
-
-          {err ? <Text style={styles.err}>{err}</Text> : null}
+              {err ? <Text style={styles.err}>{err}</Text> : null}
+            </>
+          ) : null}
         </>
       )}
     </ScrollView>
-      {product ? (
+      {product && signedIn !== null ? (
         <SimplyurDockCta
-          label={t('checkout.submit')}
+          label={payLabel}
           onPress={() => void onSubmit()}
           busy={busy}
           bottomInset={insets.bottom}
         />
       ) : null}
+    </View>
+  );
+}
+
+/** Details → Pay → Get your QR. Current step is filled; done steps are ticked. */
+function CheckoutSteps({ current, t }: { current: 1 | 2 | 3; t: (k: string) => string }) {
+  const steps = [t('checkout.steps.details'), t('checkout.steps.pay'), t('checkout.steps.qr')];
+  return (
+    <View
+      style={styles.steps}
+      accessibilityRole="progressbar"
+      accessibilityLabel={t('checkout.stepOf').replace('{n}', String(current))}>
+      {steps.map((label, i) => {
+        const n = i + 1;
+        const done = n < current;
+        const on = n === current;
+        return (
+          <React.Fragment key={label}>
+            {i > 0 ? <View style={[styles.stepBar, n <= current ? styles.stepBarOn : null]} /> : null}
+            <View style={styles.step}>
+              <View style={[styles.stepDot, on || done ? styles.stepDotOn : null]}>
+                <Text style={[styles.stepNum, on || done ? styles.stepNumOn : null]}>{done ? '✓' : n}</Text>
+              </View>
+              <Text style={[styles.stepLabel, on ? styles.stepLabelOn : null]} numberOfLines={1}>
+                {label}
+              </Text>
+            </View>
+          </React.Fragment>
+        );
+      })}
     </View>
   );
 }
@@ -635,14 +749,51 @@ const styles = StyleSheet.create({
     ...fp('400'),
   },
   hint: { fontSize: 12, color: LOGIN_1B.faint, ...fp('400') },
-  savedCardRow: {
+  totalRow: {
+    marginTop: 8,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: LOGIN_1B.border,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-    paddingVertical: 6,
+    alignItems: 'baseline',
   },
-  savedCardLabel: { flex: 1, fontSize: 14, color: LOGIN_1B.navy, ...fp('500') },
+  totalLabel: { fontSize: 14, color: LOGIN_1B.navy, ...fp('600') },
+  totalValue: { fontSize: 18, color: LOGIN_1B.navy, ...fp('700') },
+  secured: { marginTop: 6, fontSize: 12, color: LOGIN_1B.muted, ...fp('600') },
+  signInCard: {
+    marginTop: 4,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: LOGIN_1B.border,
+    backgroundColor: '#fff',
+    gap: 10,
+  },
+  sectionTitle: { fontSize: 16, color: LOGIN_1B.navy, ...fp('700') },
+  subLabel: { marginTop: 4, fontSize: 12.5, color: LOGIN_1B.muted, ...fp('600') },
+  warn: { fontSize: 12, lineHeight: 17, color: '#9a5b00', ...fp('600') },
+  legalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 18 },
+  authSteps: { paddingHorizontal: 16, paddingTop: 8 },
+  steps: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 2, marginBottom: 4 },
+  step: { alignItems: 'center', gap: 4, minWidth: 64 },
+  stepDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: LOGIN_1B.border,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDotOn: { backgroundColor: LOGIN_1B.coral, borderColor: LOGIN_1B.coral },
+  stepNum: { fontSize: 12, color: LOGIN_1B.muted, ...fp('700') },
+  stepNumOn: { color: '#fff' },
+  stepLabel: { fontSize: 11.5, color: LOGIN_1B.muted, ...fp('600') },
+  stepLabelOn: { color: LOGIN_1B.navy },
+  stepBar: { flex: 1, height: 2, marginTop: 11, backgroundColor: LOGIN_1B.border },
+  stepBarOn: { backgroundColor: LOGIN_1B.coral },
   brandRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   brandChip: {
     paddingHorizontal: 10,

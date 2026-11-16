@@ -85,6 +85,10 @@ export function SocialAuthButtons({
         ) ||
         !(await isAppleNativeAvailable())
       ) {
+        if (typeof __DEV__ !== 'undefined' && __DEV__) {
+          // Simulator: Settings → Apple Account must be signed in; Expo Go must be relaunched from home.
+          console.warn('[auth] Apple sign-in unavailable:', msg);
+        }
         setErr(t('auth.appleUnavailable'));
       } else if (/cancel/i.test(msg)) {
         setErr('');
@@ -109,16 +113,22 @@ export function SocialAuthButtons({
     } catch (e) {
       const code = e instanceof Error ? e.message : '';
       if (code === 'oauth_not_configured') setErr(t('auth.googleNotConfigured'));
-      else if (code === 'oauth_invalid_token') setErr(t('auth.googleInvalidToken'));
+      else if (code === 'oauth_invalid_token') {
+        if (typeof __DEV__ !== 'undefined' && __DEV__) {
+          console.warn('[auth] Google oauth_invalid_token — app Web client ID must match server Google client ID');
+        }
+        setErr(t('auth.googleInvalidToken'));
+      }
       else if (code === 'account_restricted') setErr(t('auth.accountRestricted'));
       else if (code === 'rate_limited') setErr(t('auth.rateLimited'));
       else if (code === 'oauth_android_sha_mismatch') {
-        // Dev builds: include exact package + debug SHA-1 so ops can register without hunting.
-        setErr(
-          typeof __DEV__ !== 'undefined' && __DEV__
-            ? `${t('auth.googleAndroidShaMismatch')} (com.bongtour.simplyur / SHA-1 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25)`
-            : t('auth.googleAndroidShaMismatch'),
-        );
+        // Customer sees plain copy only. Dev builds: package + debug SHA-1 go to the console for ops.
+        if (typeof __DEV__ !== 'undefined' && __DEV__) {
+          console.warn(
+            '[auth] Google oauth_android_sha_mismatch — register Android OAuth client for com.bongtour.simplyur (debug SHA-1 5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25 / Play App Signing SHA-1 for store builds)',
+          );
+        }
+        setErr(t('auth.googleAndroidShaMismatch'));
       } else if (code === 'oauth_cancelled') setErr('');
       else setErr(t('auth.errorGeneric'));
     } finally {

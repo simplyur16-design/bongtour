@@ -9,7 +9,10 @@ import { OPENING_DESIGN as D, OPENING_PHOTOS } from '@/src/constants/opening-des
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 
-/** design_handoff_opening — first screen; Get Started → Login 1b */
+/**
+ * design_handoff_opening — first screen; Get Started → Home (browse first).
+ * Sign-in is asked only at checkout (and on My eSIM), never before prices are visible.
+ */
 export default function OpeningScreen() {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
@@ -23,7 +26,7 @@ export default function OpeningScreen() {
   }, []);
 
   function onGetStarted() {
-    router.push('/sign-in');
+    router.replace('/(tabs)');
   }
 
   return (

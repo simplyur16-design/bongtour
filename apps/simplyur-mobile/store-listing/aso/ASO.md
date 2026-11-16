@@ -3,7 +3,7 @@
 **Source of truth:** [`listing.json`](./listing.json)  
 **Verify:** `npm run verify:simplyur-aso-listing` (repo root)
 
-Home-screen icon label stays **`simplyur`**. Store titles carry the Korea eSIM keyword.
+Home-screen icon label and store title are **`Simplyur eSIM`** in every locale (approved 2026-11-17). The Korea keyword now lives in subtitle / short description / keywords.
 
 ## Paste-ready packs (use these)
 

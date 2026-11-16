@@ -11,7 +11,7 @@
   },
   "nav": {
     "home": "首頁",
-    "findPlan": "查找 eSIM",
+    "findPlan": "選購 eSIM",
     "guide": "安裝指南",
     "devices": "相容裝置",
     "support": "客服",
@@ -30,12 +30,12 @@
   "hero": {
     "eyebrow": "simplyur",
     "headline": "全球連線，化繁為簡",
-    "titleLine1": "在",
-    "titleHighlight": "韓國",
-    "subtitle": "購買後郵件即時發送 QR 碼。出發前安裝，落地即可啟用。",
-    "cta": "Find my eSIM",
+    "titleLine1": "一落地韓國，",
+    "titleHighlight": "馬上就能上網",
+    "subtitle": "購買後立即以電子郵件寄送 QR 碼。出發前裝好，落地即可開通。",
+    "cta": "查看韓國 eSIM 方案",
     "deviceLink": "相容裝置 →",
-    "guideLink": "Install guide →"
+    "guideLink": "安裝教學 →"
   },
   "home": {
     "popularPlans": "熱門韓國方案",
@@ -56,15 +56,15 @@
     "checking": "檢查中…"
   },
   "why": {
-    "title": "為什麼選擇 simplyUR",
+    "title": "為什麼選擇 Simplyur eSIM",
     "items": {
       "instant": {
         "title": "即刻開通",
         "body": "無需實體 SIM、無需到店 — 掃碼數分鐘即可安裝。"
       },
       "support": {
-        "title": "英文客服",
-        "body": "出發前後均可獲得清晰的英文客服支援。"
+        "title": "隨時提供協助",
+        "body": "出發前和旅途中遇到問題，都可以聯絡客服。"
       },
       "refund": {
         "title": "輕鬆退款",
@@ -90,7 +90,7 @@
     ]
   },
   "recommend": {
-    "title": "查找韓國 eSIM",
+    "title": "選購韓國 eSIM",
     "subtitle": "先選擇停留天數，再選擇流量方案。",
     "koreaOnly": "先選擇停留天數，再選擇流量方案。",
     "loading": "載入中…",
@@ -105,7 +105,7 @@
     "perDay": "{amount}/天",
     "checkoutSoon": "結帳暫時無法使用",
     "price": "價格",
-    "durationLabel": "您行程幾天？",
+    "durationLabel": "在韓國待幾天？",
     "durationHint": "僅顯示在售的天數。",
     "durationCaption": "1 天 = 自啟用起 24 小時（因方案而異）",
     "durationChip": "{N} 天",
@@ -120,10 +120,13 @@
     "errorBody": "請檢查網路後重試。",
     "retry": "重試",
     "unlimitedHint": "流量用不完 · 日常地圖/聊天（有最高速度）",
-    "fullUnlimitedHint": "無每日 GB 額度 · 更適合影片與重度使用（可能有合理使用）"
+    "fullUnlimitedHint": "無每日 GB 額度 · 更適合影片與重度使用（可能有合理使用）",
+    "durationChipOne": "1 天",
+    "showingPlansSuffixOne": " 天方案",
+    "noPlansForDaysOne": "暫無 1 天方案，請嘗試其他天數。"
   },
   "product": {
-    "buyNow": "立即購買",
+    "buyNow": "繼續",
     "checkoutSoon": "結帳暫時無法使用",
     "checkoutSoonHint": "線上付款暫時暫停，請稍後再試。",
     "details": "方案詳情",
@@ -135,17 +138,36 @@
     "notFound": "找不到方案",
     "backToPlans": "返回方案列表",
     "payInBrowserHint": "安全結帳會在 App 內開啟（行動付款畫面）。",
-    "payInAppHint": "安全結帳會在 App 內開啟（Eximbay 行動付款）。"
+    "payInAppHint": "下一步透過 Eximbay 安全付款",
+    "includedTitle": "方案內容",
+    "validity": "有效期",
+    "validityNote": "自在韓國首次連網起計算",
+    "qrDelivery": "QR 碼",
+    "qrDeliveryValue": "電子郵件 + 我的 eSIM（可選微信或簡訊）",
+    "checkTitle": "購買前請確認",
+    "checkBody": "您的手機需支援 eSIM，且未被電信業者鎖定。",
+    "checkDial": "快速檢查：撥打 *#06#，如果顯示 EID 號碼，代表手機支援 eSIM。",
+    "checkIos": "iPhone：設定 → 行動服務 → 查看是否有「加入 eSIM」",
+    "checkAndroid": "Galaxy：設定 → 連接 → SIM 卡管理員 → 查看是否有「新增 eSIM」",
+    "checkThisPhone": "本機：{model}",
+    "checkDevicesLink": "查看相容裝置 →",
+    "freeApps": "Google 地圖、ChatGPT 不扣流量",
+    "freeAppsLabel": "免流量 App",
+    "freeAppsNote": "不計入方案流量",
+    "hotspotLabel": "熱點",
+    "unusedRefund": "未啟用可全額退款",
+    "refundLabel": "退款",
+    "refundPolicyLink": "查看退款政策 →"
   },
   "checkout": {
-    "title": "結帳",
+    "title": "確認訂單",
     "email": "電子郵件",
     "emailHint": "QR 碼將寄送至此信箱",
     "emailFromAccountHint": "已填入登入帳號信箱（可修改），QR 碼將寄送至此",
     "phone": "電話（選填）",
     "phoneHint": "可以留空。如果填寫，請包含國碼。",
-    "phoneRequired": "號碼格式不對。可以留空，或加上國碼。",
-    "terms": "我同意購買條款",
+    "phoneRequired": "號碼格式不正確。請確認，或選擇「僅電子郵件」。",
+    "terms": "我同意購買條款，並確認手機支援 eSIM 且未被電信業者鎖定",
     "submit": "繼續付款",
     "summary": "訂單摘要",
     "quantity": "數量",
@@ -163,16 +185,33 @@
     "continueInBrowser": "繼續結帳",
     "continueInApp": "繼續結帳",
     "stayInAppOnly": "此付款方式需要開啟其他應用程式。請選擇可在 simplyur 內完成的信用卡等方式。",
-    "eximbayAppOptional": "Eximbay（EXIMPay+）應用為選用。不安裝也可以在此用卡付款。",
-    "eximbayAppInstallLink": "安裝 EXIMPay+（選用）",
     "eximbayAppOpenedHint": "已開啟商店。應用不是必須的，可繼續在此用卡付款。",
-    "saveCardTitle": "本機儲存的卡",
-    "saveCardToggle": "在本機記住此卡",
-    "saveCardHint": "下次付款時，本機自動填入可帶入卡號。simplyur 不保存卡號。",
-    "saveCardLast4": "卡號後四碼",
-    "saveCardExpiry": "有效期限（MM/YY）",
-    "saveCardBrand": "卡組織",
-    "saveCardRemove": "刪除"
+    "steps": {
+      "details": "填寫資料",
+      "pay": "付款",
+      "qr": "取得 QR 碼"
+    },
+    "stepOf": "第 {n} 步，共 3 步",
+    "signInTitle": "登入（選填）",
+    "signInBody": "登入後購買的訂單也會保存在「我的 eSIM」，換手機也找得到 QR 碼。",
+    "guestNote": "免註冊，填寫電子郵件即可下單，QR 碼會寄到該信箱。登入為選填。",
+    "signInOptional": "已有帳號？登入（選填）",
+    "emailInvalid": "請輸入有效的電子郵件地址，QR 碼會寄到這個信箱。",
+    "termsRequired": "請勾選同意購買條款，並確認您的手機支援 eSIM。",
+    "deliveryTitle": "QR 碼接收方式",
+    "deliveryAlways": "一定會寄到信箱，並顯示在本 App 的「我的 eSIM」。",
+    "alsoSendTo": "同時傳送到（選填）",
+    "channelNone": "僅電子郵件",
+    "channelSms": "簡訊（韓國號碼）",
+    "channelWeChat": "微信",
+    "smsPhoneLabel": "韓國手機號碼",
+    "smsHint": "簡訊只能傳送到韓國手機號碼（+82 10… 或 010…）。",
+    "smsOverseas": "這不是韓國手機號碼，因此不會傳送簡訊。QR 碼仍會寄到信箱，並顯示在「我的 eSIM」。",
+    "wechatHint": "付款後，在「我的 eSIM」點選「分享」，即可把 QR 碼傳到微信。",
+    "totalUsd": "合計（美元）",
+    "chargedInUsd": "信用卡將以美元（USD）請款，新台幣金額僅供參考。",
+    "securedBy": "信用卡或銀聯 · 由 Eximbay 提供安全付款",
+    "payAmount": "付款 {amount}"
   },
   "guide": {
     "title": "安裝 eSIM",
@@ -230,7 +269,7 @@
   },
   "auth": {
     "title": "登入",
-    "welcomeTitle": "歡迎使用 Simply UR",
+    "welcomeTitle": "歡迎使用 Simplyur eSIM",
     "welcomeSubtitle": "登入以管理您的 eSIM",
     "skip": "略過",
     "continueEmail": "使用電子郵件繼續",
@@ -244,8 +283,8 @@
     "googleSubtitle": "請使用 Google 帳號登入。",
     "apple": "使用 Apple 繼續",
     "appleSubtitle": "請使用 Apple ID 登入。",
-    "appleNotConfigured": "此伺服器尚未設定 Apple 登入。",
-    "appleUnavailable": "使用 Apple 登入需要此裝置的 Apple ID。模擬器請先：設定 → 登入 iPhone，然後再試。",
+    "appleNotConfigured": "目前無法使用 Apple 登入，請改用 Google 或電子郵件登入。",
+    "appleUnavailable": "目前無法使用 Apple 登入。請在「設定」中確認已登入 Apple 帳號後再試一次，也可以改用 Google 或電子郵件登入。",
     "email": "使用電子郵件登入",
     "emailSubtitle": "請輸入已註冊帳號的電子郵件與密碼。",
     "invalidCredentials": "電子郵件或密碼不正確，或帳號受限。",
@@ -253,11 +292,11 @@
     "backToMethods": "其他登入方式",
     "domesticEsimLink": "韓國居民請使用 Bong Tour eSIM（봉심），非 simplyur",
     "domesticSignInLink": "韓國居民請至 Bong Tour 使用 Kakao/Naver 登入",
-    "googleNotConfigured": "此建置尚未設定 Google 登入。",
-    "googleInvalidToken": "無法驗證此 Google 帳號。請確認應用程式 Web 用戶端 ID 與伺服器 AUTH_GOOGLE_ID 一致後再試。",
+    "googleNotConfigured": "目前無法使用 Google 登入，請改用 Apple 或電子郵件登入。",
+    "googleInvalidToken": "無法驗證您的 Google 帳號。請再試一次，或改用電子郵件登入。",
     "accountRestricted": "此帳號已被限制。請改用其他方式或聯絡客服。",
     "rateLimited": "登入嘗試過多。請稍後再試。",
-    "googleAndroidShaMismatch": "此 Android 建置無法使用 Google 登入。請在 Google Cloud 為 com.bongtour.simplyur 新增 Android OAuth 用戶端，並登記 Play 應用程式簽署 SHA-1（商店）或除錯 SHA-1（模擬器）後再試。",
+    "googleAndroidShaMismatch": "此版本的 App 目前無法使用 Google 登入。請改用電子郵件登入，或更新 App 後再試一次。",
     "errorGeneric": "登入失敗，請重試或使用其他方式。",
     "backHome": "← 返回首頁",
     "noAccount": "還沒有帳號？",

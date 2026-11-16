@@ -15,6 +15,12 @@ export type PlanProduct = {
   simplyur_display: { formatted: string; currency: string; amount: number } | null;
   simplyur_display_per_day?: { formatted: string; currency: string; amount: number } | null;
   simplyur_sell_price_krw?: number | null;
+  /** Optional (server ≥ 2026-11-17): Google Maps & ChatGPT data not counted. */
+  free_apps_data?: boolean;
+  /** Optional: localized "Hotspot available (may be limited by carrier policy)". */
+  hotspot_note?: string | null;
+  /** Optional: unused (not activated) eSIM refundable per the refund policy. */
+  unused_refund?: boolean;
 };
 
 export type CountryPack = {

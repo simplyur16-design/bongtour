@@ -1,7 +1,7 @@
 ﻿IOS zh-Hant — paste EACH block separately (do not paste this whole file into one field)
 
 Name
-simplyur: 韓國eSIM
+Simplyur eSIM
 
 Subtitle
 出發前安裝QR

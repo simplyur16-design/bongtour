@@ -1,7 +1,7 @@
 ﻿PLAY zh-CN — paste EACH block separately (do not paste this whole file into one field)
 
 App name
-simplyur: 韩国eSIM
+Simplyur eSIM
 
 Short description
 赴韩游客韩国eSIM。邮件收码，出发前安装，落地连网。
