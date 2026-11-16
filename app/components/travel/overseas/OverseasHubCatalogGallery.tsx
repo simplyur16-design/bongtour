@@ -12,6 +12,7 @@ import {
   type MobileDeparturePick,
 } from '@/lib/mobile-departure-group'
 import type { OverseasHubCatalogSection } from '@/lib/overseas-hub-catalog-sections'
+import { formatPublicCardFromPrice } from '@/lib/public-card-from-price'
 
 type Props = {
   sections: OverseasHubCatalogSection[]
@@ -19,10 +20,7 @@ type Props = {
   emptyMessage?: string
 }
 
-function formatWon(n: number | null) {
-  if (n == null) return '문의'
-  return `${n.toLocaleString('ko-KR')}원~`
-}
+const formatWon = formatPublicCardFromPrice
 
 /**
  * 해외 허브 상품 갤러리 — fetch·loading 없음. 서버가 sections를 계산해 전달.

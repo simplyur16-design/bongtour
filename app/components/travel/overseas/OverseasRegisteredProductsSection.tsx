@@ -11,6 +11,7 @@ import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { publicProductPath } from '@/lib/product-public-path'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
+import { formatPublicCardFromPrice } from '@/lib/public-card-from-price'
 
 function startOfTodayKst(): Date {
   const seoul = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
@@ -18,10 +19,7 @@ function startOfTodayKst(): Date {
   return seoul
 }
 
-function formatWon(n: number | null) {
-  if (n == null) return '문의'
-  return `${n.toLocaleString('ko-KR')}원~`
-}
+const formatWon = formatPublicCardFromPrice
 
 export default async function OverseasRegisteredProductsSection() {
   const rows = await prisma.product.findMany({

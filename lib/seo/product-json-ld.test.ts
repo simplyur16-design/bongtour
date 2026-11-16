@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
+import ProductJsonLd from '@/app/components/seo/ProductJsonLd'
 import { buildProductJsonLdData } from '@/lib/seo/product-json-ld'
 
 describe('buildProductJsonLdData', () => {
@@ -91,5 +93,24 @@ describe('buildProductJsonLdData', () => {
     expect(String(data?.url)).not.toContain('cuid-internal-id')
     const offers = data?.offers as Record<string, unknown>
     expect(String(offers.url)).toContain('/products/pkg-hn-0042')
+  })
+
+  it('상품명에 script 종료 태그가 있어도 JSON-LD 스크립트가 끊기지 않는다', () => {
+    const html = renderToStaticMarkup(
+      ProductJsonLd({
+        productId: 'p1',
+        name: '투어</script><x>',
+        description: '설명',
+        imageUrl: null,
+        offers: {
+          lowPrice: 100000,
+          highPrice: 100000,
+          offerCount: 1,
+          availability: 'InStock',
+        },
+      }),
+    )
+    expect(html).not.toContain('</script><x>')
+    expect(html).toContain('\\u003c/script>')
   })
 })

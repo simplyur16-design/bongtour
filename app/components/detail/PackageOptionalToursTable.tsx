@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import PasteBlocksReaderView from '@/app/components/detail/PasteBlocksReaderView'
 import { parseOptionalPasteForPublicDisplay } from '@/lib/paste-block-display'
-import { getPackageOptionalTourRowsFromProduct } from '@/lib/optional-tours-ui-model'
+import { formatStoredMoneyLabel, getPackageOptionalTourRowsFromProduct } from '@/lib/optional-tours-ui-model'
 import { OPTIONAL_TOUR_UI_INITIAL_ROWS, OPTIONAL_TOUR_UI_MAX_ROWS } from '@/lib/optional-tour-limits'
 
 const CARD_CLASS = 'rounded-2xl border border-[#DAD4EE] bg-white px-4 py-4 sm:px-5'
@@ -29,7 +29,7 @@ function formatCostTime(
   let price =
     row.priceDisplay?.trim() ||
     (row.adultPrice != null && row.adultPrice > 0
-      ? `${row.currency ?? '₩'}${row.adultPrice.toLocaleString('ko-KR')}`
+      ? formatStoredMoneyLabel(row.adultPrice, row.currency)
       : '')
   if (price && (price === nameNorm || (/^소요시간/i.test(price) && !row.adultPrice))) {
     price = row.includedNoExtraCharge ? '포함' : ''
