@@ -22144,6 +22144,27 @@
       "vitestSuites": ["lib/public-brand-token-swap.test.ts"]
     },
     {
+      "id": "talktalk-draft-no-send-no-price-invent",
+      "tier": ["prebuild", "ci"],
+      "summary": "톡톡 답변 초안은 관리자 표시만 하고 발송·가격 생성을 하지 않는다",
+      "checks": [
+        {
+          "file": "app/api/admin/talktalk-draft/route.ts",
+          "mustInclude": ["requireAdmin", "buildTalktalkDraft", "pickTalktalkCompareCandidates", "sent: false"],
+          "mustNotInclude": ["sendStaffInquiryReply", "naver-talktalk", "openai", "solapi"]
+        },
+        {
+          "file": "lib/talktalk-draft/draft.ts",
+          "mustInclude": ["REGRESSION-FREEZE[talktalk-draft-no-send-no-price-invent]", "문의"],
+          "mustNotInclude": ["sendStaffInquiryReply", "openai"]
+        }
+      ],
+      "vitestSuites": [
+        "lib/talktalk-draft/compare-candidates.test.ts",
+        "lib/talktalk-draft/draft.test.ts"
+      ]
+    },
+    {
       "id": "product-jsonld-canonical-url",
       "tier": [
         "prebuild",
