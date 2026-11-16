@@ -23,7 +23,10 @@ import { shouldSkipConfirmDetailPatch } from '@/lib/register-confirm-skip-detail
 import { resolveRegisterItineraryDayDraftsForAdminPreview } from '@/lib/register-air-hotel-admin-path'
 import { updateLastPriceObservedAt } from '@/lib/product-price-freshness'
 import { priceSlotKeyFromDate } from '@/lib/departure-slot-key'
-import { buildRegisterGeoHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
+import {
+  buildRegisterCityVisitHaystackFromSchedule,
+  buildRegisterGeoHaystackFromSchedule,
+} from '@/lib/register-geo-schedule-haystack'
 import { registerGeoTagSyncOpts, resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
 import { syncProductGeoTagsForRegister } from '@/lib/sync-product-geo-tags'
 import {
@@ -1542,6 +1545,7 @@ export async function runKyowontourRegisterFlow(request: Request, flowOptions: P
       ? null
       : buildRegisterPublicImageHeroSeoLineCandidate(registerHeroSeoInput)
     const scheduleHaystack = buildRegisterGeoHaystackFromSchedule(schedule)
+    const cityVisitHaystack = buildRegisterCityVisitHaystackFromSchedule(schedule)
     const geoInput = {
       title: titlePair.prismaTitle,
       originSource: effectiveOriginSource,
@@ -1691,7 +1695,12 @@ export async function runKyowontourRegisterFlow(request: Request, flowOptions: P
     })
     timing.mark('after-pending-save')
 
-    await syncProductGeoTagsForRegister(prisma, productId, geo, registerGeoTagSyncOpts(geoInput, scheduleHaystack))
+    await syncProductGeoTagsForRegister(
+      prisma,
+      productId,
+      geo,
+      registerGeoTagSyncOpts(geoInput, scheduleHaystack, cityVisitHaystack),
+    )
 
     const infantFromParsedTable =
       parsed.productPriceTable?.infantPrice != null && Number(parsed.productPriceTable.infantPrice) > 0

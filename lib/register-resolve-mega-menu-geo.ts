@@ -29,11 +29,13 @@ export type RegisterMegaMenuGeoResult = {
 export function registerGeoTagSyncOpts(
   input: RegisterMegaMenuGeoInput,
   scheduleHaystack?: string | null,
+  cityVisitHaystack?: string | null,
 ): {
   title: string
   primaryDestination: string | null
   destinationRaw: string | null
   scheduleHaystack: string | null
+  cityVisitHaystack: string | null
 } {
   const destRaw = input.destinationRaw?.trim() || null
   const sched = scheduleHaystack?.trim() || null
@@ -42,6 +44,7 @@ export function registerGeoTagSyncOpts(
     primaryDestination: input.primaryDestination?.trim() || null,
     destinationRaw: destRaw,
     scheduleHaystack: sched,
+    cityVisitHaystack: cityVisitHaystack?.trim() || null,
   }
 }
 

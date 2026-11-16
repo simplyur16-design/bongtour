@@ -29831,6 +29831,76 @@
       ]
     },
     {
+      "id": "register-city-tag-visit-guard",
+      "tier": ["prebuild", "ci"],
+      "summary": "등록 도시 태그는 일차 제목·장소 근거만 추가. 비유·거리명·관저·경유·안내문은 추가하지 않음. 정상 다도시·클러스터 대표 노드는 유지",
+      "checks": [
+        {
+          "file": "lib/register-city-tag-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-city-tag-visit-guard]",
+            "export function sanitizeCityVisitText",
+            "export function buildRegisterCityVisitHaystackFromSchedule"
+          ]
+        },
+        {
+          "file": "lib/register-city-tag-guard.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-city-tag-visit-guard]",
+            "규슈의 작은 교토",
+            "남경로",
+            "호치민 관저",
+            "clusterCityKeysForNode('sichuan')"
+          ]
+        },
+        {
+          "file": "lib/sync-product-city-tags.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-city-tag-visit-guard]",
+            "opts.cityVisitHaystack"
+          ]
+        },
+        {
+          "file": "lib/hanatour-register-flow.ts",
+          "mustInclude": [
+            "registerGeoTagSyncOpts(geoInput, scheduleHaystack, cityVisitHaystack)"
+          ]
+        }
+      ],
+      "vitestSuites": ["lib/register-city-tag-guard.test.ts"]
+    },
+    {
+      "id": "menu-city-no-sibling-expand",
+      "tier": ["prebuild", "ci"],
+      "summary": "메가메뉴 도시는 그 도시 키만. 클러스터 형제 도시로 펼치지 않음. 클러스터 노드 슬러그는 구성 도시 유지",
+      "checks": [
+        {
+          "file": "lib/cluster-city-expansions.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[menu-city-no-sibling-expand]",
+            "export function menuCityKeysOnly"
+          ]
+        },
+        {
+          "file": "lib/browse-country-url-resolve.ts",
+          "mustInclude": [
+            "menuCityKeysOnly(cityParam, expandBrowseCityFilterKeys(keys))"
+          ]
+        },
+        {
+          "file": "lib/menu-city-no-sibling-expand.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[menu-city-no-sibling-expand]",
+            "resolveBrowseCityKeysForFilter('yokohama')"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/menu-city-no-sibling-expand.test.ts",
+        "lib/mega-menu-city-group-coherence.test.ts"
+      ]
+    },
+    {
       "id": "card-min-price-beyond-row-cap",
       "tier": [
         "prebuild",

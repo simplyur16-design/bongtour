@@ -7,6 +7,7 @@ import type { Prisma } from '@prisma/client'
 import { CAUCASUS_COUNTRY_KEY_SET, detectCaucasusPackageFromHaystack } from '@/lib/caucasus-package-detect'
 import { clusterCityKeysForNode, isClusterExpansionNode } from '@/lib/cluster-city-expansions'
 import { filterCityKeysToCoherentMegaMenuGroup } from '@/lib/mega-menu-city-group-coherence'
+import { sanitizeCityVisitText } from '@/lib/register-city-tag-guard'
 import {
   isMegaMenuSsotCityKey,
   loadMegaMenuSsotCityKeys,
@@ -19,8 +20,10 @@ export type SyncProductCityTagsOpts = {
   title?: string
   primaryDestination?: string | null
   destinationRaw?: string | null
-  /** 일정 title·description·routeText — 메가메뉴 도시 토큰 매칭용 */
+  /** 일정 title·description·routeText — 국가 판정용. 도시 추가 근거로는 쓰지 않는다. */
   scheduleHaystack?: string | null
+  /** 일차 제목·장소만. 도시 태그 추가 근거. */
+  cityVisitHaystack?: string | null
   /** ProductCountryTag·다국가 plan — cityTag는 이 countryKey 집합에 속한 도시만 */
   allowedCountryKeys?: readonly string[]
 }
@@ -126,9 +129,13 @@ export async function resolveProductCityKeysForTags(
   if (single) candidates.push(single)
 
   if (opts) {
-    const haystack = [opts.title, opts.primaryDestination, opts.destinationRaw, opts.scheduleHaystack]
-      .filter((x): x is string => Boolean(x && String(x).trim()))
-      .join(' ')
+    // REGRESSION-FREEZE[register-city-tag-visit-guard]: 도시 추가는 방문 제목·장소만 — manifest
+    const visitSource = opts.cityVisitHaystack ?? ''
+    const haystack = sanitizeCityVisitText(
+      [opts.title, opts.primaryDestination, opts.destinationRaw, visitSource]
+        .filter((x): x is string => Boolean(x && String(x).trim()))
+        .join('\n'),
+    )
     if (haystack) {
       candidates.push(...(await matchMegaMenuSsotCityKeysInHaystack(db, haystack)))
     }

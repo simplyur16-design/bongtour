@@ -168,15 +168,31 @@ export function expandBrowseCityFilterKeys(slugsOrKeys: Iterable<string>): strin
     const k = raw.trim().toLowerCase()
     if (!k) continue
     out.add(k)
-    const clusterFromCity = CITY_KEY_TO_CLUSTER_NODE[k]
-    if (clusterFromCity) {
-      out.add(clusterFromCity)
-      for (const row of CLUSTER_CITY_EXPANSIONS[clusterFromCity] ?? []) out.add(row.cityKey)
-    }
+    // 메뉴 도시 키는 형제 도시로 펼치지 않는다. 클러스터 노드 슬러그만 구성 도시를 연다.
     const clusterRows = CLUSTER_CITY_EXPANSIONS[k]
     if (clusterRows) {
       for (const row of clusterRows) out.add(row.cityKey)
     }
   }
   return [...out]
+}
+
+/** 메뉴 `city`가 클러스터 구성 도시(또는 그 한글 이름)이면 그 도시만. 노드 슬러그는 null. */
+export function clusterMemberCityKeyForBrowseAlias(param: string | null | undefined): string | null {
+  const raw = (param ?? '').trim().toLowerCase()
+  if (!raw || CLUSTER_CITY_EXPANSIONS[raw]) return null
+  for (const rows of Object.values(CLUSTER_CITY_EXPANSIONS)) {
+    for (const row of rows) {
+      if (row.cityKey === raw || row.koreanLabel.trim().toLowerCase() === raw) return row.cityKey
+    }
+  }
+  return null
+}
+
+/** 메뉴 leaf는 그 도시만. 클러스터 노드 URL은 구성 도시 확장을 유지한다. */
+// REGRESSION-FREEZE[menu-city-no-sibling-expand]: 형제 도시 키 확장 금지 — manifest
+export function menuCityKeysOnly(cityParam: string | null | undefined, expanded: readonly string[]): string[] {
+  const member = clusterMemberCityKeyForBrowseAlias(cityParam)
+  if (!member) return [...expanded]
+  return [member]
 }
