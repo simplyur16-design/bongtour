@@ -185,9 +185,9 @@ function applyFlightManualCorrectionForPublicOrigin(
 }
 
 const CATEGORY = {
-  transport: { color: '#1F1B2D', icon: Car, chipBg: 'rgba(31,27,45,0.08)', chipText: '#1F1B2D', iconColor: 'white', label: '교통' },
+  transport: { color: 'var(--bt-text-navy)', icon: Car, chipBg: 'rgba(31,27,45,0.08)', chipText: 'var(--bt-text-navy)', iconColor: 'white', label: '교통' },
   hotel: { color: '#C9C2E3', icon: Bed, chipBg: '#EFEDF8', chipText: '#534AB7', iconColor: '#534AB7', label: '숙소' },
-  meal: { color: '#d9a81e', icon: UtensilsCrossed, chipBg: '#FAEEDA', chipText: '#85510B', iconColor: 'white', label: '식사' },
+  meal: { color: 'var(--bt-brand-gold-strong)', icon: UtensilsCrossed, chipBg: '#FAEEDA', chipText: '#85510B', iconColor: 'white', label: '식사' },
   attraction: { color: '#6B8E5C', icon: Mountain, chipBg: '#E9F0E2', chipText: '#3E5832', iconColor: 'white', label: '관광' },
   shopping: { color: '#E89571', icon: ShoppingBag, chipBg: '#FCE8DC', chipText: '#A24F2E', iconColor: 'white', label: '쇼핑·기념품' },
   leisure: { color: '#FAEED4', icon: Coffee, chipBg: '#FBF4E0', chipText: '#85510B', iconColor: '#85510B', label: '자유시간' },
@@ -581,7 +581,7 @@ export function ItineraryView({
                 onClick={() => switchPage(pageNum)}
                 className={`px-5 py-2 rounded-full text-sm md:text-base whitespace-nowrap transition ${
                   activePage === pageNum
-                    ? 'bg-[#1F1B2D] text-white font-medium'
+                    ? 'bg-bt-text-navy text-white font-medium'
                     : 'bg-[#F5F2EA] fit-tx-meta hover:bg-[#E5DFC8] font-semibold'
                 }`}
               >
@@ -593,7 +593,7 @@ export function ItineraryView({
           <button
             onClick={() => switchPage('all')}
             className={`px-5 py-2 rounded-full text-sm md:text-base whitespace-nowrap transition ${
-              activePage === 'all' ? 'bg-[#d9a81e] fit-tx-primary font-bold' : 'bg-[#FAEED4] fit-tx-price hover:bg-[#F5E5B8] font-semibold'
+              activePage === 'all' ? 'bg-bt-brand-gold-strong fit-tx-primary font-bold' : 'bg-[#FAEED4] fit-tx-price hover:bg-[#F5E5B8] font-semibold'
             }`}
           >
             📋 전체 일정 펼치기
@@ -609,10 +609,10 @@ export function ItineraryView({
             <div id="fit-itinerary-example" className="scroll-mt-24">
           {!master && !(product.schedule && product.schedule.length > 0) && (
             <div>
-              <h2 className="mb-3 border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
+              <h2 className="mb-3 border-l-4 border-bt-text-navy pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
                 예시 일정 안내
               </h2>
-              <div className="rounded-2xl bg-[#FAEED4]/60 border border-[#d9a81e]/30 px-6 py-12 text-center">
+              <div className="rounded-2xl bg-[#FAEED4]/60 border border-bt-brand-gold-strong/30 px-6 py-12 text-center">
                 <p className="text-base md:text-lg fit-tx-gold font-bold mb-2">
                   예시 일정 준비 중입니다
                 </p>
@@ -620,7 +620,7 @@ export function ItineraryView({
                   {product.title}의 예시 일정을 만들어 드리고 있습니다.<br />
                   상담 신청 시 빠르게 도와드립니다.
                 </p>
-                <Link href={ctaHref} className="inline-flex items-center gap-2 bg-[#d9a81e] text-[#1F1B2D] font-bold px-6 py-3 rounded-full text-sm hover:bg-[#c89619] transition">
+                <Link href={ctaHref} className="inline-flex items-center gap-2 bg-bt-brand-gold-strong text-bt-text-navy font-bold px-6 py-3 rounded-full text-sm hover:bg-[#c89619] transition">
                   {ctaLabel}
                 </Link>
               </div>
@@ -628,7 +628,7 @@ export function ItineraryView({
           )}
 
           {!master && product.schedule && product.schedule.length > 0 && (
-            <div className="mb-6 rounded-2xl bg-[#FAEED4]/60 border border-[#d9a81e]/30 px-6 py-5">
+            <div className="mb-6 rounded-2xl bg-[#FAEED4]/60 border border-bt-brand-gold-strong/30 px-6 py-5">
               <p className="text-center text-sm md:text-base fit-tx-primary leading-relaxed">
                 예시 일정이 준비되는 동안 <strong className="fit-tx-gold">상품 일정</strong>을 안내합니다.
               </p>
@@ -637,10 +637,10 @@ export function ItineraryView({
 
           {master && mode === 'example' && (
             <>
-              <h2 className="mb-3 border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
+              <h2 className="mb-3 border-l-4 border-bt-text-navy pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
                 예시 일정 안내
               </h2>
-              <div className="rounded-2xl bg-[#FAEED4]/60 border border-[#d9a81e]/30 px-6 py-5 mb-6">
+              <div className="rounded-2xl bg-[#FAEED4]/60 border border-bt-brand-gold-strong/30 px-6 py-5 mb-6">
                 <p className="text-center text-sm md:text-base fit-tx-primary leading-relaxed">
                   아래 일정은 <strong className="fit-tx-gold">예시 일정</strong>으로 자유여행에 참고하시라고 만들어드린 것입니다.
                 </p>
@@ -724,7 +724,7 @@ export function ItineraryView({
                       </div>
                       {dayImageUrl ? (
                         <div
-                          className="relative h-48 w-full shrink-0 overflow-hidden rounded-2xl border border-[#DAD4EE] bg-[#1F1B2D] shadow-sm lg:h-40 lg:w-60"
+                          className="relative h-48 w-full shrink-0 overflow-hidden rounded-2xl border border-[#DAD4EE] bg-bt-text-navy shadow-sm lg:h-40 lg:w-60"
                           style={{ filter: 'brightness(1.06) contrast(1.12) saturate(1.20)' }}
                         >
                           <SafeImage
@@ -805,7 +805,7 @@ export function ItineraryView({
                         {isLastInPaging && activePage !== pageCount && (
                           <button
                             onClick={() => switchPage((activePage as number) + 1)}
-                            className="inline-flex items-center gap-2 bg-[#1F1B2D] text-white px-6 py-3 rounded-full text-sm md:text-base font-semibold hover:bg-[#2C283D] transition"
+                            className="inline-flex items-center gap-2 bg-bt-text-navy text-white px-6 py-3 rounded-full text-sm md:text-base font-semibold hover:bg-[#2C283D] transition"
                           >
                             Day {(activePage as number) * pageSize + 1}-{Math.min(((activePage as number) + 1) * pageSize, master.totalDays)} →
                           </button>
@@ -815,13 +815,13 @@ export function ItineraryView({
                   )}
 
                   {isFinalPage && (
-                    <div className="mt-12 rounded-3xl bg-gradient-to-br from-[#1F1B2D] to-[#2C2840] p-10 md:p-14 text-center text-white">
+                    <div className="mt-12 rounded-3xl bg-gradient-to-br from-bt-text-navy to-[#2C2840] p-10 md:p-14 text-center text-white">
                       <h4 className="text-2xl md:text-3xl font-bold mb-3">여정의 마무리</h4>
                       <p className="text-base md:text-lg opacity-90 mb-8 max-w-xl mx-auto">
                         이 일정 그대로 떠나고 싶으시면<br />봉투어 자유여행 상담을 이용해보세요.
                       </p>
                       <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                        <Link href={ctaHref} className="inline-block bg-[#d9a81e] fit-tx-primary px-10 py-4 rounded-full text-base md:text-lg font-bold hover:bg-[#c79a1c] transition shadow-xl">
+                        <Link href={ctaHref} className="inline-block bg-bt-brand-gold-strong fit-tx-primary px-10 py-4 rounded-full text-base md:text-lg font-bold hover:bg-[#c79a1c] transition shadow-xl">
                           {ctaLabel} →
                         </Link>
                         <button
@@ -841,13 +841,13 @@ export function ItineraryView({
 
           {heroFlightDisplay ? (
             <div className="mb-6">
-              <h2 className="mb-3 border-l-4 border-[#1F1B2D] pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
+              <h2 className="mb-3 border-l-4 border-bt-text-navy pl-3 text-lg md:text-xl font-black tracking-tight fit-tx-primary">
                 항공편 정보
               </h2>
               <div className="rounded-2xl bg-white border border-[#DAD4EE] px-6 py-5 space-y-3">
                 {heroFlightDisplay.outbound ? (
                   <div className="flex flex-wrap items-center gap-3 text-sm fit-tx-primary">
-                    <span className="rounded-full bg-[#1F1B2D] text-white px-2.5 py-1 text-xs font-bold">출국</span>
+                    <span className="rounded-full bg-bt-text-navy text-white px-2.5 py-1 text-xs font-bold">출국</span>
                     {heroFlightDisplay.outbound.from ? (
                       <span className="font-semibold">{heroFlightDisplay.outbound.from}</span>
                     ) : null}
@@ -865,7 +865,7 @@ export function ItineraryView({
                 ) : null}
                 {heroFlightDisplay.inbound ? (
                   <div className="flex flex-wrap items-center gap-3 text-sm fit-tx-primary">
-                    <span className="rounded-full bg-[#1F1B2D] text-white px-2.5 py-1 text-xs font-bold">귀국</span>
+                    <span className="rounded-full bg-bt-text-navy text-white px-2.5 py-1 text-xs font-bold">귀국</span>
                     {heroFlightDisplay.inbound.from ? (
                       <span className="font-semibold">{heroFlightDisplay.inbound.from}</span>
                     ) : null}

@@ -42,7 +42,7 @@ export function HomeReviewGridCard({
             className={
               oceanWarm
                 ? 'inline-flex items-baseline gap-1 text-sm font-bold text-[var(--bt-ow-section-gold)]'
-                : 'inline-flex items-baseline gap-1 text-sm font-bold text-[#d9a81e]'
+                : 'inline-flex items-baseline gap-1 text-sm font-bold text-bt-brand-gold-strong'
             }
             aria-label={`평점 ${r.rating_label}`}
           >

@@ -13,7 +13,7 @@ import { Bed, UtensilsCrossed, X } from 'lucide-react'
 
 const CATEGORY = {
   hotel: { color: '#C9C2E3', icon: Bed, chipBg: '#EFEDF8', chipText: '#534AB7', iconColor: '#534AB7', label: '숙소' },
-  meal: { color: '#d9a81e', icon: UtensilsCrossed, chipBg: '#FAEEDA', chipText: '#85510B', iconColor: 'white', label: '식사' },
+  meal: { color: 'var(--bt-brand-gold-strong)', icon: UtensilsCrossed, chipBg: '#FAEEDA', chipText: '#85510B', iconColor: 'white', label: '식사' },
 } as const
 
 /** 숙소·식사 카드(min-h 5.5rem)×2 + gap-3 — 썸네일 열 높이 */
@@ -91,7 +91,7 @@ function ScheduleDayImageLightbox({
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-4 top-4 rounded-full bg-white/90 p-2 text-[#1F1B2D] shadow"
+        className="absolute right-4 top-4 rounded-full bg-white/90 p-2 text-bt-text-navy shadow"
         aria-label="닫기"
       >
         <X size={22} />
@@ -211,7 +211,7 @@ export function ScheduleDayItineraryBlocks({ day, hotelNames, hotelSummaryText, 
           const desc = resolvePublicScheduleDayDescription(day.description)
           return desc ? (
             <article className="flex gap-3 rounded-2xl bg-white border border-[#DAD4EE] p-4">
-              <div className="rounded-xl bg-[#1F1B2D] text-white w-12 h-12 flex items-center justify-center text-xl shrink-0">
+              <div className="rounded-xl bg-bt-text-navy text-white w-12 h-12 flex items-center justify-center text-xl shrink-0">
                 📋
               </div>
               <div className="flex-1 min-w-0">

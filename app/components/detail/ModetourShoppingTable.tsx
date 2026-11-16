@@ -19,7 +19,7 @@ import {
 
 const CARD_CLASS = 'rounded-2xl border border-[#DAD4EE] bg-white px-4 py-4 sm:px-5'
 const TABLE_HEAD = 'bg-[#EFEDF8] text-[11px] font-bold uppercase tracking-wide text-[#534AB7]'
-const TABLE_CELL = 'px-3 py-2.5 text-sm text-[#1F1B2D] align-top'
+const TABLE_CELL = 'px-3 py-2.5 text-sm text-bt-text-navy align-top'
 
 const INITIAL_ROWS = 5
 const MAX_ROWS = 15
@@ -121,7 +121,7 @@ export default function ModetourShoppingTable({
                     <td className={`${TABLE_CELL} font-medium`} rowSpan={g.itemRowSpan}>
                       {displayModetourShoppingItem(g.row)}
                       {g.row.candidateOnly ? (
-                        <span className="mt-1 block text-[10px] font-semibold text-[#d9a81e]">후보</span>
+                        <span className="mt-1 block text-[10px] font-semibold text-bt-brand-gold-strong">후보</span>
                       ) : null}
                     </td>
                   ) : null}
@@ -167,7 +167,7 @@ export default function ModetourShoppingTable({
         </div>
       ) : null}
       {showItems ? (
-        <ul className={`space-y-1.5 text-sm text-[#1F1B2D] ${rows.length > 0 || showPaste ? 'mt-4' : 'mt-3'}`}>
+        <ul className={`space-y-1.5 text-sm text-bt-text-navy ${rows.length > 0 || showPaste ? 'mt-4' : 'mt-3'}`}>
           {itemsList.map((item, i) => (
             <li key={i} className="bt-wrap">
               <span className="mr-2 font-semibold tabular-nums text-[#534AB7]">{i + 1}.</span>
@@ -177,7 +177,7 @@ export default function ModetourShoppingTable({
         </ul>
       ) : null}
       {showNotice ? (
-        <p className="mt-3 whitespace-pre-wrap rounded-xl border border-[#DAD4EE]/60 bg-[#FAFAFC] p-3 text-sm text-[#1F1B2D] bt-wrap">
+        <p className="mt-3 whitespace-pre-wrap rounded-xl border border-[#DAD4EE]/60 bg-[#FAFAFC] p-3 text-sm text-bt-text-navy bt-wrap">
           {noticeTrim}
         </p>
       ) : null}
@@ -190,7 +190,7 @@ export default function ModetourShoppingTable({
 
   return (
     <section className={CARD_CLASS} aria-label="쇼핑">
-      <h3 className="text-base font-bold text-[#1F1B2D]">
+      <h3 className="text-base font-bold text-bt-text-navy">
         쇼핑
         {countLabel}
       </h3>

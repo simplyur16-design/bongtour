@@ -766,8 +766,8 @@ export function ProductResultCard({
           <span
             className={
               compact
-                ? 'pointer-events-none absolute -left-7 top-3.5 z-20 w-[110px] -rotate-45 bg-[#d9a81e] py-0.5 text-center text-[9px] font-semibold leading-tight text-[#1F1B2D] shadow-sm'
-                : 'pointer-events-none absolute -left-9 top-5 z-20 w-[150px] -rotate-45 bg-[#d9a81e] py-1 text-center text-[11px] font-semibold leading-tight text-[#1F1B2D] shadow-sm'
+                ? 'pointer-events-none absolute -left-7 top-3.5 z-20 w-[110px] -rotate-45 bg-bt-brand-gold-strong py-0.5 text-center text-[9px] font-semibold leading-tight text-bt-text-navy shadow-sm'
+                : 'pointer-events-none absolute -left-9 top-5 z-20 w-[150px] -rotate-45 bg-bt-brand-gold-strong py-1 text-center text-[11px] font-semibold leading-tight text-bt-text-navy shadow-sm'
             }
             aria-label="긴급모객"
           >
@@ -944,15 +944,15 @@ export function ProductResultCard({
               ) : null}
               <div className="flex items-baseline gap-1">
                 {!compact ? (
-                  <span className="text-sm font-bold text-[#1F1B2D]" aria-hidden>
+                  <span className="text-sm font-bold text-bt-text-navy" aria-hidden>
                     ↓
                   </span>
                 ) : null}
                 <span
                   className={
                     compact
-                      ? 'text-sm font-extrabold tracking-tight text-[#1F1B2D]'
-                      : 'text-lg font-extrabold tracking-tight text-[#1F1B2D]'
+                      ? 'text-sm font-extrabold tracking-tight text-bt-text-navy'
+                      : 'text-lg font-extrabold tracking-tight text-bt-text-navy'
                   }
                 >
                   {formatWon(item.urgentDealCurrentPriceKrw)}

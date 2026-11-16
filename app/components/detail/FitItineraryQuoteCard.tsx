@@ -146,14 +146,14 @@ export default function FitItineraryQuoteCard({
         <button
           type="button"
           onClick={onChangeDepartureDate}
-          className="mb-4 w-full rounded-xl bg-[#1F1B2D] py-2.5 font-medium text-white transition hover:bg-[#2c2740]"
+          className="mb-4 w-full rounded-xl bg-bt-text-navy py-2.5 font-medium text-white transition hover:bg-[#2c2740]"
         >
           출발일 변경
         </button>
       ) : null}
 
       <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide !text-[#1F1B2D]">{copy.paxSectionTitle}</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide !text-bt-text-navy">{copy.paxSectionTitle}</p>
         <div className="space-y-2.5">
           {FIT_PAX_ROWS.map((row) => {
             const unit = unitByKey[row.key]
@@ -166,7 +166,7 @@ export default function FitItineraryQuoteCard({
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-nowrap items-baseline gap-x-2 whitespace-nowrap">
-                    <span className="text-sm font-semibold !text-[#1F1B2D]">{row.label}</span>
+                    <span className="text-sm font-semibold !text-bt-text-navy">{row.label}</span>
                     <span className="text-[10px] !text-[#4B5563]">{row.ageLine}</span>
                   </div>
                   {unit > 0 ? (
@@ -185,7 +185,7 @@ export default function FitItineraryQuoteCard({
                   >
                     {PAX_STEP_DECREMENT_GLYPH}
                   </button>
-                  <span className="min-w-[28px] text-center text-lg font-bold tabular-nums text-[#1F1B2D]">
+                  <span className="min-w-[28px] text-center text-lg font-bold tabular-nums text-bt-text-navy">
                     {count}
                   </span>
                   <button
@@ -224,7 +224,7 @@ export default function FitItineraryQuoteCard({
       {similarCompareHref ? (
         <Link
           href={similarCompareHref}
-          className="mt-3 flex w-full items-center justify-center rounded-xl border border-[#2f8fc7]/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-[#2f8fc7] hover:bg-[#dceef9]"
+          className="mt-3 flex w-full items-center justify-center rounded-xl border border-bt-brand-blue-strong/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-bt-brand-blue-strong hover:bg-[#dceef9]"
         >
           {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
         </Link>

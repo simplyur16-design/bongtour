@@ -226,7 +226,7 @@ export function ItineraryExtraInfoBoxes({
 
       {showBottom && !isAirHotel && !usePackageIncludedExcludedRules && optionalTours.length > 0 && (
         <section className="mb-6">
-          <div className="border-l-4 border-[#1F1B2D] pl-3 mb-2">
+          <div className="border-l-4 border-bt-text-navy pl-3 mb-2">
             <h3 className="text-base font-bold fit-tx-primary">현지 옵션</h3>
           </div>
           <div className="overflow-x-auto rounded-2xl border bg-white">
