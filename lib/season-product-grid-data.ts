@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { publicProductWhereClause } from '@/lib/product-sales-policy'
 import { getCachedSeasonLinkedProductIds } from '@/lib/season-curation-content'
 import { computeEffectivePricePerPersonKrwFromRow, PRODUCT_PRICE_FOR_BROWSE_INCLUDE } from '@/lib/product-price-per-person'
+import { fetchCardFutureMinAdultPriceByProductIds } from '@/lib/card-future-min-adult-price'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
 import { readCachedArrayOrBypassEmpty } from '@/lib/unstable-cache-empty-bypass'
@@ -32,6 +33,7 @@ function earliestFutureDeparture(departures: { departureDate: Date }[], nowFloor
 }
 
 function toResultItem(p: {
+  cardFutureMinAdultPrice?: number | null
   id: string
   slug?: string | null
   title: string
@@ -164,9 +166,17 @@ async function loadSeasonProductGridUncached(): Promise<ResultItem[]> {
     })
   }
 
+  // REGRESSION-FREEZE[card-min-price-beyond-row-cap]: 시즌 카드 최저가는 미래 출발 전체 집계 — manifest
+  const futureMinById = await fetchCardFutureMinAdultPriceByProductIds(
+    [...linked, ...related].map((p) => p.id),
+    nowFloor,
+  )
   const score = (p: (typeof linked)[number]) => {
     const earliest = earliestFutureDeparture(p.departures, nowFloor)
-    const price = computeEffectivePricePerPersonKrwFromRow(p)
+    const price = computeEffectivePricePerPersonKrwFromRow({
+      ...p,
+      cardFutureMinAdultPrice: futureMinById.get(p.id) ?? null,
+    })
     return { p, earliest, price }
   }
 
@@ -185,7 +195,9 @@ async function loadSeasonProductGridUncached(): Promise<ResultItem[]> {
   })
 
   const merged = [...orderedLinked, ...orderedRelated].slice(0, 12)
-  return merged.map(({ p }) => toResultItem(p))
+  return merged.map(({ p }) =>
+    toResultItem({ ...p, cardFutureMinAdultPrice: futureMinById.get(p.id) ?? null }),
+  )
 }
 
 export async function getCachedSeasonProductGridItems(): Promise<ResultItem[]> {
@@ -193,8 +205,8 @@ export async function getCachedSeasonProductGridItems(): Promise<ResultItem[]> {
   if (shouldSkipDbAtBuild()) return []
   const run = unstable_cache(
     () => loadSeasonProductGridUncached(),
-    // v7: no itineraries join + tighter related take
-    ['season-product-grid-pc-v7'],
+    // v8: card price is the full future-departure min, not the first 80 rows
+    ['season-product-grid-pc-v8'],
     { revalidate: 21_600 },
   )
   return readCachedArrayOrBypassEmpty(run, () => loadSeasonProductGridUncached())

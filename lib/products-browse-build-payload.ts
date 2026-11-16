@@ -17,6 +17,10 @@ import {
   computeEffectivePricePerPersonKrwFromRow,
   fetchProductPriceAdultMinByProductIds,
 } from '@/lib/product-price-per-person'
+import {
+  fetchCardFutureMinAdultPriceByProductIds,
+  startOfTodayKstForCardPrice,
+} from '@/lib/card-future-min-adult-price'
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { aggregateAirlineFacets, aggregateBrandFacets } from '@/lib/products-browse-facets'
 import {
@@ -548,7 +552,17 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       ? undefined
       : { region, country, city, regionCountryKeys: browseRegionCountryKeys }
 
-    const scoredForFacets = scoreAndFilterProducts(filteredRows, {
+    // REGRESSION-FREEZE[card-min-price-beyond-row-cap]: 목록·메가메뉴 카드 최저가는 미래 출발 전체 집계 — manifest
+    const futureMinById = await fetchCardFutureMinAdultPriceByProductIds(
+      filteredRows.map((p) => p.id),
+      startOfTodayKstForCardPrice(),
+    )
+    const pricedRows = filteredRows.map((p) => ({
+      ...p,
+      cardFutureMinAdultPrice: futureMinById.get(p.id) ?? null,
+    }))
+
+    const scoredForFacets = scoreAndFilterProducts(pricedRows, {
       type: browseTypeForScore,
       destinationTerms: scoringDestinationTerms,
       budgetPerPersonMax: null,
@@ -561,7 +575,7 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const airlineFacets = aggregateAirlineFacets(facetRows)
     const facetFlags = computeFacetFlags(facetRows)
 
-    let scored = scoreAndFilterProducts(filteredRows, {
+    let scored = scoreAndFilterProducts(pricedRows, {
       type: browseTypeForScore,
       destinationTerms: scoringDestinationTerms,
       budgetPerPersonMax,
@@ -720,8 +734,10 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       const departures = sliceDepartureByProductId.get(pRaw.id) ?? []
       const seatAwareMin = isHubFullCatalog ? null : minBrowseBookableAdultPrice(departures)
       const realBookableMin = isHubFullCatalog ? null : realBookableMinFor(pRaw.id)
+      const cardFutureMin = pRaw.cardFutureMinAdultPrice
       const cardPriceKrw =
         realBookableMin ??
+        (cardFutureMin != null && cardFutureMin > 0 ? cardFutureMin : null) ??
         seatAwareMin ??
         (isHubFullCatalog && pRaw.minBookableAdultPrice != null ? pRaw.minBookableAdultPrice : null) ??
         computeEffectivePricePerPersonKrwFromRow(
@@ -1012,9 +1028,9 @@ export async function productsBrowseBuildPayload(queryKey: string) {
 
     let suggestedBudgetMax: number | null = null
     if (budgetPerPersonMax != null && total === 0 && filteredRows.length > 0) {
-      const priced = filteredRows
+      const priced = pricedRows
         .map((p) => ({ p, v: computeEffectivePricePerPersonKrwFromRow(p) }))
-        .filter((x): x is { p: (typeof filteredRows)[0]; v: number } => x.v != null)
+        .filter((x): x is { p: (typeof pricedRows)[0]; v: number } => x.v != null)
         .map((x) => x.v)
       if (priced.length > 0) {
         const over = priced.filter((v) => v > budgetPerPersonMax!).sort((a, b) => a - b)

@@ -15223,7 +15223,7 @@
             "REGRESSION-FREEZE[home-ssg-empty-poison]",
             "shouldSkipDbAtBuild",
             "readCachedArrayOrBypassEmpty",
-            "season-product-grid-pc-v7"
+            "season-product-grid-pc-v8"
           ]
         },
         {
@@ -26669,7 +26669,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[home-season-grid-no-itinerary-join]",
             "schedule JSON만",
-            "season-product-grid-pc-v7"
+            "season-product-grid-pc-v8"
           ]
         },
         {
@@ -26964,7 +26964,7 @@
           "file": "lib/season-product-grid-data.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[public-card-no-kr-departure-place]",
-            "season-product-grid-pc-v7"
+            "season-product-grid-pc-v8"
           ]
         },
         {
@@ -29828,6 +29828,68 @@
       ],
       "vitestSuites": [
         "lib/a5-airline-detail-1030.test.ts"
+      ]
+    },
+    {
+      "id": "card-min-price-beyond-row-cap",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "카드 최저가는 오늘(KST) 이후 판매가능 출발 전체의 성인가 최저. 날짜순 80행 상한으로 더 싼 출발을 자르지 않음",
+      "checks": [
+        {
+          "file": "lib/card-future-min-adult-price.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[card-min-price-beyond-row-cap]",
+            "export function minCardFutureAdultPrice",
+            "MIN(pd.\"adultPrice\")",
+            "IS DISTINCT FROM false"
+          ]
+        },
+        {
+          "file": "lib/card-future-min-adult-price.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[card-min-price-beyond-row-cap]",
+            "rows.slice(0, 80)",
+            "849_000"
+          ]
+        },
+        {
+          "file": "lib/product-price-per-person.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[card-min-price-beyond-row-cap]",
+            "p.cardFutureMinAdultPrice"
+          ]
+        },
+        {
+          "file": "lib/season-product-grid-data.ts",
+          "mustInclude": [
+            "fetchCardFutureMinAdultPriceByProductIds"
+          ]
+        },
+        {
+          "file": "lib/season-linked-products-mobile-data.ts",
+          "mustInclude": [
+            "fetchCardFutureMinAdultPriceByProductIds"
+          ]
+        },
+        {
+          "file": "app/components/travel/overseas/OverseasRegisteredProductsSection.tsx",
+          "mustInclude": [
+            "fetchCardFutureMinAdultPriceByProductIds"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "fetchCardFutureMinAdultPriceByProductIds",
+            "pRaw.cardFutureMinAdultPrice"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/card-future-min-adult-price.test.ts"
       ]
     },
     {

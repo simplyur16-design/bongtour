@@ -4,6 +4,7 @@ import OverseasProductScrollRow from '@/app/components/travel/overseas/OverseasP
 import { filterProductsForOverseasDestinationTree } from '@/lib/active-overseas-location-tree'
 import { groupBrowseScoredProductsByCountry } from '@/lib/overseas-products-by-country'
 import { PRODUCT_PRICE_FOR_BROWSE_INCLUDE } from '@/lib/product-price-per-person'
+import { fetchCardFutureMinAdultPriceByProductIds } from '@/lib/card-future-min-adult-price'
 import { scoreAndFilterProducts } from '@/lib/products-browse-filter'
 import { prisma } from '@/lib/prisma'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
@@ -35,7 +36,16 @@ export default async function OverseasRegisteredProductsSection() {
     },
   })
 
-  const overseasRows = filterProductsForOverseasDestinationTree(rows)
+  // REGRESSION-FREEZE[card-min-price-beyond-row-cap]: 해외 등록 카드 최저가는 미래 출발 전체 집계 — manifest
+  const futureMinById = await fetchCardFutureMinAdultPriceByProductIds(
+    rows.map((r) => r.id),
+    startOfTodayKst(),
+  )
+  const pricedRows = rows.map((r) => ({
+    ...r,
+    cardFutureMinAdultPrice: futureMinById.get(r.id) ?? null,
+  }))
+  const overseasRows = filterProductsForOverseasDestinationTree(pricedRows)
   const scored = scoreAndFilterProducts(overseasRows, {
     type: null,
     destinationTerms: [],
