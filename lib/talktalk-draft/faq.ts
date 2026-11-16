@@ -68,6 +68,8 @@ export type TalktalkDraftFaqItem = {
   sourceUrl: string | null
   sourceNote: string | null
   topics: readonly TalktalkFaqTopic[]
+  /** 항목을 복제하지 않고 다른 종류 탭에도 보여 준다. */
+  also?: readonly TalktalkFaqCategory[]
 }
 
 const ESIM_FAQ_URL = 'https://www.usimsa.com/board/faq'
@@ -125,8 +127,9 @@ function inquiry(
   source: string,
   topics: readonly TalktalkFaqTopic[],
   category: TalktalkFaqCategory = 'common',
+  also?: readonly TalktalkFaqCategory[],
 ): TalktalkDraftFaqItem {
-  return { id, category, question, answer, source, sourceUrl: null, sourceNote: null, topics }
+  return { id, category, question, answer, source, sourceUrl: null, sourceNote: null, topics, also }
 }
 
 function esim(
@@ -175,6 +178,8 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '여행 상담은 문의 접수(/inquiry?type=travel)에서 합니다. 문의 유형을 선택하면 필요한 정보와 담당 흐름이 달라질 수 있습니다.',
     'lib/inquiry-page.ts',
     ['booking', 'process'],
+    'common',
+    ['package', 'fit', 'air', 'hotel', 'private'],
   ),
   inquiry(
     'inquiry-types',
@@ -189,6 +194,8 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '신청자 이름, 연락처, 문의 내용을 적습니다. 희망 출발 월, 성인(만 12세 이상)·아동(만 2세 이상~만 12세 미만)·유아(만 2세 미만), 희망 지역·국가는 추가로 남길 수 있습니다. 인원 기준은 일반적인 여행 기준이며 실제 적용은 상품·항공 규정에 따라 달라질 수 있습니다. 빠른 상담을 위해 출발 희망일, 인원(성인/아동/유아), 문의 내용을 함께 남기면 됩니다.',
     'lib/inquiry-form-i18n.ts',
     ['booking'],
+    'common',
+    ['package', 'fit', 'hotel', 'private'],
   ),
   inquiry(
     'inquiry-custom-quote',
@@ -220,6 +227,8 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '제출한 내용은 접수·상담용이며, 확정 안내 전까지 계약·예약 확정으로 보지 않습니다. 회사는 상담 신청 또는 예약 요청이 접수되었다는 사정만으로 예약 또는 계약이 확정된 것으로 보지 않습니다. 상담연결형 서비스는 외부 공급사 또는 실제 계약 당사자의 승낙 및 예약 확정 시에 계약이 성립합니다.',
     'app/terms/page.tsx',
     ['booking'],
+    'common',
+    ['package', 'fit', 'air', 'hotel', 'training', 'institution', 'private', 'bus'],
   ),
   inquiry(
     'inquiry-when',
@@ -234,6 +243,8 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     supportAnswer('faq-2'),
     'lib/support-content.ts',
     ['process'],
+    'common',
+    ['package', 'fit', 'air', 'hotel', 'training', 'institution', 'private', 'bus'],
   ),
   inquiry(
     'inquiry-steps',
@@ -276,6 +287,8 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     `${supportAnswer('faq-9')} 실제 예약 또는 계약이 성립한 이후의 취소, 환불, 변경은 회사가 직접 당사자인 서비스는 회사가 별도로 고지한 조건, 외부 공급사와 계약이 성립한 서비스는 해당 공급사·실제 계약 당사자·개별 약관·특별약관 또는 별도 안내, 법령 또는 표준약관이 우선이면 그 법령 또는 표준약관에 따릅니다.`,
     'app/terms/page.tsx',
     ['cancel', 'refund'],
+    'common',
+    ['package', 'fit', 'air', 'hotel', 'private'],
   ),
   inquiry(
     'inquiry-standard-terms',
@@ -335,6 +348,8 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     supportAnswer('faq-16'),
     'lib/support-content.ts',
     ['booking'],
+    'common',
+    ['package', 'fit', 'air', 'hotel', 'training', 'institution', 'private', 'bus'],
   ),
   inquiry(
     'inquiry-traveler-info',
@@ -350,6 +365,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     'lib/air-ticketing-content.ts',
     ['booking'],
     'air',
+    ['fit'],
   ),
   inquiry(
     'inquiry-single-room',
@@ -374,6 +390,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     'app/travel/air-hotel/page.tsx',
     ['booking'],
     'fit',
+    ['hotel'],
   ),
   inquiry(
     'hotel-only',
@@ -429,6 +446,275 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '본 상품은 [브랜드명]의 상품으로, 실제 행사는 해당 여행사와 현지 랜드사에서 진행합니다. 판매 대행은 Bong투어입니다.',
     'app/components/detail/OrganizerNotice.tsx',
     ['booking'],
+  ),
+  inquiry(
+    'fit-path',
+    '자유여행 화면은 어디인가요?',
+    '헤더의 자유여행은 항공과 호텔 페이지로 이동합니다.',
+    'app/components/Header.tsx',
+    ['booking'],
+    'fit',
+    ['hotel'],
+  ),
+  inquiry(
+    'fit-hub',
+    '자유여행 일정은 어떻게 맞추나요?',
+    '항공과 숙소를 원하는 조합으로 맞추는 자유·에어텔 성격 일정입니다. 세부는 상담에서 정리합니다.',
+    'lib/main-hub-copy.ts',
+    ['booking'],
+    'fit',
+    ['hotel'],
+  ),
+  inquiry(
+    'fit-not-instant',
+    '자유여행은 문의와 동시에 결제되나요?',
+    '즉시 결제·자동 확정이 아닌 상담·접수 창구입니다. 세부 조건은 확인 과정에서 정리됩니다.',
+    'lib/main-hub-copy.ts',
+    ['booking', 'payment'],
+    'fit',
+    ['package', 'hotel', 'private'],
+  ),
+  inquiry(
+    'air-lead',
+    '항공권만 예매할 때 무엇을 함께 보나요?',
+    '항공권 예매는 단순 좌석 예약만이 아니라, 운임 조건, 결제 방식, 발권 가능 여부, 제출 서류 확인까지 함께 검토해야 하는 경우가 있습니다.',
+    'lib/air-ticketing-content.ts',
+    ['booking'],
+    'air',
+  ),
+  inquiry(
+    'air-general',
+    '항공권 예매 안내는 어디까지인가요?',
+    '일반 예매부터 상황별 발권 안내까지 가능합니다.',
+    'lib/air-ticketing-content.ts',
+    ['booking'],
+    'air',
+  ),
+  inquiry(
+    'air-corp-card',
+    '항공권을 법인카드로 결제할 수 있나요?',
+    '법인카드로 항공권 발급이 가능합니다. 다만 발급 과정에서 확인을 위해 명함, 사원증, 재직증명서 등의 서류가 필요할 수 있습니다.',
+    'lib/air-ticketing-content.ts',
+    ['payment'],
+    'air',
+    ['training'],
+  ),
+  inquiry(
+    'air-differs',
+    '항공권 진행 방식은 항상 같나요?',
+    '항공사, 운임, 발권처에 따라 진행 방식이 달라질 수 있습니다.',
+    'lib/air-ticketing-content.ts',
+    ['booking'],
+    'air',
+  ),
+  inquiry(
+    'air-receipt-standalone',
+    '항공권만 결제하면 현금영수증이 되나요?',
+    '항공권만 단독으로 결제하는 경우에는 현금영수증 발행이 불가능합니다. 다만 E-ticket에 표시된 금액을 기준으로 증빙자료로 활용하실 수 있습니다.',
+    'lib/air-ticketing-content.ts',
+    ['payment'],
+    'air',
+  ),
+  inquiry(
+    'air-inquiry-path',
+    '항공권 안내에서 문의는 어디로 가나요?',
+    '항공권 예매 및 발권 안내의 문의는 여행 상담 접수로 이어집니다.',
+    'app/components/air-ticketing/AirTicketingHub.tsx',
+    ['booking'],
+    'air',
+  ),
+  inquiry(
+    'institution-scope',
+    '연수기관 섭외만 맡기면 무엇을 하나요?',
+    '연수 목적에 맞는 기관 조사·접촉·수용 가능 여부 확인 중심으로 지원합니다. 일정의 큰 틀이 이미 잡혀 있고 방문기관 섭외만 필요할 때 맞습니다.',
+    'app/components/training/TrainingHub.tsx',
+    ['booking'],
+    'institution',
+  ),
+  inquiry(
+    'institution-contact',
+    '기관 섭외는 어떻게 확인하나요?',
+    '연수 목적에 맞는 기관 조사, 서면 요청, 직접 연락, 방문 가능 여부 확인 중심으로 상담합니다.',
+    'app/components/training/TrainingHub.tsx',
+    ['process'],
+    'institution',
+    ['training'],
+  ),
+  inquiry(
+    'institution-flow',
+    '기관 조사는 문의 다음 어디에 있나요?',
+    '기본 정보를 확인하고 현재 준비 범위에서 상담을 시작합니다. 이어서 목적 확인 후 유관기관 조사와 접촉 가능성을 검토합니다.',
+    'app/components/training/TrainingHub.tsx',
+    ['process'],
+    'institution',
+    ['training'],
+  ),
+  inquiry(
+    'institution-not-tour',
+    '기관 방문 일정은 관광 일정인가요?',
+    '관광형 일정이 아니라 연수 목적 중심으로 방문 흐름을 재구성합니다.',
+    'app/components/training/TrainingHub.tsx',
+    ['booking'],
+    'institution',
+    ['training'],
+  ),
+  inquiry(
+    'training-services',
+    '국외연수 문의에서 고르는 범위는 무엇인가요?',
+    '연수기관 섭외만, 연수기획·진행 및 연수기관 섭외, 연수기획·진행만 중에서 필요한 서비스 범위를 고릅니다.',
+    'components/inquiry/TrainingInquiryForm.tsx',
+    ['booking'],
+    'training',
+    ['institution'],
+  ),
+  inquiry(
+    'training-unfixed',
+    '국외연수는 세부 조건이 없어도 접수되나요?',
+    '기관명, 희망 국가, 연수 목적, 인원 등 기본 정보를 접수합니다. 세부 조건이 모두 확정되지 않아도 접수 가능합니다.',
+    'app/components/training/TrainingHub.tsx',
+    ['booking'],
+    'training',
+    ['institution'],
+  ),
+  inquiry(
+    'training-quote-mode',
+    '국외연수 견적 문의와 간단 접수는 어떻게 다르나요?',
+    '견적 문의는 목적지·출발 시기·인원이 필요합니다. 기관명 등은 선택으로 입력할 수 있습니다. 추가정보 입력은 선택입니다.',
+    'components/inquiry/TrainingInquiryForm.tsx',
+    ['booking'],
+    'training',
+  ),
+  inquiry(
+    'training-reply',
+    '국외연수 문의 후 연락은 어떻게 오나요?',
+    '문의가 접수되면 선택하신 답변 방법을 기준으로 순차적으로 안내합니다. 답변 방법은 이메일, 카카오톡, 둘 다 중에서 고르며 선택은 선택 항목입니다.',
+    'components/inquiry/TrainingInquiryForm.tsx',
+    ['process'],
+    'training',
+    ['institution'],
+  ),
+  inquiry(
+    'training-docs',
+    '국외연수에 발권·증빙도 포함되나요?',
+    '국외연수는 항공 발권, 증빙, 확인 서류, 예산 집행 흐름까지 함께 검토해야 하는 경우가 많습니다. 진행 상황에 맞춰 필요한 내용을 안내합니다.',
+    'app/components/training/TrainingHub.tsx',
+    ['payment'],
+    'training',
+  ),
+  inquiry(
+    'training-interpreter',
+    '연수 현장 통역은 어떻게 준비하나요?',
+    '기관방문·회의·연구시찰은 순차통역 중심으로 준비하며, 사전질의서 기반 언어 준비를 함께 진행합니다.',
+    'app/components/training/TrainingHub.tsx',
+    ['process'],
+    'training',
+    ['institution'],
+  ),
+  inquiry(
+    'private-pace',
+    '우리끼리는 다른 팀 일정에 맞추나요?',
+    '다른 팀 일정에 맞출 필요 없이, 우리 일행의 속도와 분위기에 맞춰 상담합니다.',
+    'app/travel/overseas/private-trip/_components/PrivateTripLanding.tsx',
+    ['booking'],
+    'private',
+  ),
+  inquiry(
+    'private-who',
+    '우리끼리는 어떤 모임에 맞나요?',
+    '가족여행, 동호회 여행, 소규모 단체여행처럼 구성에 맞는 흐름으로 방향을 잡습니다.',
+    'app/travel/overseas/private-trip/_components/PrivateTripLanding.tsx',
+    ['booking'],
+    'private',
+  ),
+  inquiry(
+    'private-base',
+    '우리끼리 제안은 무엇을 기준으로 하나요?',
+    '등록된 여행상품을 기준으로 현실적으로 가능한 맞춤여행 방향을 제안합니다.',
+    'app/travel/overseas/private-trip/_components/PrivateTripLanding.tsx',
+    ['booking'],
+    'private',
+  ),
+  inquiry(
+    'private-label',
+    '우리견적 문의는 어떤 접수로 저장되나요?',
+    '여행 상담이면서 우리견적인 문의는 우리견적 문의로 표시됩니다.',
+    'lib/admin-inquiry.ts',
+    ['booking'],
+    'private',
+  ),
+  inquiry(
+    'private-required',
+    '우리견적에 꼭 적는 항목은 무엇인가요?',
+    '희망 여행지 또는 국가/도시, 출발 희망일 또는 출발 희망월 중 하나, 1명 이상의 인원, 10자 이상의 문의 내용이 필요합니다.',
+    'lib/customer-inquiry-intake.ts',
+    ['booking'],
+    'private',
+  ),
+  inquiry(
+    'name-rule',
+    '신청자 이름은 어떻게 적나요?',
+    '이름은 2~30자 한글·영문·공백만 입력합니다.',
+    'lib/customer-inquiry-intake.ts',
+    ['booking'],
+    'common',
+    ['package', 'fit', 'air', 'hotel', 'training', 'institution', 'private', 'bus'],
+  ),
+  inquiry(
+    'status-flow',
+    '접수 후 관리 상태는 어떻게 바뀌나요?',
+    '문의 상태는 접수, 검토중, 연락중, 연락완료, 견적, 일정조율, 종료, 취소, 종료(불발)로 구분합니다.',
+    'lib/admin-inquiry.ts',
+    ['process'],
+    'common',
+    ['package', 'fit', 'air', 'hotel', 'training', 'institution', 'private', 'bus'],
+  ),
+  inquiry(
+    'bus-cases',
+    '전세버스는 어떤 이동에 쓰나요?',
+    '기업/기관 이동, 학교/학원 일정, 행사/모임 이동, 관광/자유 일정 이동에 맞춰 상담합니다.',
+    'app/components/charter-bus/CharterBusLanding.tsx',
+    ['booking'],
+    'bus',
+  ),
+  inquiry(
+    'bus-flow',
+    '전세버스 견적은 어떤 순서로 안내되나요?',
+    '기본 정보 접수 후 조건을 확인하고, 가능 여부와 예상 견적 방향을 상담한 뒤 일정을 조율하고, 확정 가능한 범위의 후속 절차를 안내합니다.',
+    'app/components/charter-bus/CharterBusLanding.tsx',
+    ['process'],
+    'bus',
+  ),
+  inquiry(
+    'bus-required',
+    '전세버스에서 반드시 적는 항목은 무엇인가요?',
+    '예상 인원은 필수이며 왕복 기준으로 1명 이상입니다. 전세버스 문의는 왕복 운행을 기준으로 접수합니다.',
+    'components/inquiry/BusInquiryForm.tsx',
+    ['booking'],
+    'bus',
+  ),
+  inquiry(
+    'bus-optional',
+    '전세버스의 날짜와 장소는 없어도 접수되나요?',
+    '이용 날짜, 이용 희망 월, 출발 시간, 종료 예상 시간, 출발지, 도착지, 경유지, 단체명은 선택입니다. 미정이어도 접수할 수 있고 자세한 일정과 차량 조건은 상담하면서 안내합니다.',
+    'components/inquiry/BusInquiryForm.tsx',
+    ['booking'],
+    'bus',
+  ),
+  inquiry(
+    'bus-vehicles',
+    '전세버스 희망 차량은 무엇을 고르나요?',
+    '희망 차량 종류는 선택이며 25인승, 28인승, 45인승, 기타 중에서 고를 수 있습니다. 기사 대기 시간과 짐 적재가 필요한지도 선택할 수 있습니다.',
+    'components/inquiry/BusInquiryForm.tsx',
+    ['booking'],
+    'bus',
+  ),
+  inquiry(
+    'bus-contact',
+    '전세버스 답변 방법은 어떻게 고르나요?',
+    '답변받을 방법은 선택입니다. 이메일로 답변받기, 카카오톡으로 상담받기, 둘 다 가능 중에서 고릅니다. 카카오톡을 고르면 연락 가능한 번호를 남기고, 확인 후 순차적으로 안내합니다.',
+    'components/inquiry/BusInquiryForm.tsx',
+    ['process'],
+    'bus',
   ),
   esim(
     'esim-qr-sent',
@@ -679,12 +965,18 @@ export const TALKTALK_FAQ_NEEDS_ANSWER: readonly { question: string; why: string
   },
 ]
 
+export function faqMemberships(item: TalktalkDraftFaqItem): TalktalkFaqCategory[] {
+  return [item.category, ...(item.also ?? [])]
+}
+
 export function faqCountByCategory(): Record<TalktalkFaqCategory, number> {
   const counts = Object.fromEntries(TALKTALK_FAQ_CATEGORIES.map((c) => [c.id, 0])) as Record<
     TalktalkFaqCategory,
     number
   >
-  for (const item of ADMIN_DRAFT_FAQ) counts[item.category] += 1
+  for (const item of ADMIN_DRAFT_FAQ) {
+    for (const category of faqMemberships(item)) counts[category] += 1
+  }
   return counts
 }
 
@@ -696,7 +988,7 @@ export function talktalkFaqAdminGroups(): Array<{
   return TALKTALK_FAQ_CATEGORIES.map((category) => ({
     id: category.id,
     label: category.label,
-    items: ADMIN_DRAFT_FAQ.filter((item) => item.category === category.id).map((item) => ({
+    items: ADMIN_DRAFT_FAQ.filter((item) => faqMemberships(item).includes(category.id)).map((item) => ({
       id: item.id,
       question: item.question,
       answer: item.answer,
@@ -724,7 +1016,9 @@ export function selectDraftFaq(inquiryText: string, limit = 4): TalktalkDraftFaq
   if (/e\s*sim|이심|qr|설치|로밍|apn|갤럭시|아이폰|핫스팟|테더|사용량/i.test(text)) topics.add('esim')
   if (topics.size === 0) topics.add('booking')
   const topical = ADMIN_DRAFT_FAQ.filter((item) => item.topics.some((topic) => topics.has(topic)))
-  const inCategory = topical.filter((item) => item.category === category || item.category === 'common')
-  const pool = category === 'esim' ? topical.filter((item) => item.category === 'esim') : inCategory
+  const inCategory = topical.filter(
+    (item) => faqMemberships(item).includes(category) || item.category === 'common',
+  )
+  const pool = category === 'esim' ? topical.filter((item) => faqMemberships(item).includes('esim')) : inCategory
   return (pool.length > 0 ? pool : topical).slice(0, limit)
 }

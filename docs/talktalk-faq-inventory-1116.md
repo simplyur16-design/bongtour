@@ -18,6 +18,19 @@
 
 문의 폼 유형은 `travel` `institution` `training` `bus` 네 가지입니다. 근거는 `lib/inquiry-page.ts`.
 
+같은 사실은 항목을 복제하지 않고 여러 종류 탭에 연결합니다. 호텔만 단독 접수 절차는 없고, 호텔 탭은 항공과 호텔 안내와 여행 상담 접수 문구를 같이 보여 줍니다.
+
+| 추가 근거 | 내용 |
+|---|---|
+| `components/inquiry/TrainingInquiryForm.tsx` | 서비스 범위 3종, 견적 모드의 목적지·출발·인원, 기관명 선택, 답변 방법 선택 |
+| `components/inquiry/BusInquiryForm.tsx` | 예상 인원 필수(왕복), 날짜·장소·차량은 선택, 25·28·45인승 |
+| `app/components/charter-bus/CharterBusLanding.tsx` | 이용 목적, 견적 순서, 차량 카드 |
+| `app/components/training/TrainingHub.tsx` | 섭외 범위, 문의 후 5단계, 발권·증빙 |
+| `app/travel/overseas/private-trip/_components/PrivateTripLanding.tsx` | 우리끼리 상담 문구, 우리견적 문의 |
+| `lib/admin-inquiry.ts` | 우리견적 표시, 접수·검토·연락·견적·일정조율·종료 상태 |
+| `lib/air-ticketing-content.ts` | 항공만 예매, 법인카드 서류, 단독 결제 현금영수증 불가 |
+| `lib/customer-inquiry-intake.ts` | 이름 2~30자, 우리견적 필수 항목 |
+
 ## 공식 FAQ BDT002 요지 (조회 2026-11-16)
 
 고객 답에 옮긴 문장입니다. 값은 다시 조회하지 않았습니다.

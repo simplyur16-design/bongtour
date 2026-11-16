@@ -71,7 +71,7 @@ describe('buildTalktalkDraft', () => {
     expect(blob).not.toMatch(/하나투어|모두투어|노랑풍선|참좋은|교원투어|롯데관광|내일투어|한진관광|hanatour|modetour|ybtour|verygoodtour/i)
     const counts = faqCountByCategory()
     for (const category of TALKTALK_FAQ_CATEGORIES) {
-      expect(counts[category.id]).toBeGreaterThan(0)
+      expect(counts[category.id], category.id).toBeGreaterThanOrEqual(6)
     }
     for (const item of ADMIN_DRAFT_FAQ) {
       const nums = item.answer.match(/\d+/g) ?? []
