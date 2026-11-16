@@ -35,6 +35,7 @@ import {
   type ProductBrowseType,
   type BrowseSort,
 } from '@/lib/products-browse-filter'
+import { keepOverseasCityLeafTaggedRows } from '@/lib/overseas-city-leaf-scoring-terms'
 import { destinationTermsFromQuery } from '@/lib/top-nav-resolve'
 import { getScheduleFromProduct } from '@/lib/schedule-from-product'
 import { getFinalCoverImageUrl } from '@/lib/final-image-selection'
@@ -551,6 +552,28 @@ export async function productsBrowseBuildPayload(queryKey: string) {
     const urlGeoForScore = hasOverseasUrlGeo
       ? undefined
       : { region, country, city, regionCountryKeys: browseRegionCountryKeys }
+
+    // REGRESSION-FREEZE[yokohama-menu-city-terms]: 제목 terms가 도시 태그 결과를 0으로 비우면 terms 제거 — manifest
+    if (
+      hasOverseasUrlGeo &&
+      (city ?? '').trim() &&
+      scoringDestinationTerms.length > 0 &&
+      filteredRows.length > 0
+    ) {
+      const textMatched = scoreAndFilterProducts(filteredRows, {
+        type: browseTypeForScore,
+        destinationTerms: scoringDestinationTerms,
+        budgetPerPersonMax: null,
+        sort: 'popular',
+        urlGeo: undefined,
+      })
+      scoringDestinationTerms = keepOverseasCityLeafTaggedRows({
+        city,
+        leafTerms: scoringDestinationTerms,
+        taggedCount: filteredRows.length,
+        textMatchCount: textMatched.length,
+      })
+    }
 
     // REGRESSION-FREEZE[card-min-price-beyond-row-cap]: 목록·메가메뉴 카드 최저가는 미래 출발 전체 집계 — manifest
     const futureMinById = await fetchCardFutureMinAdultPriceByProductIds(

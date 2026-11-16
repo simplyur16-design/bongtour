@@ -29990,6 +29990,58 @@
       ]
     },
     {
+      "id": "yokohama-menu-city-terms",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "요코하마 메뉴: 도시 태그로 잡힌 상품을 제목 terms가 0건으로 지우지 않고, 태그 없는 서버 geo 결과도 화면에서 비우지 않음",
+      "checks": [
+        {
+          "file": "lib/overseas-city-leaf-scoring-terms.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[yokohama-menu-city-terms]",
+            "export function keepOverseasCityLeafTaggedRows",
+            "input.textMatchCount === 0"
+          ]
+        },
+        {
+          "file": "lib/overseas-city-leaf-scoring-terms.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[yokohama-menu-city-terms]",
+            "city: 'yokohama'",
+            "textMatchCount: 0"
+          ]
+        },
+        {
+          "file": "lib/products-browse-build-payload.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[yokohama-menu-city-terms]",
+            "keepOverseasCityLeafTaggedRows({"
+          ]
+        },
+        {
+          "file": "lib/overseas-hub-client-catalog-filter.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[yokohama-menu-city-terms]",
+            "if (!poolHasGeoTags) return pool",
+            "if (!groupHasGeoTags) return byMenuGroup"
+          ]
+        },
+        {
+          "file": "lib/overseas-hub-client-catalog-filter.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[yokohama-menu-city-terms]",
+            "menuGroup=kanto&city=yokohama"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/overseas-city-leaf-scoring-terms.test.ts",
+        "lib/overseas-hub-client-catalog-filter.test.ts"
+      ]
+    },
+    {
       "id": "process13-browse-fixes",
       "tier": [
         "prebuild",
