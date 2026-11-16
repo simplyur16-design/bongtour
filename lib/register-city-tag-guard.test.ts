@@ -3,6 +3,7 @@ import { clusterCityKeysForNode } from '@/lib/cluster-city-expansions'
 import {
   buildRegisterCityVisitHaystackFromSchedule,
   haystackCityKeyHasVisitEvidence,
+  sanitizeCityVisitText,
 } from '@/lib/register-city-tag-guard'
 
 const LEGIT = [
@@ -56,6 +57,28 @@ describe('register city tag visit guard', () => {
     expect(haystackCityKeyHasVisitEvidence(['교토'], visit ?? '')).toBe(false)
     expect(haystackCityKeyHasVisitEvidence(['벳부'], visit ?? '')).toBe(true)
     expect(haystackCityKeyHasVisitEvidence(['리마'], visit ?? '')).toBe(true)
+  })
+
+  // REGRESSION-FREEZE[register-city-tag-visit-guard]: 공항·경유는 토막만 지우고 같은 줄 방문지는 유지 — manifest
+  it('공항·경유 토막만 지우고 같은 줄의 방문지는 남긴다', () => {
+    const visit = buildRegisterCityVisitHaystackFromSchedule([
+      { title: '인천 - 프라하', routeText: '인천국제공항 출발 - 프라하 도착', description: null },
+      { title: '바스토우 경유 · 라스베이거스', routeText: null, description: null },
+      { title: '부다페스트', routeText: null, description: '부다페스트 시내. 헝가리 공항 이동' },
+      { title: '도하 경유', routeText: '도하 공항', description: null },
+    ])
+    expect(haystackCityKeyHasVisitEvidence(['프라하'], visit ?? '')).toBe(true)
+    expect(haystackCityKeyHasVisitEvidence(['라스베이거스'], visit ?? '')).toBe(true)
+    expect(haystackCityKeyHasVisitEvidence(['부다페스트'], visit ?? '')).toBe(true)
+    expect(haystackCityKeyHasVisitEvidence(['도하'], visit ?? '')).toBe(false)
+    expect(sanitizeCityVisitText('#고베공항 #교토 일주')).toContain('교토')
+  })
+
+  it('상해 일정의 「남경」(남경로 약칭)·호치민 생가는 근거가 아니다', () => {
+    expect(haystackCityKeyHasVisitEvidence(['남경'], sanitizeCityVisitText('상해 - 우캉 - 남경 - 외탄'))).toBe(false)
+    expect(haystackCityKeyHasVisitEvidence(['남경'], sanitizeCityVisitText('예원 · 남경'))).toBe(false)
+    expect(haystackCityKeyHasVisitEvidence(['남경'], sanitizeCityVisitText('남경 4일\n인천 - 난징'))).toBe(true)
+    expect(haystackCityKeyHasVisitEvidence(['호치민'], sanitizeCityVisitText('하노이 호치민생가'))).toBe(false)
   })
 
   it('sichuan 대표 노드의 구성 도시는 본문 매칭이 아니라 노드 구성이다', () => {

@@ -29850,14 +29850,23 @@
             "규슈의 작은 교토",
             "남경로",
             "호치민 관저",
-            "clusterCityKeysForNode('sichuan')"
+            "clusterCityKeysForNode('sichuan')",
+            "공항·경유는 토막만 지우고 같은 줄 방문지는 유지"
           ]
         },
         {
           "file": "lib/sync-product-city-tags.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-city-tag-visit-guard]",
-            "opts.cityVisitHaystack"
+            "opts.cityVisitHaystack",
+            "클러스터 구성 도시도 방문 근거가 있을 때만"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-city-haystack-terms.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-city-tag-visit-guard]",
+            "구성 도시는 자기 표기로만 매칭"
           ]
         },
         {

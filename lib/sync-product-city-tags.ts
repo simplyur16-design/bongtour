@@ -5,7 +5,11 @@
  */
 import type { Prisma } from '@prisma/client'
 import { CAUCASUS_COUNTRY_KEY_SET, detectCaucasusPackageFromHaystack } from '@/lib/caucasus-package-detect'
-import { clusterCityKeysForNode, isClusterExpansionNode } from '@/lib/cluster-city-expansions'
+import {
+  CLUSTER_CITY_EXPANSIONS,
+  clusterCityKeysForNode,
+  isClusterExpansionNode,
+} from '@/lib/cluster-city-expansions'
 import { filterCityKeysToCoherentMegaMenuGroup } from '@/lib/mega-menu-city-group-coherence'
 import { sanitizeCityVisitText } from '@/lib/register-city-tag-guard'
 import {
@@ -26,6 +30,13 @@ export type SyncProductCityTagsOpts = {
   cityVisitHaystack?: string | null
   /** ProductCountryTag·다국가 plan — cityTag는 이 countryKey 집합에 속한 도시만 */
   allowedCountryKeys?: readonly string[]
+}
+
+function clusterMemberLabelsFor(node: string, cityKey: string): string[] {
+  return (CLUSTER_CITY_EXPANSIONS[node] ?? [])
+    .filter((r) => r.cityKey === cityKey)
+    .map((r) => r.koreanLabel.trim())
+    .filter(Boolean)
 }
 
 function clusterNodeKeyFromGeo(geo: ProductLocationKeyPrismaFields): string | null {
@@ -122,7 +133,23 @@ export async function resolveProductCityKeysForTags(
 
   const clusterNode = clusterNodeKeyFromGeo(geo)
   if (clusterNode) {
-    candidates.push(...clusterCityKeysForNode(clusterNode))
+    // REGRESSION-FREEZE[register-city-tag-visit-guard]: 클러스터 구성 도시도 방문 근거가 있을 때만 — manifest
+    const visitText = sanitizeCityVisitText(
+      [opts?.title, opts?.primaryDestination, opts?.destinationRaw, opts?.cityVisitHaystack]
+        .filter((x): x is string => Boolean(x && String(x).trim()))
+        .join('\n'),
+    )
+    // 노드 공용 토큰(「백두산」「동북3성」 등)은 구성 도시 전부에 걸리므로 구성 도시 자체 표기만 근거로 본다.
+    const primaryCity = geo.cityKey?.trim() || null
+    const members = clusterCityKeysForNode(clusterNode)
+    const kept = opts
+      ? members.filter(
+          (k) =>
+            k === primaryCity ||
+            clusterMemberLabelsFor(clusterNode, k).some((t) => t.length >= 2 && visitText.includes(t)),
+        )
+      : members
+    candidates.push(...kept)
   }
 
   const single = await resolveSingleMegaMenuCityKey(db, geo)

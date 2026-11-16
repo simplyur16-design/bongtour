@@ -4,6 +4,7 @@
 import { MEGA_MENU_TAB_DEFINITIONS } from '@/lib/mega-menu-regions.data'
 import { resolveBrowseCityKeysForFilter } from '@/lib/browse-country-url-resolve'
 import { citySlugFromTermsAndLabel } from '@/lib/location-url-slugs'
+import { CLUSTER_CITY_EXPANSIONS } from '@/lib/cluster-city-expansions'
 
 /** cityKey → 도시 전용 매칭 토큰 (공통 토큰 제거 후) */
 export type MegaMenuCityHaystackIndex = {
@@ -20,9 +21,18 @@ function collectRawCityTermIndex(): Map<string, Set<string>> {
         const slug = citySlugFromTermsAndLabel(leaf.label, leaf.terms)
         const resolved = resolveBrowseCityKeysForFilter(slug)
         const terms = [...new Set([leaf.label, ...leaf.terms].map((t) => t.trim()).filter(Boolean))]
+        // REGRESSION-FREEZE[register-city-tag-visit-guard]: 클러스터 leaf(장백산→백두산·장춘 등) 공용 토큰을
+        // 구성 도시 전부에 붙이지 않는다 — 구성 도시는 자기 표기로만 매칭. — manifest
+        const clusterRows = resolved.length > 1 ? CLUSTER_CITY_EXPANSIONS[slug] : undefined
         for (const ck of resolved) {
           const set = byCityKey.get(ck) ?? new Set<string>()
-          for (const t of terms) set.add(t)
+          const own =
+            clusterRows && ck !== slug
+              ? clusterRows
+                  .filter((r) => r.cityKey === ck)
+                  .flatMap((r) => (r.koreanLabel.startsWith(leaf.label) ? [r.koreanLabel, leaf.label] : [r.koreanLabel]))
+              : null
+          for (const t of own ?? terms) set.add(t)
           byCityKey.set(ck, set)
         }
       }
