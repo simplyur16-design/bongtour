@@ -29682,7 +29682,24 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-auto-photo-register-schedule]",
             "needs: register-pre-photo-self-heal",
-            "register-auto-photo-register?scheduled=1&limit=50"
+            "register-auto-photo-register?scheduled=1&limit=50",
+            "workflow_dispatch:"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-auto-photo-register-schedule]",
+            "runAutoPhotoRegisterJob",
+            "switches_off",
+            "auto-photo-done"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "kind: 'auto-photo-done'",
+            "fillFailByReason"
           ]
         }
       ]

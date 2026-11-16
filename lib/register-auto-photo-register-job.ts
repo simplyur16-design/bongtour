@@ -97,6 +97,8 @@ export type AutoPhotoRegisterRunResult = {
   registered: number
   held: number
   heldByReason: Record<string, number>
+  /** process-images 가 칸을 못 채운 사유(검색 0·관문 탈락·상한 등)별 건수 */
+  fillFailByReason: Record<string, number>
   /** 등록 전 사진 게이트가 막아 자가 힐로 교체한 칸 수 / 못 고쳐 예외 목록에 오른 칸 수 */
   healed: number
   photoExceptions: number
@@ -123,6 +125,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     registered: 0,
     held: 0,
     heldByReason: {},
+    fillFailByReason: {},
     healed: 0,
     photoExceptions: 0,
     nightly: null,
@@ -162,8 +165,24 @@ export async function runAutoPhotoRegisterJob(opts?: {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
             body: JSON.stringify({ productId: id, ...autoPhotoFillRequest(hasMainPhoto) }),
           })
-          const j = (await res.json().catch(() => ({}))) as { success?: boolean; filled?: number; reason?: string }
+          const j = (await res.json().catch(() => ({}))) as {
+            success?: boolean
+            filled?: number
+            reason?: string
+            exceptions?: Array<{ reason?: string }>
+          }
           const filledCount = typeof j.filled === 'number' && Number.isFinite(j.filled) ? Math.max(0, Math.floor(j.filled)) : 0
+          const exceptionReasons = Array.isArray(j.exceptions)
+            ? j.exceptions.map((e) => String(e?.reason ?? '').trim()).filter(Boolean)
+            : []
+          if (exceptionReasons.length > 0) {
+            for (const reason of exceptionReasons) {
+              result.fillFailByReason[reason] = (result.fillFailByReason[reason] ?? 0) + 1
+            }
+          } else if (!(res.ok && j.success === true && filledCount > 0)) {
+            const reason = j.reason || (res.ok ? 'FillRejected' : `Http${res.status}`)
+            result.fillFailByReason[reason] = (result.fillFailByReason[reason] ?? 0) + 1
+          }
           // REGRESSION-FREEZE[photo-fill-route-sight-1114]: 응답의 실제 채움 수만 성공으로 센다 — manifest
           if (res.ok && j.success === true && filledCount > 0) {
             logAutoPhotoAttempt({
@@ -406,5 +425,19 @@ export async function runAutoPhotoRegisterJob(opts?: {
       })
     }
   }
+  // 시도 한 줄(auto-photo-attempt)과 같이 stdout 에 남긴다. HTTP 202 ACK 는 이 요약보다 먼저 돌아간다.
+  console.log(
+    JSON.stringify({
+      kind: 'auto-photo-done',
+      scanned: result.scanned,
+      filled: result.filled,
+      fillFailed: result.fillFailed,
+      held: result.held,
+      heldByReason: result.heldByReason,
+      fillFailByReason: result.fillFailByReason,
+      healed: result.healed,
+      photoExceptions: result.photoExceptions,
+    }),
+  )
   return result
 }
