@@ -1,7 +1,9 @@
 /**
  * 등록 confirm — 일정에서 geo·도시 태그 매칭용 텍스트 (메가메뉴 SSOT).
- * title만 쓰면 routeText·description의 도시명이 ProductCityTag에 안 잡힌다.
+ * 국가 판정은 title·description·routeText. 도시 태그 추가는 제목·장소만 (`buildRegisterCityVisitHaystackFromSchedule`).
  */
+import { buildRegisterCityVisitHaystackFromSchedule as buildVisit } from '@/lib/register-city-tag-guard'
+
 const REGISTER_GEO_SCHEDULE_HAYSTACK_MAX = 6000
 
 export type RegisterGeoScheduleRow = {
@@ -9,6 +11,8 @@ export type RegisterGeoScheduleRow = {
   description?: string | null
   routeText?: string | null
 }
+
+export { buildVisit as buildRegisterCityVisitHaystackFromSchedule }
 
 export function buildRegisterGeoHaystackFromSchedule(rows: RegisterGeoScheduleRow[]): string | null {
   const parts: string[] = []

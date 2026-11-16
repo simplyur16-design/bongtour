@@ -3,7 +3,7 @@
  * 클라이언트 안전(Prisma 없음). DB 카드 키 조회는 `browse-master-geo.ts`.
  */
 import { citySlugFromTermsAndLabel, countrySlugFromLabel, koreanCountryLabelFromBrowseSlug } from '@/lib/location-url-slugs'
-import { expandBrowseCityFilterKeys } from '@/lib/cluster-city-expansions'
+import { expandBrowseCityFilterKeys, menuCityKeysOnly } from '@/lib/cluster-city-expansions'
 import { OVERSEAS_LOCATION_TREE_DATA } from '@/lib/overseas-location-tree.data'
 import type { OverseasCountryNode, OverseasLeafNode } from '@/lib/overseas-location-tree.types'
 import { collectLeafTerms } from '@/lib/unified-location-tree'
@@ -1340,5 +1340,5 @@ export function resolveBrowseCityKeysForFilter(cityParam: string | null | undefi
   if (ct && /^[a-z0-9-]+$/.test(ct)) keys.add(ct)
   // REGRESSION-FREEZE[mega-menu-product-alignment]: tree leaf aliases → ProductCityTag keys — manifest
   for (const k of resolveBrowseCityKeysFromLocationTree(cityParam)) keys.add(k)
-  return expandBrowseCityFilterKeys(keys)
+  return menuCityKeysOnly(cityParam, expandBrowseCityFilterKeys(keys))
 }

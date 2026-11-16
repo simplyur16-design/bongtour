@@ -18,6 +18,7 @@ import {
   regionClusterHealNudge,
   isPoisonedRegionClusterDestination,
 } from '@/lib/register-geo-region-clusters'
+import { buildRegisterCityVisitHaystackFromSchedule } from '@/lib/register-geo-schedule-haystack'
 import { registerGeoTagSyncOpts, resolveMegaMenuGeoForRegister } from '@/lib/register-resolve-mega-menu-geo'
 import { syncProductGeoTagsForRegister } from '@/lib/sync-product-geo-tags'
 import type { ProductLocationKeyPrismaFields } from '@/lib/product-location-key-match'
@@ -378,7 +379,11 @@ export async function rematerializePendingProductCountryGeo(
       db,
       args.productId,
       geo,
-      registerGeoTagSyncOpts(geoInput, String(geoInput.bodyText ?? haystack ?? '') || null),
+      registerGeoTagSyncOpts(
+        geoInput,
+        String(geoInput.bodyText ?? haystack ?? '') || null,
+        buildRegisterCityVisitHaystackFromSchedule(args.rows),
+      ),
     )
   }
 

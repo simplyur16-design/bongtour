@@ -169,14 +169,50 @@ export function expandBrowseCityFilterKeys(slugsOrKeys: Iterable<string>): strin
     if (!k) continue
     out.add(k)
     const clusterFromCity = CITY_KEY_TO_CLUSTER_NODE[k]
-    if (clusterFromCity) {
-      out.add(clusterFromCity)
-      for (const row of CLUSTER_CITY_EXPANSIONS[clusterFromCity] ?? []) out.add(row.cityKey)
-    }
+    if (clusterFromCity) out.add(clusterFromCity)
     const clusterRows = CLUSTER_CITY_EXPANSIONS[k]
     if (clusterRows) {
       for (const row of clusterRows) out.add(row.cityKey)
     }
   }
   return [...out]
+}
+
+/** 메뉴 `city`가 클러스터 구성 도시(또는 그 한글 이름)이면 그 도시만. 노드 슬러그는 null. */
+export function clusterMemberCityKeyForBrowseAlias(param: string | null | undefined): string | null {
+  const raw = (param ?? '').trim().toLowerCase()
+  if (!raw || CLUSTER_CITY_EXPANSIONS[raw]) return null
+  for (const rows of Object.values(CLUSTER_CITY_EXPANSIONS)) {
+    for (const row of rows) {
+      if (row.cityKey === raw || row.koreanLabel.trim().toLowerCase() === raw) return row.cityKey
+    }
+  }
+  return null
+}
+
+/**
+ * 메뉴 leaf는 그 도시만. 노드 슬러그 URL은 구성 도시를 유지한다.
+ * 예외: 도야·후라노·센다이 leaf는 기존 freeze 테스트(japan-mega-menu-browse-city-keys)대로 노드·구성 도시를 함께 본다.
+ * 그 밖의 클러스터(dalian-harbin·phuket-krabi-khaolak·changbai·sichuan·yokohama-kamakura 등) 노드 키를 leaf에 넣으면
+ * countryTag.nodeKey가 노드인 상품이 구성 도시 leaf에 다시 뜬다(하얼빈·끄라비·심양·중경·요코하마 오염 복귀).
+ */
+const LEGACY_LEAF_KEEPS_CLUSTER = new Set(['toya-jozankei', 'furano-biei', 'akita-sendai'])
+
+// REGRESSION-FREEZE[menu-city-no-sibling-expand]: 형제 도시·노드 키 확장 금지(도야·후라노·센다이만 예외) — manifest
+export function menuCityKeysOnly(cityParam: string | null | undefined, expanded: readonly string[]): string[] {
+  const member = clusterMemberCityKeyForBrowseAlias(cityParam)
+  if (!member) return [...expanded]
+  const node = CITY_KEY_TO_CLUSTER_NODE[member]
+  if (!node || !LEGACY_LEAF_KEEPS_CLUSTER.has(node)) return [member]
+  const keep = new Set<string>([member, node])
+  for (const row of CLUSTER_CITY_EXPANSIONS[node] ?? []) keep.add(row.cityKey)
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const raw of [member, node, ...expanded]) {
+    const k = raw.trim().toLowerCase()
+    if (!k || seen.has(k) || !keep.has(k)) continue
+    seen.add(k)
+    out.push(k)
+  }
+  return out
 }
