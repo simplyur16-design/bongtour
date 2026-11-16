@@ -370,11 +370,13 @@
           "file": "app/admin/marketing/components/CurationEventsAdminClient.tsx",
           "mustInclude": [
             "REGRESSION-FREEZE[curation-events-tab-copy]",
-            "큐레이션의 이벤트 후보 탭"
+            "큐레이션의 이벤트 후보 탭",
+            "매주 월요일 03:00(KST) 수집 뒤에 이 탭에서 다시 확인하세요."
           ],
           "mustNotInclude": [
             "임시 페이지 — PR 가-7-β에서 본체 통합 예정",
-            "가-7-β"
+            "가-7-β",
+            "콘텐츠 자동화에서 [전체 이벤트 갱신]"
           ]
         }
       ]
