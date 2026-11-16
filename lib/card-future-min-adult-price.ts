@@ -7,6 +7,7 @@
 import { Prisma } from '@prisma/client'
 import { isDepartureRowPublicBookable } from '@/lib/departure-seat-availability'
 import { prisma } from '@/lib/prisma'
+import { getPublicBookableMinDate } from '@/lib/public-bookable-date'
 
 export type CardFutureDeparturePriceRow = {
   adultPrice: number | null
@@ -62,6 +63,9 @@ export async function fetchCardFutureMinAdultPriceByProductIds(
   nowFloor: Date,
 ): Promise<Map<string, number>> {
   const ids = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))]
+  // 상세·달력 공개 예약 하한(서울 오늘+2일)보다 이른 출발은 카드 최저가에 넣지 않는다
+  const publicMin = getPublicBookableMinDate()
+  const floor = nowFloor.getTime() > publicMin.getTime() ? nowFloor : publicMin
   const out = new Map<string, number>()
   for (let i = 0; i < ids.length; i += CARD_MIN_ID_CHUNK) {
     const chunk = ids.slice(i, i + CARD_MIN_ID_CHUNK)
@@ -70,7 +74,7 @@ export async function fetchCardFutureMinAdultPriceByProductIds(
              MIN(pd."adultPrice") AS "minAdult"
       FROM "ProductDeparture" pd
       WHERE pd."productId" IN (${Prisma.join(chunk)})
-        AND pd."departureDate" >= ${nowFloor}
+        AND pd."departureDate" >= ${floor}
         AND pd."adultPrice" > 0
         AND pd."isBookable" IS DISTINCT FROM false
         AND NOT (COALESCE(pd."statusRaw", '') ~* '예약[[:space:]]*마감|예약마감|마감|매진|sold[[:space:]]*out|불가|취소')

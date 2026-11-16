@@ -736,8 +736,8 @@ export async function productsBrowseBuildPayload(queryKey: string) {
       const realBookableMin = isHubFullCatalog ? null : realBookableMinFor(pRaw.id)
       const cardFutureMin = pRaw.cardFutureMinAdultPrice
       const cardPriceKrw =
-        (cardFutureMin != null && cardFutureMin > 0 ? cardFutureMin : null) ??
         realBookableMin ??
+        (cardFutureMin != null && cardFutureMin > 0 ? cardFutureMin : null) ??
         seatAwareMin ??
         (isHubFullCatalog && pRaw.minBookableAdultPrice != null ? pRaw.minBookableAdultPrice : null) ??
         computeEffectivePricePerPersonKrwFromRow(
