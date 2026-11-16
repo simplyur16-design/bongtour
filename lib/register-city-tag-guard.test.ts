@@ -99,6 +99,22 @@ describe('register city tag visit guard', () => {
     expect(haystackCityKeyHasVisitEvidence(['계림'], sanitizeCityVisitText('계림 - 이강 유람'))).toBe(true)
   })
 
+  it('「A-B 고속열차」 캐션은 구간 전체, 「호텔 닛코 샤먼」은 호텔명만 지운다', () => {
+    const visit = sanitizeCityVisitText('고속열차 이동 - 중경 고속열차 - 광주-계림 고속열차 내부 - 구랑위\n숙소는 호텔 닛코 샤먼 (샤먼 시내)')
+    expect(haystackCityKeyHasVisitEvidence(['광주', 'guangzhou'], visit)).toBe(false)
+    expect(haystackCityKeyHasVisitEvidence(['닛코', 'nikko'], visit)).toBe(false)
+    expect(haystackCityKeyHasVisitEvidence(['샤먼'], visit)).toBe(true)
+    expect(haystackCityKeyHasVisitEvidence(['닛코'], sanitizeCityVisitText('도쿄&닛코 국립공원 4일\n닛코를 둘러봅니다'))).toBe(true)
+  })
+
+  it('샤먼 leaf 검색어에 천저우·망산(호남)이 없다', async () => {
+    const { MEGA_MENU_TAB_DEFINITIONS } = await import('@/lib/mega-menu-regions.data')
+    const leaf = MEGA_MENU_TAB_DEFINITIONS.flatMap((t) => t.groups).flatMap((g) => g.cities).find((c) => c.label === '샤먼')
+    expect(leaf?.terms).toContain('샤먼')
+    expect(leaf?.terms).not.toContain('천저우')
+    expect(leaf?.terms).not.toContain('망산')
+  })
+
   it('상해 일정의 「남경」(남경로 약칭)·호치민 생가는 근거가 아니다', () => {
     expect(haystackCityKeyHasVisitEvidence(['남경'], sanitizeCityVisitText('상해 - 우캉 - 남경 - 외탄'))).toBe(false)
     expect(haystackCityKeyHasVisitEvidence(['남경'], sanitizeCityVisitText('예원 · 남경'))).toBe(false)
