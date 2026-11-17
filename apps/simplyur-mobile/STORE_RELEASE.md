@@ -4,6 +4,8 @@ Production API host is **`https://bongtour.com`** (not `bongtong.com`).
 
 Bundle / package: **`com.bongtour.simplyur`**
 
+2026-11-17: iOS 1.0.1 (30) uploaded to App Store Connect. Train 1.0.0 is closed; the next iOS version must be above 1.0.1.
+
 ## A. One-time accounts (operator)
 
 1. Expo account → https://expo.dev/signup  
