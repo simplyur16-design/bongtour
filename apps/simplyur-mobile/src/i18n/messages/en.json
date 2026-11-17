@@ -18,7 +18,9 @@
     "signIn": "Sign in",
     "myEsim": "My eSIM",
     "myTrip": "My Trip",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "tabPlans": "Plans",
+    "tabInstall": "Install"
   },
   "tabs": {
     "home": "Home",

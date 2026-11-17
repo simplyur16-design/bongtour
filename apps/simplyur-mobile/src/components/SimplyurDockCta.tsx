@@ -1,9 +1,10 @@
 /**
- * Shared purchase chrome — docked coral CTA + back row (product + checkout).
+ * Shared purchase chrome — docked primary (cobalt) CTA + back row (product + checkout).
  * REGRESSION-FREEZE[simplyur-purchase-dock-cta]: same bottom dock after plan select — manifest
  */
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { SY } from '@/src/constants/theme';
 import { fp } from '@/src/constants/typography';
 import {
   SIMPLYUR_DOCK_CTA_HEIGHT,
@@ -17,7 +18,7 @@ export {
   simplyurScreenPadTop,
 } from '@/src/lib/dock-cta-layout';
 
-const CORAL = '#FF6B4A';
+const PRIMARY = SY.primary;
 
 export function SimplyurBackRow({
   label,
@@ -77,25 +78,25 @@ export function SimplyurDockCta({
 
 const styles = StyleSheet.create({
   backRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  backArrow: { fontSize: 16, color: CORAL },
-  backText: { fontSize: 13, ...fp('600'), color: CORAL },
+  backArrow: { fontSize: 16, color: PRIMARY },
+  backText: { fontSize: 13, ...fp('600'), color: PRIMARY },
   dock: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E1DFD9',
-    backgroundColor: '#FFF4EF',
+    borderTopColor: SY.line,
+    backgroundColor: SY.surface,
     paddingHorizontal: SIMPLYUR_DOCK_PAD_H,
     paddingTop: 10,
     gap: 8,
   },
   btn: {
     height: SIMPLYUR_DOCK_CTA_HEIGHT,
-    borderRadius: 16,
-    backgroundColor: CORAL,
+    borderRadius: 14,
+    backgroundColor: PRIMARY,
     alignItems: 'center',
     justifyContent: 'center',
   },
   btnDim: { opacity: 0.7 },
-  label: { color: '#fff', fontSize: 16, ...fp('600') },
+  label: { color: '#fff', fontSize: 16.5, ...fp('700') },
   hintSlot: { minHeight: SIMPLYUR_DOCK_HINT_SLOT, justifyContent: 'center' },
-  hint: { fontSize: 12, lineHeight: 18, ...fp('400'), color: '#98A0AB', textAlign: 'center' },
+  hint: { fontSize: 12, lineHeight: 18, ...fp('400'), color: SY.ink3, textAlign: 'center' },
 });

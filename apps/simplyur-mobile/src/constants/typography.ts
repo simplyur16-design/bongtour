@@ -1,10 +1,13 @@
-/** Poppins — simplyur brand typography (sync with web --font-simplyur / opening screen spec). */
-export const POPPINS = {
-  light: 'Poppins_300Light',
-  regular: 'Poppins_400Regular',
-  semiBold: 'Poppins_600SemiBold',
-  bold: 'Poppins_700Bold',
-  extraBold: 'Poppins_800ExtraBold',
+/**
+ * Source Sans 3 — Simplyur eSIM 1.0.2 typography (A안 eSIM family; mockup AFTER_CSS).
+ * Poppins was the 1.0.x face; fp() keeps the same weight keys so call sites do not change.
+ * '800' maps to Bold: the new design tops out at 700 for headings.
+ */
+export const SOURCE_SANS = {
+  light: 'SourceSans3_300Light',
+  regular: 'SourceSans3_400Regular',
+  semiBold: 'SourceSans3_600SemiBold',
+  bold: 'SourceSans3_700Bold',
 } as const;
 
 export type PoppinsWeight = '300' | '400' | '600' | '700' | '800';
@@ -15,11 +18,11 @@ export type PoppinsWeight = '300' | '400' | '600' | '700' | '800';
  */
 export function fp(weight: PoppinsWeight = '400') {
   const map: Record<PoppinsWeight, string> = {
-    '300': POPPINS.light,
-    '400': POPPINS.regular,
-    '600': POPPINS.semiBold,
-    '700': POPPINS.bold,
-    '800': POPPINS.extraBold,
+    '300': SOURCE_SANS.light,
+    '400': SOURCE_SANS.regular,
+    '600': SOURCE_SANS.semiBold,
+    '700': SOURCE_SANS.bold,
+    '800': SOURCE_SANS.bold,
   };
   return { fontFamily: map[weight] } as const;
 }

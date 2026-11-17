@@ -828,7 +828,7 @@ const styles = StyleSheet.create({
     zIndex: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,247,242,0.72)',
+    backgroundColor: 'rgba(244,246,242,0.72)',
     gap: 12,
   },
   loadingHint: { fontSize: 13, color: LOGIN_1B.muted, ...fp('400') },

@@ -18,7 +18,9 @@
     "signIn": "Đăng nhập",
     "myEsim": "eSIM của tôi",
     "signOut": "Đăng xuất",
-    "myTrip": "Chuyến đi"
+    "myTrip": "Chuyến đi",
+    "tabPlans": "Gói cước",
+    "tabInstall": "Cài đặt"
   },
   "tabs": {
     "home": "Trang chủ",

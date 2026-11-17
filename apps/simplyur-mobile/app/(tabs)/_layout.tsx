@@ -1,8 +1,8 @@
-import { SymbolView } from 'expo-symbols';
 import { Tabs, usePathname } from 'expo-router';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
+import { SyIcon } from '@/src/components/ui/SyIcon';
+import { SY } from '@/src/constants/theme';
+import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
 
 /**
@@ -11,9 +11,9 @@ import { useI18n } from '@/src/i18n/I18nContext';
  * REGRESSION-FREEZE[simplyur-mobile-tabs-browse-keep]: devices/settings/legal keep tab bar — manifest
  * REGRESSION-FREEZE[simplyur-purchase-dock-cta]: product hides tab bar — manifest
  * REGRESSION-FREEZE[simplyur-esim-app-no-trip-tab]: My Trip hidden from eSIM tab bar — manifest
+ * 1.0.2: cobalt active tint + line icons (Home · Plans · Install · My eSIM) from the redesign mockups.
  */
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const { t } = useI18n();
   const pathname = usePathname();
   const hideTabBar = pathname.includes('/product/');
@@ -21,40 +21,37 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#FF6B4A',
-        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
-        headerStyle: { backgroundColor: Colors[colorScheme ?? 'light'].background },
-        headerTintColor: Colors[colorScheme ?? 'light'].text,
-        tabBarStyle: hideTabBar ? { display: 'none' } : undefined,
+        tabBarActiveTintColor: SY.primary,
+        tabBarInactiveTintColor: SY.tabInactive,
+        tabBarLabelStyle: { fontSize: 10.5, ...fp('600') },
+        headerStyle: { backgroundColor: SY.bg },
+        headerTintColor: SY.ink,
+        tabBarStyle: hideTabBar
+          ? { display: 'none' }
+          : { backgroundColor: 'rgba(255,255,255,0.96)', borderTopColor: SY.line },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           headerShown: false,
           title: t('nav.home'),
-          tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'house.fill', android: 'home', web: 'home' }} tintColor={color} size={24} />
-          ),
+          tabBarIcon: ({ color }) => <SyIcon name="home" size={24} color={String(color)} />,
         }}
       />
       <Tabs.Screen
         name="plans"
         options={{
           headerShown: false,
-          title: t('nav.findPlan'),
-          tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'simcard.fill', android: 'sim_card', web: 'sim_card' }} tintColor={color} size={24} />
-          ),
+          title: t('nav.tabPlans'),
+          tabBarIcon: ({ color }) => <SyIcon name="sim" size={24} color={String(color)} />,
         }}
       />
       <Tabs.Screen
         name="guide"
         options={{
           headerShown: false,
-          title: t('nav.guide'),
-          tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'book.fill', android: 'menu_book', web: 'menu_book' }} tintColor={color} size={24} />
-          ),
+          title: t('nav.tabInstall'),
+          tabBarIcon: ({ color }) => <SyIcon name="book" size={24} color={String(color)} />,
         }}
       />
       <Tabs.Screen
@@ -71,9 +68,7 @@ export default function TabLayout() {
         options={{
           headerShown: false,
           title: t('nav.myEsim'),
-          tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'simcard.2.fill', android: 'sim_card', web: 'sim_card' }} tintColor={color} size={24} />
-          ),
+          tabBarIcon: ({ color }) => <SyIcon name="signal" size={24} color={String(color)} />,
         }}
       />
       {/* Nested browse routes — keep tab bar, hide from tab icons */}

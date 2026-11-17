@@ -1,13 +1,15 @@
-/** design_handoff_login_1b — centered sign-in screen tokens */
+/** design_handoff_login_1b — 1.0.2 tokens from theme.ts. Key `coral` = primary (cobalt). */
+import { SY, SY_RADIUS } from './theme';
+
 export const LOGIN_1B = {
-  bg: '#FFF4EF',
-  navy: '#12233F',
-  coral: '#FF6B4A',
-  muted: '#6B7686',
-  faint: '#98A0AB',
-  border: '#E1DFD9',
-  buttonHeight: 56,
-  buttonRadius: 16,
+  bg: SY.bg,
+  navy: SY.ink,
+  coral: SY.primary,
+  muted: SY.ink2,
+  faint: SY.ink3,
+  border: SY.line,
+  buttonHeight: 54,
+  buttonRadius: SY_RADIUS.button,
   buttonGap: 12,
   paddingH: 28,
   paddingTop: 24,

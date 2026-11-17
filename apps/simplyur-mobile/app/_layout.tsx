@@ -1,11 +1,10 @@
 import {
-  Poppins_300Light,
-  Poppins_400Regular,
-  Poppins_600SemiBold,
-  Poppins_700Bold,
-  Poppins_800ExtraBold,
+  SourceSans3_300Light,
+  SourceSans3_400Regular,
+  SourceSans3_600SemiBold,
+  SourceSans3_700Bold,
   useFonts,
-} from '@expo-google-fonts/poppins';
+} from '@expo-google-fonts/source-sans-3';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -33,11 +32,11 @@ SplashScreen.preventAutoHideAsync();
  */
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    Poppins_300Light,
-    Poppins_400Regular,
-    Poppins_600SemiBold,
-    Poppins_700Bold,
-    Poppins_800ExtraBold,
+    // 1.0.2 brand face (A안 eSIM family). fp() in src/constants/typography.ts maps weights.
+    SourceSans3_300Light,
+    SourceSans3_400Regular,
+    SourceSans3_600SemiBold,
+    SourceSans3_700Bold,
   });
 
   useEffect(() => {

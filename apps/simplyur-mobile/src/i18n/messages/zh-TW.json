@@ -18,7 +18,9 @@
     "signIn": "登入",
     "myEsim": "我的 eSIM",
     "signOut": "登出",
-    "myTrip": "我的行程"
+    "myTrip": "我的行程",
+    "tabPlans": "方案",
+    "tabInstall": "安裝"
   },
   "tabs": {
     "home": "首頁",

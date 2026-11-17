@@ -18,7 +18,9 @@
     "signIn": "ログイン",
     "myEsim": "マイeSIM",
     "signOut": "ログアウト",
-    "myTrip": "マイトリップ"
+    "myTrip": "マイトリップ",
+    "tabPlans": "プラン",
+    "tabInstall": "設定方法"
   },
   "tabs": {
     "home": "ホーム",

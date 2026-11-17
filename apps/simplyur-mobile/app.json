@@ -81,7 +81,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#FFF4EF"
+          "backgroundColor": "#EEF1EC"
         }
       ],
       "expo-font",
@@ -94,7 +94,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#FF6B4A"
+          "color": "#2A62D4"
         }
       ]
     ],
