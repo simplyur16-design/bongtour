@@ -42,7 +42,26 @@
   "home": {
     "popularPlans": "熱門韓國方案",
     "viewAllPlans": "查看全部方案",
-    "koreaBadge": "韓國 eSIM"
+    "koreaBadge": "韓國 eSIM",
+    "heroTitle": "一落地韓國，\n馬上就能上網",
+    "heroBody": "出發前先安裝。付款後幾分鐘內就會收到 QR 碼。",
+    "daysQuestion": "在韓國待幾天？",
+    "daysMore": "更多",
+    "ctaDays": "查看{N}天方案",
+    "ctaDaysOne": "查看1天方案",
+    "ctaAll": "查看全部方案",
+    "fromPrice": "{price}起",
+    "tileFreeTop": "地圖、ChatGPT",
+    "tileFreeBottom": "不扣流量",
+    "tileRefundTop": "未使用",
+    "tileRefundBottom": "全額退款",
+    "tilePayTop": "美元結帳",
+    "tilePayBottom": "刷卡付款",
+    "deviceTitle": "我的手機支援 eSIM 嗎？",
+    "deviceBody": "多數 iPhone XS 以上、Galaxy S20 以上機型都支援。立即查看",
+    "step1": "付款",
+    "step2": "在家安裝 QR 碼",
+    "step3": "到韓國後開啟"
   },
   "countries": {
     "title": "韓國 eSIM",

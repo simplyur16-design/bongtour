@@ -42,7 +42,26 @@
   "home": {
     "popularPlans": "人気の韓国プラン",
     "viewAllPlans": "すべてのプランを見る",
-    "koreaBadge": "韓国 eSIM"
+    "koreaBadge": "韓国 eSIM",
+    "heroTitle": "韓国に着いたら、\nすぐネット。",
+    "heroBody": "出発前にインストール。お支払い後、数分でQRコードが届きます。",
+    "daysQuestion": "韓国には何日滞在しますか？",
+    "daysMore": "その他",
+    "ctaDays": "{N}日間のプランを見る",
+    "ctaDaysOne": "1日間のプランを見る",
+    "ctaAll": "すべてのプランを見る",
+    "fromPrice": "{price}から",
+    "tileFreeTop": "マップ・ChatGPT",
+    "tileFreeBottom": "データ消費なし",
+    "tileRefundTop": "未使用なら",
+    "tileRefundBottom": "全額返金",
+    "tilePayTop": "米ドルで",
+    "tilePayBottom": "カード決済",
+    "deviceTitle": "このスマホはeSIM対応？",
+    "deviceBody": "iPhone XS以降・Galaxy S20以降のほとんどが対応。今すぐ確認",
+    "step1": "支払う",
+    "step2": "自宅でQRを設定",
+    "step3": "韓国でオン"
   },
   "countries": {
     "title": "韓国 eSIM",

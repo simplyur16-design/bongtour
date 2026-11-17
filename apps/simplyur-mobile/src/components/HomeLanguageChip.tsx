@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
+import { SyIcon } from '@/src/components/ui/SyIcon';
 import { HOME_DESIGN as D } from '@/src/constants/home-design';
 import { LOCALE_SHORT_LABELS } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
@@ -20,6 +21,7 @@ export function HomeLanguageChip() {
       accessibilityRole="button"
       accessibilityLabel={t('language.label')}
       style={styles.chip}>
+      <SyIcon name="globe" size={15} color={D.navy} strokeWidth={1.8} />
       <Text style={styles.text}>{LOCALE_SHORT_LABELS[locale]}</Text>
       <Text style={styles.caret}>▾</Text>
     </Pressable>
@@ -30,14 +32,14 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
     borderWidth: 1,
     borderColor: D.border,
     borderRadius: 999,
     backgroundColor: '#fff',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
   },
-  text: { fontSize: 12, ...fp('700'), color: D.navy, letterSpacing: 0.3 },
+  text: { fontSize: 13, ...fp('600'), color: D.navy, letterSpacing: 0.3 },
   caret: { fontSize: 10, color: D.muted, marginTop: -1 },
 });

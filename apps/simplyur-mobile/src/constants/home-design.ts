@@ -19,12 +19,3 @@ export const HOME_DESIGN = {
   paddingH: SY_SPACE.screenH,
   sectionGap: 16,
 } as const;
-
-export const HOME_WHY_KEYS = ['instant', 'support', 'refund'] as const;
-export type HomeWhyKey = (typeof HOME_WHY_KEYS)[number];
-
-export const HOME_WHY_ICONS: Record<HomeWhyKey, string> = {
-  instant: '⚡',
-  support: '💬',
-  refund: '↺',
-};

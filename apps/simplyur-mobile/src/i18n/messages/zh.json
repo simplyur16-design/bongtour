@@ -42,7 +42,26 @@
   "home": {
     "popularPlans": "热门韩国套餐",
     "viewAllPlans": "查看全部套餐",
-    "koreaBadge": "韩国 eSIM"
+    "koreaBadge": "韩国 eSIM",
+    "heroTitle": "一落地韩国，\n马上就能上网",
+    "heroBody": "出发前先安装。付款后几分钟内即可收到二维码。",
+    "daysQuestion": "在韩国待几天？",
+    "daysMore": "更多",
+    "ctaDays": "查看{N}天套餐",
+    "ctaDaysOne": "查看1天套餐",
+    "ctaAll": "查看全部套餐",
+    "fromPrice": "{price}起",
+    "tileFreeTop": "地图、ChatGPT",
+    "tileFreeBottom": "免流量",
+    "tileRefundTop": "未使用",
+    "tileRefundBottom": "全额退款",
+    "tilePayTop": "美元结算",
+    "tilePayBottom": "刷卡支付",
+    "deviceTitle": "我的手机支持 eSIM 吗？",
+    "deviceBody": "大多数 iPhone XS 及以上、Galaxy S20 及以上机型都支持。立即查看",
+    "step1": "付款",
+    "step2": "在家安装二维码",
+    "step3": "到韩国后开启"
   },
   "countries": {
     "title": "韩国 eSIM",
