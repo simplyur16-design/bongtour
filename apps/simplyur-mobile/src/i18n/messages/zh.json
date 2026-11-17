@@ -144,7 +144,17 @@
     "fullUnlimitedHint": "无每日 GB 额度 · 更适合视频与重度使用（可能有合理使用）",
     "durationChipOne": "1 天",
     "showingPlansSuffixOne": " 天套餐",
-    "noPlansForDaysOne": "暂无 1 天套餐，请尝试其他天数。"
+    "noPlansForDaysOne": "暂无 1 天套餐，请尝试其他天数。",
+    "titleShort": "韩国套餐",
+    "pricesInUsd": "价格以美元计",
+    "localShort": "本地线路",
+    "roamingShort": "漫游线路",
+    "lineLocalNote": "本地线路：韩国运营商数据 · 数据漫游关闭",
+    "lineRoamingNote": "漫游线路：韩国合作网络 · 数据漫游开启",
+    "whichOne": "选哪个？",
+    "whichOneBody": "本地线路直接使用韩国运营商，此 eSIM 的数据漫游请保持关闭。漫游线路通过合作网络连接，请为此 eSIM 开启数据漫游。两种都是一落地即可使用。",
+    "dailyHint": "高速流量每天重置",
+    "firstOrderBanner": "首次下单？优惠会在结账时自动抵扣。"
   },
   "product": {
     "buyNow": "继续",
@@ -178,7 +188,10 @@
     "hotspotLabel": "热点",
     "unusedRefund": "未激活可全额退款",
     "refundLabel": "退款",
-    "refundPolicyLink": "查看退款政策 →"
+    "refundPolicyLink": "查看退款政策 →",
+    "freeAppsShort": "Google 地图、ChatGPT 免流",
+    "hotspotShort": "可开热点*",
+    "unusedRefundShort": "未使用可全额退款"
   },
   "checkout": {
     "title": "确认订单",

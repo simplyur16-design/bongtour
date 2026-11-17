@@ -144,7 +144,17 @@
     "fullUnlimitedHint": "Không hạn mức GB/ngày · phù hợp xem video & dùng nhiều (có thể có fair use)",
     "durationChipOne": "1 ngày",
     "showingPlansSuffixOne": " ngày",
-    "noPlansForDaysOne": "Chưa có gói 1 ngày. Thử độ dài khác."
+    "noPlansForDaysOne": "Chưa có gói 1 ngày. Thử độ dài khác.",
+    "titleShort": "Gói Hàn Quốc",
+    "pricesInUsd": "Giá tính bằng USD",
+    "localShort": "Mạng nội địa",
+    "roamingShort": "Mạng roaming",
+    "lineLocalNote": "Mạng nội địa: dữ liệu nhà mạng Hàn Quốc · Tắt chuyển vùng dữ liệu",
+    "lineRoamingNote": "Mạng roaming: mạng đối tác tại Hàn Quốc · Bật chuyển vùng dữ liệu",
+    "whichOne": "Chọn loại nào?",
+    "whichOneBody": "Mạng nội địa dùng trực tiếp nhà mạng Hàn Quốc nên hãy TẮT chuyển vùng dữ liệu cho eSIM này. Mạng roaming kết nối qua mạng đối tác nên hãy BẬT chuyển vùng dữ liệu cho eSIM này. Cả hai đều dùng được ngay khi bạn hạ cánh.",
+    "dailyHint": "Dữ liệu tốc độ cao được làm mới mỗi ngày",
+    "firstOrderBanner": "Đơn đầu tiên? Ưu đãi được áp dụng khi thanh toán."
   },
   "product": {
     "buyNow": "Tiếp tục",
@@ -178,7 +188,10 @@
     "hotspotLabel": "Hotspot",
     "unusedRefund": "Chưa kích hoạt? Hoàn tiền 100%",
     "refundLabel": "Hoàn tiền",
-    "refundPolicyLink": "Xem chính sách hoàn tiền →"
+    "refundPolicyLink": "Xem chính sách hoàn tiền →",
+    "freeAppsShort": "Google Maps · ChatGPT miễn phí",
+    "hotspotShort": "Phát hotspot*",
+    "unusedRefundShort": "Chưa dùng? Hoàn 100%"
   },
   "checkout": {
     "title": "Thanh toán",

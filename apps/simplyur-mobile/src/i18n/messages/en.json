@@ -144,7 +144,17 @@
     "fullUnlimitedHint": "No daily GB bucket — better for video, hotspot & heavy use (fair use may apply)",
     "durationChipOne": "1 day",
     "showingPlansSuffixOne": " day",
-    "noPlansForDaysOne": "No 1-day plans right now. Try another trip length."
+    "noPlansForDaysOne": "No 1-day plans right now. Try another trip length.",
+    "titleShort": "Korea plans",
+    "pricesInUsd": "Prices in USD",
+    "localShort": "Local line",
+    "roamingShort": "Roaming line",
+    "lineLocalNote": "Local line: Korean carrier data · Data Roaming OFF",
+    "lineRoamingNote": "Roaming line: partner network in Korea · Data Roaming ON",
+    "whichOne": "Which one?",
+    "whichOneBody": "Local line uses a Korean carrier directly, so keep Data Roaming OFF for this eSIM. Roaming line connects through a partner network, so turn Data Roaming ON for this eSIM. Both work the moment you land.",
+    "dailyHint": "High-speed data resets every day",
+    "firstOrderBanner": "First order? Your discount is applied at checkout."
   },
   "product": {
     "buyNow": "Continue",
@@ -178,7 +188,10 @@
     "hotspotLabel": "Hotspot",
     "unusedRefund": "Not activated? Full refund",
     "refundLabel": "Refund",
-    "refundPolicyLink": "See refund policy →"
+    "refundPolicyLink": "See refund policy →",
+    "freeAppsShort": "Google Maps · ChatGPT free",
+    "hotspotShort": "Hotspot OK*",
+    "unusedRefundShort": "Unused? Full refund"
   },
   "checkout": {
     "title": "Checkout",

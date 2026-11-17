@@ -144,7 +144,17 @@
     "fullUnlimitedHint": "無每日 GB 額度 · 更適合影片與重度使用（可能有合理使用）",
     "durationChipOne": "1 天",
     "showingPlansSuffixOne": " 天方案",
-    "noPlansForDaysOne": "暫無 1 天方案，請嘗試其他天數。"
+    "noPlansForDaysOne": "暫無 1 天方案，請嘗試其他天數。",
+    "titleShort": "韓國方案",
+    "pricesInUsd": "價格以美元計",
+    "localShort": "本地線路",
+    "roamingShort": "漫遊線路",
+    "lineLocalNote": "本地線路：韓國電信業者數據 · 數據漫遊關閉",
+    "lineRoamingNote": "漫遊線路：韓國合作網路 · 數據漫遊開啟",
+    "whichOne": "該選哪個？",
+    "whichOneBody": "本地線路直接使用韓國電信業者，此 eSIM 的數據漫遊請保持關閉。漫遊線路透過合作網路連線，請為此 eSIM 開啟數據漫遊。兩種都是一落地就能使用。",
+    "dailyHint": "高速流量每天重置",
+    "firstOrderBanner": "首次下單？優惠會在結帳時自動折抵。"
   },
   "product": {
     "buyNow": "繼續",
@@ -178,7 +188,10 @@
     "hotspotLabel": "熱點",
     "unusedRefund": "未啟用可全額退款",
     "refundLabel": "退款",
-    "refundPolicyLink": "查看退款政策 →"
+    "refundPolicyLink": "查看退款政策 →",
+    "freeAppsShort": "Google 地圖、ChatGPT 免流",
+    "hotspotShort": "可開熱點*",
+    "unusedRefundShort": "未使用可全額退款"
   },
   "checkout": {
     "title": "確認訂單",

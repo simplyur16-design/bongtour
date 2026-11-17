@@ -144,7 +144,17 @@
     "fullUnlimitedHint": "1日のGB上限なし · 動画やヘビー利用向け（公正利用あり）",
     "durationChipOne": "1日間",
     "showingPlansSuffixOne": "日プランを表示中",
-    "noPlansForDaysOne": "1日のプランは現在ありません。別の日数をお試しください。"
+    "noPlansForDaysOne": "1日のプランは現在ありません。別の日数をお試しください。",
+    "titleShort": "韓国プラン",
+    "pricesInUsd": "価格は米ドル",
+    "localShort": "現地回線",
+    "roamingShort": "ローミング回線",
+    "lineLocalNote": "現地回線：韓国キャリアのデータ・データローミングはオフ",
+    "lineRoamingNote": "ローミング回線：韓国の提携ネットワーク・データローミングはオン",
+    "whichOne": "どちらを選ぶ？",
+    "whichOneBody": "現地回線は韓国のキャリアに直接つながるため、このeSIMのデータローミングはオフのままにします。ローミング回線は提携ネットワーク経由のため、このeSIMのデータローミングをオンにします。どちらも到着後すぐに使えます。",
+    "dailyHint": "高速データが毎日リセット",
+    "firstOrderBanner": "初めてのご注文？割引はお支払い時に自動で適用されます。"
   },
   "product": {
     "buyNow": "次へ",
@@ -178,7 +188,10 @@
     "hotspotLabel": "テザリング",
     "unusedRefund": "未開通なら全額返金",
     "refundLabel": "返金",
-    "refundPolicyLink": "返金ポリシーを見る →"
+    "refundPolicyLink": "返金ポリシーを見る →",
+    "freeAppsShort": "Googleマップ・ChatGPT無料",
+    "hotspotShort": "テザリング可*",
+    "unusedRefundShort": "未使用なら全額返金"
   },
   "checkout": {
     "title": "ご購入手続き",
