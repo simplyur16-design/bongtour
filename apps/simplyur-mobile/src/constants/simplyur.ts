@@ -48,6 +48,11 @@ export const BRAND = {
   // REGRESSION-FREEZE[simplyur-aso-listing]: store listing char limits + locale SSOT — manifest
   privacyPolicyPath: '/simplyur/en/legal/privacy',
   supportEmail: 'bongtour24@naver.com',
+  /**
+   * '고객센터 연결링크' target (owner 11/20 20:43). Same page as lib/bongsim/constants
+   * USIMSA_CX_CONTACT_URL — UI shows only the 고객센터 label, never the supplier name.
+   */
+  supportContactUrl: 'https://www.usimsa.com/board/contact-channel/',
 } as const;
 
 export function getApiBaseUrl(): string {

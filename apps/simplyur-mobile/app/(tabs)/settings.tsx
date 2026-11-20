@@ -51,10 +51,13 @@ export default function SettingsScreen() {
   }
 
   function onContactSupport() {
+    // 고객센터 연결링크 → 고객센터 상담 페이지 (owner 11/20 20:43). If it can't open, fall back to mail, then the alert.
     const subject = encodeURIComponent(t('settings.supportSubject'));
-    const url = `mailto:${BRAND.supportEmail}?subject=${subject}`;
-    void Linking.openURL(url).catch(() => {
-      Alert.alert(t('settings.supportTitle'), BRAND.supportEmail);
+    const mailUrl = `mailto:${BRAND.supportEmail}?subject=${subject}`;
+    void Linking.openURL(BRAND.supportContactUrl).catch(() => {
+      void Linking.openURL(mailUrl).catch(() => {
+        Alert.alert(t('settings.supportTitle'), BRAND.supportEmail);
+      });
     });
   }
 
