@@ -13,7 +13,7 @@ export const GUIDE_EN_HANDOFF: SimplyurGuideMessages = {
   tabs: { precheck: 'Before you start', iphone: 'iPhone', android: 'Android' },
   stepsTitle: 'Installation steps',
   faqTitle: 'FAQ — Korea eSIM',
-  supportHint: 'Questions? Email bongtour24@naver.com (KST 09:00–18:00).',
+  supportHint: 'Questions? Contact the Customer Center in Settings (KST 09:00–18:00).',
   devicesLinkLabel: 'Compatible devices',
   quickSteps: [],
   precheckBlocks: [],
@@ -139,7 +139,7 @@ export const GUIDE_EN_HANDOFF: SimplyurGuideMessages = {
     },
     {
       q: "What if the QR code won't scan?",
-      a: 'Use manual entry with the SM-DP+ address and activation code from your order, or contact support — each QR code is generally usable once.',
+      a: 'Use manual entry with the SM-DP+ address and activation code from your order, or contact the Customer Center — each QR code is generally usable once.',
     },
     {
       q: 'Is my phone compatible?',

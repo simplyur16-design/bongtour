@@ -14,7 +14,7 @@
     "findPlan": "Tìm eSIM",
     "guide": "Hướng dẫn cài",
     "devices": "Thiết bị",
-    "support": "Hỗ trợ",
+    "support": "Trung tâm khách hàng",
     "signIn": "Đăng nhập",
     "myEsim": "eSIM của tôi",
     "signOut": "Đăng xuất",
@@ -280,9 +280,9 @@
     "termsTitle": "Điều khoản dịch vụ",
     "privacyTitle": "Chính sách bảo mật",
     "refundTitle": "Chính sách hoàn tiền",
-    "termsBody": "simplyur eSIM Hàn Quốc do Bong Tour Co., Ltd. vận hành cho khách quốc tế. Khi mua, bạn đồng ý: gói không chuyển nhượng; mã QR gửi qua email (và My eSIM khi đăng nhập); kích hoạt/mạng phụ thuộc thiết bị và phủ sóng tại Hàn Quốc; hoàn tiền theo chính sách với gói chưa kích hoạt lần đầu. Hỗ trợ: bongtour24@naver.com / +82-31-213-2558 (KST 09:00–18:00).",
-    "privacyBody": "Chúng tôi thu thập email, số điện thoại tùy chọn, thông tin đơn/thanh toán và mức dùng eSIM cần thiết để cung cấp dịch vụ. Dữ liệu chỉ do Bong Tour và đối tác thanh toán/eSIM xử lý để hoàn tất đơn và hỗ trợ. Chúng tôi không bán dữ liệu cá nhân. Liên hệ bongtour24@naver.com để truy cập hoặc xóa.",
-    "refundBody": "eSIM chưa dùng (chưa kích hoạt / chưa dùng data): hoàn tiền đầy đủ qua Hủy eSIM chưa dùng trong My eSIM hoặc email hỗ trợ. Sau kích hoạt hoặc đã dùng data: không hoàn tiền. Lỗi sản phẩm: hoàn tiền đầy đủ hoặc phát hành lại. Liên hệ: bongtour24@naver.com / +82-31-213-2558 (KST 09:00–18:00 T2–T6). eSIM số không đổi hàng (trừ phát hành lại cùng gói khi lỗi)."
+    "termsBody": "simplyur eSIM Hàn Quốc do Bong Tour Co., Ltd. vận hành cho khách quốc tế. Khi mua, bạn đồng ý: gói không chuyển nhượng; mã QR gửi qua email (và My eSIM khi đăng nhập); kích hoạt/mạng phụ thuộc thiết bị và phủ sóng tại Hàn Quốc; hoàn tiền theo chính sách với gói chưa kích hoạt lần đầu. Trung tâm khách hàng: Cài đặt → Trung tâm khách hàng (KST 09:00–18:00).",
+    "privacyBody": "Chúng tôi thu thập email, số điện thoại tùy chọn, thông tin đơn/thanh toán và mức dùng eSIM cần thiết để cung cấp dịch vụ. Dữ liệu chỉ do Bong Tour và đối tác thanh toán/eSIM xử lý để hoàn tất đơn và hỗ trợ. Chúng tôi không bán dữ liệu cá nhân. Để truy cập hoặc xóa, liên hệ Trung tâm khách hàng (Cài đặt → Trung tâm khách hàng).",
+    "refundBody": "eSIM chưa dùng (chưa kích hoạt / chưa dùng data): hoàn tiền đầy đủ qua Hủy eSIM chưa dùng trong My eSIM hoặc qua Trung tâm khách hàng. Sau kích hoạt hoặc đã dùng data: không hoàn tiền. Lỗi sản phẩm: hoàn tiền đầy đủ hoặc phát hành lại. Liên hệ: Trung tâm khách hàng trong Cài đặt (KST 09:00–18:00 T2–T6). eSIM số không đổi hàng (trừ phát hành lại cùng gói khi lỗi)."
   },
   "settings": {
     "title": "Cài đặt",
@@ -290,10 +290,10 @@
     "signedOutHint": "Đăng nhập trên My eSIM để quản lý tài khoản.",
     "sectionApp": "Ứng dụng",
     "sectionLegal": "Pháp lý",
-    "sectionSupport": "Hỗ trợ",
+    "sectionSupport": "Trung tâm khách hàng",
     "sectionAccount": "Tài khoản",
-    "supportTitle": "Liên hệ hỗ trợ",
-    "supportCta": "Gửi email hỗ trợ",
+    "supportTitle": "Trung tâm khách hàng",
+    "supportCta": "Liên kết Trung tâm khách hàng",
     "supportSubject": "Hỗ trợ ứng dụng simplyur",
     "deleteTitle": "Xóa tài khoản",
     "deleteCta": "Xóa tài khoản",
@@ -301,14 +301,15 @@
     "deleteBusy": "Đang xóa…",
     "deleteBody": "Thao tác này đóng vĩnh viễn tài khoản simplyur và đăng xuất. Hồ sơ đơn hàng có thể được lưu theo luật. eSIM đã cài trên máy không tự xóa — hãy gỡ trong Cài đặt → Di động nếu cần.",
     "deleteHint": "Đáp ứng yêu cầu xóa tài khoản của App Store. Bạn có thể đăng ký lại sau bằng cùng email.",
-    "deleteError": "Không thể xóa tài khoản. Thử lại hoặc email hỗ trợ.",
-    "deleteDone": "Tài khoản đã được xóa. Bạn đã đăng xuất."
+    "deleteError": "Không thể xóa tài khoản. Thử lại hoặc liên hệ Trung tâm khách hàng.",
+    "deleteDone": "Tài khoản đã được xóa. Bạn đã đăng xuất.",
+    "supportHours": "KST 09:00–18:00, T2–T6"
   },
   "footer": {
     "brand": "simplyur",
     "tagline": "Thương hiệu của Bong Tour Co., Ltd. Vận hành bởi Bong Tour.",
-    "email": "bongtour24@naver.com",
-    "phone": "+82-31-213-2558 (KST 09:00–18:00)"
+    "email": "Trung tâm khách hàng",
+    "phone": "KST 09:00–18:00"
   },
   "language": {
     "label": "Ngôn ngữ"
@@ -340,7 +341,7 @@
     "domesticSignInLink": "Cư dân Hàn Quốc? Đăng nhập Kakao/Naver tại Bong Tour",
     "googleNotConfigured": "Hiện chưa thể đăng nhập bằng Google. Vui lòng đăng nhập bằng Apple hoặc email.",
     "googleInvalidToken": "Không xác minh được tài khoản Google của bạn. Vui lòng thử lại hoặc đăng nhập bằng email.",
-    "accountRestricted": "Tài khoản này bị hạn chế. Hãy dùng cách khác hoặc liên hệ hỗ trợ.",
+    "accountRestricted": "Tài khoản này bị hạn chế. Hãy dùng cách khác hoặc liên hệ Trung tâm khách hàng.",
     "rateLimited": "Thử đăng nhập quá nhiều. Đợi một lát rồi thử lại.",
     "googleAndroidShaMismatch": "Phiên bản ứng dụng này chưa hỗ trợ đăng nhập Google. Vui lòng đăng nhập bằng email, hoặc cập nhật ứng dụng rồi thử lại.",
     "errorGeneric": "Đăng nhập thất bại. Vui lòng thử lại.",
@@ -490,7 +491,7 @@
     "refundCta": "Hủy eSIM chưa dùng",
     "refundBusy": "Đang hủy…",
     "refundConfirm": "Hủy eSIM chưa dùng này?\n\n1) Hủy eSIM phía nhà cung cấp trước\n2) Sau đó hoàn tiền thẻ\n\nChỉ eSIM chưa dùng (chưa đăng ký / chưa dùng data) mới được hủy.",
-    "refundError": "Không thể hủy đơn. Thử lại hoặc liên hệ hỗ trợ.",
+    "refundError": "Không thể hủy đơn. Thử lại hoặc liên hệ Trung tâm khách hàng.",
     "refundInProgress": "Đang hoàn tiền. Hãy làm mới sau giây lát.",
     "refundDone": "Đơn này đã được hủy và hoàn tiền.",
     "signOutConfirm": "Đăng xuất khỏi thiết bị này? eSIM vẫn thuộc tài khoản — đăng nhập lại để xem.",
@@ -517,5 +518,10 @@
     "note": "Bật Wi‑Fi · không gọi điện khi đang cài",
     "tapHint": "Làm theo các bước theo thứ tự. Đã cài bằng một chạm thì không quét lại mã QR.",
     "step": "Bước {n}"
+  },
+  "notFound": {
+    "title": "Không tìm thấy trang",
+    "body": "Trang này không có trong ứng dụng. Về Trang chủ để xem gói Hàn Quốc.",
+    "cta": "Về Trang chủ"
   }
 }

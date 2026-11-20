@@ -4,7 +4,7 @@ import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native
 import { SystemBars } from 'react-native-edge-to-edge';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SignalPinIcon } from '@/src/components/auth/SignalPinIcon';
+import { EsimMarkTile } from '@/src/components/ui/SyUi';
 import { OPENING_DESIGN as D, OPENING_PHOTOS } from '@/src/constants/opening-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
@@ -37,7 +37,8 @@ export default function OpeningScreen() {
         <View style={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 }]}>
           <View style={styles.spacer} />
           <View style={styles.hero}>
-            <SignalPinIcon />
+            {/* 1.0.2: A안 eSIM mark (ur tag + signal), on-dark variant over the photo */}
+            <EsimMarkTile size={96} dark />
             <Text style={styles.tagline}>{t('brand.tagline')}</Text>
           </View>
           <Pressable style={styles.cta} onPress={onGetStarted} accessibilityRole="button">

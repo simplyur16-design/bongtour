@@ -90,7 +90,7 @@ function RootLayoutNav() {
         <Stack.Screen name="in-app-web" options={{ headerShown: false, presentation: 'card' }} />
         <Stack.Screen
           name="modal"
-          options={{ presentation: 'card', animation: 'slide_from_right', title: 'Language' }}
+          options={{ headerShown: false, presentation: 'card', animation: 'slide_from_right' }}
         />
       </Stack>
     </ThemeProvider>

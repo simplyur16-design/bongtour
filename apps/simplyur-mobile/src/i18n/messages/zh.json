@@ -14,7 +14,7 @@
     "findPlan": "选购 eSIM",
     "guide": "安装指南",
     "devices": "兼容设备",
-    "support": "客服",
+    "support": "客服中心",
     "signIn": "登录",
     "myEsim": "我的 eSIM",
     "signOut": "退出",
@@ -280,9 +280,9 @@
     "termsTitle": "服务条款",
     "privacyTitle": "隐私政策",
     "refundTitle": "退款政策",
-    "termsBody": "simplyur 韩国 eSIM 由 Bong Tour Co., Ltd. 面向国际旅客运营。购买即表示您同意：套餐不可转让；二维码通过邮件送达（登录后也可在 My eSIM 查看）；开通与网络取决于您的设备与韩国覆盖；首次开通前未使用套餐按退款政策处理。支持：bongtour24@naver.com / +82-31-213-2558（韩国时间 09:00–18:00）。",
-    "privacyBody": "我们收集账户邮箱、可选电话、订单与支付信息以及提供服务所需的 eSIM 用量。数据仅由 Bong Tour 及支付/eSIM 合作方用于履约与支持，我们不出售个人数据。访问或删除请联系 bongtour24@naver.com。",
-    "refundBody": "未使用的 eSIM（未激活/未产生流量）：可在 My eSIM 选择“取消未使用 eSIM”或发邮件申请全额退款。激活或已产生流量后：不可退款。产品缺陷：全额退款或重新发行。联系：bongtour24@naver.com / +82-31-213-2558（韩国时间工作日 09:00–18:00）。数字 eSIM 不可换货（缺陷时同套餐重发除外）。"
+    "termsBody": "simplyur 韩国 eSIM 由 Bong Tour Co., Ltd. 面向国际旅客运营。购买即表示您同意：套餐不可转让；二维码通过邮件送达（登录后也可在 My eSIM 查看）；开通与网络取决于您的设备与韩国覆盖；首次开通前未使用套餐按退款政策处理。客服中心：设置 → 客服中心（韩国时间 09:00–18:00）。",
+    "privacyBody": "我们收集账户邮箱、可选电话、订单与支付信息以及提供服务所需的 eSIM 用量。数据仅由 Bong Tour 及支付/eSIM 合作方用于履约与支持，我们不出售个人数据。访问或删除请联系客服中心（设置 → 客服中心）。",
+    "refundBody": "未使用的 eSIM（未激活/未产生流量）：可在 My eSIM 选择“取消未使用 eSIM”或通过客服中心申请全额退款。激活或已产生流量后：不可退款。产品缺陷：全额退款或重新发行。联系：设置中的客服中心（韩国时间工作日 09:00–18:00）。数字 eSIM 不可换货（缺陷时同套餐重发除外）。"
   },
   "settings": {
     "title": "设置",
@@ -290,10 +290,10 @@
     "signedOutHint": "请在 My eSIM 登录后管理账户。",
     "sectionApp": "应用",
     "sectionLegal": "法律信息",
-    "sectionSupport": "客服",
+    "sectionSupport": "客服中心",
     "sectionAccount": "账户",
-    "supportTitle": "联系客服",
-    "supportCta": "发送邮件",
+    "supportTitle": "客服中心",
+    "supportCta": "客服中心联系链接",
     "supportSubject": "simplyur 应用支持",
     "deleteTitle": "删除账户",
     "deleteCta": "删除账户",
@@ -301,14 +301,15 @@
     "deleteBusy": "删除中…",
     "deleteBody": "将永久关闭您的 simplyur 账户并退出登录。依法需保留的订单记录可能继续保存。手机上已安装的 eSIM 不会自动删除，请在设置 → 蜂窝网络中自行移除。",
     "deleteHint": "符合 App Store 账户删除要求。之后可用同一邮箱重新注册。",
-    "deleteError": "无法删除账户。请重试或联系客服。",
-    "deleteDone": "账户已删除，您已退出登录。"
+    "deleteError": "无法删除账户。请重试或联系客服中心。",
+    "deleteDone": "账户已删除，您已退出登录。",
+    "supportHours": "韩国时间工作日 09:00–18:00"
   },
   "footer": {
     "brand": "simplyur",
     "tagline": "Bong Tour Co., Ltd. 旗下品牌，由 Bong Tour 运营销售。",
-    "email": "bongtour24@naver.com",
-    "phone": "+82-31-213-2558 (KST 09:00–18:00)"
+    "email": "客服中心",
+    "phone": "KST 09:00–18:00"
   },
   "language": {
     "label": "语言"
@@ -340,7 +341,7 @@
     "domesticSignInLink": "韩国居民请前往 Bong Tour 使用 Kakao/Naver 登录",
     "googleNotConfigured": "暂时无法使用 Google 登录，请使用 Apple 或邮箱登录。",
     "googleInvalidToken": "无法验证您的 Google 账号。请重试，或使用邮箱登录。",
-    "accountRestricted": "此账号已被限制。请改用其他方式或联系客服。",
+    "accountRestricted": "此账号已被限制。请改用其他方式或联系客服中心。",
     "rateLimited": "登录尝试过多。请稍后再试。",
     "googleAndroidShaMismatch": "此版本的应用暂时无法使用 Google 登录。请使用邮箱登录，或更新应用后重试。",
     "errorGeneric": "登录失败，请重试或使用其他方式。",
@@ -490,7 +491,7 @@
     "refundCta": "取消未使用的 eSIM",
     "refundBusy": "取消中…",
     "refundConfirm": "确定取消此未使用的 eSIM？\n\n1) 先取消供应商侧 eSIM\n2) 再退还刷卡款项\n\n仅未使用（未注册／未产生流量）的 eSIM 可取消。",
-    "refundError": "无法取消订单。请重试或联系客服。",
+    "refundError": "无法取消订单。请重试或联系客服中心。",
     "refundInProgress": "退款处理中，请稍后刷新。",
     "refundDone": "此订单已取消并退款。",
     "signOutConfirm": "要退出此设备吗？eSIM 仍保留在账户中，重新登录即可查看。",
@@ -517,5 +518,10 @@
     "note": "连接 Wi‑Fi · 安装时请勿通话",
     "tapHint": "请按顺序操作。已使用一键安装的，请勿再次扫描二维码。",
     "step": "第 {n} 步"
+  },
+  "notFound": {
+    "title": "找不到页面",
+    "body": "应用中没有此页面。返回首页浏览韩国套餐。",
+    "cta": "返回首页"
   }
 }

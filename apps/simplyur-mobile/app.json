@@ -39,7 +39,7 @@
     },
     "android": {
       "package": "com.bongtour.simplyur",
-      "versionCode": 16,
+      "versionCode": 17,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "backgroundColor": "#EEF1EC",
