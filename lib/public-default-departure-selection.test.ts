@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   mergePublicPriceRowsByDate,
   pickGloballyCheapestDepartureRowByAdultPrice,
@@ -100,14 +100,21 @@ describe('mergePublicPriceRowsByDate — 날짜당 1행 달력 병합 뒤에도 
   })
 
   it('참좋은 picker 주입 — 같은 규칙으로 그 날짜 유지', () => {
-    const vgPick = (r: never[]) => pickVerygoodPublicDefaultDepartureRow(r, base)
-    const vg = [
-      { id: 'd1-cheap', date: '2026-11-20', adult: 460_000, status: '예약가능' },
-      { id: 'd1-dear', date: '2026-11-20', adult: 680_000, status: '예약가능' },
-      { id: 'd2', date: '2026-11-21', adult: 500_000, status: '예약가능' },
-    ]
-    const merged = mergePublicPriceRowsByDate(vg, [], vgPick as never)
-    expect(vgPick(merged as never[])?.id).toBe('d1-cheap')
+    // 참좋은 수집 하한은 인자 base가 아니라 KST 오늘+3. 2026-11-20이 지나면 후보가 비어 undefined가 된다.
+    vi.useFakeTimers()
+    vi.setSystemTime(base)
+    try {
+      const vgPick = (r: never[]) => pickVerygoodPublicDefaultDepartureRow(r, base)
+      const vg = [
+        { id: 'd1-cheap', date: '2026-11-20', adult: 460_000, status: '예약가능' },
+        { id: 'd1-dear', date: '2026-11-20', adult: 680_000, status: '예약가능' },
+        { id: 'd2', date: '2026-11-21', adult: 500_000, status: '예약가능' },
+      ]
+      const merged = mergePublicPriceRowsByDate(vg, [], vgPick as never)
+      expect(vgPick(merged as never[])?.id).toBe('d1-cheap')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('예약가능 회차 없으면 기존 병합과 동일', () => {
