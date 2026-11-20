@@ -1042,12 +1042,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
           console.error('[PATCH product] cover PhotoPool rehost after', id, err)
         })
       })
-      if (data.registrationStatus === 'registered') {
-        const { scheduleItineraryRouteMapGeneration } = await import(
-          '@/lib/itinerary-route-map-ensure'
-        )
-        scheduleItineraryRouteMapGeneration(id)
-      }
+      // REGRESSION-FREEZE[public-itinerary-route-map-removed]: 등록 전환 때 일정 동선 지도 생성 호출 금지 — manifest
     }
     if (
       body.firstPriceRow &&
