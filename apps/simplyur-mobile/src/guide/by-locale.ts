@@ -13,7 +13,7 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
     faqTitle: "よくある質問 — 韓国eSIM",
     regionalFaqTitle: "地域別のお知らせ（将来の多国間プラン用）",
     regionalFaqNote: "simplyur Phase 1は韓国専用です。以下は将来の多国間プラン向けの事前案内で、現在の韓国専用商品には適用されません。",
-    supportHint: "お問い合わせ: bongtour24@naver.com（KST 09:00–18:00）",
+    supportHint: "お問い合わせ：設定のカスタマーセンター（KST 09:00–18:00）",
     quickSteps: [
       "端末がeSIM対応かつSIMロック解除されていることを確認。",
       "安定したWi‑Fiに接続してからインストール。",
@@ -73,7 +73,7 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
       },
       {
         title: "旅行後の削除",
-        blocks: [{ note: "旅行が完全に終わってから削除してください。問題がある場合は削除前にサポートへ。", bullets: ["設定 → モバイル通信 → 旅行用eSIM → モバイル通信プランを削除。"] }]
+        blocks: [{ note: "旅行が完全に終わってから削除してください。問題がある場合は削除前にカスタマーセンターへ。", bullets: ["設定 → モバイル通信 → 旅行用eSIM → モバイル通信プランを削除。"] }]
       }
     ],
     androidSteps: [
@@ -88,7 +88,7 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
         ]
       },
       { title: "韓国で有効化", blocks: [{ bullets: ["simplyur eSIMを有効化。", "モバイルデータのデフォルト回線に設定。", "必要ならデータローミングON。"], note: "数分待っても接続しない場合は機内モードまたは再起動を試してください。" }] },
-      { title: "旅行後の削除", blocks: [{ bullets: ["設定 → 接続 → SIMマネージャー → 削除。"], note: "接続問題がある場合は削除前にサポートへ。" }] }
+      { title: "旅行後の削除", blocks: [{ bullets: ["設定 → 接続 → SIMマネージャー → 削除。"], note: "接続問題がある場合は削除前にカスタマーセンターへ。" }] }
     ],
     commonFaq: [
       { q: "今simplyurでできることは？", a: "韓国eSIMプラン閲覧、アプリ内チェックアウト、多言語料金、本ガイド、サインイン後のMy eSIM（QR・利用量・未使用キャンセル）。" },
@@ -104,10 +104,10 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
       { q: "データローミング", a: "ローミングプランは通常ON。現地回線はOFFでも可な場合あり。" },
       { q: "自国SIM通話＋simplyurデータ", a: "デュアルSIMで可能。" },
       { q: "端末変更", a: "他端末へ移行不可。" },
-      { q: "インストール失敗", a: "再起動・Wi‑Fi・通話終了後再試行。bongtour24@naver.com" },
+      { q: "インストール失敗", a: "再起動・Wi‑Fi・通話終了後に再試行。解決しない場合はカスタマーセンターへ。" },
       { q: "韓国でデータ不可", a: "回線ON、データ回線設定、機内モード、ローミング確認。" },
       { q: "韓国外利用", a: "Phase 1は韓国内専用。" },
-      { q: "返金・サポート", a: "未使用は規約内返金可。bongtour24@naver.com KST 09–18時。" }
+      { q: "返金・カスタマーセンター", a: "未使用は規約内で返金可。設定のカスタマーセンター（KST 09–18時）。" }
     ],
     regionalFaq: [
       {
@@ -125,7 +125,7 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
     faqTitle: "常见问题 — 韩国 eSIM",
     regionalFaqTitle: "地区政策说明（未来多国套餐）",
     regionalFaqNote: "simplyur Phase 1 仅售韩国 eSIM。以下为未来多国套餐预留说明，不适用于当前韩国专用产品。",
-    supportHint: "咨询：bongtour24@naver.com（KST 09:00–18:00）",
+    supportHint: "咨询：设置中的客服中心（KST 09:00–18:00）",
     quickSteps: [
       "确认手机支持 eSIM 且已解锁。",
       "在稳定 Wi‑Fi 下安装。",
@@ -153,7 +153,7 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
         ]
       },
       { title: "在韩国激活", blocks: [{ bullets: ["设置 → 蜂窝网络。", "开启 simplyur 线路。", "设为蜂窝数据线路。", "按需开启数据漫游。"], note: "若无网络可开关飞行模式或手动选运营商。" }] },
-      { title: "行程结束后删除", blocks: [{ note: "行程完全结束后再删除。有问题请先联系客服。", bullets: ["设置 → 蜂窝网络 → 删除蜂窝号码方案。"] }] }
+      { title: "行程结束后删除", blocks: [{ note: "行程完全结束后再删除。有问题请先联系客服中心。", bullets: ["设置 → 蜂窝网络 → 删除蜂窝号码方案。"] }] }
     ],
     androidSteps: [
       { title: "获取 eSIM", blocks: [{ bullets: ["选套餐 → 邮箱必填结账", "支付发行后查收 QR 邮件", "同邮箱 Google 登录 → My eSIM"] }] },
@@ -183,10 +183,10 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
       { q: "数据漫游", a: "漫游套餐通常需开启。" },
       { q: "保留本国 SIM 通话", a: "双卡手机可以。" },
       { q: "换手机", a: "不可转移到其他设备。" },
-      { q: "安装失败", a: "重启、换 Wi‑Fi、结束通话后重试。联系 bongtour24@naver.com。" },
+      { q: "安装失败", a: "重启、换 Wi‑Fi、结束通话后重试。仍失败请联系客服中心。" },
       { q: "在韩国无网络", a: "确认线路开启、设为移动数据、开关飞行模式、按需开漫游。" },
       { q: "韩国外能用吗？", a: "Phase 1 仅韩国境内。" },
-      { q: "退款与客服", a: "未使用可按条款退款。bongtour24@naver.com KST 09–18。" }
+      { q: "退款与客服中心", a: "未使用可按条款退款。设置中的客服中心（KST 09–18）。" }
     ],
     regionalFaq: [
       {
@@ -204,7 +204,7 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
     faqTitle: "常見問題 — 韓國 eSIM",
     regionalFaqTitle: "地區政策說明（未來多國方案）",
     regionalFaqNote: "simplyur Phase 1 僅售韓國 eSIM。以下為未來多國方案預留說明，不適用於目前韓國專用商品。",
-    supportHint: "諮詢：bongtour24@naver.com（KST 09:00–18:00）",
+    supportHint: "諮詢：設定中的客服中心（KST 09:00–18:00）",
     quickSteps: [
       "確認手機支援 eSIM 且已解鎖。",
       "在穩定 Wi‑Fi 下安裝。",
@@ -242,7 +242,7 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
       { q: "價格", a: "目錄價×1.05，依語言顯示幣別（匯率約每12小時更新）。優惠券不支援。" },
       { q: "方案開始/仁川安裝/漫遊", a: "多在韓國首次連網開始；可在仁川機場 Wi‑Fi 安裝；漫遊方案常需開數據漫遊。" },
       { q: "換手機/韓國外", a: "不可轉移；Phase 1 僅韓國。" },
-      { q: "退款/客服", a: "bongtour24@naver.com KST 09–18。" }
+      { q: "退款/客服中心", a: "未使用可依條款退款。設定中的客服中心（KST 09–18）。" }
     ],
     regionalFaq: [
       {
@@ -260,7 +260,7 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
     faqTitle: "Câu hỏi thường gặp — eSIM Hàn Quốc",
     regionalFaqTitle: "Thông báo theo khu vực (gói đa quốc gia tương lai)",
     regionalFaqNote: "simplyur Phase 1 chỉ bán eSIM Hàn Quốc. Nội dung dưới đây dành cho gói đa quốc gia sau này — không áp dụng sản phẩm Hàn Quốc hiện tại.",
-    supportHint: "Hỗ trợ: bongtour24@naver.com (KST 09:00–18:00)",
+    supportHint: "Hỗ trợ: Trung tâm khách hàng trong Cài đặt (KST 09:00–18:00)",
     quickSteps: [
       "Xác nhận điện thoại hỗ trợ eSIM và đã mở khóa mạng.",
       "Kết nối Wi‑Fi ổn định trước khi cài.",
@@ -305,7 +305,7 @@ const GUIDE_BY_LOCALE: Partial<Record<SimplyurLocale, SimplyurGuideMessages>> = 
       { q: "Giá", a: "Giá catalog ×1.05, quy đổi theo ngôn ngữ (tỷ giá cập nhật ~12 giờ). Không coupon." },
       { q: "Bắt đầu gói / Incheon / roaming", a: "Thường khi kết nối mạng tại Hàn; cài tại sân bay Incheon được; gói roaming thường cần bật chuyển vùng." },
       { q: "Đổi máy / ngoài Hàn", a: "Không chuyển profile; Phase 1 chỉ Hàn Quốc." },
-      { q: "Hoàn tiền / hỗ trợ", a: "bongtour24@naver.com KST 09–18." }
+      { q: "Hoàn tiền / Trung tâm khách hàng", a: "Gói chưa dùng được hoàn tiền theo điều khoản. Trung tâm khách hàng trong Cài đặt (KST 09–18)." }
     ],
     regionalFaq: [
       {

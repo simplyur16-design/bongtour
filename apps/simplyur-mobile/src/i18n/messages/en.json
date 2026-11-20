@@ -14,7 +14,7 @@
     "findPlan": "Find my eSIM",
     "guide": "Install guide",
     "devices": "Compatible devices",
-    "support": "Support",
+    "support": "Customer Center",
     "signIn": "Sign in",
     "myEsim": "My eSIM",
     "myTrip": "My Trip",
@@ -272,7 +272,7 @@
     "faqTitle": "FAQ — Korea eSIM",
     "regionalFaqTitle": "Regional notices (future multi-country plans)",
     "regionalFaqNote": "simplyur Phase 1 is Korea-only. The policy below is kept for when we add multi-region plans — it does not apply to current South Korea eSIM products.",
-    "supportHint": "Questions? Email bongtour24@naver.com (KST 09:00–18:00).",
+    "supportHint": "Questions? Contact the Customer Center in Settings (KST 09:00–18:00).",
     "quickSteps": [
       "Confirm your phone supports eSIM and is carrier-unlocked.",
       "Connect to stable Wi‑Fi before installing.",
@@ -388,7 +388,7 @@
         "title": "Remove after your trip",
         "blocks": [
           {
-            "note": "Only remove the eSIM after your trip is fully finished. If you have connection issues, contact simplyur support before deleting the profile.",
+            "note": "Only remove the eSIM after your trip is fully finished. If you have connection issues, contact the Customer Center before deleting the profile.",
             "bullets": [
               "Settings → Cellular → select the travel eSIM.",
               "Tap Remove Cellular Plan and confirm."
@@ -460,7 +460,7 @@
               "Select the travel eSIM → Delete or Remove.",
               "Confirm removal."
             ],
-            "note": "Contact simplyur support before deleting if you still need help with connectivity."
+            "note": "Contact the Customer Center before deleting if you still need help with connectivity."
           }
         ]
       }
@@ -520,7 +520,7 @@
       },
       {
         "q": "Installation failed — what should I try?",
-        "a": "Restart the phone, use stable Wi‑Fi, end active calls, retry. On iPhone, scan the QR from another screen (not Photos). Email bongtour24@naver.com with your order number if it still fails."
+        "a": "Restart the phone, use stable Wi‑Fi, end active calls, retry. On iPhone, scan the QR from another screen (not Photos). If it still fails, contact the Customer Center with your order number."
       },
       {
         "q": "Data not working in Korea?",
@@ -531,8 +531,8 @@
         "a": "Phase 1 products are for use in South Korea only."
       },
       {
-        "q": "Refund and support",
-        "a": "Unused eSIMs may be refundable per simplyur terms before activation/first use. Support: bongtour24@naver.com (English OK), KST 09:00–18:00 Mon–Fri. Include order number and phone model."
+        "q": "Refund and Customer Center",
+        "a": "Unused eSIMs may be refundable per simplyur terms before activation/first use. Customer Center (English OK): Settings → Customer Center, KST 09:00–18:00 Mon–Fri. Include order number and phone model."
       }
     ],
     "regionalFaq": [
@@ -552,9 +552,9 @@
     "termsTitle": "Terms of Service",
     "privacyTitle": "Privacy Policy",
     "refundTitle": "Refund policy",
-    "termsBody": "simplyur Korea eSIM is operated by Bong Tour Co., Ltd. for international visitors. By purchasing you agree that the plan is non-transferable, QR delivery is by email (and in My eSIM when signed in), activation and network availability depend on your device and carrier coverage in Korea, and refunds follow our refund policy for unused plans before first activation. Support: bongtour24@naver.com / +82-31-213-2558 (KST 09:00–18:00).",
-    "privacyBody": "We collect account email, optional phone, order and payment references, and eSIM usage needed to deliver service. Data is processed by Bong Tour Co., Ltd. and payment/eSIM partners only for fulfillment and support. We do not sell personal data. Contact bongtour24@naver.com for access or deletion requests.",
-    "refundBody": "Unused eSIM (QR not activated / no data used): full refund available via Cancel unused eSIM in My eSIM, or email support. After activation or any data use: no refund. Product defect: full refund or re-issue. Requests: bongtour24@naver.com or +82-31-213-2558 (KST 09:00–18:00 Mon–Fri). Digital eSIM products cannot be exchanged except for defect re-issue of the same plan."
+    "termsBody": "simplyur Korea eSIM is operated by Bong Tour Co., Ltd. for international visitors. By purchasing you agree that the plan is non-transferable, QR delivery is by email (and in My eSIM when signed in), activation and network availability depend on your device and carrier coverage in Korea, and refunds follow our refund policy for unused plans before first activation. Customer Center: Settings → Customer Center (KST 09:00–18:00).",
+    "privacyBody": "We collect account email, optional phone, order and payment references, and eSIM usage needed to deliver service. Data is processed by Bong Tour Co., Ltd. and payment/eSIM partners only for fulfillment and support. We do not sell personal data. For access or deletion requests, contact the Customer Center (Settings → Customer Center).",
+    "refundBody": "Unused eSIM (QR not activated / no data used): full refund available via Cancel unused eSIM in My eSIM, or through the Customer Center. After activation or any data use: no refund. Product defect: full refund or re-issue. Requests: Customer Center in Settings (KST 09:00–18:00 Mon–Fri). Digital eSIM products cannot be exchanged except for defect re-issue of the same plan."
   },
   "settings": {
     "title": "Settings",
@@ -562,10 +562,10 @@
     "signedOutHint": "Sign in on My eSIM to manage your account.",
     "sectionApp": "App",
     "sectionLegal": "Legal",
-    "sectionSupport": "Support",
+    "sectionSupport": "Customer Center",
     "sectionAccount": "Account",
-    "supportTitle": "Contact support",
-    "supportCta": "Email support",
+    "supportTitle": "Customer Center",
+    "supportCta": "Customer Center link",
     "supportSubject": "simplyur app support",
     "deleteTitle": "Delete account",
     "deleteCta": "Delete account",
@@ -573,14 +573,15 @@
     "deleteBusy": "Deleting…",
     "deleteBody": "This permanently closes your simplyur account and signs you out. Past order records may be kept as required by law. Active eSIMs already on your phone are not removed — delete them in Settings → Cellular if needed.",
     "deleteHint": "Required for App Store account deletion. You can create a new account later with the same email.",
-    "deleteError": "Could not delete your account. Try again or email support.",
-    "deleteDone": "Your account was deleted. You have been signed out."
+    "deleteError": "Could not delete your account. Try again or contact the Customer Center.",
+    "deleteDone": "Your account was deleted. You have been signed out.",
+    "supportHours": "KST 09:00–18:00, Mon–Fri · English OK"
   },
   "footer": {
     "brand": "simplyur",
     "tagline": "A brand of Bong Tour Co., Ltd. Operated and sold by Bong Tour.",
-    "email": "Support: bongtour24@naver.com",
-    "phone": "Tel: +82-31-213-2558 (KST 09:00–18:00)"
+    "email": "Customer Center",
+    "phone": "KST 09:00–18:00"
   },
   "language": {
     "label": "Language"
@@ -612,7 +613,7 @@
     "domesticSignInLink": "Korea resident? Sign in with Kakao or Naver on Bong Tour",
     "googleNotConfigured": "Google sign-in isn't available right now. Please continue with Apple or email.",
     "googleInvalidToken": "We couldn't verify your Google account. Please try again, or sign in with email.",
-    "accountRestricted": "This account is restricted. Use another method or contact support.",
+    "accountRestricted": "This account is restricted. Use another method or contact the Customer Center.",
     "rateLimited": "Too many sign-in attempts. Wait a moment and try again.",
     "googleAndroidShaMismatch": "Google sign-in isn't available in this version of the app. Please sign in with email, or update the app and try again.",
     "errorGeneric": "Sign-in failed. Please try again or use a different method.",
@@ -765,7 +766,7 @@
     "refundCta": "Cancel unused eSIM",
     "refundBusy": "Cancelling...",
     "refundConfirm": "Cancel this unused eSIM?\n\n1) The supplier eSIM is cancelled first\n2) Then the card payment is refunded\n\nOnly unused (not registered / no data used) eSIMs can be cancelled.",
-    "refundError": "Could not cancel this order. Try again or contact support.",
+    "refundError": "Could not cancel this order. Try again or contact the Customer Center.",
     "refundInProgress": "Refund in progress. Refresh shortly.",
     "refundDone": "This order was cancelled and refunded.",
     "signOutConfirm": "Sign out of this device? Your eSIMs stay on your account — sign in again to see them.",
