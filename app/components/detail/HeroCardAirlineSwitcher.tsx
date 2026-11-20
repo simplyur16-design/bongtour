@@ -53,7 +53,8 @@ export function HeroCardAirlineList({ onDone }: { onDone: () => void }) {
   return (
     <div className="mt-3 rounded-xl border border-bt-card-accent-border bg-bt-card-accent-soft p-2.5" data-hero-card-airline-list>
       <p className="bt-wrap text-center text-[11px] font-semibold leading-snug text-bt-meta">{L.listTitle}</p>
-      <ul className="mt-2 grid grid-cols-2 gap-1.5">
+      <ul className="mt-2 grid grid-cols-1 gap-1.5 min-[480px]:grid-cols-2">
+        {/* REGRESSION-FREEZE[airline-compare-canonical-1120]: 390px에서는 한 줄에 항공사명 전체 — manifest */}
         {others.map((o) => (
           <li key={o.param} className="min-w-0">
             <button
@@ -62,7 +63,7 @@ export function HeroCardAirlineList({ onDone }: { onDone: () => void }) {
               className="flex w-full min-h-[44px] flex-col items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-1 text-center hover:border-teal-600 hover:bg-teal-50"
               data-hero-card-airline-option={o.param}
             >
-              <span className="w-full truncate text-xs font-semibold text-slate-900">{o.label}</span>
+              <span className="w-full whitespace-normal break-keep text-xs font-semibold leading-tight text-slate-900">{o.label}</span>
               {o.lowestPriceKrw != null ? (
                 <span className="text-xs font-bold tabular-nums text-teal-700" data-hero-card-airline-price>
                   {o.lowestPriceKrw.toLocaleString('ko-KR')}

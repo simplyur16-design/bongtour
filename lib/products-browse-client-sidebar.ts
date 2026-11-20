@@ -1,7 +1,7 @@
 /**
  * 해외·항공+호텔 허브: sidebar 필터는 URL·캐시 키와 분리하고 클라이언트에서 적용.
  */
-import { AIRLINE_CATALOG, airlineStringMatchesCode, buildAirlineHaystack } from '@/lib/airline-catalog'
+import { airlinePartsMatchCode, buildAirlineHaystack } from '@/lib/airline-catalog'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import {
   resolveProductBrandKey,
@@ -79,15 +79,8 @@ function matchesBrandKeys(meta: BrowseItemFilterMeta, keys: string[]): boolean {
 
 function matchesAirlineCodes(meta: BrowseItemFilterMeta, codes: string[]): boolean {
   if (codes.length === 0) return true
-  const hay = meta.airlineHaystack
-  return codes.some((code) => {
-    if (code === 'other') {
-      if (!hay.trim()) return false
-      const matchesKnown = AIRLINE_CATALOG.some((e) => airlineStringMatchesCode(hay, e.code))
-      return !matchesKnown
-    }
-    return airlineStringMatchesCode(hay, code)
-  })
+  const parts = meta.airlineHaystack.split('|').map((s) => s.trim()).filter(Boolean)
+  return codes.some((code) => airlinePartsMatchCode(parts, code))
 }
 
 function matchesDepartureHourBuckets(meta: BrowseItemFilterMeta, buckets: string[]): boolean {

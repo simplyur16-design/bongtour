@@ -159,6 +159,22 @@ function displayKey(label: string): string {
   return f.replace(/\(\s*구\s*\).*$/, '').replace(/\s+/g, '')
 }
 
+/** 회차 집계 표시명 — 고정 테이블에 있으면 그 한글명, 없으면 공백만 접어 같은 항공사가 두 줄로 갈라지지 않게 한다. */
+function aggregatedAirlineLabel(raw: string): string {
+  const formatted = formatPublicAirlineDisplay(raw) ?? raw
+  const codeshare = formatted.includes(CODESHARE_SUFFIX_KO)
+  let base = codeshare ? formatted.split(CODESHARE_SUFFIX_KO).join('').trim() : formatted
+  const code = iataFromSupplierAirlineName(base)
+  if (code) {
+    const ko = airlineKoFromIata(code)
+    if (ko) base = ko
+    else base = base.replace(/\s+/g, '')
+  } else {
+    base = base.replace(/\s+/g, '')
+  }
+  return codeshare ? `${base}${CODESHARE_SUFFIX_KO}` : base
+}
+
 /**
  * 상품 대표 항공사(표시 전용) — 출발 회차 항공사 집계.
  * - 회차 항공사가 없으면 Product.airline 그대로.
@@ -176,7 +192,8 @@ export function resolveProductAirlineFromDeparturesForDisplay(
   for (const d of departures ?? []) {
     const a = resolveDepartureRowAirlineForDisplay(d)
     if (!a) continue
-    const label = formatPublicAirlineDisplay(a) ?? a
+    // REGRESSION-FREEZE[airline-compare-canonical-1120]: 회차 집계 표시는 고정 테이블 이름(띄어쓰기 분리 금지). Product.airline 원문 조기 반환은 그대로 — manifest
+    const label = aggregatedAirlineLabel(a)
     const k = displayKey(label)
     const cur = counts.get(k)
     if (cur) cur.n += 1

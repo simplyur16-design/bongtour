@@ -2,7 +2,7 @@
  * 목록 상단·필터 옵션용 집계 — 목적지·유형 등 “코어” 조건까지 적용한 집합에서
  * 공급사·항공사 분포를 계산한다(사이드바 필터 적용 전).
  */
-import { AIRLINE_CATALOG, airlineStringMatchesCode, buildAirlineHaystack } from '@/lib/airline-catalog'
+import { AIRLINE_CATALOG, airlineFacetBuckets, buildAirlineHaystack } from '@/lib/airline-catalog'
 import { getBrandLabel } from '@/lib/brands'
 import { OVERSEAS_SUPPLIER_LABEL } from '@/lib/normalize-supplier-origin'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
@@ -49,6 +49,7 @@ export function aggregateBrandFacets(rows: ProductBrowseFullRow[]): BrandFacet[]
 
 export function aggregateAirlineFacets(rows: ProductBrowseFullRow[]): AirlineFacet[] {
   const map = new Map<string, number>()
+  const extra = new Map<string, { label: string; count: number }>()
   let otherCount = 0
 
   for (const p of rows) {
@@ -57,18 +58,20 @@ export function aggregateAirlineFacets(rows: ProductBrowseFullRow[]): AirlineFac
     for (const d of p.departures ?? []) {
       if (d.carrierName) parts.push(d.carrierName)
     }
-    const hay = buildAirlineHaystack(parts)
-    if (!hay.trim()) continue
-
-    let matched = false
-    for (const e of AIRLINE_CATALOG) {
-      if (airlineStringMatchesCode(hay, e.code)) {
-        map.set(e.code, (map.get(e.code) ?? 0) + 1)
-        matched = true
-        break
+    const buckets = airlineFacetBuckets(parts)
+    if (buckets.length === 0) {
+      if (buildAirlineHaystack(parts).trim()) otherCount += 1
+      continue
+    }
+    for (const b of buckets) {
+      if (AIRLINE_CATALOG.some((e) => e.code === b.code)) {
+        map.set(b.code, (map.get(b.code) ?? 0) + 1)
+      } else {
+        const cur = extra.get(b.code) ?? { label: b.label, count: 0 }
+        cur.count += 1
+        extra.set(b.code, cur)
       }
     }
-    if (!matched) otherCount += 1
   }
 
   const out: AirlineFacet[] = AIRLINE_CATALOG.map((e) => ({
@@ -80,5 +83,10 @@ export function aggregateAirlineFacets(rows: ProductBrowseFullRow[]): AirlineFac
   if (otherCount > 0) {
     out.push({ code: 'other', label: '기타', count: otherCount })
   }
-  return out
+  const extras = [...extra.entries()]
+    .map(([code, v]) => ({ code, label: v.label, count: v.count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'ko'))
+  const other = out.find((x) => x.code === 'other')
+  const known = out.filter((x) => x.code !== 'other')
+  return [...known, ...extras, ...(other ? [other] : [])]
 }
