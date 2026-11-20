@@ -6,7 +6,6 @@ import type { TravelProduct, ScheduleDay } from '@/app/components/travel/TravelP
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
 import type { ProductMetaChip } from '@/lib/product-meta-chips'
 import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
-import ProductRouteMapSection from '@/app/components/detail/ProductRouteMapSection'
 import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetailCrossSell'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
@@ -326,24 +325,7 @@ export function ItineraryViewPackageMain({
         <p className="text-sm fit-tx-meta">등록된 일정 요약이 없습니다.</p>
       )}
 
-      {/* 동선지도 — 일정과 항공편 사이 고정 (SSR·client 동일 트리) */}
-      <ProductRouteMapSection
-        routeMap={
-          product.itineraryRouteMapUrl?.trim()
-            ? {
-                status: 'ready',
-                imageUrl: product.itineraryRouteMapUrl.trim(),
-                routeSummary: `${product.destination || '여행'} 일정 동선`,
-                cities: [],
-                citiesCaption: '',
-                showMap: true,
-              }
-            : product.routeMap?.imageUrl?.trim()
-              ? product.routeMap
-              : null
-        }
-      />
-
+      {/* REGRESSION-FREEZE[public-itinerary-route-map-removed]: 공개 상세에 동선지도 칸을 두지 않는다 — manifest */}
       {flightDisplay ? (
         <section aria-labelledby="product-flight-heading">
           <h2

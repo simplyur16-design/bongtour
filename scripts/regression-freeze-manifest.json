@@ -33246,6 +33246,55 @@
       "vitestSuites": [
         "lib/airline-compare-canonical-1120.test.ts"
       ]
+    },
+    {
+      "id": "public-itinerary-route-map-removed",
+      "tier": ["prebuild", "ci"],
+      "summary": "공개 상세에서 일정 동선 지도 칸을 그리지 않고, 이미지 처리·등록 확인·등록 전환에서 그 지도를 자동 생성하지 않는다. 저장본과 생성 모듈 파일은 남긴다.",
+      "checks": [
+        {
+          "file": "components/itinerary/ItineraryViewPackageMain.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-itinerary-route-map-removed]"
+          ],
+          "mustNotInclude": [
+            "ProductRouteMapSection",
+            "itineraryRouteMapUrl"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-itinerary-route-map-removed]"
+          ],
+          "mustNotInclude": [
+            "ensureItineraryRouteMapForProduct",
+            "runItineraryRouteMapAfterImages"
+          ]
+        },
+        {
+          "file": "lib/register-confirm-after-save.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-itinerary-route-map-removed]",
+            "ensureBongtourRouteMapPersisted"
+          ],
+          "mustNotInclude": [
+            "scheduleItineraryRouteMapGeneration"
+          ]
+        },
+        {
+          "file": "app/api/admin/products/[id]/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[public-itinerary-route-map-removed]"
+          ],
+          "mustNotInclude": [
+            "scheduleItineraryRouteMapGeneration"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/public-itinerary-route-map-removed.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
