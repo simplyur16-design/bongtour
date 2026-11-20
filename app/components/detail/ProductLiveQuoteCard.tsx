@@ -93,6 +93,7 @@ export default function ProductLiveQuoteCard({
     totalDays,
     listingKind: 'travel',
     productType: 'travel',
+    slug: product.slug ?? (typeof product.id === 'string' ? product.id : null),
     forceKind: 'package',
   })
   const computedReturnDate = useMemo(() => {

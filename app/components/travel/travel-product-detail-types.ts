@@ -74,6 +74,7 @@ export type TravelProduct = {
   /** REGRESSION-FREEZE[hero-departure-code-1031]: 히어로 표시 코드(가장 가까운 판매 중 출발 회차) — 없으면 originCode */
   heroOriginCodeDisplay?: string | null
   title: string
+  slug?: string | null
   destination: string
   duration: string
   airline: string | null

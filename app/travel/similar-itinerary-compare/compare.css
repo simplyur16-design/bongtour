@@ -422,3 +422,43 @@
   font-size: 0.78rem;
   color: var(--sic-muted);
 }
+
+/* 390 폭: 가로 920px 표 대신 카드. 공급사·박일·저장 가격이 스크롤 없이 보인다. */
+@media (max-width: 480px) {
+  .sic-table-wrap {
+    overflow-x: visible;
+  }
+  .sic-table {
+    min-width: 0;
+    font-size: 0.92rem;
+  }
+  .sic-table thead {
+    display: none;
+  }
+  .sic-table tbody tr {
+    display: block;
+    padding: 0.75rem 0.85rem 0.85rem;
+    border-bottom: 1px solid var(--sic-line);
+  }
+  .sic-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    width: auto;
+    padding: 0.28rem 0;
+    border: 0;
+    text-align: right;
+  }
+  .sic-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--sic-muted);
+    text-align: left;
+  }
+  .sic-title a {
+    word-break: keep-all;
+  }
+}

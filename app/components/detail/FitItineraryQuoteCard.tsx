@@ -26,6 +26,7 @@ const FIT_PAX_ROWS = [
 
 type Props = {
   productTitle: string
+  productSlug?: string | null
   originCode: string
   destination: string
   duration: string
@@ -50,6 +51,7 @@ type Props = {
 /** 자유여행 상세 — 패키지 인원 선택 카드와 동일 레이아웃 (코드 격리 fork) */
 export default function FitItineraryQuoteCard({
   productTitle,
+  productSlug,
   originCode,
   destination,
   duration,
@@ -88,6 +90,7 @@ export default function FitItineraryQuoteCard({
     destination,
     duration,
     title: productTitle,
+    slug: productSlug,
     listingKind: 'air_hotel_free',
     productType: 'air-hotel',
     forceKind: 'fit',
