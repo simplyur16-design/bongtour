@@ -4,6 +4,7 @@
  */
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { SyIcon, type SyIconName } from '@/src/components/ui/SyIcon';
 import { SY } from '@/src/constants/theme';
 import { fp } from '@/src/constants/typography';
 import {
@@ -47,6 +48,8 @@ export function SimplyurDockCta({
   busy,
   disabled,
   bottomInset,
+  icon,
+  hintIcon,
 }: {
   label: string;
   hint?: string;
@@ -54,6 +57,10 @@ export function SimplyurDockCta({
   busy?: boolean;
   disabled?: boolean;
   bottomInset: number;
+  /** 1.0.2: optional leading icon on the button (e.g. lock on Pay). */
+  icon?: SyIconName;
+  /** 1.0.2: optional small icon before the hint line. */
+  hintIcon?: SyIconName;
 }) {
   return (
     <View style={[styles.dock, { paddingBottom: Math.max(bottomInset, 10) }]}>
@@ -66,11 +73,19 @@ export function SimplyurDockCta({
         {busy ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.label}>{label}</Text>
+          <View style={styles.labelRow}>
+            {icon ? <SyIcon name={icon} size={17} color="#fff" strokeWidth={2.2} /> : null}
+            <Text style={styles.label}>{label}</Text>
+          </View>
         )}
       </Pressable>
       <View style={styles.hintSlot}>
-        {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+        {hint ? (
+          <View style={styles.hintRow}>
+            {hintIcon ? <SyIcon name={hintIcon} size={12} color={SY.ink3} strokeWidth={2} /> : null}
+            <Text style={styles.hint}>{hint}</Text>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -96,7 +111,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   btnDim: { opacity: 0.7 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   label: { color: '#fff', fontSize: 16.5, ...fp('700') },
   hintSlot: { minHeight: SIMPLYUR_DOCK_HINT_SLOT, justifyContent: 'center' },
-  hint: { fontSize: 12, lineHeight: 18, ...fp('400'), color: SY.ink3, textAlign: 'center' },
+  hint: { fontSize: 12.5, lineHeight: 17, ...fp('400'), color: SY.ink3, textAlign: 'center' },
 });

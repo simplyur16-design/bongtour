@@ -191,7 +191,15 @@
     "refundPolicyLink": "See refund policy →",
     "freeAppsShort": "Google Maps · ChatGPT free",
     "hotspotShort": "Hotspot OK*",
-    "unusedRefundShort": "Unused? Full refund"
+    "unusedRefundShort": "Unused? Full refund",
+    "headerTitle": "Korea · {days}",
+    "firstOrderTag": "First-order discount applied at checkout",
+    "perDayUnit": "{currency} · {amount} / day",
+    "dailyResetSub": "Resets daily during your {days}",
+    "qrTitle": "QR by email in minutes",
+    "checkShort": "Check",
+    "payHint": "Secure card payment in the app · Eximbay · USD",
+    "share": "Share"
   },
   "checkout": {
     "title": "Checkout",

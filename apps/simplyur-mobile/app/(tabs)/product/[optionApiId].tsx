@@ -1,19 +1,20 @@
 import { Link, router, useLocalSearchParams } from 'expo-router';
-import * as Device from 'expo-device';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fetchKoreaProduct, openSimplyurInAppCheckout, type PlanProduct } from '@/src/api/simplyur';
 import {
-  SimplyurBackRow,
   SimplyurDockCta,
   simplyurDockScrollPad,
   simplyurScreenPadTop,
 } from '@/src/components/SimplyurDockCta';
+import { EsimMarkTile, IconButton, ListItem } from '@/src/components/ui/SyUi';
+import { SY, SY_RADIUS } from '@/src/constants/theme';
 import { PRODUCT_DESIGN as D, type ProductViewState } from '@/src/constants/product-design';
 import { isSimplyurCheckoutEnabled } from '@/src/constants/simplyur';
 import { fp } from '@/src/constants/typography';
+import { SyIcon } from '@/src/components/ui/SyIcon';
 import { useI18n } from '@/src/i18n/I18nContext';
 import {
   formatProductTitle,
@@ -23,6 +24,8 @@ import {
 /**
  * design_handoff_product — Product detail [05]
  * Proposal 4: "What's included" + "Before you buy" (eSIM / unlock check) so buyers can decide here.
+ * 1.0.2 (mockup 03-detail-after): header (back · Korea · days · share), mark card, big USD price,
+ * icon list for inclusions, warn strip for device check. All values come from the catalog API.
  */
 // REGRESSION-FREEZE[simplyur-product-detail-same-catalog-pipe]: 5xx ≠ Plan not found — manifest
 // REGRESSION-FREEZE[simplyur-purchase-dock-cta]: docked buy CTA — manifest
@@ -80,9 +83,16 @@ export default function ProductScreen() {
   const price = product?.simplyur_display?.formatted ?? '—';
   const perDay =
     (product?.days ?? 0) >= 2 ? product?.simplyur_display_per_day?.formatted : null;
+  const currency = product?.simplyur_display?.currency ?? '';
   const perDayLabel = perDay
-    ? t('recommend.perDay').replace('{amount}', perDay)
-    : null;
+    ? t('product.perDayUnit').replace('{currency}', currency).replace('{amount}', perDay)
+    : currency || null;
+  const isDaily = product?.plan_type === 'daily';
+
+  const onShare = () => {
+    if (!product) return;
+    void Share.share({ message: `simplyur eSIM · ${title} · ${price}` }).catch(() => undefined);
+  };
 
   const onBuy = () => {
     if (!product || openingPay) return;
@@ -111,7 +121,17 @@ export default function ProductScreen() {
             : insets.bottom + 40,
         },
       ]}>
-      <SimplyurBackRow label={t('product.backToPlans')} onPress={() => router.back()} />
+      <View style={styles.header}>
+        <IconButton name="back" label={t('product.backToPlans')} onPress={() => router.back()} />
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {product ? t('product.headerTitle').replace('{days}', product.days_label) : ''}
+        </Text>
+        {product ? (
+          <IconButton name="share" label={t('product.share')} onPress={onShare} />
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
+      </View>
 
       {state === 'loading' ? <LoadingSkeleton /> : null}
 
@@ -142,60 +162,68 @@ export default function ProductScreen() {
 
       {state === 'loaded' && product ? (
         <View style={styles.loaded}>
-          <Text style={styles.title}>{title}</Text>
-          <View style={styles.priceRow}>
-            <Text style={styles.price}>{price}</Text>
-            {perDayLabel ? <Text style={styles.perDay}>{perDayLabel}</Text> : null}
+          <View style={styles.heroCard}>
+            <EsimMarkTile size={64} />
+            <View style={styles.heroText}>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.heroSub}>
+                {network ? `${network} · ` : ''}
+                {t('product.validityNote')}
+              </Text>
+            </View>
+          </View>
+
+          <View>
+            <View style={styles.priceRow}>
+              <Text style={styles.price}>{price}</Text>
+              {perDayLabel ? <Text style={styles.perDay}>{perDayLabel}</Text> : null}
+            </View>
+            <View style={styles.promoTag}>
+              <Text style={styles.promoTagText}>{t('product.firstOrderTag')}</Text>
+            </View>
           </View>
 
           <View style={styles.panel}>
             <Text style={styles.panelTitle}>{t('product.includedTitle')}</Text>
-            <DetailRow
-              label={t('recommend.data')}
-              value={product.data_label}
-              sub={product.data_hint ?? undefined}
-              bordered
+            <ListItem
+              icon="signal"
+              title={product.data_label}
+              sub={
+                product.data_hint ??
+                (isDaily ? t('product.dailyResetSub').replace('{days}', product.days_label) : null)
+              }
             />
-            <DetailRow
-              label={t('product.validity')}
-              value={product.days_label}
-              sub={t('product.validityNote')}
-              bordered
-            />
-            <DetailRow label={t('product.network')} value={network} bordered />
             {product.free_apps_data ? (
-              <DetailRow
-                label={t('product.freeAppsLabel')}
-                value={t('product.freeApps')}
-                sub={t('product.freeAppsNote')}
-                bordered
-              />
+              <ListItem icon="map" tone="ok" title={t('product.freeApps')} sub={t('product.freeAppsNote')} />
             ) : null}
             {product.hotspot_note ? (
-              <DetailRow label={t('product.hotspotLabel')} value={product.hotspot_note} bordered />
+              <ListItem
+                icon="wifi"
+                title={t('product.hotspotShort').replace(/\*$/, '')}
+                sub={product.hotspot_note}
+              />
             ) : null}
-            <DetailRow
-              label={t('product.qrDelivery')}
-              value={t('product.qrDeliveryValue')}
-              bordered={Boolean(product.unused_refund)}
-            />
+            <ListItem icon="qr" title={t('product.qrTitle')} sub={t('product.qrDeliveryValue')} />
             {product.unused_refund ? (
-              <View style={styles.row}>
-                <Text style={styles.rowLabel}>{t('product.refundLabel')}</Text>
-                <View style={styles.rowValueWrap}>
-                  <Text style={styles.rowValue}>{t('product.unusedRefund')}</Text>
-                  <Pressable
-                    onPress={() => router.push({ pathname: '/legal', params: { doc: 'refund' } })}
-                    hitSlop={8}
-                    accessibilityRole="link">
-                    <Text style={styles.checkLink}>{t('product.refundPolicyLink')}</Text>
-                  </Pressable>
-                </View>
-              </View>
+              <Pressable
+                onPress={() => router.push({ pathname: '/legal', params: { doc: 'refund' } })}
+                accessibilityRole="link">
+                <ListItem icon="refund" title={t('product.unusedRefund')} sub={t('product.refundPolicyLink')} />
+              </Pressable>
             ) : null}
           </View>
 
-          <CompatibilityCard t={t} />
+          <Pressable
+            style={styles.checkCard}
+            onPress={() => router.push('/devices')}
+            accessibilityRole="link"
+            accessibilityLabel={t('product.checkDevicesLink')}>
+            <View style={styles.checkIcon}>
+              <SyIcon name="phone" size={16} color={SY.warn} strokeWidth={2} />
+            </View>
+            <Text style={styles.checkBody}>{t('product.checkBody')}</Text>
+            <Text style={styles.checkLink}>{t('product.checkShort')}</Text>
+          </Pressable>
         </View>
       ) : null}
     </ScrollView>
@@ -209,7 +237,8 @@ export default function ProductScreen() {
                   ? `${t('product.buyNow')} · ${product.simplyur_display.formatted}`
                   : t('product.buyNow')
             }
-            hint={t('product.payInAppHint')}
+            hint={t('product.payHint')}
+            hintIcon="lock"
             onPress={() => void onBuy()}
             busy={openingPay}
             bottomInset={insets.bottom}
@@ -228,63 +257,12 @@ export default function ProductScreen() {
   );
 }
 
-function DetailRow({
-  label,
-  value,
-  sub,
-  bordered,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  bordered?: boolean;
-}) {
-  return (
-    <View style={[styles.row, bordered && styles.rowBorder]}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <View style={styles.rowValueWrap}>
-        <Text style={styles.rowValue}>{value}</Text>
-        {sub ? <Text style={styles.rowSub}>{sub}</Text> : null}
-      </View>
-    </View>
-  );
-}
-
-/** Before you buy — eSIM support + carrier unlock. Device model is shown when the OS reports it. */
-function CompatibilityCard({ t }: { t: (k: string) => string }) {
-  const model = (Device.modelName ?? '').trim();
-  const platformLines =
-    Platform.OS === 'ios'
-      ? [t('product.checkIos')]
-      : Platform.OS === 'android'
-        ? [t('product.checkAndroid')]
-        : [t('product.checkIos'), t('product.checkAndroid')];
-  return (
-    <View style={styles.checkCard}>
-      <Text style={styles.panelTitle}>{t('product.checkTitle')}</Text>
-      <Text style={styles.checkBody}>{t('product.checkBody')}</Text>
-      {model ? (
-        <Text style={styles.checkModel}>{t('product.checkThisPhone').replace('{model}', model)}</Text>
-      ) : null}
-      {[t('product.checkDial'), ...platformLines].map((line) => (
-        <View key={line} style={styles.checkLineRow}>
-          <Text style={styles.checkBullet}>•</Text>
-          <Text style={styles.checkLine}>{line}</Text>
-        </View>
-      ))}
-      <Pressable onPress={() => router.push('/devices')} hitSlop={8} accessibilityRole="link">
-        <Text style={styles.checkLink}>{t('product.checkDevicesLink')}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 function LoadingSkeleton() {
   return (
     <View style={styles.skeletonWrap}>
-      <View style={[styles.skeletonLine, { width: '75%', height: 28 }]} />
+      <View style={[styles.skeletonLine, { width: '100%', height: 96, borderRadius: 18 }]} />
       <View style={[styles.skeletonLine, { width: '45%', height: 38 }]} />
-      <View style={[styles.skeletonLine, { width: '100%', height: 150, borderRadius: 18 }]} />
+      <View style={[styles.skeletonLine, { width: '100%', height: 220, borderRadius: 18 }]} />
       <View style={[styles.skeletonLine, { width: '100%', height: 56, borderRadius: 16 }]} />
     </View>
   );
@@ -293,6 +271,9 @@ function LoadingSkeleton() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { paddingHorizontal: D.paddingH, gap: D.sectionGap },
+  header: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 14, ...fp('600'), color: D.muted },
+  headerSpacer: { width: 36 },
   skeletonWrap: { gap: 16 },
   skeletonLine: { borderRadius: 8, backgroundColor: D.skeleton },
   notFound: {
@@ -317,44 +298,61 @@ const styles = StyleSheet.create({
   },
   notFoundLink: { marginTop: 6, fontSize: 13, ...fp('600'), color: D.coral },
   loaded: { gap: D.sectionGap },
-  title: { fontSize: 24, ...fp('800'), lineHeight: 31, color: D.navy },
-  price: { fontSize: 34, ...fp('800'), color: D.coral },
-  priceRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 8 },
-  perDay: { fontSize: 14, ...fp('600'), color: D.faint },
+  heroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: D.cardRadius,
+    backgroundColor: SY.surface,
+    padding: D.cardPadding + 2,
+  },
+  heroText: { flex: 1, minWidth: 0, gap: 4 },
+  title: { fontSize: 22, ...fp('700'), lineHeight: 27, color: D.navy, letterSpacing: -0.2 },
+  heroSub: { fontSize: 13, lineHeight: 18, ...fp('400'), color: D.muted },
+  priceRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 6 },
+  price: { fontSize: 34, ...fp('700'), color: D.navy, letterSpacing: -0.5 },
+  perDay: { fontSize: 13.5, ...fp('400'), color: D.faint },
+  promoTag: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    backgroundColor: SY.primaryTint,
+    borderRadius: SY_RADIUS.tag,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  promoTagText: { fontSize: 12.5, ...fp('600'), color: SY.primaryDark },
   panel: {
     borderWidth: 1,
     borderColor: D.border,
     borderRadius: D.cardRadius,
-    backgroundColor: '#fff',
-    paddingHorizontal: D.cardPadding,
-    paddingVertical: 6,
+    backgroundColor: SY.surface,
+    paddingHorizontal: D.cardPadding + 2,
+    paddingTop: 8,
+    paddingBottom: 18,
+    gap: 14,
   },
-  panelTitle: { fontSize: 15, ...fp('700'), color: D.navy, paddingTop: 10, paddingBottom: 4 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
-    paddingVertical: 12,
-  },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: D.divider },
-  rowLabel: { fontSize: 13, ...fp('400'), color: D.muted },
-  rowValueWrap: { flexShrink: 1, alignItems: 'flex-end', gap: 2 },
-  rowValue: { fontSize: 14, ...fp('700'), color: D.navy, textAlign: 'right' },
-  rowSub: { fontSize: 12, lineHeight: 17, ...fp('400'), color: D.faint, textAlign: 'right' },
+  panelTitle: { fontSize: 16, ...fp('700'), color: D.navy, paddingTop: 10 },
   checkCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     borderWidth: 1,
-    borderColor: D.border,
+    borderColor: SY.warnBorder,
     borderRadius: D.cardRadius,
-    backgroundColor: '#fff',
+    backgroundColor: SY.warnTint,
     paddingHorizontal: D.cardPadding,
-    paddingBottom: 16,
-    gap: 8,
+    paddingVertical: 14,
   },
-  checkBody: { fontSize: 13, lineHeight: 19.5, ...fp('600'), color: D.navy },
-  checkModel: { fontSize: 12.5, ...fp('400'), color: D.muted },
-  checkLineRow: { flexDirection: 'row', gap: 6 },
-  checkBullet: { fontSize: 13, lineHeight: 19.5, color: D.muted },
-  checkLine: { flex: 1, fontSize: 13, lineHeight: 19.5, ...fp('400'), color: D.muted },
-  checkLink: { marginTop: 4, fontSize: 13, ...fp('600'), color: D.coral },
+  checkIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    backgroundColor: SY.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkBody: { flex: 1, fontSize: 13.5, lineHeight: 19, ...fp('600'), color: SY.warnText },
+  checkLink: { fontSize: 13.5, ...fp('700'), color: SY.warn },
 });

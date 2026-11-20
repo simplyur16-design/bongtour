@@ -191,7 +191,15 @@
     "refundPolicyLink": "返金ポリシーを見る →",
     "freeAppsShort": "Googleマップ・ChatGPT無料",
     "hotspotShort": "テザリング可*",
-    "unusedRefundShort": "未使用なら全額返金"
+    "unusedRefundShort": "未使用なら全額返金",
+    "headerTitle": "韓国 · {days}",
+    "firstOrderTag": "初回割引はお支払い時に適用",
+    "perDayUnit": "{currency} · 1日あたり{amount}",
+    "dailyResetSub": "{days}のあいだ毎日リセット",
+    "qrTitle": "QRコードは数分でメールに届きます",
+    "checkShort": "確認",
+    "payHint": "アプリ内で安全にカード決済 · Eximbay · 米ドル",
+    "share": "共有"
   },
   "checkout": {
     "title": "ご購入手続き",

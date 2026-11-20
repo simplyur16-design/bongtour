@@ -191,7 +191,15 @@
     "refundPolicyLink": "查看退款政策 →",
     "freeAppsShort": "Google 地圖、ChatGPT 免流",
     "hotspotShort": "可開熱點*",
-    "unusedRefundShort": "未使用可全額退款"
+    "unusedRefundShort": "未使用可全額退款",
+    "headerTitle": "韓國 · {days}",
+    "firstOrderTag": "首購優惠於結帳時折抵",
+    "perDayUnit": "{currency} · 每天 {amount}",
+    "dailyResetSub": "{days}內每天重置",
+    "qrTitle": "幾分鐘內透過 Email 收到 QR 碼",
+    "checkShort": "查看",
+    "payHint": "在 App 內安全刷卡 · Eximbay · 美元",
+    "share": "分享"
   },
   "checkout": {
     "title": "確認訂單",

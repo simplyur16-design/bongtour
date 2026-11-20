@@ -191,7 +191,15 @@
     "refundPolicyLink": "Xem chính sách hoàn tiền →",
     "freeAppsShort": "Google Maps · ChatGPT miễn phí",
     "hotspotShort": "Phát hotspot*",
-    "unusedRefundShort": "Chưa dùng? Hoàn 100%"
+    "unusedRefundShort": "Chưa dùng? Hoàn 100%",
+    "headerTitle": "Hàn Quốc · {days}",
+    "firstOrderTag": "Ưu đãi đơn đầu áp dụng khi thanh toán",
+    "perDayUnit": "{currency} · {amount} / ngày",
+    "dailyResetSub": "Làm mới mỗi ngày trong {days}",
+    "qrTitle": "Nhận mã QR qua email trong vài phút",
+    "checkShort": "Kiểm tra",
+    "payHint": "Thanh toán thẻ an toàn trong ứng dụng · Eximbay · USD",
+    "share": "Chia sẻ"
   },
   "checkout": {
     "title": "Thanh toán",
