@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SignalPinIcon } from '@/src/components/auth/SignalPinIcon';
+import { EsimMarkTile } from '@/src/components/ui/SyUi';
 import { SocialAuthButtons } from '@/src/components/auth/SocialAuthButtons';
 import { LOGIN_1B } from '@/src/constants/login-design';
 import { fp } from '@/src/constants/typography';
@@ -31,7 +31,7 @@ export default function SignInChooserScreen() {
       <View style={styles.spacer} />
 
       <View style={styles.hero}>
-        <SignalPinIcon />
+        <EsimMarkTile size={72} />
         <View style={styles.headingStack}>
           <Text style={styles.welcomeTitle}>{t('auth.welcomeTitle')}</Text>
           <Text style={styles.welcomeSubtitle}>{t('auth.welcomeSubtitle')}</Text>
