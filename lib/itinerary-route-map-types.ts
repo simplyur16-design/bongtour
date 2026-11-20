@@ -12,6 +12,9 @@ export type ItineraryRouteMapHub = {
   cityEn: string
   dayLabel: string
   days: number[]
+  /** Nominatim 또는 내장 좌표 캐시. 없으면 렌더가 정적 사전을 본다. */
+  lon?: number
+  lat?: number
 }
 
 export type ItineraryRouteMapLeg = {

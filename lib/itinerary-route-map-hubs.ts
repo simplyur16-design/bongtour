@@ -140,7 +140,6 @@ const CITY_EN_TO_KO: Record<string, string> = {
   Shanghai: '상하이',
   Zhangjiajie: '장가계',
   'Hoi An': '호이안',
-  'Ho Chi Minh': '호치민',
 }
 
 function isDomesticDepartureHub(token: string): boolean {
@@ -187,11 +186,17 @@ function matchKnownCityEnInText(text: string): string | null {
   for (const [en, ko] of Object.entries(CITY_EN_TO_KO)) {
     if (lower.includes(en.toLowerCase()) && CITY_KO_TO_EN[ko]) return CITY_KO_TO_EN[ko]!
   }
-  // 아라시야마/사가 → 교토 권역
-  if (/아라시야마|嵐山|\bsaga\b/i.test(t) && /교토|kyoto|쿄토/i.test(t + ' 교토')) {
-    return 'Kyoto'
-  }
-  if (/아라시야마|嵐山/i.test(t)) return 'Kyoto'
+  return null
+}
+
+/** 사전에 없는 지명은 원문 세그먼트 그대로. 다른 도시명으로 바꾸지 않는다. */
+function literalItineraryPlace(seg: string): string | null {
+  const s = seg.trim().replace(/\s+/g, ' ')
+  if (s.length < 2 || s.length > 16) return null
+  if (isDomesticDepartureHub(s)) return null
+  if (/열차|케이블|공항|출발|도착|자유일정|시내관광|호텔|식사|조식|중식|석식|전용|버스|항공/.test(s)) return null
+  if (/^[\uAC00-\uD7AF]{2,12}$/u.test(s)) return s
+  if (/^[A-Za-z][A-Za-z .'-]{1,20}$/.test(s)) return s
   return null
 }
 
@@ -241,7 +246,12 @@ function cityEnFromDay(day: ItineraryRouteMapScheduleDay): string {
     }
   }
 
-  const hay = [day.routeText, day.description, day.city].filter(Boolean).join(' ')
+  for (const seg of ordered) {
+    const literal = literalItineraryPlace(seg)
+    if (literal) return literal
+  }
+
+  const hay = [day.routeText, day.city].filter(Boolean).join(' ')
   const fromHay = matchKnownCityEnInText(hay)
   if (fromHay) return fromHay
 

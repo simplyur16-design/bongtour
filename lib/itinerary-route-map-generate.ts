@@ -9,6 +9,7 @@ import {
   extractItineraryRouteMapHubs,
   parseScheduleJsonForRouteMap,
 } from '@/lib/itinerary-route-map-hubs'
+import { locateItineraryRouteMapHubs } from '@/lib/itinerary-route-map-locate'
 import { renderItineraryRouteMapPng } from '@/lib/itinerary-route-map-render-svg'
 import {
   buildItineraryRouteMapMeta,
@@ -75,11 +76,15 @@ export async function generateAndPersistItineraryRouteMap(
     return { ok: false, error: '일정(schedule) 데이터가 없습니다.', hubsFound: 0 }
   }
 
-  const { hubs, legs } = extractItineraryRouteMapHubs(schedule)
+  const extracted = extractItineraryRouteMapHubs(schedule)
+  const located = await locateItineraryRouteMapHubs(extracted.hubs, extracted.legs)
+  const { hubs, legs } = located
   if (hubs.length < minHubs) {
     return {
       ok: false,
-      error: `방문 거점이 ${hubs.length}개뿐입니다. 최소 ${minHubs}개 도시가 필요합니다.`,
+      error: `방문 거점이 ${hubs.length}개뿐입니다. 최소 ${minHubs}개 도시가 필요합니다.${
+        located.skipped.length ? ` 좌표 실패로 건너뜀: ${located.skipped.join(', ')}` : ''
+      }`,
       hubsFound: hubs.length,
     }
   }

@@ -230,9 +230,12 @@ export function buildItineraryRouteMapSvg(input: {
     )
   }
 
-  // 도시 권역 — 옅은 타원. 방문 거점과 이름이 같으면 구역명 텍스트는 생략
-  // (핀 아래 도시명과 중첩 방지). 미방문(나라/고베 등)만 큰 구역명 표기.
+  // 권역 타원은 원문 일정에 나온 지명만. 미방문 구역명(나라·고베 등)은 그리지 않는다.
   for (const area of asset.areaLabels ?? []) {
+    const named =
+      cityKoSet.has(area.ko) ||
+      [...cityKoSet].some((v) => area.ko.includes(v) || v.includes(area.ko))
+    if (!named) continue
     const rxDeg = area.rx ?? 0.16
     const ryDeg = area.ry ?? 0.11
     const c = projectLonLat(area.lon, area.lat, bbox, W, H, PAD)
@@ -240,27 +243,18 @@ export function buildItineraryRouteMapSvg(input: {
     const n = projectLonLat(area.lon, area.lat + ryDeg, bbox, W, H, PAD)
     const rxPx = Math.max(36, Math.abs(e.x - c.x))
     const ryPx = Math.max(28, Math.abs(c.y - n.y))
-    const visited =
-      cityKoSet.has(area.ko) ||
-      [...cityKoSet].some((v) => area.ko.includes(v) || v.includes(area.ko))
-    const fillOp = visited ? 0.2 : 0.1
     parts.push(
-      `<ellipse cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" rx="${rxPx.toFixed(1)}" ry="${ryPx.toFixed(1)}" fill="${C.route}" opacity="${fillOp}"/>`,
+      `<ellipse cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" rx="${rxPx.toFixed(1)}" ry="${ryPx.toFixed(1)}" fill="${C.route}" opacity="0.2"/>`,
     )
-    if (!visited) {
-      parts.push(
-        `<text x="${c.x.toFixed(1)}" y="${(c.y + 6).toFixed(1)}" text-anchor="middle" font-family="${C.font}" font-size="22" font-weight="700" letter-spacing="0.14em" fill="${C.ink}" opacity="0.4">${esc(area.ko)}</text>`,
-      )
-    }
   }
 
-  // 보조 지명 — 작고 옅게 (바다·호수·반도). 권역명·거점 근처면 스킵/밀어냄
+  // 바다·호수 이름도 원문 거점에 그 글자가 있을 때만.
   const areaKo = new Set((asset.areaLabels ?? []).map((a) => a.ko))
   const labels = [...(asset.featureLabels ?? [])]
   if (asset.seaLabel) labels.push({ ...asset.seaLabel, kind: 'sea' as const })
   for (const lab of labels) {
     if (areaKo.has(lab.ko)) continue
-    // 거점 도시명과 동일·포함이면 중복 표기 금지 (예: 오사카 / 오사카만은 유지)
+    if (!cityKoSet.has(lab.ko)) continue
     if (cityKoSet.has(lab.ko)) continue
     let { x, y } = projectLonLat(lab.lon, lab.lat, bbox, W, H, PAD)
     // 거점 핀·도시명과 너무 가까우면 바다/호수 라벨을 바깥으로 밀어 중첩 완화

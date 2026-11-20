@@ -166,6 +166,9 @@ export function resolveHubLonLats(
   const missing = known.filter((x) => !x).length
   let missIdx = 0
   return hubs.map((h, i) => {
+    if (Number.isFinite(h.lon) && Number.isFinite(h.lat)) {
+      return { ...h, lon: h.lon as number, lat: h.lat as number }
+    }
     const ll = known[i]
     if (ll) return { ...h, ...ll }
     const t = missing <= 1 ? 0.5 : missIdx / Math.max(1, missing - 1)

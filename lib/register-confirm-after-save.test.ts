@@ -21,6 +21,10 @@ vi.mock('@/lib/itinerary-route-map-ensure', () => ({
   scheduleItineraryRouteMapGeneration: (...args: unknown[]) => scheduleRouteMapMock(...args),
 }))
 
+vi.mock('@/lib/bongtour-route-map-persist-ssot', () => ({
+  ensureBongtourRouteMapPersisted: () => Promise.resolve(null),
+}))
+
 import { finalizeRegisterConfirmAfterSave } from '@/lib/register-confirm-after-save'
 
 describe('finalizeRegisterConfirmAfterSave', () => {
