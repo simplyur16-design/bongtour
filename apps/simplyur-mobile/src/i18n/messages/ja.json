@@ -253,7 +253,11 @@
     "totalUsd": "合計（米ドル）",
     "chargedInUsd": "カードへのご請求は米ドル（USD）です。円の金額は目安です。",
     "securedBy": "クレジットカード・銀聯（UnionPay）· Eximbayの安全な決済",
-    "payAmount": "{amount}を支払う"
+    "payAmount": "{amount}を支払う",
+    "change": "変更",
+    "signedInTag": "ログイン中",
+    "whereQr": "QRコードの送信先",
+    "firstOrderDiscount": "初回注文割引"
   },
   "guide": {
     "title": "eSIMのインストール",

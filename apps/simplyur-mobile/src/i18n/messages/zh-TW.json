@@ -253,7 +253,11 @@
     "totalUsd": "合計（美元）",
     "chargedInUsd": "信用卡將以美元（USD）請款，新台幣金額僅供參考。",
     "securedBy": "信用卡或銀聯 · 由 Eximbay 提供安全付款",
-    "payAmount": "付款 {amount}"
+    "payAmount": "付款 {amount}",
+    "change": "變更",
+    "signedInTag": "已登入",
+    "whereQr": "QR 碼要寄到哪裡？",
+    "firstOrderDiscount": "首單優惠"
   },
   "guide": {
     "title": "安裝 eSIM",

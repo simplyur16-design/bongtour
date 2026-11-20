@@ -253,7 +253,11 @@
     "totalUsd": "Total (USD)",
     "chargedInUsd": "Your card is charged in US dollars (USD). The local-currency amount is for reference.",
     "securedBy": "Card or UnionPay · Secured by Eximbay",
-    "payAmount": "Pay {amount}"
+    "payAmount": "Pay {amount}",
+    "change": "Change",
+    "signedInTag": "Signed in",
+    "whereQr": "Where should we send your QR?",
+    "firstOrderDiscount": "First-order discount"
   },
   "guide": {
     "title": "How to install your eSIM",

@@ -253,7 +253,11 @@
     "totalUsd": "Tổng (USD)",
     "chargedInUsd": "Thẻ sẽ bị trừ tiền bằng đô la Mỹ (USD); số tiền VND chỉ để tham khảo.",
     "securedBy": "Thẻ hoặc UnionPay · Thanh toán bảo mật bởi Eximbay",
-    "payAmount": "Thanh toán {amount}"
+    "payAmount": "Thanh toán {amount}",
+    "change": "Đổi",
+    "signedInTag": "Đã đăng nhập",
+    "whereQr": "Gửi mã QR đến đâu?",
+    "firstOrderDiscount": "Giảm giá đơn đầu tiên"
   },
   "guide": {
     "title": "Cài eSIM",

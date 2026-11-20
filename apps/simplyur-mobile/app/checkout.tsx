@@ -24,8 +24,11 @@ import {
 } from '@/src/api/checkout';
 import { fetchKoreaProduct, type PlanProduct } from '@/src/api/simplyur';
 import { OfflineBanner } from '@/src/components/OfflineBanner';
+import { SyIcon } from '@/src/components/ui/SyIcon';
+import { EsimMarkTile, IconButton, Tag } from '@/src/components/ui/SyUi';
+import { SY, SY_RADIUS } from '@/src/constants/theme';
+import { formatProductTitle, networkLabelFromFamily } from '@/src/lib/product-title';
 import {
-  SimplyurBackRow,
   SimplyurDockCta,
   simplyurDockScrollPad,
   simplyurScreenPadTop,
@@ -325,7 +328,29 @@ export default function CheckoutScreen() {
       return null;
     }
   };
-  const discountedPrice = formatDiscounted(product?.simplyur_display, locale === 'en' ? 'en-US' : locale);
+  const discountAmount = (() => {
+    const d = product?.simplyur_display;
+    if (discountRatio == null || !d || d.amount <= 0) return null;
+    const cents = d.currency === 'USD';
+    const raw = d.amount * (1 - discountRatio);
+    const amt = cents ? Math.round(raw * 100) / 100 : Math.round(raw);
+    if (amt <= 0) return null;
+    try {
+      return `−${new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale, {
+        style: 'currency',
+        currency: d.currency,
+        maximumFractionDigits: cents ? 2 : 0,
+      }).format(amt)}`;
+    } catch {
+      return null;
+    }
+  })();
+  const networkName = product
+    ? networkLabelFromFamily(product.network_family, t('recommend.roaming'), t('recommend.local'))
+    : '';
+  const planTitle = product
+    ? formatProductTitle(locale, { days: product.days ?? null, dataLabel: product.data_label, networkLabel: '' })
+    : '';
   // Eximbay charges USD. en display is already USD; other locales read the USD plan row.
   const usdDisplay =
     locale === 'en'
@@ -496,98 +521,72 @@ export default function CheckoutScreen() {
         { paddingTop: simplyurScreenPadTop(insets.top), paddingBottom: simplyurDockScrollPad(insets.bottom) },
       ]}
       keyboardShouldPersistTaps="handled">
-      <SimplyurBackRow label={t('product.backToPlans')} onPress={() => router.back()} />
+      <View style={styles.header}>
+        <IconButton name="back" label={t('product.backToPlans')} onPress={() => router.back()} />
+        <Text style={styles.headerTitle}>{t('checkout.title')}</Text>
+        <View style={styles.headerSpacer} />
+      </View>
 
       <OfflineBanner />
-      <Text style={styles.title}>{t('checkout.title')}</Text>
       <CheckoutSteps current={1} t={t} />
 
       {!product ? (
         <ActivityIndicator color={LOGIN_1B.coral} style={{ marginTop: 24 }} />
       ) : (
         <>
-          <View style={styles.summary}>
-            <Text style={styles.summaryLabel}>{t('checkout.summary')}</Text>
-            {discountedPrice ? (
-              <>
-                <Text style={styles.summaryList}>{price}</Text>
-                <Text style={styles.summaryPrice}>{discountedPrice}</Text>
-                <Text style={styles.summaryPromo}>
-                  {t('checkout.firstPurchaseBanner').replace(
-                    '{rate}',
-                    String(firstPurchase?.discount_rate_pct ?? 14),
-                  )}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.summaryPrice}>{price}</Text>
-            )}
-            {usdTotal ? (
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>{t('checkout.totalUsd')}</Text>
-                <Text style={styles.totalValue}>{usdTotal}</Text>
-              </View>
-            ) : null}
-            {locale !== 'en' ? <Text style={styles.hint}>{t('checkout.chargedInUsd')}</Text> : null}
-            <Text style={styles.secured}>🔒 {t('checkout.securedBy')}</Text>
-          </View>
-
-          {signedIn === false ? (
-            <View style={styles.signInCard}>
-              <Text style={styles.body}>{t('checkout.guestNote')}</Text>
-              {showSignIn ? (
-                <>
-                  <Text style={styles.sectionTitle}>{t('checkout.signInTitle')}</Text>
-                  <Text style={styles.body}>{t('checkout.signInBody')}</Text>
-                  <SocialAuthButtons navigateOnSuccess={false} inlineEmail />
-                </>
-              ) : (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setShowSignIn(true)}>
-                  <Text style={styles.legalLink}>{t('checkout.signInOptional')}</Text>
-                </Pressable>
-              )}
+          <View style={styles.planCard}>
+            <EsimMarkTile size={44} />
+            <View style={styles.planText}>
+              <Text style={styles.planTitle} numberOfLines={2}>
+                {t('product.headerTitle').replace('{days}', planTitle || product.days_label)}
+              </Text>
+              {networkName ? <Text style={styles.planSub}>{networkName}</Text> : null}
             </View>
-          ) : null}
+            <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="link">
+              <Text style={styles.changeLink}>{t('checkout.change')}</Text>
+            </Pressable>
+          </View>
 
           {signedIn !== null ? (
             <>
-              <Text style={styles.label}>{t('checkout.email')}</Text>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                editable
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-                placeholder={t('checkout.emailHint')}
-                placeholderTextColor={LOGIN_1B.faint}
-                style={styles.input}
-              />
+              <Text style={styles.label}>{t('checkout.whereQr')}</Text>
+              <View style={styles.inputWrap}>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  editable
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  placeholder={t('checkout.emailHint')}
+                  placeholderTextColor={LOGIN_1B.faint}
+                  style={styles.input}
+                />
+                {signedIn ? <Tag tone="free" icon="check" label={t('checkout.signedInTag')} /> : null}
+              </View>
               <Text style={styles.hint}>
-                {emailFromAccount ? t('checkout.emailFromAccountHint') : t('checkout.emailHint')}
+                {emailFromAccount ? t('checkout.emailFromAccountHint') : t('checkout.deliveryAlways')}
               </Text>
 
-              <Text style={styles.label}>{t('checkout.deliveryTitle')}</Text>
-              <Text style={styles.hint}>{t('checkout.deliveryAlways')}</Text>
-              <Text style={styles.subLabel}>{t('checkout.alsoSendTo')}</Text>
-              <View style={styles.brandRow} accessibilityRole="radiogroup">
-                {channelOrder.map((c) => {
-                  const on = qrChannel === c;
-                  return (
-                    <Pressable
-                      key={c}
-                      onPress={() => setQrChannel(c)}
-                      style={[styles.brandChip, on ? styles.brandChipOn : null]}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected: on }}>
-                      <Text style={[styles.brandChipText, on ? styles.brandChipTextOn : null]}>
-                        {channelLabel(c)}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+              <Text style={styles.label}>{t('checkout.alsoSendTo')}</Text>
+              <View style={styles.channelRow} accessibilityRole="radiogroup">
+                {channelOrder
+                  .filter((c) => c !== 'none')
+                  .map((c) => {
+                    const on = qrChannel === c;
+                    return (
+                      <Pressable
+                        key={c}
+                        onPress={() => setQrChannel(on ? 'none' : c)}
+                        style={[styles.channelBtn, on ? styles.channelBtnOn : null]}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: on }}>
+                        <Text style={[styles.channelText, on ? styles.channelTextOn : null]} numberOfLines={1}>
+                          {channelLabel(c)}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
               </View>
               {qrChannel === 'sms' ? (
                 <>
@@ -610,6 +609,29 @@ export default function CheckoutScreen() {
                 <Text style={styles.hint}>{t('checkout.wechatHint')}</Text>
               ) : null}
 
+              <View style={styles.summary}>
+                <View style={styles.sumRow}>
+                  <Text style={styles.sumLabel}>{planTitle || product.data_label}</Text>
+                  <Text style={styles.sumValue}>{price}</Text>
+                </View>
+                {discountAmount ? (
+                  <View style={styles.sumRow}>
+                    <Text style={styles.sumPromo}>
+                      {t('checkout.firstOrderDiscount')}
+                      {firstPurchase?.discount_rate_pct ? ` (${firstPurchase.discount_rate_pct}%)` : ''}
+                    </Text>
+                    <Text style={styles.sumPromo}>{discountAmount}</Text>
+                  </View>
+                ) : null}
+                {usdTotal ? (
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>{t('checkout.totalUsd')}</Text>
+                    <Text style={styles.totalValue}>{usdTotal}</Text>
+                  </View>
+                ) : null}
+                {locale !== 'en' ? <Text style={styles.hint}>{t('checkout.chargedInUsd')}</Text> : null}
+              </View>
+
               <Pressable
                 onPress={() => {
                   setTerms((v) => !v);
@@ -619,7 +641,7 @@ export default function CheckoutScreen() {
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: terms }}>
                 <View style={[styles.checkbox, terms ? styles.checkboxOn : null]}>
-                  {terms ? <Text style={styles.checkMark}>✓</Text> : null}
+                  {terms ? <SyIcon name="check" size={14} color="#fff" strokeWidth={2.6} /> : null}
                 </View>
                 <Text style={styles.termsText}>{t('checkout.terms')}</Text>
               </Pressable>
@@ -631,10 +653,32 @@ export default function CheckoutScreen() {
                   }>
                   <Text style={styles.legalLink}>{t('legal.termsTitle')}</Text>
                 </Pressable>
+                <Pressable onPress={() => router.push({ pathname: '/legal', params: { doc: 'refund' } })}>
+                  <Text style={styles.legalLink}>{t('product.refundPolicyLink').replace(/\s*→$/, '')}</Text>
+                </Pressable>
                 <Pressable onPress={() => router.push('/devices')}>
                   <Text style={styles.legalLink}>{t('nav.devices')}</Text>
                 </Pressable>
               </View>
+
+              {signedIn === false ? (
+                <View style={styles.signInCard}>
+                  <Text style={styles.guestNote}>{t('checkout.guestNote')}</Text>
+                  {showSignIn ? (
+                    <>
+                      <Text style={styles.sectionTitle}>{t('checkout.signInTitle')}</Text>
+                      <Text style={styles.body}>{t('checkout.signInBody')}</Text>
+                      <SocialAuthButtons navigateOnSuccess={false} inlineEmail />
+                    </>
+                  ) : (
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setShowSignIn(true)}>
+                      <Text style={styles.legalLink}>{t('checkout.signInOptional')}</Text>
+                    </Pressable>
+                  )}
+                </View>
+              ) : null}
 
               {err ? <Text style={styles.err}>{err}</Text> : null}
             </>
@@ -645,6 +689,8 @@ export default function CheckoutScreen() {
       {product && signedIn !== null ? (
         <SimplyurDockCta
           label={payLabel}
+          icon="lock"
+          hint={t('checkout.securedBy')}
           onPress={() => void onSubmit()}
           busy={busy}
           bottomInset={insets.bottom}
@@ -670,10 +716,12 @@ function CheckoutSteps({ current, t }: { current: 1 | 2 | 3; t: (k: string) => s
           <React.Fragment key={label}>
             {i > 0 ? <View style={[styles.stepBar, n <= current ? styles.stepBarOn : null]} /> : null}
             <View style={styles.step}>
-              <View style={[styles.stepDot, on || done ? styles.stepDotOn : null]}>
-                <Text style={[styles.stepNum, on || done ? styles.stepNumOn : null]}>{done ? '✓' : n}</Text>
-              </View>
-              <Text style={[styles.stepLabel, on ? styles.stepLabelOn : null]} numberOfLines={1}>
+              {done ? (
+                <SyIcon name="check" size={11} color={SY.primary} strokeWidth={2.6} />
+              ) : (
+                <View style={[styles.stepDot, on ? styles.stepDotOn : null]} />
+              )}
+              <Text style={[styles.stepLabel, on || done ? styles.stepLabelOn : null]} numberOfLines={1}>
                 {label}
               </Text>
             </View>
@@ -717,33 +765,68 @@ const styles = StyleSheet.create({
   body: { marginTop: 12, fontSize: 14, lineHeight: 21, color: LOGIN_1B.muted, ...fp('400') },
   linkWrap: { marginTop: 20 },
   link: { fontSize: 15, color: LOGIN_1B.coral, ...fp('600') },
-  summary: {
-    marginTop: 8,
-    padding: 16,
-    borderRadius: 16,
+  header: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, color: LOGIN_1B.navy, ...fp('700') },
+  headerSpacer: { width: 36 },
+  planCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: SY_RADIUS.card,
     borderWidth: 1,
     borderColor: LOGIN_1B.border,
-    backgroundColor: '#fff',
-    gap: 6,
+    backgroundColor: SY.surface,
   },
-  summaryLabel: { fontSize: 13, color: LOGIN_1B.muted, ...fp('400') },
-  summaryList: {
-    marginTop: 4,
-    fontSize: 16,
-    color: LOGIN_1B.muted,
-    textDecorationLine: 'line-through',
-    ...fp('400'),
+  planText: { flex: 1, minWidth: 0, gap: 2 },
+  planTitle: { fontSize: 15, lineHeight: 20, color: LOGIN_1B.navy, ...fp('700') },
+  planSub: { fontSize: 12.5, color: LOGIN_1B.muted, ...fp('400') },
+  changeLink: { fontSize: 13.5, color: LOGIN_1B.coral, ...fp('600') },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 52,
+    borderRadius: SY_RADIUS.input,
+    borderWidth: 1,
+    borderColor: LOGIN_1B.border,
+    backgroundColor: SY.surface,
+    paddingRight: 10,
   },
-  summaryPrice: { fontSize: 28, color: LOGIN_1B.coral, ...fp('800') },
-  summaryPromo: { marginTop: 4, fontSize: 13, color: LOGIN_1B.coral, ...fp('600') },
+  channelRow: { flexDirection: 'row', gap: 10 },
+  channelBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: SY_RADIUS.input,
+    borderWidth: 1,
+    borderColor: LOGIN_1B.border,
+    backgroundColor: SY.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  channelBtnOn: { borderColor: LOGIN_1B.coral, backgroundColor: SY.primaryTint },
+  channelText: { fontSize: 14, color: LOGIN_1B.navy, ...fp('600') },
+  channelTextOn: { color: SY.primaryDark },
+  summary: {
+    marginTop: 6,
+    padding: 16,
+    borderRadius: SY_RADIUS.card,
+    borderWidth: 1,
+    borderColor: LOGIN_1B.border,
+    backgroundColor: SY.surface,
+    gap: 8,
+  },
+  sumRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },
+  sumLabel: { flex: 1, fontSize: 14, color: LOGIN_1B.muted, ...fp('400') },
+  sumValue: { fontSize: 14, color: LOGIN_1B.muted, ...fp('400') },
+  sumPromo: { fontSize: 14, color: SY.ok, ...fp('400') },
+  guestNote: { fontSize: 13, lineHeight: 19, color: LOGIN_1B.muted, ...fp('400') },
   label: { marginTop: 10, fontSize: 13, color: LOGIN_1B.navy, ...fp('600') },
   input: {
+    flex: 1,
     height: 48,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: LOGIN_1B.border,
-    backgroundColor: '#fff',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     fontSize: 15,
     color: LOGIN_1B.navy,
     ...fp('400'),
@@ -758,9 +841,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'baseline',
   },
-  totalLabel: { fontSize: 14, color: LOGIN_1B.navy, ...fp('600') },
-  totalValue: { fontSize: 18, color: LOGIN_1B.navy, ...fp('700') },
-  secured: { marginTop: 6, fontSize: 12, color: LOGIN_1B.muted, ...fp('600') },
+  totalLabel: { fontSize: 15, color: LOGIN_1B.navy, ...fp('700') },
+  totalValue: { fontSize: 21, color: LOGIN_1B.navy, ...fp('700') },
   signInCard: {
     marginTop: 4,
     padding: 16,
@@ -775,37 +857,14 @@ const styles = StyleSheet.create({
   warn: { fontSize: 12, lineHeight: 17, color: '#9a5b00', ...fp('600') },
   legalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 18 },
   authSteps: { paddingHorizontal: 16, paddingTop: 8 },
-  steps: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 2, marginBottom: 4 },
-  step: { alignItems: 'center', gap: 4, minWidth: 64 },
-  stepDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: LOGIN_1B.border,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  steps: { flexDirection: 'row', alignItems: 'center', marginTop: 2, marginBottom: 6, gap: 8 },
+  step: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  stepDot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: LOGIN_1B.faint },
   stepDotOn: { backgroundColor: LOGIN_1B.coral, borderColor: LOGIN_1B.coral },
-  stepNum: { fontSize: 12, color: LOGIN_1B.muted, ...fp('700') },
-  stepNumOn: { color: '#fff' },
-  stepLabel: { fontSize: 11.5, color: LOGIN_1B.muted, ...fp('600') },
-  stepLabelOn: { color: LOGIN_1B.navy },
-  stepBar: { flex: 1, height: 2, marginTop: 11, backgroundColor: LOGIN_1B.border },
+  stepLabel: { fontSize: 13, color: LOGIN_1B.faint, ...fp('600') },
+  stepLabelOn: { color: LOGIN_1B.coral },
+  stepBar: { flex: 1, height: 1, backgroundColor: LOGIN_1B.border },
   stepBarOn: { backgroundColor: LOGIN_1B.coral },
-  brandRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  brandChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: LOGIN_1B.border,
-    backgroundColor: '#fff',
-  },
-  brandChipOn: { backgroundColor: LOGIN_1B.coral, borderColor: LOGIN_1B.coral },
-  brandChipText: { fontSize: 12, color: LOGIN_1B.navy, ...fp('600') },
-  brandChipTextOn: { color: '#fff' },
   termsRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
   checkbox: {
     width: 22,
@@ -819,7 +878,7 @@ const styles = StyleSheet.create({
   },
   checkboxOn: { backgroundColor: LOGIN_1B.coral, borderColor: LOGIN_1B.coral },
   checkMark: { color: '#fff', fontSize: 14, ...fp('700') },
-  termsText: { flex: 1, fontSize: 14, color: LOGIN_1B.navy, ...fp('400') },
+  termsText: { flex: 1, fontSize: 13.5, lineHeight: 19, color: LOGIN_1B.muted, ...fp('400') },
   legalLink: { fontSize: 13, color: LOGIN_1B.coral, ...fp('600') },
   err: { color: '#b42318', fontSize: 13, ...fp('400') },
   errorBox: { padding: 16, gap: 12 },
