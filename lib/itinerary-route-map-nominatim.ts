@@ -23,8 +23,14 @@ export type NominatimLookupDeps = {
   nowImpl?: () => number
 }
 
-function cacheKey(name: string): string {
-  return name.normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase()
+export type NominatimSearchBounds = {
+  bbox: [number, number, number, number]
+}
+
+function cacheKey(name: string, bounds?: NominatimSearchBounds): string {
+  const base = name.normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase()
+  if (!bounds) return base
+  return `${base}|${bounds.bbox.join(',')}`
 }
 
 function sleep(ms: number): Promise<void> {
@@ -44,11 +50,17 @@ async function waitForTurn(deps: NominatimLookupDeps | undefined): Promise<void>
 async function requestOnce(
   name: string,
   deps: NominatimLookupDeps | undefined,
+  bounds?: NominatimSearchBounds,
 ): Promise<ItineraryPlacePoint | null> {
   const url = new URL('https://nominatim.openstreetmap.org/search')
   url.searchParams.set('q', name)
   url.searchParams.set('format', 'jsonv2')
   url.searchParams.set('limit', '1')
+  if (bounds) {
+    const [west, south, east, north] = bounds.bbox
+    url.searchParams.set('viewbox', `${west},${north},${east},${south}`)
+    url.searchParams.set('bounded', '1')
+  }
   const fetchImpl = deps?.fetchImpl ?? fetch
   const res = await fetchImpl(url.toString(), {
     headers: {
@@ -70,8 +82,9 @@ async function requestOnce(
 export async function lookupItineraryPlaceNominatim(
   name: string,
   deps?: NominatimLookupDeps,
+  bounds?: NominatimSearchBounds,
 ): Promise<ItineraryPlacePoint | null> {
-  const key = cacheKey(name)
+  const key = cacheKey(name, bounds)
   if (!key) return null
   const cached = MEMORY.get(key)
   const now = deps?.nowImpl ?? Date.now
@@ -83,7 +96,7 @@ export async function lookupItineraryPlaceNominatim(
   for (let attempt = 0; attempt < 2; attempt++) {
     await waitForTurn(deps)
     try {
-      const point = await requestOnce(name.trim(), deps)
+      const point = await requestOnce(name.trim(), deps, bounds)
       if (point) {
         MEMORY.set(key, { ...point, at: now() })
         return point

@@ -150,8 +150,8 @@ function regionTryOrder(countryEn?: string): Array<Exclude<RouteMapRegionId, 'fa
 }
 
 /**
- * Nominatim 좌표가 선택된 권역 밖이면, 모든 거점이 들어가는 권역(없으면 나라 지도)으로 바꾼다.
- * 그래도 밖인 지명만 뺀다.
+ * 정적 좌표만 있으면 모든 거점이 들어가는 권역(없으면 나라 지도)으로 맞춘다.
+ * 정적 거점이 있는 상품의 Nominatim 좌표가 그 권역 밖이면 지도를 넓히지 않고 그 지명만 뺀다.
  */
 export function fitHubsToAvailableRegion(
   hubs: ItineraryRouteMapHub[],
@@ -161,6 +161,33 @@ export function fitHubsToAvailableRegion(
   if (located.length === 0) {
     return { hubs, skipped: [], regionId: resolveRouteMapRegionId(hubs, countryEn) }
   }
+  const staticHubs = located.filter((h) => lookupCityLonLat(h.cityEn) || lookupCityLonLat(h.cityKo))
+  const extra = located.filter((h) => !(lookupCityLonLat(h.cityEn) || lookupCityLonLat(h.cityKo)))
+  if (staticHubs.length > 0 && extra.length > 0) {
+    const base = widenHubsToRegion(staticHubs, countryEn)
+    const asset = loadRouteMapRegionAsset(base.regionId)
+    if (!asset) {
+      return {
+        hubs: base.hubs,
+        skipped: extra.map((h) => h.cityKo),
+        regionId: base.regionId,
+      }
+    }
+    const skipped = extra.filter((h) => !lonLatInsideBbox(h.lon, h.lat, asset.bbox)).map((h) => h.cityKo)
+    const kept = located.filter(
+      (h) =>
+        !!(lookupCityLonLat(h.cityEn) || lookupCityLonLat(h.cityKo)) ||
+        lonLatInsideBbox(h.lon, h.lat, asset.bbox),
+    )
+    return { hubs: kept, skipped, regionId: base.regionId }
+  }
+  return widenHubsToRegion(located, countryEn)
+}
+
+function widenHubsToRegion(
+  located: Array<ItineraryRouteMapHub & LonLat>,
+  countryEn?: string,
+): { hubs: ItineraryRouteMapHub[]; skipped: string[]; regionId: RouteMapRegionId } {
   const selected = resolveRouteMapRegionId(located, countryEn)
   const selectedAsset = loadRouteMapRegionAsset(selected)
   if (selectedAsset && allHubsInside(located, selectedAsset.bbox)) {
@@ -184,7 +211,7 @@ export function fitHubsToAvailableRegion(
   if (kept.length === 0) {
     return { hubs: [], skipped, regionId: wide.id as RouteMapRegionId }
   }
-  const again = fitHubsToAvailableRegion(kept, countryEn)
+  const again = widenHubsToRegion(kept, countryEn)
   return {
     hubs: again.hubs,
     skipped: [...skipped, ...again.skipped],

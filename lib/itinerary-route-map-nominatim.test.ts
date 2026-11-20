@@ -162,6 +162,36 @@ describe('원문 일정 지명', () => {
     expect(svg).not.toContain('히가시혼간지')
   })
 
+  it('하코다테로 잡힌 동명 사찰은 빼고 칸사이 지도를 유지한다', async () => {
+    resetItineraryPlaceNominatimStateForTests()
+    const queries: string[] = []
+    const hubs: ItineraryRouteMapHub[] = [
+      { cityKo: '오사카', cityEn: 'Osaka', dayLabel: '1', days: [1] },
+      { cityKo: '교토', cityEn: 'Kyoto', dayLabel: '2', days: [2] },
+      { cityKo: '고베', cityEn: 'Kobe', dayLabel: '3', days: [3] },
+      { cityKo: '히가시혼간지', cityEn: '히가시혼간지', dayLabel: '1', days: [1], anchorCityKo: '교토' },
+    ]
+    const located = await locateItineraryRouteMapHubs(
+      hubs,
+      [],
+      {
+        fetchImpl: async (input) => {
+          queries.push(String(input))
+          return jsonResponse([{ lat: '41.76', lon: '140.74' }])
+        },
+        sleepImpl: async () => {},
+        randomImpl: () => 0,
+        nowImpl: () => 30_000,
+      },
+      'JAPAN',
+    )
+    expect(queries.some((q) => decodeURIComponent(q.replace(/\+/g, ' ')).includes('히가시혼간지 교토'))).toBe(true)
+    expect(queries.some((q) => q.includes('bounded=1'))).toBe(true)
+    expect(located.skipped).toEqual(['히가시혼간지'])
+    expect(located.regionId).toBe('kansai')
+    expect(located.hubs.map((h) => h.cityKo)).toEqual(['오사카', '교토', '고베'])
+  })
+
   it('좌표를 못 구한 지명은 건너뛰고 남은 거점으로 구간을 잇는다', async () => {
     resetItineraryPlaceNominatimStateForTests()
     const hubs: ItineraryRouteMapHub[] = [

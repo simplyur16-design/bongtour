@@ -15,6 +15,8 @@ export type ItineraryRouteMapHub = {
   /** Nominatim 또는 내장 좌표 캐시. 없으면 렌더가 정적 사전을 본다. */
   lon?: number
   lat?: number
+  /** 같은 날 routeText에 나온 도시. Nominatim 검색에만 붙인다. */
+  anchorCityKo?: string
 }
 
 export type ItineraryRouteMapLeg = {

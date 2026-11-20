@@ -2,7 +2,7 @@
  * 거점 좌표를 붙인다. 내장 도시 캐시 → Nominatim. 실패 지명은 SKIP 하고 남은 구간을 잇는다.
  */
 
-import { lookupCityLonLat, fitHubsToAvailableRegion } from '@/lib/itinerary-route-map-geo'
+import { lookupCityLonLat, fitHubsToAvailableRegion, loadRouteMapRegionAsset, lonLatInsideBbox } from '@/lib/itinerary-route-map-geo'
 import { formatItineraryRouteMapDayLabel } from '@/lib/itinerary-route-map-hubs'
 import {
   lookupItineraryPlaceNominatim,
@@ -16,21 +16,40 @@ export async function locateItineraryRouteMapHubs(
   deps?: NominatimLookupDeps,
   countryEn?: string,
 ): Promise<{ hubs: ItineraryRouteMapHub[]; legs: ItineraryRouteMapLeg[]; skipped: string[]; regionId: string }> {
-  const kept: ItineraryRouteMapHub[] = []
   const skipped: string[] = []
-  for (const hub of hubs) {
+  const staticHubs: ItineraryRouteMapHub[] = []
+  const pending: Array<{ index: number; hub: ItineraryRouteMapHub }> = []
+  const placed: Array<ItineraryRouteMapHub | null> = hubs.map(() => null)
+  for (let i = 0; i < hubs.length; i++) {
+    const hub = hubs[i]!
     const cached = lookupCityLonLat(hub.cityEn) ?? lookupCityLonLat(hub.cityKo)
     if (cached) {
-      kept.push({ ...hub, lon: cached.lon, lat: cached.lat })
+      const row = { ...hub, lon: cached.lon, lat: cached.lat }
+      placed[i] = row
+      staticHubs.push(row)
       continue
     }
-    const point = await lookupItineraryPlaceNominatim(hub.cityKo, deps)
-    if (!point) {
+    pending.push({ index: i, hub })
+  }
+
+  const staticFit = staticHubs.length > 0 ? fitHubsToAvailableRegion(staticHubs, countryEn) : null
+  const regionAsset = staticFit ? loadRouteMapRegionAsset(staticFit.regionId) : null
+  const bounds = regionAsset ? { bbox: regionAsset.bbox } : undefined
+
+  for (const item of pending) {
+    const hub = item.hub
+    const query =
+      hub.anchorCityKo && hub.anchorCityKo !== hub.cityKo
+        ? `${hub.cityKo} ${hub.anchorCityKo}`
+        : hub.cityKo
+    const point = await lookupItineraryPlaceNominatim(query, deps, bounds)
+    if (!point || (bounds && !lonLatInsideBbox(point.lon, point.lat, bounds.bbox))) {
       skipped.push(hub.cityKo)
       continue
     }
-    kept.push({ ...hub, lon: point.lon, lat: point.lat })
+    placed[item.index] = { ...hub, lon: point.lon, lat: point.lat }
   }
+  const kept = placed.filter((h): h is ItineraryRouteMapHub => h != null)
 
   const collapsed: ItineraryRouteMapHub[] = []
   for (const hub of kept) {

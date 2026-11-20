@@ -189,6 +189,16 @@ function matchKnownCityEnInText(text: string): string | null {
   return null
 }
 
+function knownCityKoInRoute(routeText: string | null | undefined, hubKo: string): string | undefined {
+  const t = String(routeText ?? '')
+  if (!t) return undefined
+  const keys = Object.keys(CITY_KO_TO_EN).sort((a, b) => b.length - a.length)
+  for (const key of keys) {
+    if (key.length >= 2 && key !== hubKo && t.includes(key)) return key
+  }
+  return undefined
+}
+
 /** 사전에 없는 지명은 원문 세그먼트 그대로. 다른 도시명으로 바꾸지 않는다. */
 function literalItineraryPlace(seg: string): string | null {
   const s = seg.trim().replace(/\s+/g, ' ')
@@ -399,7 +409,7 @@ export function extractItineraryRouteMapHubs(schedule: ItineraryRouteMapSchedule
     .sort((a, b) => a.day - b.day)
 
   const dayHaystacks = new Map<number, string>()
-  type Acc = { cityEn: string; cityKo: string; days: number[] }
+  type Acc = { cityEn: string; cityKo: string; days: number[]; anchorCityKo?: string }
   const acc: Acc[] = []
 
   for (const day of sorted) {
@@ -412,12 +422,14 @@ export function extractItineraryRouteMapHubs(schedule: ItineraryRouteMapSchedule
     const cityEn = cityEnFromDay(day)
     if (!cityEn) continue
     const cityKo = koreanLabelForCity(cityEn, day.routeText)
+    const anchorCityKo = knownCityKoInRoute(day.routeText, cityKo)
     const last = acc[acc.length - 1]
     if (last && normCityKey(last.cityEn) === normCityKey(cityEn)) {
       last.days.push(day.day)
+      if (!last.anchorCityKo && anchorCityKo) last.anchorCityKo = anchorCityKo
       continue
     }
-    acc.push({ cityEn, cityKo, days: [day.day] })
+    acc.push({ cityEn, cityKo, days: [day.day], anchorCityKo })
   }
 
   const hubs: ItineraryRouteMapHub[] = acc.map((h) => ({
@@ -425,6 +437,7 @@ export function extractItineraryRouteMapHubs(schedule: ItineraryRouteMapSchedule
     cityEn: h.cityEn,
     days: h.days,
     dayLabel: formatItineraryRouteMapDayLabel(h.days),
+    ...(h.anchorCityKo ? { anchorCityKo: h.anchorCityKo } : {}),
   }))
 
   const legs: ItineraryRouteMapLeg[] = []
