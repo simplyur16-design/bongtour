@@ -5,7 +5,7 @@
  * REGRESSION-FREEZE[supplier-product-fact-ssot]: 사실 필드 도출 — manifest
  */
 
-import { formatPublicAirlineDisplay } from '@/lib/airline-iata-public-display-ssot'
+import { canonicalPublicAirlineLabel } from '@/lib/airline-variant-group'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { buildOptionalToursStructuredJsonFromCanonical } from '@/lib/public-consumption-hanatour'
 import { parseProductRawMetaPublic, parseShoppingStopsJson } from '@/lib/public-product-extras'
@@ -521,25 +521,25 @@ export function deriveAirlineFact(p: {
   }
   const fromFacts = rejectConsult(String(p.departureKeyFactsAirline ?? ''))
   if (fromFacts) {
-    const label = formatPublicAirlineDisplay(fromFacts)
+    const label = canonicalPublicAirlineLabel(fromFacts)
     if (label) return { airlineLabel: label, source: 'departure_key_facts' }
   }
   const fromSelected = rejectConsult(String(p.selectedDepartureCarrierName ?? ''))
   if (fromSelected) {
-    const label = formatPublicAirlineDisplay(fromSelected)
+    const label = canonicalPublicAirlineLabel(fromSelected)
     if (label) return { airlineLabel: label, source: 'selected_departure_carrier' }
   }
   const fromDep = (p.departures ?? [])
     .map((d) => rejectConsult(String(d.carrierName ?? '')))
     .find(Boolean)
   if (fromDep) {
-    const label = formatPublicAirlineDisplay(fromDep)
+    const label = canonicalPublicAirlineLabel(fromDep)
     if (label) return { airlineLabel: label, source: 'departure_carrier' }
   }
   const structured = parseProductRawMetaPublic(p.rawMeta ?? null)?.structuredSignals
   const fromStruct = rejectConsult(String(structured?.airlineName ?? ''))
   if (fromStruct) {
-    const label = formatPublicAirlineDisplay(fromStruct)
+    const label = canonicalPublicAirlineLabel(fromStruct)
     if (label) return { airlineLabel: label, source: 'structured_airline' }
   }
   return { airlineLabel: '정보 없음', source: 'none' }

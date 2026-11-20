@@ -14,7 +14,12 @@ import {
   AIRLINE_LEGACY_KO_TO_PUBLIC,
   formatPublicAirlineDisplay,
 } from '@/lib/airline-iata-public-display-ssot'
-import { resolveDepartureRowAirlineForDisplay } from '@/lib/departure-airline-display'
+import {
+  airlineKoFromIata,
+  CODESHARE_SUFFIX_KO,
+  iataFromSupplierAirlineName,
+  resolveDepartureRowAirlineForDisplay,
+} from '@/lib/departure-airline-display'
 import { deriveTripNightsDays } from '@/lib/derive-trip-nights-days'
 import type { ProductPriceRow } from '@/app/components/travel/travel-product-detail-types'
 
@@ -128,10 +133,36 @@ const NON_AIRLINE_LABELS = new Set(['선박', '버스', '기차', '열차', '크
 function cleanCarrierLabel(v: string | null | undefined): string | null {
   let s = String(v ?? '').trim()
   if (!s) return null
+  // REGRESSION-FREEZE[airline-compare-canonical-1120]: 공동운항 꼬리는 유지하고 본문만 고정 테이블로 — manifest
+  const codeshare = s.includes(CODESHARE_SUFFIX_KO)
+  if (codeshare) s = s.split(CODESHARE_SUFFIX_KO).join('').trim()
   s = s.replace(/\(\s*구\s*\).*$/, '').replace(/\s+/g, '')
   s = CARRIER_LABEL_ALIAS[s] ?? s
+  const code = iataFromSupplierAirlineName(s)
+  if (code) {
+    const ko = airlineKoFromIata(code)
+    if (ko) s = ko
+  }
   if (!/[가-힣]{2,}/.test(s) || NON_AIRLINE_LABELS.has(s)) return null
-  return s
+  return codeshare ? `${s}${CODESHARE_SUFFIX_KO}` : s
+}
+
+/**
+ * 비교·필터·상세가 같은 항공사명을 쓰게 하는 표시명.
+ * 공급사 원문에 있는 이름만. 코드↔이름은 고정 테이블(AIRLINE_IATA_KO_PUBLIC·편명 접두 보강)만.
+ * 표에 없는 코드·영문 표기는 지어내지 않고 원문을 둔다. 선박 등 항공사가 아니면 null.
+ */
+export function canonicalPublicAirlineLabel(raw: string | null | undefined): string | null {
+  const s = String(raw ?? '').trim()
+  if (!s) return null
+  const bare = s.toUpperCase().match(/^(?:[A-Z]{2}|[A-Z]\d|\d[A-Z])$/)?.[0]
+  if (bare) {
+    const ko = airlineKoFromIata(bare)
+    if (ko) return cleanCarrierLabel(ko) ?? ko
+  }
+  const formatted = formatPublicAirlineDisplay(s)
+  if (!formatted) return null
+  return cleanCarrierLabel(formatted) ?? (NON_AIRLINE_LABELS.has(formatted.replace(/\s+/g, '')) ? null : formatted)
 }
 
 export type BookableDepartureLike = {
@@ -139,16 +170,19 @@ export type BookableDepartureLike = {
   adultPrice: number | null
   carrierName?: string | null
   outboundFlightNo?: string | null
+  inboundFlightNo?: string | null
 }
 
 /** 출발 회차 항공사 → 공개 표시명. 한글 항공사명으로 확정되지 않으면 null(추측 금지) */
 export function departureCarrierPublicLabel(
-  d: Pick<BookableDepartureLike, 'carrierName' | 'outboundFlightNo'>,
+  d: Pick<BookableDepartureLike, 'carrierName' | 'outboundFlightNo' | 'inboundFlightNo'>,
 ): string | null {
   // REGRESSION-FREEZE[airline-code-follow-departure]: 원문 이름과 편명 IATA 가 어긋나면 편명 항공사 — vitest
+  // REGRESSION-FREEZE[airline-compare-canonical-1120]: 오는 편 코드도 같이 본다(가는 편만 보면 오는 편 항공사를 오인) — manifest
   const resolved = resolveDepartureRowAirlineForDisplay({
     carrierName: d.carrierName,
     outboundFlightNo: d.outboundFlightNo,
+    inboundFlightNo: d.inboundFlightNo,
   })
   const name = String(resolved ?? '').trim()
   if (name) return cleanCarrierLabel(formatPublicAirlineDisplay(name))
@@ -186,8 +220,9 @@ export function airlineLabelFromParam(param: string | null | undefined): string 
   const aliased = AIRLINE_PARAM_CODE_ALIAS[up]
   if (aliased) return aliased
   if (/^[A-Z0-9]{2}$/.test(up)) {
-    const ko = (AIRLINE_IATA_KO_PUBLIC as Record<string, string>)[up]
-    return ko ? cleanCarrierLabel(ko) : null
+    // REGRESSION-FREEZE[airline-compare-canonical-1120]: 공개표에 없는 편명 접두 코드(SC·3U 등)도 같은 고정 테이블 — manifest
+    const ko = airlineKoFromIata(up)
+    return ko ? cleanCarrierLabel(ko) ?? ko : null
   }
   return cleanCarrierLabel(formatPublicAirlineDisplay(raw))
 }

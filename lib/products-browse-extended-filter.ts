@@ -4,7 +4,7 @@
  *
  * 예산 필터는 등록된 상품의 실제 금액을 확인하여 예산 범위 내 상품만 노출한다.
  */
-import { AIRLINE_CATALOG, airlineStringMatchesCode, buildAirlineHaystack } from '@/lib/airline-catalog'
+import { airlinePartsMatchCode } from '@/lib/airline-catalog'
 import { normalizeBrandKeyToCanonicalSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { AIR_HOTEL_BROWSE_TYPE } from '@/lib/air-hotel-product-ssot'
@@ -102,15 +102,7 @@ function matchesAirlineCodes(p: ProductBrowseFullRow, codes: string[]): boolean 
   for (const d of p.departures ?? []) {
     if (d.carrierName) parts.push(d.carrierName)
   }
-  const hay = buildAirlineHaystack(parts)
-  return codes.some((code) => {
-    if (code === 'other') {
-      if (!hay.trim()) return false
-      const matchesKnown = AIRLINE_CATALOG.some((e) => airlineStringMatchesCode(hay, e.code))
-      return !matchesKnown
-    }
-    return airlineStringMatchesCode(hay, code)
-  })
+  return codes.some((code) => airlinePartsMatchCode(parts, code))
 }
 
 function matchesOptionalTourNone(p: ProductBrowseFullRow): boolean {

@@ -33205,6 +33205,47 @@
         "lib/hanjintour-photo-uniqueness.test.ts",
         "lib/hanjintour-ingest-pending.test.ts"
       ]
+    },
+    {
+      "id": "airline-compare-canonical-1120",
+      "tier": ["prebuild", "ci"],
+      "summary": "항공사 비교 표시는 공급사 원문만 쓰고, 코드와 띄어쓴 이름은 고정 테이블의 한글명으로 한 줄. 가는 편만 보고 오는 편 항공사를 바꾸지 않는다. 목록 필터는 카탈로그 밖 항공사를 기타로 뭉개지 않는다. 390px 다른 항공사 목록은 이름을 자르지 않는다.",
+      "checks": [
+        {
+          "file": "lib/airline-variant-group.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-compare-canonical-1120]",
+            "export function canonicalPublicAirlineLabel",
+            "inboundFlightNo: d.inboundFlightNo"
+          ]
+        },
+        {
+          "file": "lib/airline-catalog.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-compare-canonical-1120]",
+            "export function airlineFacetBuckets",
+            "제주에어"
+          ]
+        },
+        {
+          "file": "app/components/detail/HeroCardAirlineSwitcher.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-compare-canonical-1120]",
+            "grid-cols-1",
+            "whitespace-normal"
+          ]
+        },
+        {
+          "file": "lib/departure-airline-display.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[airline-compare-canonical-1120]",
+            "aggregatedAirlineLabel"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/airline-compare-canonical-1120.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
