@@ -71,7 +71,7 @@ export default function LegalScreen() {
           </Text>
         ))}
       </View>
-      {/* legal.termsBody · legal.privacyBody · legal.refundBody — native text, no WebView */}
+      {/* legal.termsBody · legal.privacyBody · legal.refundBody — native text only */}
     </ScrollView>
   );
 }
