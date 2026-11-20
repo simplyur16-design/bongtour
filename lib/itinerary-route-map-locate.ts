@@ -2,7 +2,7 @@
  * 거점 좌표를 붙인다. 내장 도시 캐시 → Nominatim. 실패 지명은 SKIP 하고 남은 구간을 잇는다.
  */
 
-import { lookupCityLonLat } from '@/lib/itinerary-route-map-geo'
+import { lookupCityLonLat, fitHubsToAvailableRegion } from '@/lib/itinerary-route-map-geo'
 import { formatItineraryRouteMapDayLabel } from '@/lib/itinerary-route-map-hubs'
 import {
   lookupItineraryPlaceNominatim,
@@ -14,7 +14,8 @@ export async function locateItineraryRouteMapHubs(
   hubs: ItineraryRouteMapHub[],
   legs: ItineraryRouteMapLeg[],
   deps?: NominatimLookupDeps,
-): Promise<{ hubs: ItineraryRouteMapHub[]; legs: ItineraryRouteMapLeg[]; skipped: string[] }> {
+  countryEn?: string,
+): Promise<{ hubs: ItineraryRouteMapHub[]; legs: ItineraryRouteMapLeg[]; skipped: string[]; regionId: string }> {
   const kept: ItineraryRouteMapHub[] = []
   const skipped: string[] = []
   for (const hub of hubs) {
@@ -42,12 +43,13 @@ export async function locateItineraryRouteMapHubs(
     collapsed.push({ ...hub, days: [...hub.days] })
   }
 
-  const keptNames = new Set(collapsed.map((h) => h.cityKo))
+  const fitted = fitHubsToAvailableRegion(collapsed, countryEn)
+  const keptNames = new Set(fitted.hubs.map((h) => h.cityKo))
   const direct = new Map(legs.map((leg) => [`${leg.fromCityKo}|${leg.toCityKo}`, leg]))
   const nextLegs: ItineraryRouteMapLeg[] = []
-  for (let i = 0; i < collapsed.length - 1; i++) {
-    const from = collapsed[i]!
-    const to = collapsed[i + 1]!
+  for (let i = 0; i < fitted.hubs.length - 1; i++) {
+    const from = fitted.hubs[i]!
+    const to = fitted.hubs[i + 1]!
     const exact = direct.get(`${from.cityKo}|${to.cityKo}`)
     if (exact) {
       nextLegs.push(exact)
@@ -62,5 +64,5 @@ export async function locateItineraryRouteMapHubs(
       lineStyle: carried?.lineStyle ?? 'dashed_green',
     })
   }
-  return { hubs: collapsed, legs: nextLegs, skipped }
+  return { hubs: fitted.hubs, legs: nextLegs, skipped: [...skipped, ...fitted.skipped], regionId: fitted.regionId }
 }

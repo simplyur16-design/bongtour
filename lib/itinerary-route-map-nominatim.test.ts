@@ -11,6 +11,7 @@ import {
   parseScheduleJsonForRouteMap,
 } from '@/lib/itinerary-route-map-hubs'
 import { buildItineraryRouteMapSvg } from '@/lib/itinerary-route-map-render-svg'
+import { fitHubsToAvailableRegion } from '@/lib/itinerary-route-map-geo'
 
 function jsonResponse(body: unknown, ok = true): Response {
   return {
@@ -121,6 +122,44 @@ describe('원문 일정 지명', () => {
     expect(svg).toContain('교토')
     expect(svg).not.toContain('>나라<')
     expect(svg).not.toContain('>고베<')
+  })
+
+  it('권역 밖 좌표는 나라 지도로 넓히거나 그 지명만 뺀다', () => {
+    const insideJapanOutsideKansai = fitHubsToAvailableRegion(
+      [
+        { cityKo: '오사카', cityEn: 'Osaka', dayLabel: '1', days: [1], lon: 135.5, lat: 34.69 },
+        { cityKo: '삿포로', cityEn: 'Sapporo', dayLabel: '2', days: [2], lon: 141.35, lat: 43.06 },
+      ],
+      'JAPAN',
+    )
+    expect(insideJapanOutsideKansai.skipped).toEqual([])
+    expect(insideJapanOutsideKansai.regionId).toBe('japan')
+
+    const outsideCountry = fitHubsToAvailableRegion(
+      [
+        { cityKo: '오사카', cityEn: 'Osaka', dayLabel: '1', days: [1], lon: 135.5, lat: 34.69 },
+        { cityKo: '교토', cityEn: 'Kyoto', dayLabel: '2', days: [2], lon: 135.77, lat: 35.01 },
+        { cityKo: '고베', cityEn: 'Kobe', dayLabel: '3', days: [3], lon: 135.2, lat: 34.69 },
+        { cityKo: '히가시혼간지', cityEn: '히가시혼간지', dayLabel: '1', days: [1], lon: 2.35, lat: 48.86 },
+      ],
+      'JAPAN',
+    )
+    expect(outsideCountry.skipped).toEqual(['히가시혼간지'])
+    expect(outsideCountry.regionId).toBe('kansai')
+    const svg = buildItineraryRouteMapSvg({
+      hubs: [
+        { cityKo: '오사카', cityEn: 'Osaka', dayLabel: '1', days: [1], lon: 135.5, lat: 34.69 },
+        { cityKo: '교토', cityEn: 'Kyoto', dayLabel: '2', days: [2], lon: 135.77, lat: 35.01 },
+        { cityKo: '고베', cityEn: 'Kobe', dayLabel: '3', days: [3], lon: 135.2, lat: 34.69 },
+        { cityKo: '히가시혼간지', cityEn: '히가시혼간지', dayLabel: '1', days: [1], lon: 2.35, lat: 48.86 },
+      ],
+      legs: [],
+      countryEn: 'JAPAN',
+    })
+    expect(svg).toContain('오사카')
+    expect(svg).toContain('교토')
+    expect(svg).toContain('고베')
+    expect(svg).not.toContain('히가시혼간지')
   })
 
   it('좌표를 못 구한 지명은 건너뛰고 남은 거점으로 구간을 잇는다', async () => {

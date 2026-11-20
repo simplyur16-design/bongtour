@@ -118,6 +118,80 @@ export function uniqueCityKeys(hubs: ItineraryRouteMapHub[]): string[] {
   return out
 }
 
+export function lonLatInsideBbox(
+  lon: number,
+  lat: number,
+  bbox: [number, number, number, number],
+): boolean {
+  const [west, south, east, north] = bbox
+  return lon >= west && lon <= east && lat >= south && lat <= north
+}
+
+function hubsWithCoords(hubs: ItineraryRouteMapHub[]): Array<ItineraryRouteMapHub & LonLat> {
+  return hubs.filter(
+    (h): h is ItineraryRouteMapHub & LonLat =>
+      Number.isFinite(h.lon) && Number.isFinite(h.lat),
+  )
+}
+
+function allHubsInside(
+  hubs: Array<ItineraryRouteMapHub & LonLat>,
+  bbox: [number, number, number, number],
+): boolean {
+  return hubs.every((h) => lonLatInsideBbox(h.lon, h.lat, bbox))
+}
+
+/** 줌 권역을 먼저, 그다음 나라 지도. */
+function regionTryOrder(countryEn?: string): Array<Exclude<RouteMapRegionId, 'fallback'>> {
+  const country = (countryEn ?? '').toUpperCase()
+  if (country.includes('JAPAN') || country === 'JP') return ['kansai', 'kanto', 'japan']
+  if (country.includes('VIETNAM') || country === 'VN') return ['central-vietnam', 'vietnam']
+  return ['kansai', 'kanto', 'central-vietnam', 'japan', 'vietnam']
+}
+
+/**
+ * Nominatim 좌표가 선택된 권역 밖이면, 모든 거점이 들어가는 권역(없으면 나라 지도)으로 바꾼다.
+ * 그래도 밖인 지명만 뺀다.
+ */
+export function fitHubsToAvailableRegion(
+  hubs: ItineraryRouteMapHub[],
+  countryEn?: string,
+): { hubs: ItineraryRouteMapHub[]; skipped: string[]; regionId: RouteMapRegionId } {
+  const located = hubsWithCoords(hubs)
+  if (located.length === 0) {
+    return { hubs, skipped: [], regionId: resolveRouteMapRegionId(hubs, countryEn) }
+  }
+  const selected = resolveRouteMapRegionId(located, countryEn)
+  const selectedAsset = loadRouteMapRegionAsset(selected)
+  if (selectedAsset && allHubsInside(located, selectedAsset.bbox)) {
+    return { hubs: located, skipped: [], regionId: selected }
+  }
+  for (const id of regionTryOrder(countryEn)) {
+    if (id === selected) continue
+    const asset = loadRouteMapRegionAsset(id)
+    if (asset && allHubsInside(located, asset.bbox)) {
+      return { hubs: located, skipped: [], regionId: id }
+    }
+  }
+  const wideId =
+    regionTryOrder(countryEn).find((id) => id === 'japan' || id === 'vietnam') ?? selected
+  const wide = loadRouteMapRegionAsset(wideId) ?? selectedAsset
+  if (!wide) {
+    return { hubs: located, skipped: [], regionId: 'fallback' }
+  }
+  const kept = located.filter((h) => lonLatInsideBbox(h.lon, h.lat, wide.bbox))
+  const skipped = located.filter((h) => !lonLatInsideBbox(h.lon, h.lat, wide.bbox)).map((h) => h.cityKo)
+  if (kept.length === 0) {
+    return { hubs: [], skipped, regionId: wide.id as RouteMapRegionId }
+  }
+  const again = fitHubsToAvailableRegion(kept, countryEn)
+  return {
+    hubs: again.hubs,
+    skipped: [...skipped, ...again.skipped],
+    regionId: again.regionId,
+  }
+}
+
 export function resolveRouteMapRegionId(
   hubs: ItineraryRouteMapHub[],
   countryEn?: string,

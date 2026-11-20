@@ -338,7 +338,9 @@ export function ItineraryViewPackageMain({
                 citiesCaption: '',
                 showMap: true,
               }
-            : product.routeMap ?? null
+            : product.routeMap?.imageUrl?.trim()
+              ? product.routeMap
+              : null
         }
       />
 

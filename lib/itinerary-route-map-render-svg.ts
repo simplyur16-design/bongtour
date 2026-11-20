@@ -6,6 +6,7 @@
 import sharp from 'sharp'
 import type { ItineraryRouteMapHub, ItineraryRouteMapLeg } from '@/lib/itinerary-route-map-types'
 import {
+  fitHubsToAvailableRegion,
   loadRouteMapRegionAsset,
   padBbox,
   projectLonLat,
@@ -189,13 +190,40 @@ export function buildItineraryRouteMapSvg(input: {
   legs: ItineraryRouteMapLeg[]
   countryEn?: string
 }): string {
-  const regionId = resolveRouteMapRegionId(input.hubs, input.countryEn)
-  let asset = loadRouteMapRegionAsset(regionId)
-  const hubLlPreview = resolveHubLonLats(input.hubs, asset?.bbox ?? [100, 0, 140, 40])
-  if (!asset) asset = fallbackLandAsset(hubLlPreview)
+  const previewId = resolveRouteMapRegionId(input.hubs, input.countryEn)
+  const previewAsset = loadRouteMapRegionAsset(previewId)
+  const withCoords = resolveHubLonLats(input.hubs, previewAsset?.bbox ?? [100, 0, 140, 40])
+  const fitted = fitHubsToAvailableRegion(withCoords, input.countryEn)
+  const hubs = fitted.hubs
+  const kept = new Set(hubs.map((h) => h.cityKo))
+  const direct = new Map(input.legs.map((leg) => [`${leg.fromCityKo}|${leg.toCityKo}`, leg]))
+  const legs: ItineraryRouteMapLeg[] = []
+  for (let i = 0; i < hubs.length - 1; i++) {
+    const from = hubs[i]!
+    const to = hubs[i + 1]!
+    const exact = direct.get(`${from.cityKo}|${to.cityKo}`)
+    if (exact) legs.push(exact)
+    else {
+      const carried = input.legs.find((leg) => leg.fromCityKo === from.cityKo && !kept.has(leg.toCityKo))
+      legs.push({
+        fromCityKo: from.cityKo,
+        toCityKo: to.cityKo,
+        icon: carried?.icon ?? '🚗',
+        durationLabel: carried?.durationLabel ?? '약 2시간',
+        lineStyle: carried?.lineStyle ?? 'dashed_green',
+      })
+    }
+  }
+  let asset = loadRouteMapRegionAsset(fitted.regionId)
+  if (!asset) asset = fallbackLandAsset(hubs.filter((h) => Number.isFinite(h.lon) && Number.isFinite(h.lat)) as Array<ItineraryRouteMapHub & { lon: number; lat: number }>)
 
   const bbox = padBbox(asset.bbox, 0.05)
-  const hubLl = resolveHubLonLats(input.hubs, bbox)
+  const hubLl = hubs.filter((h) => Number.isFinite(h.lon) && Number.isFinite(h.lat)) as Array<
+    ItineraryRouteMapHub & { lon: number; lat: number }
+  >
+  if (hubLl.length === 0) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"></svg>`
+  }
   const projected = hubLl.map((h) => {
     const p = projectLonLat(h.lon, h.lat, bbox, W, H, PAD)
     return { ...h, ...p }
@@ -276,8 +304,8 @@ export function buildItineraryRouteMapSvg(input: {
 
   // 동선 — 얇은 점선, 왕복 1회
   const drawn = new Set<string>()
-  for (let i = 0; i < input.legs.length; i++) {
-    const leg = input.legs[i]!
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i]!
     const from = projected[i]
     const to = projected[i + 1]
     if (!from || !to) continue

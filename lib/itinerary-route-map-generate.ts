@@ -77,7 +77,13 @@ export async function generateAndPersistItineraryRouteMap(
   }
 
   const extracted = extractItineraryRouteMapHubs(schedule)
-  const located = await locateItineraryRouteMapHubs(extracted.hubs, extracted.legs)
+  const { countryKo, countryEn } = resolveItineraryRouteMapCountry({
+    country: product.country,
+    destination: product.destination,
+    primaryDestination: product.primaryDestination,
+    title: product.title,
+  })
+  const located = await locateItineraryRouteMapHubs(extracted.hubs, extracted.legs, undefined, countryEn)
   const { hubs, legs } = located
   if (hubs.length < minHubs) {
     return {
@@ -88,13 +94,6 @@ export async function generateAndPersistItineraryRouteMap(
       hubsFound: hubs.length,
     }
   }
-
-  const { countryKo, countryEn } = resolveItineraryRouteMapCountry({
-    country: product.country,
-    destination: product.destination,
-    primaryDestination: product.primaryDestination,
-    title: product.title,
-  })
 
   const png = await renderItineraryRouteMapPng({ hubs, legs, countryEn })
   const webp = await convertToWebp(png, { maxWidth: 1600, quality: 88 })
