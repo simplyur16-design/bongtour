@@ -22,6 +22,10 @@ import {
 import { SocialAuthButtons } from '@/src/components/auth/SocialAuthButtons';
 import { EsimInstallQr } from '@/src/components/EsimInstallQr';
 import { OfflineBanner } from '@/src/components/OfflineBanner';
+import Svg, { Circle } from 'react-native-svg';
+import { SyIcon } from '@/src/components/ui/SyIcon';
+import { IconButton, Tag } from '@/src/components/ui/SyUi';
+import { SY, SY_RADIUS } from '@/src/constants/theme';
 import { MY_ESIM_BADGE, MY_ESIM_DESIGN as D } from '@/src/constants/my-esim-design';
 import { fp } from '@/src/constants/typography';
 import { useI18n } from '@/src/i18n/I18nContext';
@@ -70,6 +74,28 @@ export default function MyEsimScreen() {
   const [usageError, setUsageError] = useState<string | null>(null);
   const [refundBusy, setRefundBusy] = useState(false);
   const ordersRef = useRef<MyEsimOrder[]>([]);
+  const [showPast, setShowPast] = useState(false);
+  /** 1.0.2 list: usage for the first active eSIM (ring card). Real API values only. */
+  const [listUsage, setListUsage] = useState<{ orderId: string; usage: MyEsimUsage } | null>(null);
+  const ringOrder = useMemo(
+    () => orders.find((o) => myEsimBadgeTier(o.status_key, { can_show_qr: o.can_show_qr }) === 'active' && o.can_check_usage) ?? null,
+    [orders],
+  );
+  useEffect(() => {
+    if (!ringOrder) {
+      setListUsage(null);
+      return;
+    }
+    let cancelled = false;
+    fetchMyEsimUsage(ringOrder.order_id)
+      .then((u) => {
+        if (!cancelled && u) setListUsage({ orderId: ringOrder.order_id, usage: u });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [ringOrder]);
   const unauthorizedRef = useRef(false);
   const loadSeqRef = useRef(0);
   const inFlightRef = useRef(false);
@@ -554,6 +580,14 @@ export default function MyEsimScreen() {
     );
   }
 
+  const tierOf = (o: MyEsimOrder) => myEsimBadgeTier(o.status_key, { can_show_qr: o.can_show_qr });
+  const currentOrders = orders.filter((o) => tierOf(o) !== 'expired');
+  const pastOrders = orders.filter((o) => tierOf(o) === 'expired');
+  const openOrder = (id: string, usage = false) => {
+    setSelectedOrderId(id);
+    if (usage) setUsageScreenOpen(true);
+  };
+
   return (
     <ScrollView
       style={[styles.root, { backgroundColor: D.bg }]}
@@ -562,38 +596,160 @@ export default function MyEsimScreen() {
       <View style={styles.listHeader}>
         <Text style={styles.listTitle}>{t('myEsim.title')}</Text>
         <View style={styles.listHeaderActions}>
-          <Pressable onPress={() => router.push('/settings')} hitSlop={10}>
-            <Text style={styles.signOutLink}>{t('myEsim.settingsLink')}</Text>
-          </Pressable>
-          <Pressable onPress={() => void onSignOut()} hitSlop={10}>
-            <Text style={styles.signOutLink}>{t('nav.signOut')}</Text>
-          </Pressable>
+          <IconButton name="help" label={t('myEsim.openGuide')} onPress={() => router.push('/guide')} />
+          <IconButton name="user" label={t('myEsim.settingsLink')} onPress={() => router.push('/settings')} />
         </View>
       </View>
-      {orders.map((o) => {
-        const tier = myEsimBadgeTier(o.status_key, { can_show_qr: o.can_show_qr });
+      {currentOrders.map((o) => {
+        const tier = tierOf(o);
         const badge = MY_ESIM_BADGE[tier];
-        const hint =
-          tier === 'active' || tier === 'ready'
-            ? t('myEsim.listHintReady')
-            : t('myEsim.listHintPreparing');
+        const ringUsage = listUsage && listUsage.orderId === o.order_id ? listUsage.usage : null;
+        const isRing = ringOrder?.order_id === o.order_id;
+        const ring = isRing ? buildUsageSummaryView(o, ringUsage, t) : null;
+        const ready = tier === 'ready';
         return (
-          <Pressable key={o.order_id} style={styles.orderCard} onPress={() => setSelectedOrderId(o.order_id)}>
-            <View style={styles.orderText}>
-              <Text style={styles.orderDate}>{formatOrderDate(o.created_at, locale)}</Text>
-              <Text style={styles.orderPlan}>{o.plan_summary}</Text>
-              <Text style={styles.orderHint}>{hint}</Text>
-            </View>
-            <View style={styles.orderRight}>
-              <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-                <Text style={[styles.badgeText, { color: badge.color }]}>{t(`myEsim.badge.${tier}`)}</Text>
+          <View key={o.order_id} style={[styles.esimCard, ready ? styles.esimCardReady : null]}>
+            <Pressable onPress={() => openOrder(o.order_id)} style={styles.esimHead} accessibilityRole="button">
+              <View style={styles.orderText}>
+                <Text style={styles.esimTitle}>{o.plan_summary}</Text>
+                <Text style={styles.orderDate}>
+                  {t('myEsim.orderedOn')} {formatOrderDate(o.created_at, locale)}
+                  {ready ? ` · ${t('myEsim.qrReadyShort')}` : ''}
+                </Text>
               </View>
-              <Text style={styles.chevron}>›</Text>
+              <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+                <Text style={[styles.badgeText, { color: badge.color }]}>
+                  {tier === 'active' ? '● ' : ''}
+                  {t(`myEsim.badge.${tier}`)}
+                </Text>
+              </View>
+            </Pressable>
+
+            {ring ? (
+              <View style={styles.ringRow}>
+                <UsageRing pct={ring.hasCap ? 100 - ring.usedPct : 100} />
+                <View style={styles.ringCenter} pointerEvents="none">
+                  <Text style={styles.ringBig}>{ring.remainingDisplay ?? ring.usedDisplay}</Text>
+                  <Text style={styles.ringSmall}>
+                    {ring.remainingDisplay ? t('myEsim.leftWord') : ring.usedOfLabel}
+                  </Text>
+                </View>
+                <View style={styles.ringInfo}>
+                  <Text style={styles.ringInfoMain}>{ring.usageLabel}</Text>
+                  {ring.sublabel ? <Text style={styles.ringInfoSub}>{ring.sublabel}</Text> : null}
+                </View>
+              </View>
+            ) : null}
+
+            {tier !== 'active' ? <OrderProgress tier={tier} t={t} /> : null}
+
+            <View style={styles.esimActions}>
+              {tier === 'active' ? (
+                <>
+                  <Pressable
+                    style={[styles.actBtn, styles.actBtnGhost]}
+                    onPress={() => openOrder(o.order_id, o.can_check_usage)}>
+                    <Text style={styles.actBtnGhostText}>{t('myEsim.viewUsage')}</Text>
+                  </Pressable>
+                  <Pressable style={[styles.actBtn, styles.actBtnGhost]} onPress={() => router.push('/guide')}>
+                    <Text style={styles.actBtnGhostText}>{t('myEsim.installHelp')}</Text>
+                  </Pressable>
+                </>
+              ) : ready ? (
+                <>
+                  <Pressable style={[styles.actBtn, styles.actBtnPrimary]} onPress={() => openOrder(o.order_id)}>
+                    <Text style={styles.actBtnPrimaryText}>{t('myEsim.installOneTap')}</Text>
+                  </Pressable>
+                  <Pressable style={[styles.actBtn, styles.actBtnGhost]} onPress={() => openOrder(o.order_id)}>
+                    <SyIcon name="qr" size={16} color={SY.ink} strokeWidth={2} />
+                    <Text style={styles.actBtnGhostText}>{t('myEsim.showQr')}</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <Pressable style={[styles.actBtn, styles.actBtnGhost]} onPress={() => openOrder(o.order_id)}>
+                  <Text style={styles.actBtnGhostText}>{t('myEsim.listHintPreparing')}</Text>
+                </Pressable>
+              )}
             </View>
-          </Pressable>
+            {o.can_request_refund ? <Text style={styles.refundHint}>{t('myEsim.refundHint')}</Text> : null}
+          </View>
         );
       })}
+      {pastOrders.length > 0 ? (
+        <>
+          <Pressable style={styles.pastRow} onPress={() => setShowPast((v) => !v)} accessibilityRole="button">
+            <Text style={styles.pastText}>{t('myEsim.pastEsims').replace('{n}', String(pastOrders.length))}</Text>
+            <View style={showPast ? styles.chevDown : null}>
+              <SyIcon name="chev" size={16} color={SY.ink3} strokeWidth={2} />
+            </View>
+          </Pressable>
+          {showPast
+            ? pastOrders.map((o) => (
+                <Pressable key={o.order_id} style={styles.orderCard} onPress={() => openOrder(o.order_id)}>
+                  <View style={styles.orderText}>
+                    <Text style={styles.orderDate}>{formatOrderDate(o.created_at, locale)}</Text>
+                    <Text style={styles.orderPlan}>{o.plan_summary}</Text>
+                  </View>
+                  <Tag tone="neutral" label={t('myEsim.badge.expired')} />
+                </Pressable>
+              ))
+            : null}
+        </>
+      ) : null}
+      <Pressable onPress={() => void onSignOut()} hitSlop={10} style={styles.signOutList}>
+        <Text style={styles.signOutLink}>{t('nav.signOut')}</Text>
+      </Pressable>
     </ScrollView>
+  );
+}
+
+/** Remaining-data ring (cobalt on sage), 124pt like mockup 06. */
+function UsageRing({ pct }: { pct: number }) {
+  const size = 124;
+  const sw = 13;
+  const r = (size - sw) / 2;
+  const c = 2 * Math.PI * r;
+  const p = Math.max(0, Math.min(100, pct));
+  return (
+    <Svg width={size} height={size}>
+      <Circle cx={size / 2} cy={size / 2} r={r} stroke={SY.sage} strokeWidth={sw} fill="none" />
+      <Circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        stroke={SY.primary}
+        strokeWidth={sw}
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={`${(c * p) / 100} ${c}`}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+    </Svg>
+  );
+}
+
+/** Paid → QR issued → Install → Active (mockup 06 ready card). */
+function OrderProgress({ tier, t }: { tier: string; t: (k: string) => string }) {
+  const reached = tier === 'ready' ? 2 : 1; // preparing / refundPending: paid only
+  const steps = [t('myEsim.progressPaid'), t('myEsim.progressQr'), t('myEsim.progressInstall'), t('myEsim.badge.active')];
+  return (
+    <View style={styles.progress}>
+      {steps.map((label, i) => {
+        const done = i < reached;
+        const on = i === reached;
+        return (
+          <View key={label} style={styles.progressItem}>
+            {i > 0 ? <View style={[styles.progressBar, done || on ? styles.progressBarOn : null]} /> : null}
+            <Text
+              style={[styles.progressText, done ? styles.progressDone : on ? styles.progressOn : null]}
+              numberOfLines={1}>
+              {done ? '✓ ' : on ? '● ' : ''}
+              {label}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -677,8 +833,53 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 4,
   },
-  listHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  listTitle: { fontSize: 22, ...fp('800'), color: D.navy },
+  listHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  esimCard: {
+    backgroundColor: SY.surface,
+    borderWidth: 1,
+    borderColor: D.border,
+    borderRadius: SY_RADIUS.card,
+    padding: 18,
+    gap: 14,
+  },
+  esimCardReady: { borderColor: SY.primary, borderWidth: 1.5 },
+  esimHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  esimTitle: { fontSize: 17, lineHeight: 22, ...fp('700'), color: D.navy },
+  ringRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  ringCenter: { position: 'absolute', left: 0, width: 124, alignItems: 'center' },
+  ringBig: { fontSize: 20, ...fp('700'), color: D.navy },
+  ringSmall: { fontSize: 12, ...fp('400'), color: D.muted },
+  ringInfo: { flex: 1, gap: 6 },
+  ringInfoMain: { fontSize: 14, lineHeight: 19, ...fp('600'), color: D.navy },
+  ringInfoSub: { fontSize: 12.5, lineHeight: 17, ...fp('400'), color: D.muted },
+  progress: { flexDirection: 'row', alignItems: 'center' },
+  progressItem: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
+  progressBar: { width: 18, height: 1.5, marginHorizontal: 6, backgroundColor: D.border },
+  progressBarOn: { backgroundColor: SY.ok },
+  progressText: { fontSize: 12.5, ...fp('400'), color: D.muted },
+  progressDone: { color: SY.ok, ...fp('600') },
+  progressOn: { color: SY.primary, ...fp('600') },
+  esimActions: { flexDirection: 'row', gap: 10 },
+  actBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: SY_RADIUS.button,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 8,
+  },
+  actBtnPrimary: { backgroundColor: SY.primary },
+  actBtnPrimaryText: { fontSize: 15, ...fp('700'), color: '#fff' },
+  actBtnGhost: { backgroundColor: SY.surface, borderWidth: 1, borderColor: D.border },
+  actBtnGhostText: { fontSize: 15, ...fp('600'), color: D.navy },
+  refundHint: { fontSize: 12.5, ...fp('400'), color: D.muted, textAlign: 'center', marginTop: -4 },
+  pastRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
+  pastText: { fontSize: 13.5, ...fp('400'), color: D.muted },
+  chevDown: { transform: [{ rotate: '90deg' }] },
+  signOutList: { alignSelf: 'center', marginTop: 8 },
+  listTitle: { fontSize: 24, ...fp('700'), color: D.navy, letterSpacing: -0.3 },
   settingsCorner: { alignSelf: 'flex-end', marginBottom: 8 },
   signOutLink: { fontSize: 13, ...fp('600'), color: D.coral, textAlign: 'center' },
   orderNoRow: {

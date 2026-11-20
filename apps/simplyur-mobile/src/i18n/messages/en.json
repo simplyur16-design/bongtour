@@ -774,7 +774,16 @@
     "installIos": "Install on iPhone",
     "installAndroid": "Install on Android",
     "smDpAddress": "SM-DP+ address",
-    "shareCode": "Share / copy"
+    "shareCode": "Share / copy",
+    "qrReadyShort": "QR ready",
+    "progressPaid": "Paid",
+    "progressQr": "QR issued",
+    "progressInstall": "Install",
+    "installOneTap": "Install — 1 tap",
+    "showQr": "Show QR",
+    "installHelp": "Install help",
+    "refundHint": "Unused — cancel for a full refund",
+    "pastEsims": "Past eSIMs ({n})"
   },
   "guideHero": {
     "eyebrow": "Your eSIM",

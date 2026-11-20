@@ -499,7 +499,16 @@
     "installIos": "Cài trên iPhone",
     "installAndroid": "Cài trên Android",
     "smDpAddress": "Địa chỉ SM-DP+",
-    "shareCode": "Chia sẻ / sao chép"
+    "shareCode": "Chia sẻ / sao chép",
+    "qrReadyShort": "Đã có QR",
+    "progressPaid": "Đã thanh toán",
+    "progressQr": "Đã cấp QR",
+    "progressInstall": "Cài đặt",
+    "installOneTap": "Cài đặt — 1 chạm",
+    "showQr": "Xem QR",
+    "installHelp": "Hướng dẫn cài",
+    "refundHint": "Chưa dùng — hủy để hoàn tiền toàn bộ",
+    "pastEsims": "eSIM trước đây ({n})"
   },
   "guideHero": {
     "eyebrow": "eSIM của bạn",

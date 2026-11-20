@@ -499,7 +499,16 @@
     "installIos": "在 iPhone 上安装",
     "installAndroid": "在 Android 上安装",
     "smDpAddress": "SM-DP+ 地址",
-    "shareCode": "分享 / 复制"
+    "shareCode": "分享 / 复制",
+    "qrReadyShort": "二维码已就绪",
+    "progressPaid": "已付款",
+    "progressQr": "已发二维码",
+    "progressInstall": "安装",
+    "installOneTap": "一键安装",
+    "showQr": "显示二维码",
+    "installHelp": "安装帮助",
+    "refundHint": "未使用可取消并全额退款",
+    "pastEsims": "过往 eSIM（{n}）"
   },
   "guideHero": {
     "eyebrow": "您的 eSIM",

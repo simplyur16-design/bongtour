@@ -499,7 +499,16 @@
     "installIos": "iPhoneでインストール",
     "installAndroid": "Androidでインストール",
     "smDpAddress": "SM-DP+アドレス",
-    "shareCode": "共有 / コピー"
+    "shareCode": "共有 / コピー",
+    "qrReadyShort": "QR発行済み",
+    "progressPaid": "支払い済み",
+    "progressQr": "QR発行",
+    "progressInstall": "インストール",
+    "installOneTap": "ワンタップでインストール",
+    "showQr": "QRを表示",
+    "installHelp": "インストールヘルプ",
+    "refundHint": "未使用ならキャンセルで全額返金",
+    "pastEsims": "過去のeSIM（{n}）"
   },
   "guideHero": {
     "eyebrow": "あなたのeSIM",
