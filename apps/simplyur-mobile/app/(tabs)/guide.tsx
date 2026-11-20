@@ -1,9 +1,12 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SyIcon } from '@/src/components/ui/SyIcon';
+import { ESIM_MARK_ON_DARK, Segmented } from '@/src/components/ui/SyUi';
 import { GUIDE_DESIGN as D } from '@/src/constants/guide-design';
+import { SY, SY_RADIUS } from '@/src/constants/theme';
 import { getSimplyurGuideMessages } from '@/src/guide/by-locale';
 import type { SimplyurGuideMockRow, SimplyurGuidePrecheckCard, SimplyurGuideStepCard } from '@/src/guide/guide-types';
 import {
@@ -24,7 +27,7 @@ type TabKey = 'precheck' | 'iphone' | 'android';
  * REGRESSION-FREEZE[simplyur-native-no-website-chrome]: devices native screen — manifest
  */
 export default function GuideScreen() {
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const insets = useSafeAreaInsets();
   const guide = getSimplyurGuideMessages(locale);
   const [tab, setTab] = useState<TabKey>('precheck');
@@ -68,40 +71,48 @@ export default function GuideScreen() {
       }}>
       <View style={styles.header}>
         <Text style={styles.title}>{guide.title}</Text>
-        <Text style={styles.intro}>{guide.intro}</Text>
-        <Text style={styles.support}>{guide.supportHint}</Text>
       </View>
 
-      {phaseBanner ? (
-        <View style={styles.banner}>
-          <View style={styles.bannerIcon}>
-            <Text style={styles.bannerIconText}>i</Text>
+      {/* 1.0.2 mockup 05: ink card — the 1-tap install lives on each eSIM in My eSIM (real order data). */}
+      <View style={styles.hero}>
+        <View style={styles.heroTop}>
+          <View style={styles.heroText}>
+            <Text style={styles.heroEyebrow}>{t('guideHero.eyebrow')}</Text>
+            <Text style={styles.heroTitle}>{t('guideHero.title')}</Text>
           </View>
+          <Image source={ESIM_MARK_ON_DARK} style={styles.heroMark} resizeMode="contain" accessible={false} />
+        </View>
+        <Pressable
+          style={styles.heroBtn}
+          onPress={() => router.push('/my-esim')}
+          accessibilityRole="button">
+          <Text style={styles.heroBtnText}>{t('guideHero.cta')}</Text>
+        </Pressable>
+        <Text style={styles.heroNote}>{t('guideHero.note')}</Text>
+      </View>
+
+      <Segmented items={tabs} value={tab} onChange={setTab} />
+
+      <Text style={styles.intro}>{tab === 'precheck' ? guide.intro : t('guideHero.tapHint')}</Text>
+
+      {phaseBanner && tab === 'precheck' ? (
+        <View style={styles.banner}>
+          <SyIcon name="info" size={16} color={SY.primary} strokeWidth={2} />
           <Text style={styles.bannerBody}>{phaseBanner}</Text>
         </View>
       ) : null}
-
-      <View style={styles.segmentRow}>
-        {tabs.map(({ key, label }) => {
-          const selected = tab === key;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => setTab(key)}
-              style={[styles.segment, selected ? styles.segmentOn : styles.segmentOff]}>
-              <Text style={[styles.segmentText, selected ? styles.segmentTextOn : styles.segmentTextOff]}>{label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
 
       <View style={styles.tabContent}>
         {tab === 'precheck'
           ? precheck.map((card) => (
               <PrecheckCard key={card.title} card={card} devicesLabel={devicesLabel} onDevices={openDevices} />
             ))
-          : stepCards.map((step) => <StepCard key={step.title} step={step} />)}
+          : stepCards.map((step, i) => (
+              <StepCard key={step.title} step={step} n={i + 1} label={t('guideHero.step')} />
+            ))}
       </View>
+
+      <Text style={styles.support}>{guide.supportHint}</Text>
 
       <View style={styles.faqSection}>
         <Text style={styles.faqTitle}>{guide.faqTitle}</Text>
@@ -111,7 +122,9 @@ export default function GuideScreen() {
             <View key={q} style={styles.faqCard}>
               <Pressable onPress={() => toggleFaq(index)} style={styles.faqHead}>
                 <Text style={styles.faqQ}>{q}</Text>
-                <Text style={[styles.faqChevron, open && styles.faqChevronOpen]}>⌄</Text>
+                <View style={open ? styles.faqChevronOpen : styles.faqChevron}>
+                  <SyIcon name="chev" size={16} color={SY.ink3} strokeWidth={2} />
+                </View>
               </Pressable>
               {open ? <Text style={styles.faqA}>{a}</Text> : null}
             </View>
@@ -125,7 +138,7 @@ export default function GuideScreen() {
 function NoteCallout({ text }: { text: string }) {
   return (
     <View style={styles.note}>
-      <Text style={styles.noteEmoji}>💡</Text>
+      <SyIcon name="info" size={14} color={SY.primary} strokeWidth={2} />
       <Text style={styles.noteText}>{text}</Text>
     </View>
   );
@@ -182,10 +195,11 @@ function PrecheckCard({
   );
 }
 
-function StepCard({ step }: { step: SimplyurGuideStepCard }) {
+function StepCard({ step, n, label }: { step: SimplyurGuideStepCard; n: number; label: string }) {
   return (
     <View style={styles.card}>
-      <Text style={styles.stepTitle}>{step.title}</Text>
+      <Text style={styles.stepEyebrow}>{label.replace('{n}', String(n))}</Text>
+      <Text style={styles.stepTitle}>{step.title.replace(/^\s*\d+[.)]\s*/, '')}</Text>
       {step.mockRows?.length ? <SettingsMockup rows={step.mockRows} /> : null}
       {step.bullets?.length ? <BulletList items={step.bullets} /> : null}
       {step.note ? <NoteCallout text={step.note} /> : null}
@@ -195,44 +209,37 @@ function StepCard({ step }: { step: SimplyurGuideStepCard }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { gap: 10 },
-  title: { fontSize: 26, ...fp('800'), color: D.navy, letterSpacing: -0.3 },
-  intro: { fontSize: 14, lineHeight: 21, ...fp('400'), color: D.muted },
-  support: { fontSize: 12, lineHeight: 18, ...fp('400'), color: D.faint },
+  header: { minHeight: 44, justifyContent: 'center' },
+  title: { fontSize: 24, ...fp('700'), color: D.navy, letterSpacing: -0.3 },
+  intro: { fontSize: 13.5, lineHeight: 20, ...fp('400'), color: D.muted },
+  support: { fontSize: 12.5, lineHeight: 18, ...fp('400'), color: D.faint, textAlign: 'center' },
+  hero: { backgroundColor: SY.ink, borderRadius: SY_RADIUS.hero, padding: 20, gap: 14 },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  heroText: { flex: 1, gap: 4 },
+  heroEyebrow: { fontSize: 12, ...fp('600'), color: SY.primaryOnDark, letterSpacing: 0.4, textTransform: 'uppercase' },
+  heroTitle: { fontSize: 18, lineHeight: 23, ...fp('700'), color: '#fff' },
+  heroMark: { width: 48, height: 36 },
+  heroBtn: {
+    height: 54,
+    borderRadius: SY_RADIUS.button,
+    backgroundColor: SY.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  heroBtnText: { fontSize: 16, ...fp('700'), color: '#fff' },
+  heroNote: { fontSize: 12.5, ...fp('400'), color: SY.onInkMuted, textAlign: 'center' },
   banner: {
     flexDirection: 'row',
     gap: 10,
-    backgroundColor: D.bannerBg,
+    backgroundColor: SY.primaryTint,
     borderWidth: 1,
-    borderColor: D.bannerBorder,
+    borderColor: SY.primaryTintBorder,
     borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  bannerIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: D.coral,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bannerIconText: { color: '#fff', fontSize: 12, ...fp('700') },
-  bannerBody: { flex: 1, fontSize: 12, lineHeight: 18, ...fp('400'), color: D.muted },
-  segmentRow: { flexDirection: 'row', gap: 8 },
-  segment: {
-    flex: 1,
-    height: D.segmentHeight,
-    borderRadius: D.segmentRadius,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-  },
-  segmentOn: { backgroundColor: D.coral, borderColor: D.coral },
-  segmentOff: { backgroundColor: 'transparent', borderColor: D.border },
-  segmentText: { fontSize: 14, ...fp('600') },
-  segmentTextOn: { color: '#fff' },
-  segmentTextOff: { color: D.faint },
+  bannerBody: { flex: 1, fontSize: 12.5, lineHeight: 18, ...fp('400'), color: D.muted },
   tabContent: { gap: 12 },
   card: {
     backgroundColor: '#fff',
@@ -243,7 +250,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardTitle: { fontSize: 15, ...fp('700'), color: D.navy },
-  stepTitle: { fontSize: 16, ...fp('700'), color: D.navy },
+  stepEyebrow: { fontSize: 12, ...fp('700'), color: SY.primary, letterSpacing: 0.4, textTransform: 'uppercase' },
+  stepTitle: { fontSize: 17, lineHeight: 22, ...fp('700'), color: D.navy },
   cardBody: { fontSize: 14, lineHeight: 22, ...fp('400'), color: D.muted },
   bullet: { fontSize: 14, lineHeight: 22, ...fp('400'), color: D.muted, paddingLeft: 2 },
   link: { fontSize: 13, ...fp('600'), color: D.coral, marginTop: 2 },
@@ -258,7 +266,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 4,
   },
-  noteEmoji: { fontSize: 13 },
   noteText: { flex: 1, fontSize: 12.5, lineHeight: 19, ...fp('400'), color: D.navy },
   mock: {
     backgroundColor: D.mockBg,
@@ -278,7 +285,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
-  mockRowHi: { backgroundColor: D.bg, borderColor: D.coral },
+  mockRowHi: { backgroundColor: SY.surface, borderColor: SY.danger },
   mockLabel: { fontSize: 12.5, ...fp('600'), color: D.navy },
   mockValue: { fontSize: 12, ...fp('400'), color: D.faint },
   mockChevron: { color: D.mockChevron },
@@ -300,8 +307,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   faqQ: { flex: 1, fontSize: 14, ...fp('700'), color: D.navy, lineHeight: 20 },
-  faqChevron: { fontSize: 13, color: D.faint },
-  faqChevronOpen: { transform: [{ rotate: '180deg' }] },
+  faqChevron: { transform: [{ rotate: '90deg' }] },
+  faqChevronOpen: { transform: [{ rotate: '-90deg' }] },
   faqA: {
     paddingHorizontal: 16,
     paddingBottom: 14,

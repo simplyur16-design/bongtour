@@ -500,5 +500,13 @@
     "installAndroid": "在 Android 上安裝",
     "smDpAddress": "SM-DP+ 位址",
     "shareCode": "分享 / 複製"
+  },
+  "guideHero": {
+    "eyebrow": "您的 eSIM",
+    "title": "在「我的 eSIM」一鍵安裝",
+    "cta": "開啟我的 eSIM",
+    "note": "連上 Wi‑Fi · 安裝時請勿通話",
+    "tapHint": "請依序操作。已使用一鍵安裝者，請勿再次掃描 QR 碼。",
+    "step": "第 {n} 步"
   }
 }

@@ -500,5 +500,13 @@
     "installAndroid": "Cài trên Android",
     "smDpAddress": "Địa chỉ SM-DP+",
     "shareCode": "Chia sẻ / sao chép"
+  },
+  "guideHero": {
+    "eyebrow": "eSIM của bạn",
+    "title": "Cài đặt bằng một chạm trong My eSIM",
+    "cta": "Mở My eSIM",
+    "note": "Bật Wi‑Fi · không gọi điện khi đang cài",
+    "tapHint": "Làm theo các bước theo thứ tự. Đã cài bằng một chạm thì không quét lại mã QR.",
+    "step": "Bước {n}"
   }
 }

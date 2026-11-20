@@ -500,5 +500,13 @@
     "installAndroid": "Androidでインストール",
     "smDpAddress": "SM-DP+アドレス",
     "shareCode": "共有 / コピー"
+  },
+  "guideHero": {
+    "eyebrow": "あなたのeSIM",
+    "title": "My eSIMからワンタップでインストール",
+    "cta": "My eSIMを開く",
+    "note": "Wi‑Fi接続 · インストール中は通話しない",
+    "tapHint": "手順の順番どおりに進めてください。ワンタップでインストール済みなら、QRを再度読み取らないでください。",
+    "step": "ステップ {n}"
   }
 }

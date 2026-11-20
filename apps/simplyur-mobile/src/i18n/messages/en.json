@@ -775,5 +775,13 @@
     "installAndroid": "Install on Android",
     "smDpAddress": "SM-DP+ address",
     "shareCode": "Share / copy"
+  },
+  "guideHero": {
+    "eyebrow": "Your eSIM",
+    "title": "Install from My eSIM in one tap",
+    "cta": "Open My eSIM",
+    "note": "Wi‑Fi on · stay off calls while installing",
+    "tapHint": "Follow the steps in order. Already used the 1‑tap install? Don't scan the QR again.",
+    "step": "Step {n}"
   }
 }
