@@ -18,7 +18,9 @@
     "signIn": "Sign in",
     "myEsim": "My eSIM",
     "myTrip": "My Trip",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "tabPlans": "Plans",
+    "tabInstall": "Install"
   },
   "tabs": {
     "home": "Home",
@@ -40,7 +42,26 @@
   "home": {
     "popularPlans": "Popular Korea plans",
     "viewAllPlans": "View all plans",
-    "koreaBadge": "South Korea eSIM"
+    "koreaBadge": "South Korea eSIM",
+    "heroTitle": "Land in Korea.\nAlready online.",
+    "heroBody": "Install before you fly. Your QR arrives in minutes after you pay.",
+    "daysQuestion": "How many days in Korea?",
+    "daysMore": "More",
+    "ctaDays": "See {N}-day plans",
+    "ctaDaysOne": "See 1-day plans",
+    "ctaAll": "See all plans",
+    "fromPrice": "from {price}",
+    "tileFreeTop": "Maps & ChatGPT",
+    "tileFreeBottom": "data free",
+    "tileRefundTop": "Unused?",
+    "tileRefundBottom": "Full refund",
+    "tilePayTop": "Pay in USD",
+    "tilePayBottom": "by card",
+    "deviceTitle": "Does my phone support eSIM?",
+    "deviceBody": "Most iPhone XS+ and Galaxy S20+ do. Check now",
+    "step1": "Pay",
+    "step2": "Install QR at home",
+    "step3": "Turn on in Korea"
   },
   "countries": {
     "title": "South Korea eSIM",
@@ -123,7 +144,17 @@
     "fullUnlimitedHint": "No daily GB bucket — better for video, hotspot & heavy use (fair use may apply)",
     "durationChipOne": "1 day",
     "showingPlansSuffixOne": " day",
-    "noPlansForDaysOne": "No 1-day plans right now. Try another trip length."
+    "noPlansForDaysOne": "No 1-day plans right now. Try another trip length.",
+    "titleShort": "Korea plans",
+    "pricesInUsd": "Prices in USD",
+    "localShort": "Local line",
+    "roamingShort": "Roaming line",
+    "lineLocalNote": "Local line: Korean carrier data · Data Roaming OFF",
+    "lineRoamingNote": "Roaming line: partner network in Korea · Data Roaming ON",
+    "whichOne": "Which one?",
+    "whichOneBody": "Local line uses a Korean carrier directly, so keep Data Roaming OFF for this eSIM. Roaming line connects through a partner network, so turn Data Roaming ON for this eSIM. Both work the moment you land.",
+    "dailyHint": "High-speed data resets every day",
+    "firstOrderBanner": "First order? Your discount is applied at checkout."
   },
   "product": {
     "buyNow": "Continue",
@@ -157,7 +188,18 @@
     "hotspotLabel": "Hotspot",
     "unusedRefund": "Not activated? Full refund",
     "refundLabel": "Refund",
-    "refundPolicyLink": "See refund policy →"
+    "refundPolicyLink": "See refund policy →",
+    "freeAppsShort": "Google Maps · ChatGPT free",
+    "hotspotShort": "Hotspot OK*",
+    "unusedRefundShort": "Unused? Full refund",
+    "headerTitle": "Korea · {days}",
+    "firstOrderTag": "First-order discount applied at checkout",
+    "perDayUnit": "{currency} · {amount} / day",
+    "dailyResetSub": "Resets daily during your {days}",
+    "qrTitle": "QR by email in minutes",
+    "checkShort": "Check",
+    "payHint": "Secure card payment in the app · Eximbay · USD",
+    "share": "Share"
   },
   "checkout": {
     "title": "Checkout",
@@ -211,7 +253,11 @@
     "totalUsd": "Total (USD)",
     "chargedInUsd": "Your card is charged in US dollars (USD). The local-currency amount is for reference.",
     "securedBy": "Card or UnionPay · Secured by Eximbay",
-    "payAmount": "Pay {amount}"
+    "payAmount": "Pay {amount}",
+    "change": "Change",
+    "signedInTag": "Signed in",
+    "whereQr": "Where should we send your QR?",
+    "firstOrderDiscount": "First-order discount"
   },
   "guide": {
     "title": "How to install your eSIM",
@@ -728,6 +774,23 @@
     "installIos": "Install on iPhone",
     "installAndroid": "Install on Android",
     "smDpAddress": "SM-DP+ address",
-    "shareCode": "Share / copy"
+    "shareCode": "Share / copy",
+    "qrReadyShort": "QR ready",
+    "progressPaid": "Paid",
+    "progressQr": "QR issued",
+    "progressInstall": "Install",
+    "installOneTap": "Install — 1 tap",
+    "showQr": "Show QR",
+    "installHelp": "Install help",
+    "refundHint": "Unused — cancel for a full refund",
+    "pastEsims": "Past eSIMs ({n})"
+  },
+  "guideHero": {
+    "eyebrow": "Your eSIM",
+    "title": "Install from My eSIM in one tap",
+    "cta": "Open My eSIM",
+    "note": "Wi‑Fi on · stay off calls while installing",
+    "tapHint": "Follow the steps in order. Already used the 1‑tap install? Don't scan the QR again.",
+    "step": "Step {n}"
   }
 }

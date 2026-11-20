@@ -1,33 +1,35 @@
-/** design_handoff_my_esim — sync with lib/simplyur/my-esim-design.ts */
+/** design_handoff_my_esim — 1.0.2 tokens from theme.ts. Key `coral` = primary (cobalt). */
+import { SY, SY_RADIUS, SY_SPACE } from './theme';
+
 export const MY_ESIM_DESIGN = {
-  bg: '#FFF4EF',
-  navy: '#12233F',
-  coral: '#FF6B4A',
-  muted: '#6B7686',
-  faint: '#98A0AB',
-  border: '#E1DFD9',
-  divider: '#F0EEE9',
-  iconCircleBg: '#FFE4DA',
+  bg: SY.bg,
+  navy: SY.ink,
+  coral: SY.primary,
+  muted: SY.ink2,
+  faint: SY.ink3,
+  border: SY.line,
+  divider: SY.sage,
+  iconCircleBg: SY.primaryTint,
   cardRadius: 16,
-  panelRadius: 18,
-  buttonHeight: 52,
-  buttonRadius: 16,
+  panelRadius: SY_RADIUS.card,
+  buttonHeight: 46,
+  buttonRadius: SY_RADIUS.button,
   modalRadius: 24,
-  paddingH: 22,
-  sectionGap: 18,
-  detailGap: 20,
-  overlay: 'rgba(18,35,63,0.45)',
-  barMuted: '#FFD5C6',
-  progressTrack: '#F0EEE9',
+  paddingH: SY_SPACE.screenH,
+  sectionGap: 13,
+  detailGap: 18,
+  overlay: SY.overlay,
+  barMuted: '#C9D8F6',
+  progressTrack: SY.sage,
 } as const;
 
 /** REGRESSION-FREEZE[simplyur-my-esim-badge-tiers]: no Upcoming — Ready/Preparing — manifest */
 export const MY_ESIM_BADGE = {
-  active: { bg: '#E4F5EC', color: '#1B8A56' },
-  ready: { bg: '#EAF1FF', color: '#2E5FD9' },
-  preparing: { bg: '#FFF3E0', color: '#C67A1A' },
+  active: { bg: SY.okTint, color: SY.ok },
+  ready: { bg: SY.primaryTint, color: SY.primaryDark },
+  preparing: { bg: SY.warnTint, color: SY.warn },
   refundPending: { bg: '#F3E8FF', color: '#7A3DB8' },
-  expired: { bg: '#F0EEE9', color: '#98A0AB' },
+  expired: { bg: SY.sage, color: SY.ink3 },
 } as const;
 
 export type MyEsimBadgeTier = keyof typeof MY_ESIM_BADGE;

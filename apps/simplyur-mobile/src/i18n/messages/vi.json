@@ -18,7 +18,9 @@
     "signIn": "Đăng nhập",
     "myEsim": "eSIM của tôi",
     "signOut": "Đăng xuất",
-    "myTrip": "Chuyến đi"
+    "myTrip": "Chuyến đi",
+    "tabPlans": "Gói cước",
+    "tabInstall": "Cài đặt"
   },
   "tabs": {
     "home": "Trang chủ",
@@ -40,7 +42,26 @@
   "home": {
     "popularPlans": "Gói Hàn Quốc phổ biến",
     "viewAllPlans": "Xem tất cả",
-    "koreaBadge": "eSIM Hàn Quốc"
+    "koreaBadge": "eSIM Hàn Quốc",
+    "heroTitle": "Vừa đáp xuống Hàn Quốc\nlà có mạng ngay",
+    "heroBody": "Cài đặt trước khi bay. Mã QR được gửi đến chỉ vài phút sau khi thanh toán.",
+    "daysQuestion": "Bạn ở Hàn Quốc mấy ngày?",
+    "daysMore": "Khác",
+    "ctaDays": "Xem gói {N} ngày",
+    "ctaDaysOne": "Xem gói 1 ngày",
+    "ctaAll": "Xem tất cả gói",
+    "fromPrice": "từ {price}",
+    "tileFreeTop": "Maps & ChatGPT",
+    "tileFreeBottom": "không tính data",
+    "tileRefundTop": "Chưa dùng?",
+    "tileRefundBottom": "Hoàn tiền 100%",
+    "tilePayTop": "Thanh toán USD",
+    "tilePayBottom": "bằng thẻ",
+    "deviceTitle": "Điện thoại của tôi có hỗ trợ eSIM không?",
+    "deviceBody": "Hầu hết iPhone XS trở lên và Galaxy S20 trở lên đều hỗ trợ. Kiểm tra ngay",
+    "step1": "Thanh toán",
+    "step2": "Cài QR tại nhà",
+    "step3": "Bật khi tới Hàn"
   },
   "countries": {
     "title": "eSIM Hàn Quốc",
@@ -123,7 +144,17 @@
     "fullUnlimitedHint": "Không hạn mức GB/ngày · phù hợp xem video & dùng nhiều (có thể có fair use)",
     "durationChipOne": "1 ngày",
     "showingPlansSuffixOne": " ngày",
-    "noPlansForDaysOne": "Chưa có gói 1 ngày. Thử độ dài khác."
+    "noPlansForDaysOne": "Chưa có gói 1 ngày. Thử độ dài khác.",
+    "titleShort": "Gói Hàn Quốc",
+    "pricesInUsd": "Giá tính bằng USD",
+    "localShort": "Mạng nội địa",
+    "roamingShort": "Mạng roaming",
+    "lineLocalNote": "Mạng nội địa: dữ liệu nhà mạng Hàn Quốc · Tắt chuyển vùng dữ liệu",
+    "lineRoamingNote": "Mạng roaming: mạng đối tác tại Hàn Quốc · Bật chuyển vùng dữ liệu",
+    "whichOne": "Chọn loại nào?",
+    "whichOneBody": "Mạng nội địa dùng trực tiếp nhà mạng Hàn Quốc nên hãy TẮT chuyển vùng dữ liệu cho eSIM này. Mạng roaming kết nối qua mạng đối tác nên hãy BẬT chuyển vùng dữ liệu cho eSIM này. Cả hai đều dùng được ngay khi bạn hạ cánh.",
+    "dailyHint": "Dữ liệu tốc độ cao được làm mới mỗi ngày",
+    "firstOrderBanner": "Đơn đầu tiên? Ưu đãi được áp dụng khi thanh toán."
   },
   "product": {
     "buyNow": "Tiếp tục",
@@ -157,7 +188,18 @@
     "hotspotLabel": "Hotspot",
     "unusedRefund": "Chưa kích hoạt? Hoàn tiền 100%",
     "refundLabel": "Hoàn tiền",
-    "refundPolicyLink": "Xem chính sách hoàn tiền →"
+    "refundPolicyLink": "Xem chính sách hoàn tiền →",
+    "freeAppsShort": "Google Maps · ChatGPT miễn phí",
+    "hotspotShort": "Phát hotspot*",
+    "unusedRefundShort": "Chưa dùng? Hoàn 100%",
+    "headerTitle": "Hàn Quốc · {days}",
+    "firstOrderTag": "Ưu đãi đơn đầu áp dụng khi thanh toán",
+    "perDayUnit": "{currency} · {amount} / ngày",
+    "dailyResetSub": "Làm mới mỗi ngày trong {days}",
+    "qrTitle": "Nhận mã QR qua email trong vài phút",
+    "checkShort": "Kiểm tra",
+    "payHint": "Thanh toán thẻ an toàn trong ứng dụng · Eximbay · USD",
+    "share": "Chia sẻ"
   },
   "checkout": {
     "title": "Thanh toán",
@@ -211,7 +253,11 @@
     "totalUsd": "Tổng (USD)",
     "chargedInUsd": "Thẻ sẽ bị trừ tiền bằng đô la Mỹ (USD); số tiền VND chỉ để tham khảo.",
     "securedBy": "Thẻ hoặc UnionPay · Thanh toán bảo mật bởi Eximbay",
-    "payAmount": "Thanh toán {amount}"
+    "payAmount": "Thanh toán {amount}",
+    "change": "Đổi",
+    "signedInTag": "Đã đăng nhập",
+    "whereQr": "Gửi mã QR đến đâu?",
+    "firstOrderDiscount": "Giảm giá đơn đầu tiên"
   },
   "guide": {
     "title": "Cài eSIM",
@@ -453,6 +499,23 @@
     "installIos": "Cài trên iPhone",
     "installAndroid": "Cài trên Android",
     "smDpAddress": "Địa chỉ SM-DP+",
-    "shareCode": "Chia sẻ / sao chép"
+    "shareCode": "Chia sẻ / sao chép",
+    "qrReadyShort": "Đã có QR",
+    "progressPaid": "Đã thanh toán",
+    "progressQr": "Đã cấp QR",
+    "progressInstall": "Cài đặt",
+    "installOneTap": "Cài đặt — 1 chạm",
+    "showQr": "Xem QR",
+    "installHelp": "Hướng dẫn cài",
+    "refundHint": "Chưa dùng — hủy để hoàn tiền toàn bộ",
+    "pastEsims": "eSIM trước đây ({n})"
+  },
+  "guideHero": {
+    "eyebrow": "eSIM của bạn",
+    "title": "Cài đặt bằng một chạm trong My eSIM",
+    "cta": "Mở My eSIM",
+    "note": "Bật Wi‑Fi · không gọi điện khi đang cài",
+    "tapHint": "Làm theo các bước theo thứ tự. Đã cài bằng một chạm thì không quét lại mã QR.",
+    "step": "Bước {n}"
   }
 }

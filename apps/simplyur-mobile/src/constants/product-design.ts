@@ -1,20 +1,22 @@
-/** design_handoff_product — sync with lib/simplyur/product-design.ts */
+/** design_handoff_product — 1.0.2 tokens from theme.ts. Key `coral` = primary (cobalt). */
+import { SY, SY_RADIUS, SY_SPACE } from './theme';
+
 export const PRODUCT_DESIGN = {
-  bg: '#FFF4EF',
-  navy: '#12233F',
-  coral: '#FF6B4A',
-  muted: '#6B7686',
-  faint: '#98A0AB',
-  border: '#E1DFD9',
-  divider: '#F0EEE9',
-  disabledFill: '#E1DFD9',
-  skeleton: '#EDE9E4',
-  cardRadius: 18,
-  cardPadding: 18,
-  buttonHeight: 56,
-  buttonRadius: 16,
-  paddingH: 22,
-  sectionGap: 22,
+  bg: SY.bg,
+  navy: SY.ink,
+  coral: SY.primary,
+  muted: SY.ink2,
+  faint: SY.ink3,
+  border: SY.line,
+  divider: SY.sage,
+  disabledFill: SY.line,
+  skeleton: SY.sage,
+  cardRadius: SY_RADIUS.card,
+  cardPadding: 16,
+  buttonHeight: 54,
+  buttonRadius: SY_RADIUS.button,
+  paddingH: SY_SPACE.screenH,
+  sectionGap: SY_SPACE.gap,
 } as const;
 
 export type ProductViewState = 'loading' | 'loaded' | 'not_found' | 'unavailable';

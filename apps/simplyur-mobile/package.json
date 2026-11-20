@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",
+    "@expo-google-fonts/source-sans-3": "^0.4.2",
     "@react-native-google-signin/google-signin": "^16.1.4",
     "@sentry/react-native": "~7.11.0",
     "expo": "~57.0.18",

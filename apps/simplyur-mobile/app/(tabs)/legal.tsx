@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
   },
-  chipOn: { borderColor: LOGIN_1B.coral, backgroundColor: '#fff5f0' },
+  chipOn: { borderColor: LOGIN_1B.coral, backgroundColor: '#E7EEFC' },
   chipText: { fontSize: 11, color: LOGIN_1B.muted, textAlign: 'center', ...fp('600') },
   chipTextOn: { color: LOGIN_1B.coral },
 });

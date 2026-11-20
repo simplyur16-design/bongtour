@@ -1,11 +1,13 @@
-/** design_handoff_opening — Korea photo hero + Get Started */
+/** design_handoff_opening — Korea photo hero + Get Started (1.0.2: ink scrim + cobalt CTA) */
+import { SY } from './theme';
+
 export const OPENING_DESIGN = {
-  scrim: 'rgba(18, 35, 63, 0.58)',
-  navy: '#12233F',
-  coral: '#FF6B4A',
-  faint: '#98A0AB',
+  scrim: 'rgba(20, 26, 20, 0.58)',
+  navy: SY.ink,
+  coral: SY.primary,
+  faint: SY.ink3,
   buttonHeight: 56,
-  buttonRadius: 16,
+  buttonRadius: 14,
   paddingH: 28,
   rotateMs: 5000,
 } as const;

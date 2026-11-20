@@ -18,7 +18,9 @@
     "signIn": "登录",
     "myEsim": "我的 eSIM",
     "signOut": "退出",
-    "myTrip": "我的行程"
+    "myTrip": "我的行程",
+    "tabPlans": "套餐",
+    "tabInstall": "安装"
   },
   "tabs": {
     "home": "首页",
@@ -40,7 +42,26 @@
   "home": {
     "popularPlans": "热门韩国套餐",
     "viewAllPlans": "查看全部套餐",
-    "koreaBadge": "韩国 eSIM"
+    "koreaBadge": "韩国 eSIM",
+    "heroTitle": "一落地韩国，\n马上就能上网",
+    "heroBody": "出发前先安装。付款后几分钟内即可收到二维码。",
+    "daysQuestion": "在韩国待几天？",
+    "daysMore": "更多",
+    "ctaDays": "查看{N}天套餐",
+    "ctaDaysOne": "查看1天套餐",
+    "ctaAll": "查看全部套餐",
+    "fromPrice": "{price}起",
+    "tileFreeTop": "地图、ChatGPT",
+    "tileFreeBottom": "免流量",
+    "tileRefundTop": "未使用",
+    "tileRefundBottom": "全额退款",
+    "tilePayTop": "美元结算",
+    "tilePayBottom": "刷卡支付",
+    "deviceTitle": "我的手机支持 eSIM 吗？",
+    "deviceBody": "大多数 iPhone XS 及以上、Galaxy S20 及以上机型都支持。立即查看",
+    "step1": "付款",
+    "step2": "在家安装二维码",
+    "step3": "到韩国后开启"
   },
   "countries": {
     "title": "韩国 eSIM",
@@ -123,7 +144,17 @@
     "fullUnlimitedHint": "无每日 GB 额度 · 更适合视频与重度使用（可能有合理使用）",
     "durationChipOne": "1 天",
     "showingPlansSuffixOne": " 天套餐",
-    "noPlansForDaysOne": "暂无 1 天套餐，请尝试其他天数。"
+    "noPlansForDaysOne": "暂无 1 天套餐，请尝试其他天数。",
+    "titleShort": "韩国套餐",
+    "pricesInUsd": "价格以美元计",
+    "localShort": "本地线路",
+    "roamingShort": "漫游线路",
+    "lineLocalNote": "本地线路：韩国运营商数据 · 数据漫游关闭",
+    "lineRoamingNote": "漫游线路：韩国合作网络 · 数据漫游开启",
+    "whichOne": "选哪个？",
+    "whichOneBody": "本地线路直接使用韩国运营商，此 eSIM 的数据漫游请保持关闭。漫游线路通过合作网络连接，请为此 eSIM 开启数据漫游。两种都是一落地即可使用。",
+    "dailyHint": "高速流量每天重置",
+    "firstOrderBanner": "首次下单？优惠会在结账时自动抵扣。"
   },
   "product": {
     "buyNow": "继续",
@@ -157,7 +188,18 @@
     "hotspotLabel": "热点",
     "unusedRefund": "未激活可全额退款",
     "refundLabel": "退款",
-    "refundPolicyLink": "查看退款政策 →"
+    "refundPolicyLink": "查看退款政策 →",
+    "freeAppsShort": "Google 地图、ChatGPT 免流",
+    "hotspotShort": "可开热点*",
+    "unusedRefundShort": "未使用可全额退款",
+    "headerTitle": "韩国 · {days}",
+    "firstOrderTag": "首单优惠在结账时抵扣",
+    "perDayUnit": "{currency} · 每天 {amount}",
+    "dailyResetSub": "{days}内每天重置",
+    "qrTitle": "几分钟内通过邮件收到二维码",
+    "checkShort": "查看",
+    "payHint": "在应用内安全刷卡 · Eximbay · 美元",
+    "share": "分享"
   },
   "checkout": {
     "title": "确认订单",
@@ -211,7 +253,11 @@
     "totalUsd": "合计（美元）",
     "chargedInUsd": "银行卡将以美元（USD）扣款，人民币金额仅供参考。",
     "securedBy": "银行卡或银联 · 由 Eximbay 提供安全支付",
-    "payAmount": "支付 {amount}"
+    "payAmount": "支付 {amount}",
+    "change": "更改",
+    "signedInTag": "已登录",
+    "whereQr": "二维码发送到哪里？",
+    "firstOrderDiscount": "首单优惠"
   },
   "guide": {
     "title": "安装 eSIM",
@@ -453,6 +499,23 @@
     "installIos": "在 iPhone 上安装",
     "installAndroid": "在 Android 上安装",
     "smDpAddress": "SM-DP+ 地址",
-    "shareCode": "分享 / 复制"
+    "shareCode": "分享 / 复制",
+    "qrReadyShort": "二维码已就绪",
+    "progressPaid": "已付款",
+    "progressQr": "已发二维码",
+    "progressInstall": "安装",
+    "installOneTap": "一键安装",
+    "showQr": "显示二维码",
+    "installHelp": "安装帮助",
+    "refundHint": "未使用可取消并全额退款",
+    "pastEsims": "过往 eSIM（{n}）"
+  },
+  "guideHero": {
+    "eyebrow": "您的 eSIM",
+    "title": "在“我的 eSIM”中一键安装",
+    "cta": "打开我的 eSIM",
+    "note": "连接 Wi‑Fi · 安装时请勿通话",
+    "tapHint": "请按顺序操作。已使用一键安装的，请勿再次扫描二维码。",
+    "step": "第 {n} 步"
   }
 }

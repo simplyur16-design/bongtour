@@ -18,7 +18,9 @@
     "signIn": "登入",
     "myEsim": "我的 eSIM",
     "signOut": "登出",
-    "myTrip": "我的行程"
+    "myTrip": "我的行程",
+    "tabPlans": "方案",
+    "tabInstall": "安裝"
   },
   "tabs": {
     "home": "首頁",
@@ -40,7 +42,26 @@
   "home": {
     "popularPlans": "熱門韓國方案",
     "viewAllPlans": "查看全部方案",
-    "koreaBadge": "韓國 eSIM"
+    "koreaBadge": "韓國 eSIM",
+    "heroTitle": "一落地韓國，\n馬上就能上網",
+    "heroBody": "出發前先安裝。付款後幾分鐘內就會收到 QR 碼。",
+    "daysQuestion": "在韓國待幾天？",
+    "daysMore": "更多",
+    "ctaDays": "查看{N}天方案",
+    "ctaDaysOne": "查看1天方案",
+    "ctaAll": "查看全部方案",
+    "fromPrice": "{price}起",
+    "tileFreeTop": "地圖、ChatGPT",
+    "tileFreeBottom": "不扣流量",
+    "tileRefundTop": "未使用",
+    "tileRefundBottom": "全額退款",
+    "tilePayTop": "美元結帳",
+    "tilePayBottom": "刷卡付款",
+    "deviceTitle": "我的手機支援 eSIM 嗎？",
+    "deviceBody": "多數 iPhone XS 以上、Galaxy S20 以上機型都支援。立即查看",
+    "step1": "付款",
+    "step2": "在家安裝 QR 碼",
+    "step3": "到韓國後開啟"
   },
   "countries": {
     "title": "韓國 eSIM",
@@ -123,7 +144,17 @@
     "fullUnlimitedHint": "無每日 GB 額度 · 更適合影片與重度使用（可能有合理使用）",
     "durationChipOne": "1 天",
     "showingPlansSuffixOne": " 天方案",
-    "noPlansForDaysOne": "暫無 1 天方案，請嘗試其他天數。"
+    "noPlansForDaysOne": "暫無 1 天方案，請嘗試其他天數。",
+    "titleShort": "韓國方案",
+    "pricesInUsd": "價格以美元計",
+    "localShort": "本地線路",
+    "roamingShort": "漫遊線路",
+    "lineLocalNote": "本地線路：韓國電信業者數據 · 數據漫遊關閉",
+    "lineRoamingNote": "漫遊線路：韓國合作網路 · 數據漫遊開啟",
+    "whichOne": "該選哪個？",
+    "whichOneBody": "本地線路直接使用韓國電信業者，此 eSIM 的數據漫遊請保持關閉。漫遊線路透過合作網路連線，請為此 eSIM 開啟數據漫遊。兩種都是一落地就能使用。",
+    "dailyHint": "高速流量每天重置",
+    "firstOrderBanner": "首次下單？優惠會在結帳時自動折抵。"
   },
   "product": {
     "buyNow": "繼續",
@@ -157,7 +188,18 @@
     "hotspotLabel": "熱點",
     "unusedRefund": "未啟用可全額退款",
     "refundLabel": "退款",
-    "refundPolicyLink": "查看退款政策 →"
+    "refundPolicyLink": "查看退款政策 →",
+    "freeAppsShort": "Google 地圖、ChatGPT 免流",
+    "hotspotShort": "可開熱點*",
+    "unusedRefundShort": "未使用可全額退款",
+    "headerTitle": "韓國 · {days}",
+    "firstOrderTag": "首購優惠於結帳時折抵",
+    "perDayUnit": "{currency} · 每天 {amount}",
+    "dailyResetSub": "{days}內每天重置",
+    "qrTitle": "幾分鐘內透過 Email 收到 QR 碼",
+    "checkShort": "查看",
+    "payHint": "在 App 內安全刷卡 · Eximbay · 美元",
+    "share": "分享"
   },
   "checkout": {
     "title": "確認訂單",
@@ -211,7 +253,11 @@
     "totalUsd": "合計（美元）",
     "chargedInUsd": "信用卡將以美元（USD）請款，新台幣金額僅供參考。",
     "securedBy": "信用卡或銀聯 · 由 Eximbay 提供安全付款",
-    "payAmount": "付款 {amount}"
+    "payAmount": "付款 {amount}",
+    "change": "變更",
+    "signedInTag": "已登入",
+    "whereQr": "QR 碼要寄到哪裡？",
+    "firstOrderDiscount": "首單優惠"
   },
   "guide": {
     "title": "安裝 eSIM",
@@ -453,6 +499,23 @@
     "installIos": "在 iPhone 上安裝",
     "installAndroid": "在 Android 上安裝",
     "smDpAddress": "SM-DP+ 位址",
-    "shareCode": "分享 / 複製"
+    "shareCode": "分享 / 複製",
+    "qrReadyShort": "QR 碼已就緒",
+    "progressPaid": "已付款",
+    "progressQr": "已發 QR 碼",
+    "progressInstall": "安裝",
+    "installOneTap": "一鍵安裝",
+    "showQr": "顯示 QR 碼",
+    "installHelp": "安裝說明",
+    "refundHint": "未使用可取消並全額退款",
+    "pastEsims": "過往 eSIM（{n}）"
+  },
+  "guideHero": {
+    "eyebrow": "您的 eSIM",
+    "title": "在「我的 eSIM」一鍵安裝",
+    "cta": "開啟我的 eSIM",
+    "note": "連上 Wi‑Fi · 安裝時請勿通話",
+    "tapHint": "請依序操作。已使用一鍵安裝者，請勿再次掃描 QR 碼。",
+    "step": "第 {n} 步"
   }
 }

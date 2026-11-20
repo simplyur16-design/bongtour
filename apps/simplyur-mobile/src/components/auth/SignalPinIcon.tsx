@@ -3,7 +3,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 type Props = { width?: number; height?: number; fill?: string };
 
 /** Signal Pin — location pin + eSIM signal (design_handoff_login_1b) */
-export function SignalPinIcon({ width = 44, height = 53, fill = '#FF6B4A' }: Props) {
+export function SignalPinIcon({ width = 44, height = 53, fill = '#2A62D4' }: Props) {
   return (
     <Svg width={width} height={height} viewBox="0 0 100 120" fill="none">
       <Path

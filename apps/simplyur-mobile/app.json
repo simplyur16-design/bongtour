@@ -2,7 +2,7 @@
   "expo": {
     "name": "Simplyur eSIM",
     "slug": "simplyur",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "simplyur",
@@ -39,6 +39,7 @@
     },
     "android": {
       "package": "com.bongtour.simplyur",
+      "versionCode": 15,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "backgroundColor": "#F5E8EA",
@@ -81,7 +82,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#FFF4EF"
+          "backgroundColor": "#EEF1EC"
         }
       ],
       "expo-font",
@@ -94,7 +95,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#FF6B4A"
+          "color": "#2A62D4"
         }
       ]
     ],
