@@ -5,8 +5,7 @@ $Src = 'C:\Users\USER\Desktop\BONGTOUR\apps\simplyur-mobile'
 $Dst = 'D:\sy2'
 $Jdk = 'C:\Program Files\Android\Android Studio\jbr'
 $KsProps = 'D:\simplyur-release\keystore.properties'
-$OutAab = 'C:\Users\USER\Desktop\BONGTOUR\simplyur-1.0.0-12-local.aab'
-$OutAabCopy = 'C:\Users\USER\Desktop\BONGTOUR\apps\simplyur-mobile\aab\simplyur-1.0.0-12-local.aab'
+$AppJson = Join-Path $Src 'app.json'
 
 if (-not (Test-Path $KsProps)) { throw "Missing $KsProps — Play upload keystore" }
 if (-not (Test-Path "$Jdk\bin\java.exe")) { throw "Missing JDK at $Jdk" }
@@ -21,10 +20,17 @@ $env:JAVA_TOOL_OPTIONS = '--enable-native-access=ALL-UNNAMED'
 $env:PATH = "C:\Program Files\nodejs;$Jdk\bin;$env:PATH"
 $env:EXPO_PUBLIC_API_BASE_URL = 'https://bongtour.com'
 $env:EXPO_PUBLIC_SIMPLYUR_CHECKOUT_ENABLED = '1'
-# Play Console rejects reused versionCode (11 already used).
-$env:SIMPLYUR_VERSION_CODE = '12'
-$OutAab = 'C:\Users\USER\Desktop\BONGTOUR\simplyur-1.0.0-12-local.aab'
-$OutAabCopy = 'C:\Users\USER\Desktop\BONGTOUR\apps\simplyur-mobile\aab\simplyur-1.0.0-12-local.aab'
+# versionName / versionCode come from app.json (expo.version, expo.android.versionCode).
+# Play Console rejects a reused versionCode — bump app.json, not this script.
+$app = Get-Content -Raw -Encoding UTF8 $AppJson | ConvertFrom-Json
+$VersionName = [string]$app.expo.version
+$VersionCode = [string]$app.expo.android.versionCode
+if (-not ($VersionName -match '^\d+(\.\d+)*$')) { throw "app.json expo.version invalid: $VersionName" }
+if (-not ($VersionCode -match '^[1-9]\d*$')) { throw "app.json expo.android.versionCode invalid: $VersionCode" }
+# Same value the patch script reads; set explicitly so a stale session value (e.g. old '12') can't win.
+$env:SIMPLYUR_VERSION_CODE = $VersionCode
+$OutAab = "C:\Users\USER\Desktop\BONGTOUR\simplyur-$VersionName-$VersionCode-local.aab"
+$OutAabCopy = "C:\Users\USER\Desktop\BONGTOUR\apps\simplyur-mobile\aab\simplyur-$VersionName-$VersionCode-local.aab"
 
 New-Item -ItemType Directory -Path $Dst -Force | Out-Null
 & robocopy $Src $Dst /E /XD node_modules android\app\.cxx android\app\build android\build android\.gradle .expo dist .git aab /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
@@ -48,7 +54,7 @@ $gradle = Join-Path $Dst 'android\app\build.gradle'
 if (-not (Test-Path $gradle)) { throw "android project missing at $gradle — generate it locally first" }
 
 $patch = Join-Path $Src 'scripts\patch-android-release-signing.js'
-node $patch $gradle $KsProps
+node $patch $gradle $KsProps $AppJson
 if ($LASTEXITCODE -ne 0) { throw "gradle patch failed" }
 
 foreach ($stale in @(
