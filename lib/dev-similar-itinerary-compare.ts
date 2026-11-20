@@ -16,6 +16,7 @@ import { publicProductPath } from '@/lib/product-public-path'
 import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 import { computeEffectivePricePerPersonKrwFromRow } from '@/lib/product-price-per-person'
+import { selectVisibleCompareRows } from '@/lib/similar-itinerary-compare-visible'
 import {
   parseSimilarItineraryCompareKind,
   type SimilarItineraryCompareKind,
@@ -212,6 +213,12 @@ export async function loadSimilarItineraryCompare(opts: {
    * 기본 false — 관리자·갭 수집(compare-cluster-supplier-gap-ingest)은 전 후보 기준 그대로(주 칸만 채움).
    */
   applyWeekFilter?: boolean
+  /** 공개 표: 그 주 출발이 없어도 비슷한 박일 상품은 남긴다 */
+  keepRowsWithoutWeekDeparture?: boolean
+  /** 공개 표: 공급사당 1행 */
+  dedupeBySupplier?: boolean
+  excludeSlug?: string | null
+  excludeId?: string | null
   /** 테스트용 기준 시각 */
   baseDate?: Date
 }): Promise<SimilarItineraryCompareBundle> {
@@ -475,9 +482,21 @@ export async function loadSimilarItineraryCompare(opts: {
     }
   })
 
-  // 같은 출발 주간 조건: 고른 주에 예약가능 출발이 있는 후보만 표에 남김
-  const rows = opts.applyWeekFilter === true && selectedWeekStartYmd ? allRows.filter((r) => r.weekAdultKrw != null) : allRows
-  const rowsWithoutWeekDepartureCount = allRows.length - rows.length
+  const rowsWithoutWeekDepartureCount = allRows.filter((r) => r.weekAdultKrw == null).length
+  const weekFiltered =
+    opts.applyWeekFilter === true && opts.keepRowsWithoutWeekDeparture !== true && selectedWeekStartYmd
+      ? allRows.filter((r) => r.weekAdultKrw != null)
+      : allRows
+  const rows = opts.dedupeBySupplier
+    ? selectVisibleCompareRows(weekFiltered, {
+        excludeId: opts.excludeId,
+        excludeSlug: opts.excludeSlug,
+      })
+    : weekFiltered.filter((row) => {
+        if (opts.excludeId && row.id === opts.excludeId) return false
+        if (opts.excludeSlug && row.slug === opts.excludeSlug) return false
+        return true
+      })
 
   rows.sort((a, b) => {
     const s = a.supplierLabel.localeCompare(b.supplierLabel, 'ko')

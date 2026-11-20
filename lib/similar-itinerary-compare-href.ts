@@ -68,6 +68,8 @@ export function buildSimilarItineraryCompareHref(input: {
   place: string
   duration: string
   kind?: SimilarItineraryCompareKind | string | null
+  /** 공개 표에서 빼는 현재 상품 */
+  from?: string | null
 }): string | null {
   const placeCluster = resolveComparePlaceCluster({ placeQuery: input.place })
   const place = placeCluster?.label || ''
@@ -75,6 +77,8 @@ export function buildSimilarItineraryCompareHref(input: {
   if (!place || !duration) return null
   const kind = parseSimilarItineraryCompareKind(input.kind)
   const qs = new URLSearchParams({ place, duration, kind })
+  const from = String(input.from || '').trim()
+  if (from) qs.set('from', from)
   return `${SIMILAR_ITINERARY_COMPARE_PATH}?${qs.toString()}`
 }
 
@@ -101,5 +105,6 @@ export function buildSimilarItineraryCompareHrefFromProduct(input: {
     place: similarItineraryComparePlaceFromProduct(input),
     duration: similarItineraryCompareDurationFromProduct(input),
     kind,
+    from: input.slug,
   })
 }

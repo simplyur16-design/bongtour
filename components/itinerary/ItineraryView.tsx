@@ -479,6 +479,7 @@ export function ItineraryView({
 
   const quoteCardProps = {
     productTitle: product.title,
+    productSlug: String(product.id),
     originCode: product.originCode,
     destination: destinationLine,
     duration: durationLabel,

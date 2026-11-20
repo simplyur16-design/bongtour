@@ -24,6 +24,7 @@ type PageProps = {
     duration?: string
     kind?: string
     week?: string
+    from?: string
   }>
 }
 
@@ -50,10 +51,24 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
   const kind = parseSimilarItineraryCompareKind(sp.kind)
   // REGRESSION-FREEZE[similar-itinerary-compare-week]: 같은 출발 주간 — week=YYYY-MM-DD, 기본 가까운 주 — manifest
   const week = String(sp.week || '').trim()
-  const bundle = await loadSimilarItineraryCompare({ place, duration, kind, week, applyWeekFilter: true })
+  const from = String(sp.from || '').trim()
+  const bundle = await loadSimilarItineraryCompare({
+    place,
+    duration,
+    kind,
+    week,
+    applyWeekFilter: true,
+    keepRowsWithoutWeekDeparture: true,
+    dedupeBySupplier: true,
+    excludeSlug: from || null,
+    excludeId: from || null,
+  })
   const selectedWeek = bundle.selectedWeekStartYmd
-  const weekHref = (ws: string) =>
-    `${SIMILAR_ITINERARY_COMPARE_PATH}?${new URLSearchParams({ place, duration, kind, week: ws }).toString()}`
+  const weekHref = (ws: string) => {
+    const qs = new URLSearchParams({ place, duration, kind, week: ws })
+    if (from) qs.set('from', from)
+    return `${SIMILAR_ITINERARY_COMPARE_PATH}?${qs.toString()}`
+  }
   const hasQuery = Boolean(place && duration)
   const isFitKind = kind === 'fit'
   const backHref = isFitKind ? '/travel/air-hotel' : '/travel/overseas'
@@ -88,7 +103,7 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
           상품 상세의 「같은 일정, 공급사별 사실 비교」로 들어와 주세요.
           <span className="sic-empty-path"> ({SIMILAR_ITINERARY_COMPARE_PATH}?place=…&amp;duration=…&amp;kind=package|fit)</span>
         </p>
-      ) : bundle.rows.length === 0 && bundle.weekOptions.length === 0 ? (
+      ) : bundle.rows.length === 0 ? (
         <p className="sic-empty">이 목적지·박일의 {kindLabel} 후보가 없습니다.</p>
       ) : (
         <>
@@ -117,7 +132,7 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
               {kindLabel} 후보 {bundle.rows.length}건
               {selectedWeek ? ` · ${formatCompareWeekLabel(selectedWeek)} 출발 기준` : ''}
               {bundle.rowsWithoutWeekDepartureCount > 0
-                ? ` · 이 주 출발이 없는 후보 ${bundle.rowsWithoutWeekDepartureCount}건 제외`
+                ? ` · 이 주 출발이 없는 상품 ${bundle.rowsWithoutWeekDepartureCount}건은 등록 가격만 표시`
                 : ''}
               {' · 추천/우위 표시 없음'}
             </caption>
@@ -139,29 +154,29 @@ export default async function SimilarItineraryComparePage({ searchParams }: Page
             <tbody>
               {bundle.rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="sic-supplier">{r.supplierLabel}</td>
-                  <td className="sic-title">
+                  <td className="sic-supplier" data-label="공급사">{r.supplierLabel}</td>
+                  <td className="sic-title" data-label="상품">
                     <Link href={r.href}>{r.title}</Link>
                   </td>
-                  <td>{r.duration}</td>
-                  <td className="sic-price sic-week-price">{r.weekPriceLabel}</td>
-                  <td className="sic-week-date">{r.weekDepartureLabel}</td>
-                  <td className="sic-price">{r.priceLabel}</td>
-                  <td className="sic-airline">
+                  <td data-label="박일">{r.duration}</td>
+                  <td className="sic-price sic-week-price" data-label="이 주 출발가">{r.weekPriceLabel}</td>
+                  <td className="sic-week-date" data-label="출발일">{r.weekDepartureLabel}</td>
+                  <td className="sic-price" data-label="가격대">{r.priceLabel}</td>
+                  <td className="sic-airline" data-label="항공사">
                     {r.airlineLabel === '정보 없음' ? (
                       <FactCell value={r.airlineLabel} />
                     ) : (
                       r.airlineLabel
                     )}
                   </td>
-                  <td>
+                  <td data-label="쇼핑">
                     <FactCell value={formatTriStateFact(r.shopping)} />
                   </td>
-                  <td>
+                  <td data-label="옵션">
                     <FactCell value={formatTriStateFact(r.optional)} />
                   </td>
-                  <td className="sic-hotel">{r.hotelLabel}</td>
-                  <td className="sic-meal">{r.mealLabel}</td>
+                  <td className="sic-hotel" data-label="호텔">{r.hotelLabel}</td>
+                  <td className="sic-meal" data-label="식사">{r.mealLabel}</td>
                 </tr>
               ))}
             </tbody>
