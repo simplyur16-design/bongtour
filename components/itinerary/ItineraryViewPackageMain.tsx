@@ -327,7 +327,22 @@ export function ItineraryViewPackageMain({
       )}
 
       {/* 동선지도 — 일정과 항공편 사이 고정 (SSR·client 동일 트리) */}
-      <ProductRouteMapSection routeMap={product.routeMap ?? null} />
+      <ProductRouteMapSection
+        routeMap={
+          product.itineraryRouteMapUrl?.trim()
+            ? {
+                status: 'ready',
+                imageUrl: product.itineraryRouteMapUrl.trim(),
+                routeSummary: `${product.destination || '여행'} 일정 동선`,
+                cities: [],
+                citiesCaption: '',
+                showMap: true,
+              }
+            : product.routeMap?.imageUrl?.trim()
+              ? product.routeMap
+              : null
+        }
+      />
 
       {flightDisplay ? (
         <section aria-labelledby="product-flight-heading">
