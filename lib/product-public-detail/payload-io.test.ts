@@ -69,4 +69,14 @@ describe('parseProductPublicDetailPayload empty_shell guard', () => {
     const raw = serializeProductPublicDetailPayload(model, bookableYmd)
     expect(parseProductPublicDetailPayload(raw, bookableYmd)?.viewProduct.title).toBe('파리 자유여행 5박 7일')
   })
+
+  it('캐시에 남은 itineraryRouteMapUrl은 공개 모델에서 뺀다', () => {
+    const model = minimalAirHotelModel('다낭 호이안', [{ day: 1, description: 'DAY1' }])
+    ;(model.viewProduct as { itineraryRouteMapUrl?: string }).itineraryRouteMapUrl =
+      'https://example.invalid/itinerary-route-maps/sample.webp'
+    const raw = serializeProductPublicDetailPayload(model, bookableYmd)
+    const parsed = parseProductPublicDetailPayload(raw, bookableYmd)
+    expect(parsed?.viewProduct).not.toHaveProperty('itineraryRouteMapUrl')
+    expect(JSON.stringify(parsed)).not.toContain('itinerary-route-maps')
+  })
 })

@@ -33290,10 +33290,36 @@
           "mustNotInclude": [
             "scheduleItineraryRouteMapGeneration"
           ]
+        },
+        {
+          "file": "lib/product-public-detail/build-render-model.ts",
+          "mustNotInclude": [
+            "itineraryRouteMap"
+          ]
+        },
+        {
+          "file": "app/components/travel/travel-product-detail-types.ts",
+          "mustNotInclude": [
+            "itineraryRouteMapUrl"
+          ]
+        },
+        {
+          "file": "lib/object-storage.ts",
+          "mustNotInclude": [
+            "itinerary-route-maps/"
+          ]
+        },
+        {
+          "file": "app/admin/products/[id]/page.tsx",
+          "mustNotInclude": [
+            "itinerary-route-map",
+            "itineraryRouteMap"
+          ]
         }
       ],
       "vitestSuites": [
-        "lib/public-itinerary-route-map-removed.test.ts"
+        "lib/public-itinerary-route-map-removed.test.ts",
+        "lib/purge-itinerary-route-map-remnants.test.ts"
       ]
     }
   ],

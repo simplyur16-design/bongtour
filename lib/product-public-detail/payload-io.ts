@@ -7,6 +7,22 @@ import {
   type ProductPublicDetailRenderModel,
 } from '@/lib/product-public-detail/types'
 
+/** 캐시된 공개 DTO에 남아 있는 일정 동선 지도 필드는 응답에 실지 않는다. */
+export function omitItineraryRouteMapFromPublicModel(model: ProductPublicDetailRenderModel): void {
+  const walk = (value: unknown, depth: number) => {
+    if (!value || typeof value !== 'object' || depth > 6) return
+    if (Array.isArray(value)) {
+      for (const item of value) walk(item, depth + 1)
+      return
+    }
+    const obj = value as Record<string, unknown>
+    delete obj.itineraryRouteMap
+    delete obj.itineraryRouteMapUrl
+    for (const child of Object.values(obj)) walk(child, depth + 1)
+  }
+  walk(model, 0)
+}
+
 export function bookableMinDateYmdForPayload(baseDate: Date = new Date()): string {
   return toDepartureDateYmd(getPublicBookableMinDate(baseDate))
 }
@@ -40,6 +56,7 @@ export function parseProductPublicDetailPayload(
     if (isEmptyShellPayloadView(parsed.model.viewProduct, payloadBytes)) {
       return null
     }
+    omitItineraryRouteMapFromPublicModel(parsed.model)
     return parsed.model
   } catch {
     return null
