@@ -27,7 +27,13 @@ export type SyIconName =
   | 'share'
   | 'info'
   | 'tag'
-  | 'user';
+  | 'user'
+  | 'doc'
+  | 'shield'
+  | 'logout'
+  | 'trash'
+  | 'headset'
+  | 'link';
 
 type Props = {
   name: SyIconName;
@@ -137,6 +143,18 @@ function Shape({ name }: { name: SyIconName }) {
           <Path d="M4 21a8 8 0 0 1 16 0" />
         </>
       );
+    case 'doc':
+      return <Path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 16h5" />;
+    case 'shield':
+      return <Path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6zM9 12l2 2 4-4" />;
+    case 'logout':
+      return <Path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9" />;
+    case 'trash':
+      return <Path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6" />;
+    case 'headset':
+      return <Path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H5a1 1 0 0 1-1-1zM20 14h-3v5h2a1 1 0 0 0 1-1zM17 19c0 1-2 2-5 2" />;
+    case 'link':
+      return <Path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />;
     default:
       return null;
   }

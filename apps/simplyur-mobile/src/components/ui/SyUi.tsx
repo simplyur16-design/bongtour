@@ -65,6 +65,67 @@ export function IconButton({
   );
 }
 
+/** 1.0.2 sub-screen header: round back button · centered title · optional right slot (mockup 03/04). */
+export function ScreenHeader({
+  title,
+  backLabel,
+  onBack,
+  right,
+}: {
+  title: string;
+  backLabel: string;
+  onBack: () => void;
+  right?: ReactNode;
+}) {
+  return (
+    <View style={styles.header}>
+      <IconButton name="back" label={backLabel} onPress={onBack} />
+      <Text style={styles.headerTitle} numberOfLines={1}>
+        {title}
+      </Text>
+      {right ?? <View style={styles.headerSpacer} />}
+    </View>
+  );
+}
+
+/** White grouped card (radius 18, line border) — rows inside get hairline dividers via `divider`. */
+export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  return <View style={[styles.card, style]}>{children}</View>;
+}
+
+/** Tappable settings-style row: icon tile · label · optional value · chevron. */
+export function NavRow({
+  icon,
+  label,
+  value,
+  onPress,
+  divider,
+  tone = 'primary',
+}: {
+  icon: SyIconName;
+  label: string;
+  value?: string;
+  onPress: () => void;
+  divider?: boolean;
+  tone?: 'primary' | 'danger';
+}) {
+  const fg = tone === 'danger' ? SY.danger : SY.primary;
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.navRow, divider && styles.navRowDivider]}
+      accessibilityRole="button"
+      accessibilityLabel={label}>
+      <View style={[styles.liIcon, { backgroundColor: tone === 'danger' ? '#FDECEA' : SY.primaryTint }]}>
+        <SyIcon name={icon} size={16} color={fg} strokeWidth={2} />
+      </View>
+      <Text style={[styles.navLabel, tone === 'danger' && { color: SY.danger }]}>{label}</Text>
+      {value ? <Text style={styles.navValue}>{value}</Text> : null}
+      <SyIcon name="chev" size={16} color={SY.ink3} strokeWidth={2} />
+    </Pressable>
+  );
+}
+
 export type TagTone = 'free' | 'primary' | 'neutral' | 'warn';
 
 export function Tag({
@@ -156,6 +217,21 @@ export function Segmented<K extends string>({
 }
 
 const styles = StyleSheet.create({
+  header: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, ...fp('700'), color: SY.ink, paddingHorizontal: 8 },
+  headerSpacer: { width: 36 },
+  card: {
+    backgroundColor: SY.surface,
+    borderWidth: 1,
+    borderColor: SY.line,
+    borderRadius: SY_RADIUS.card,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+  },
+  navRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
+  navRowDivider: { borderBottomWidth: 1, borderBottomColor: SY.sage },
+  navLabel: { flex: 1, fontSize: 15, ...fp('600'), color: SY.ink },
+  navValue: { fontSize: 13.5, ...fp('400'), color: SY.ink3 },
   markTile: { backgroundColor: SY.sage, alignItems: 'center', justifyContent: 'center' },
   iconBtn: {
     width: 36,
