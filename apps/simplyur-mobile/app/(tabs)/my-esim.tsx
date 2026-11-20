@@ -713,6 +713,7 @@ function UsageRing({ pct }: { pct: number }) {
   return (
     <Svg width={size} height={size}>
       <Circle cx={size / 2} cy={size / 2} r={r} stroke={SY.sage} strokeWidth={sw} fill="none" />
+      {p > 0 ? (
       <Circle
         cx={size / 2}
         cy={size / 2}
@@ -724,6 +725,7 @@ function UsageRing({ pct }: { pct: number }) {
         strokeDasharray={`${(c * p) / 100} ${c}`}
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
       />
+      ) : null}
     </Svg>
   );
 }

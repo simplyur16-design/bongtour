@@ -345,11 +345,12 @@ export default function CheckoutScreen() {
       return null;
     }
   })();
-  const networkName = product
-    ? networkLabelFromFamily(product.network_family, t('recommend.roaming'), t('recommend.local'))
-    : '';
   const planTitle = product
-    ? formatProductTitle(locale, { days: product.days ?? null, dataLabel: product.data_label, networkLabel: '' })
+    ? formatProductTitle(locale, {
+        days: product.days ?? null,
+        dataLabel: product.data_label,
+        networkLabel: networkLabelFromFamily(product.network_family, t('recommend.roaming'), t('recommend.local')),
+      })
     : '';
   // Eximbay charges USD. en display is already USD; other locales read the USD plan row.
   const usdDisplay =
@@ -538,9 +539,9 @@ export default function CheckoutScreen() {
             <EsimMarkTile size={44} />
             <View style={styles.planText}>
               <Text style={styles.planTitle} numberOfLines={2}>
-                {t('product.headerTitle').replace('{days}', planTitle || product.days_label)}
+                {planTitle || product.data_label}
               </Text>
-              {networkName ? <Text style={styles.planSub}>{networkName}</Text> : null}
+              <Text style={styles.planSub}>{product.days_label}</Text>
             </View>
             <Pressable onPress={() => router.back()} hitSlop={8} accessibilityRole="link">
               <Text style={styles.changeLink}>{t('checkout.change')}</Text>
@@ -827,6 +828,8 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     paddingHorizontal: 16,
+    // Web export: the wrapper draws the border, so drop the browser focus ring.
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
     fontSize: 15,
     color: LOGIN_1B.navy,
     ...fp('400'),
