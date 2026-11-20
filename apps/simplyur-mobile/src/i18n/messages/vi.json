@@ -518,5 +518,10 @@
     "note": "Bật Wi‑Fi · không gọi điện khi đang cài",
     "tapHint": "Làm theo các bước theo thứ tự. Đã cài bằng một chạm thì không quét lại mã QR.",
     "step": "Bước {n}"
+  },
+  "notFound": {
+    "title": "Không tìm thấy trang",
+    "body": "Trang này không có trong ứng dụng. Về Trang chủ để xem gói Hàn Quốc.",
+    "cta": "Về Trang chủ"
   }
 }

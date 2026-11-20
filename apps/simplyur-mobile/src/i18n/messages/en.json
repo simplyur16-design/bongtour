@@ -793,5 +793,10 @@
     "note": "Wi‑Fi on · stay off calls while installing",
     "tapHint": "Follow the steps in order. Already used the 1‑tap install? Don't scan the QR again.",
     "step": "Step {n}"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "This page isn't in the app. Go back to Home to browse Korea plans.",
+    "cta": "Go to Home"
   }
 }
