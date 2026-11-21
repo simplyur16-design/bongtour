@@ -23,6 +23,8 @@ import {
   similarItineraryCompareKindFromProduct,
 } from '@/lib/similar-itinerary-compare-href'
 import {
+  bookableCompareWeekRows,
+  compareWeekEndYmd,
   formatCompareDayLabel,
   formatCompareWeekLabel,
   formatCompareWeekPriceLabel,
@@ -43,11 +45,14 @@ import {
   formatOptionalTourFeeCellForPublicTable,
   parseOptionalToursForPackagePublicTable,
 } from '@/lib/optional-tours-ui-model'
-import { isCanonicalOverseasSupplierKey } from '@/lib/overseas-supplier-canonical-keys'
+import {
+  CANONICAL_OVERSEAS_SUPPLIER_KEYS,
+  isCanonicalOverseasSupplierKey,
+  type CanonicalOverseasSupplierKey,
+} from '@/lib/overseas-supplier-canonical-keys'
 import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { formatOriginSourceForDisplay } from '@/lib/supplier-origin'
 import { publicProductPath } from '@/lib/product-public-path'
-import { resolvePublicBrowseCardTitle } from '@/lib/bongtour-product-display-title-ssot'
 import { normalizeSupplierRegisterListingTitle } from '@/lib/supplier-product-title-display'
 
 export const SIMILAR_DETAIL_EXACT_MIN = 4
@@ -69,10 +74,12 @@ export type SimilarItineraryDetailCard = {
   id: string
   href: string
   title: string
+  supplierKey: string
   supplierLabel: string
   durationLabel: string
   durationMatch: 'exact' | 'near'
   departureLabel: string
+  departureCount: number
   departureSort: string | null
   priceLabel: string
   priceSort: number | null
@@ -100,7 +107,9 @@ export type SimilarItineraryDetailShelf = {
 const shelfSelect = {
   id: true,
   slug: true,
+  originCode: true,
   title: true,
+  originalTitle: true,
   duration: true,
   tripNights: true,
   tripDays: true,
@@ -161,7 +170,9 @@ const shelfSelect = {
 type ShelfRow = {
   id: string
   slug: string | null
+  originCode: string
   title: string
+  originalTitle: string | null
   duration: string | null
   tripNights: number | null
   tripDays: number | null
@@ -307,22 +318,110 @@ function optionLabel(row: ShelfRow): string {
   return '정보 없음'
 }
 
+export function productCodeStem(originCode: string | null | undefined): string {
+  const raw = String(originCode || '').trim().toUpperCase()
+  const date = /2[4-9](?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])/
+  const found = date.exec(raw)
+  if (!found || found.index <= 0) return raw
+  const head = raw.slice(0, found.index).replace(/[-_]+$/g, '')
+  return head || raw
+}
+
+export function similarGroupTitleKey(title: string | null | undefined): string {
+  const display = normalizeSupplierRegisterListingTitle(String(title || '')) || String(title || '').trim()
+  return display.toLowerCase().replace(/\s+/g, '')
+}
+
+export function similarShelfProductTitle(title: string | null | undefined, originalTitle?: string | null): string {
+  const display = normalizeSupplierRegisterListingTitle(String(title || '')) || String(title || '').trim()
+  const original = normalizeSupplierRegisterListingTitle(String(originalTitle || '')) || String(originalTitle || '').trim()
+  const placeOnly = (value: string) => /^[^\d]{0,16}\d+\s*박\s*\d+\s*일$/.test(value.trim())
+  if (display && !placeOnly(display)) return display
+  if (original && !placeOnly(original)) return original
+  return display || original || '상품'
+}
+
+type GroupableShelfItem = {
+  supplierKey: string
+  originCode: string
+  title: string
+}
+
+/** 같은 공급사에서 상품코드(날짜 접미 제거)나 제목이 같으면 한 상품. */
+export function groupSimilarShelfItems<T extends GroupableShelfItem>(items: readonly T[]): T[][] {
+  const parent = items.map((_, i) => i)
+  const find = (i: number): number => {
+    let x = i
+    while (parent[x] !== x) x = parent[x]!
+    return x
+  }
+  const unite = (a: number, b: number) => {
+    const pa = find(a)
+    const pb = find(b)
+    if (pa !== pb) parent[pb] = pa
+  }
+  const byCode = new Map<string, number>()
+  const byTitle = new Map<string, number>()
+  items.forEach((item, index) => {
+    const supplier = item.supplierKey || 'unknown'
+    const code = productCodeStem(item.originCode)
+    const titleKey = similarGroupTitleKey(item.title)
+    const codeKey = code ? `${supplier}|code|${code}` : ''
+    const titleMapKey = titleKey.length >= 8 ? `${supplier}|title|${titleKey}` : ''
+    if (codeKey && byCode.has(codeKey)) unite(index, byCode.get(codeKey)!)
+    if (titleMapKey && byTitle.has(titleMapKey)) unite(index, byTitle.get(titleMapKey)!)
+    if (codeKey) byCode.set(codeKey, index)
+    if (titleMapKey) byTitle.set(titleMapKey, index)
+  })
+  const groups = new Map<number, T[]>()
+  items.forEach((item, index) => {
+    const root = find(index)
+    const list = groups.get(root) ?? []
+    list.push(item)
+    groups.set(root, list)
+  })
+  return [...groups.values()]
+}
+
+export function interleaveSimilarCardsBySupplier<T extends { supplierKey: string; priceSort: number | null }>(
+  cards: readonly T[],
+  cap = SIMILAR_DETAIL_CARD_CAP,
+): T[] {
+  const buckets = new Map<string, T[]>()
+  const sorted = [...cards].sort((a, b) => {
+    if (a.priceSort == null && b.priceSort == null) return 0
+    if (a.priceSort == null) return 1
+    if (b.priceSort == null) return -1
+    return a.priceSort - b.priceSort
+  })
+  for (const card of sorted) {
+    const list = buckets.get(card.supplierKey) ?? []
+    list.push(card)
+    buckets.set(card.supplierKey, list)
+  }
+  const order = [
+    ...CANONICAL_OVERSEAS_SUPPLIER_KEYS.filter((key) => buckets.has(key)),
+    ...[...buckets.keys()].filter((key) => !CANONICAL_OVERSEAS_SUPPLIER_KEYS.includes(key as CanonicalOverseasSupplierKey)).sort(),
+  ]
+  const out: T[] = []
+  let round = 0
+  while (out.length < cap) {
+    let added = false
+    for (const key of order) {
+      const card = buckets.get(key)?.[round]
+      if (!card) continue
+      out.push(card)
+      added = true
+      if (out.length >= cap) break
+    }
+    if (!added) break
+    round += 1
+  }
+  return out
+}
+
 function cardTitle(row: ShelfRow): string {
-  const planB =
-    normalizeSupplierRegisterListingTitle(String(row.title || '')) ||
-    String(row.title || '').trim() ||
-    '상품'
-  return (
-    resolvePublicBrowseCardTitle(
-      {
-        title: row.title,
-        duration: row.duration,
-        primaryDestination: row.primaryDestination,
-        destination: row.destination,
-      },
-      planB,
-    ).cardTitle || planB
-  )
+  return similarShelfProductTitle(row.title, row.originalTitle)
 }
 
 function lengthInput(row: Pick<ShelfRow, 'duration' | 'title' | 'tripNights' | 'tripDays' | 'itineraryDays'>): DeriveTripNightsDaysInput {
@@ -389,6 +488,9 @@ export async function loadSimilarItineraryDetailShelf(input: {
   })) as ShelfRow[]
 
   const anchorLen = lengthInput(anchor)
+  const anchorSupplier = normalizeSupplierOrigin(anchor.originSource)
+  const anchorCode = productCodeStem(anchor.originCode)
+  const anchorTitleKey = similarGroupTitleKey(anchor.title)
   const related = products.filter((p) => {
     const peerPlace = resolveComparePlaceCluster({
       primaryDestination: p.primaryDestination,
@@ -396,8 +498,13 @@ export async function loadSimilarItineraryDetailShelf(input: {
       title: p.title,
     })
     if (!comparePlaceClustersMatch(place, peerPlace)) return false
-    if (!isCanonicalOverseasSupplierKey(normalizeSupplierOrigin(p.originSource))) return false
-    return productMatchesSimilarItineraryCompareKind(p, kind)
+    const supplier = normalizeSupplierOrigin(p.originSource)
+    if (!isCanonicalOverseasSupplierKey(supplier)) return false
+    if (!productMatchesSimilarItineraryCompareKind(p, kind)) return false
+    if (supplier === anchorSupplier && anchorCode && productCodeStem(p.originCode) === anchorCode) return false
+    const titleKey = similarGroupTitleKey(p.title)
+    if (supplier === anchorSupplier && anchorTitleKey.length >= 8 && titleKey === anchorTitleKey) return false
+    return true
   })
   const withRelation = related.map((row) => ({
     row,
@@ -418,17 +525,40 @@ export async function loadSimilarItineraryDetailShelf(input: {
     baseDate,
   )
   const weekStart = resolveSelectedCompareWeek(null, weekOptions)
-
   const anchorFacts = factsFor(anchor, weekStart, baseDate)
-  const cards = picked.items
-    .map((item) => toCard(item.row, item.relation === 'near' ? 'near' : 'exact', weekStart, baseDate, anchorFacts))
-    .sort((a, b) => {
-      if (a.priceSort == null && b.priceSort == null) return a.supplierLabel.localeCompare(b.supplierLabel, 'ko')
-      if (a.priceSort == null) return 1
-      if (b.priceSort == null) return -1
-      return a.priceSort - b.priceSort
+  const groups = groupSimilarShelfItems(
+    picked.items.map((item) => ({
+      ...item,
+      supplierKey: normalizeSupplierOrigin(item.row.originSource) || 'unknown',
+      originCode: item.row.originCode,
+      title: item.row.title,
+    })),
+  )
+  const groupedCards = groups.map((group) => {
+    const dates = new Map<string, { row: ShelfRow; adult: number; carrier: string | null }>()
+    for (const item of group) {
+      for (const dep of bookableCompareWeekRows(toCompareWeekRows(item.row.departures ?? []), baseDate)) {
+        const prev = dates.get(dep.date)
+        if (!prev || dep.adult < prev.adult) {
+          dates.set(dep.date, { row: item.row, adult: dep.adult, carrier: dep.carrierName })
+        }
+      }
+    }
+    const ymds = [...dates.keys()].sort()
+    const nearestYmd = ymds[0] ?? null
+    const nearest = nearestYmd ? dates.get(nearestYmd)! : null
+    const lead = nearest?.row ?? group[0]!.row
+    const weekEnd = weekStart ? compareWeekEndYmd(weekStart) : null
+    const sameWeek = Boolean(weekStart && weekEnd && ymds.some((ymd) => ymd >= weekStart && ymd <= weekEnd))
+    return toCard(lead, group.some((item) => item.relation === 'exact') ? 'exact' : 'near', weekStart, baseDate, anchorFacts, {
+      dateYmd: nearestYmd,
+      adultKrw: nearest?.adult ?? null,
+      carrierName: nearest?.carrier ?? null,
+      count: ymds.length,
+      sameWeek,
     })
-    .slice(0, SIMILAR_DETAIL_CARD_CAP)
+  })
+  const cards = interleaveSimilarCardsBySupplier(groupedCards)
 
   if (cards.length === 0) return null
   return {
@@ -460,8 +590,20 @@ type AnchorFacts = {
   price: string
 }
 
-function factsFor(row: ShelfRow, weekStart: string | null, baseDate: Date): AnchorFacts & {
+function factsFor(
+  row: ShelfRow,
+  weekStart: string | null,
+  baseDate: Date,
+  focus?: {
+    dateYmd: string | null
+    adultKrw: number | null
+    carrierName: string | null
+    count: number
+    sameWeek: boolean
+  },
+): AnchorFacts & {
   departureLabel: string
+  departureCount: number
   departureSort: string | null
   priceSort: number | null
   noShopping: boolean
@@ -470,13 +612,14 @@ function factsFor(row: ShelfRow, weekStart: string | null, baseDate: Date): Anch
   hotelGrade: string
 } {
   const weekPick = weekStart ? pickCompareWeekDeparture(toCompareWeekRows(row.departures ?? []), weekStart, baseDate) : null
+  const focusedCarrier = focus?.carrierName?.trim() || null
+  const weekCarrier = focusedCarrier || weekPick?.carrierName?.trim() || null
   const airlineBase = resolveCompareAirlineLabel({
     airline: row.airline,
     prices: (row.prices ?? []).map((pr) => ({ id: String(pr.id), date: String(pr.date), adult: pr.adult })),
     departures: row.departures,
     baseDate,
   })
-  const weekCarrier = weekPick?.carrierName?.trim() || null
   const airline = weekCarrier
     ? deriveAirlineFact({
         departureKeyFactsAirline: weekCarrier,
@@ -492,12 +635,16 @@ function factsFor(row: ShelfRow, weekStart: string | null, baseDate: Date): Anch
   })
   const shop = shoppingLabel(row)
   const tip = deriveShelfTip([row.title, row.includedText, row.excludedText])
+  const adultKrw = focus ? focus.adultKrw : (weekPick?.adultKrw ?? null)
   const price = shelfPackagePriceLabel({
-    adultKrw: weekPick?.adultKrw ?? null,
+    adultKrw,
     priceCurrency: row.priceCurrency,
     priceFrom: row.priceFrom,
   })
   const hotelGrade = hotelMeal.hotelStarGrade?.trim() || '정보 없음'
+  const dateYmd = focus ? focus.dateYmd : (weekPick?.dateYmd ?? null)
+  const count = focus?.count ?? (dateYmd ? 1 : 0)
+  const nearestLabel = dateYmd ? formatCompareDayLabel(dateYmd) : '출발일 없음'
   return {
     airline,
     hotel: hotelGrade,
@@ -506,12 +653,13 @@ function factsFor(row: ShelfRow, weekStart: string | null, baseDate: Date): Anch
     tip: tip.label,
     meal: hotelMeal.mealLabel?.trim() || '정보 없음',
     price: price.label,
-    departureLabel: weekPick ? formatCompareDayLabel(weekPick.dateYmd) : '출발일 없음',
-    departureSort: weekPick?.dateYmd ?? null,
+    departureLabel: count > 1 ? `가장 가까운 ${nearestLabel} · 출발일 ${count}개` : nearestLabel,
+    departureCount: count,
+    departureSort: dateYmd,
     priceSort: price.sort,
     noShopping: shop.noShopping,
     noTip: tip.kind === 'no',
-    sameWeek: weekPick != null,
+    sameWeek: focus ? focus.sameWeek : weekPick != null,
     hotelGrade,
   }
 }
@@ -522,17 +670,27 @@ function toCard(
   weekStart: string | null,
   baseDate: Date,
   anchor: AnchorFacts,
+  focus?: {
+    dateYmd: string | null
+    adultKrw: number | null
+    carrierName: string | null
+    count: number
+    sameWeek: boolean
+  },
 ): SimilarItineraryDetailCard {
-  const facts = factsFor(row, weekStart, baseDate)
+  const facts = factsFor(row, weekStart, baseDate, focus)
   const len = deriveTripNightsDays(lengthInput(row))
+  const supplierKey = normalizeSupplierOrigin(row.originSource) || 'unknown'
   return {
     id: row.id,
     href: publicProductPath({ id: row.id, slug: row.slug }),
     title: cardTitle(row),
+    supplierKey,
     supplierLabel: formatOriginSourceForDisplay(row.originSource),
     durationLabel: len.label || '정보 없음',
     durationMatch,
     departureLabel: facts.departureLabel,
+    departureCount: facts.departureCount,
     departureSort: facts.departureSort,
     priceLabel: facts.price,
     priceSort: facts.priceSort,

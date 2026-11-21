@@ -52,7 +52,7 @@ function CardView({ card }: { card: SimilarItineraryDetailCard }) {
         <p className="text-sm font-semibold text-bt-card-title">{card.supplierLabel}</p>
         <p className="shrink-0 text-sm font-semibold tabular-nums text-bt-title">{card.priceLabel}</p>
       </div>
-      <h3 className="mt-2 line-clamp-2 text-[15px] font-semibold leading-snug text-bt-title group-hover:underline">
+      <h3 className="mt-2 line-clamp-3 text-[15px] font-semibold leading-snug text-bt-title group-hover:underline">
         {card.title}
       </h3>
       <p className="mt-1 text-xs text-bt-meta">

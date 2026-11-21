@@ -221,7 +221,7 @@ export function ItineraryViewPackageMain({
         <div
           ref={dayTabsBarRef}
           data-testid="package-day-tabs-bar"
-          className="sticky top-[72px] sm:top-20 z-10 -mx-1 bg-[#FAFAFC]/95 backdrop-blur-sm border-b border-[#DAD4EE] py-3"
+          className="sticky top-[72px] sm:top-20 z-30 -mx-1 bg-[#FAFAFC] border-b border-[#DAD4EE] py-3"
           style={siteHeaderOffsetPx != null ? { top: siteHeaderOffsetPx } : undefined}
         >
           <div className="flex items-center gap-2 overflow-x-auto">
