@@ -955,7 +955,10 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
               )}
             </section>
 
-            <SimilarItineraryDetailShelf shelf={product.similarItineraryShelf} />
+            <SimilarItineraryDetailShelf
+              shelf={product.similarItineraryShelf}
+              selectedAdultKrw={selectedDepartureCurrentPrice}
+            />
 
             <MustKnowEssentialsSection items={mustKnowFiltered} layout="desktop" originSource={product.originSource} />
 

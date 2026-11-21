@@ -275,7 +275,7 @@ export function pickSimilarListPins<
     noShopping: boolean
     departureSort: string | null
   },
->(cards: readonly T[]): Array<{ id: string; labels: string[] }> {
+>(cards: readonly T[], anchorAdultKrw?: number | null): Array<{ id: string; labels: string[] }> {
   const priced = (list: readonly T[]) => list.filter((card) => card.adultKrw != null && card.adultKrw > 0)
   const cheapest = (list: readonly T[]): T | null => {
     const rows = priced(list)
@@ -292,7 +292,9 @@ export function pickSimilarListPins<
   }
   const picks: Array<{ id: string; label: (typeof PIN_LABELS)[number] }> = []
   const exactLow = cheapest(cards.filter((card) => card.durationMatch === 'exact'))
-  if (exactLow) picks.push({ id: exactLow.id, label: '같은 일정 최저가' })
+  if (exactLow && (anchorAdultKrw == null || exactLow.adultKrw! <= anchorAdultKrw)) {
+    picks.push({ id: exactLow.id, label: '같은 일정 최저가' })
+  }
   const noShopLow = cheapest(cards.filter((card) => card.noShopping))
   if (noShopLow) picks.push({ id: noShopLow.id, label: '노쇼핑 최저가' })
   const dated = cards.filter((card) => card.departureSort)

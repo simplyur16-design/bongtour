@@ -76,6 +76,7 @@ type Props = {
   productMetaChips: ProductMetaChip[]
   omitBriefRows?: boolean
   showEsimCrossSell?: boolean
+  selectedAdultKrw?: number | null
 }
 
 export function ItineraryViewPackageMain({
@@ -83,6 +84,7 @@ export function ItineraryViewPackageMain({
   calendarAlignedDepartureFacts = null,
   selectedDepartureIso = null,
   showEsimCrossSell = false,
+  selectedAdultKrw = null,
 }: Props) {
   const schedule = product.schedule ?? []
   const pageSize = 2
@@ -326,7 +328,7 @@ export function ItineraryViewPackageMain({
         <p className="text-sm fit-tx-meta">등록된 일정 요약이 없습니다.</p>
       )}
 
-      <SimilarItineraryDetailShelf shelf={product.similarItineraryShelf} />
+      <SimilarItineraryDetailShelf shelf={product.similarItineraryShelf} selectedAdultKrw={selectedAdultKrw} />
 
       {/* REGRESSION-FREEZE[public-itinerary-route-map-removed]: 공개 상세에 동선지도 칸을 두지 않는다 — manifest */}
       {flightDisplay ? (

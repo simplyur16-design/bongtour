@@ -10,6 +10,7 @@ import BookingIntakeModal from '@/app/components/travel/BookingIntakeModal'
 import { formatFlightLegTwoLines } from '@/lib/flight-user-display'
 import ProductLiveQuoteCard from '@/app/components/detail/ProductLiveQuoteCard'
 import { computeReturnDate, getProductTotalDays } from '@/lib/package-rules'
+import { getStickyDisplayPerPaxKrw } from '@/lib/public-sticky-pax-display'
 import ProductHighlightPointsSection from '@/app/components/detail/ProductHighlightPointsSection'
 import ProductExtraInfoTabs from '@/app/components/detail/ProductExtraInfoTabs'
 import { isBannedOptionalTourName } from '@/lib/optional-tour-row-gate-hanatour'
@@ -382,6 +383,7 @@ export default function MobileProductDetail({
       : null
     return quotePriceRowStrictForSelectedDate(mergedPrices, selectedDate, explicit)
   }, [mergedPrices, selectedDate, selectedDepartureRowId])
+  const selectedAdultKrw = getStickyDisplayPerPaxKrw(priceRow, 'adult', product.originSource)
 
   const collectUi = useDeparturePriceCollectPhase(departureCollectOpen)
   const priceCollectUiPhase = useMemo(
@@ -736,6 +738,7 @@ export default function MobileProductDetail({
           productMetaChips={productMetaChips}
           omitBriefRows={departurePickerOpen}
           showEsimCrossSell={showEsimCrossSell}
+          selectedAdultKrw={selectedAdultKrw}
         />
       </div>
 

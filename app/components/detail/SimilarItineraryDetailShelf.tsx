@@ -36,6 +36,8 @@ function Row({
     <Link
       href={card.href}
       data-similar-card=""
+      data-adult={card.adultKrw ?? ''}
+      data-delta={delta ?? ''}
       className="group block border-b border-bt-border-soft px-1 py-2.5 outline-none last:border-b-0 hover:bg-bt-surface-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-card-accent-strong"
     >
       {pinLabel ? <span className="mb-0.5 block text-[11px] font-semibold text-bt-card-accent-strong">{pinLabel}</span> : null}
@@ -58,7 +60,14 @@ function Row({
   )
 }
 
-export default function SimilarItineraryDetailShelf({ shelf }: { shelf: ShelfModel | null | undefined }) {
+export default function SimilarItineraryDetailShelf({
+  shelf,
+  selectedAdultKrw = null,
+}: {
+  shelf: ShelfModel | null | undefined
+  /** 예약 패널에 보이는 선택 출발일의 성인 1인 가격. 출발일이 바뀌면 이 값이 바뀐다. */
+  selectedAdultKrw?: number | null
+}) {
   const [open, setOpen] = useState(false)
   const [sort, setSort] = useState<SortKey>('price')
   const [expanded, setExpanded] = useState(false)
@@ -81,7 +90,9 @@ export default function SimilarItineraryDetailShelf({ shelf }: { shelf: ShelfMod
     return copy
   }, [shelf, sort])
 
-  const pins = useMemo(() => pickSimilarListPins(cards), [cards])
+  const anchorAdultKrw =
+    selectedAdultKrw != null && selectedAdultKrw > 0 ? selectedAdultKrw : (shelf?.anchorAdultKrw ?? null)
+  const pins = useMemo(() => pickSimilarListPins(cards, anchorAdultKrw), [cards, anchorAdultKrw])
   const pinIds = useMemo(() => new Set(pins.map((pin) => pin.id)), [pins])
   const byId = useMemo(() => new Map(cards.map((card) => [card.id, card])), [cards])
   const rest = cards.filter((card) => !pinIds.has(card.id))
@@ -131,6 +142,7 @@ export default function SimilarItineraryDetailShelf({ shelf }: { shelf: ShelfMod
             aria-modal="true"
             aria-labelledby="similar-itinerary-dialog-title"
             data-similar-panel=""
+            data-selected-adult={anchorAdultKrw ?? ''}
             className="relative flex max-h-[86vh] w-full flex-col rounded-t-2xl bg-bt-surface shadow-[0_18px_50px_-24px_rgba(28,24,51,0.55)] sm:max-w-4xl sm:rounded-2xl"
           >
             <div className="flex items-start justify-between gap-3 border-b border-bt-border-soft px-4 py-3">
@@ -171,7 +183,7 @@ export default function SimilarItineraryDetailShelf({ shelf }: { shelf: ShelfMod
                       <Row
                         key={pin.id}
                         card={card}
-                        anchorAdultKrw={shelf.anchorAdultKrw}
+                        anchorAdultKrw={anchorAdultKrw}
                         pinLabel={pin.labels.join(' · ')}
                       />
                     )
@@ -180,7 +192,7 @@ export default function SimilarItineraryDetailShelf({ shelf }: { shelf: ShelfMod
               ) : null}
               <div>
                 {visibleRest.map((card) => (
-                  <Row key={card.id} card={card} anchorAdultKrw={shelf.anchorAdultKrw} />
+                  <Row key={card.id} card={card} anchorAdultKrw={anchorAdultKrw} />
                 ))}
               </div>
               {rest.length > VISIBLE_COUNT ? (
@@ -191,6 +203,11 @@ export default function SimilarItineraryDetailShelf({ shelf }: { shelf: ShelfMod
                 >
                   {expanded ? '접기' : `더 보기 ${hiddenCount}개`}
                 </button>
+              ) : null}
+              {shelf.compareHref ? (
+                <Link href={shelf.compareHref} className="mb-2 mt-3 block text-xs text-bt-meta underline-offset-2 hover:underline">
+                  같은 일정, 공급사별 사실 비교
+                </Link>
               ) : null}
             </div>
           </div>

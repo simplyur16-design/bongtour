@@ -927,7 +927,10 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
               )}
             </section>
 
-            <SimilarItineraryDetailShelf shelf={product.similarItineraryShelf} />
+            <SimilarItineraryDetailShelf
+              shelf={product.similarItineraryShelf}
+              selectedAdultKrw={selectedDepartureCurrentPrice}
+            />
 
             <MustKnowEssentialsSection items={mustKnowFiltered} layout="desktop" originSource={product.originSource} />
 

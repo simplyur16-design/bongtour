@@ -95,6 +95,8 @@ export default function FitItineraryQuoteCard({
     productType: 'air-hotel',
     forceKind: 'fit',
   })
+  void similarCompareHref
+  void SIMILAR_ITINERARY_COMPARE_CTA_LABEL
 
   const unitByKey: Record<keyof FitPax, number> = {
     adult: adultPriceUnit,
@@ -224,14 +226,7 @@ export default function FitItineraryQuoteCard({
         ) : null}
       </div>
 
-      {similarCompareHref ? (
-        <Link
-          href={similarCompareHref}
-          className="mt-3 flex w-full items-center justify-center rounded-xl border border-bt-brand-blue-strong/45 bg-[#e8f4fc] px-3 py-2.5 text-[13px] font-bold text-[#0e7cc0] transition hover:border-bt-brand-blue-strong hover:bg-[#dceef9]"
-        >
-          {SIMILAR_ITINERARY_COMPARE_CTA_LABEL}
-        </Link>
-      ) : null}
+      {/* REGRESSION-FREEZE[similar-itinerary-compare-kind-split]: 자유여행 견적카드 비교 CTA kind=fit — 화면 버튼은 여행사별 비교로 합침 */}
       <ShareActions title={productTitle} summaryLine={shareSummary} className="mt-3" />
       <Link href={ctaHref} className={copy.bookingCtaButtonClass}>
         {copy.bookingCta}

@@ -93,9 +93,16 @@ describe('similar itinerary detail shelf', () => {
       { id: 'b', labels: ['출발 가장 빠른 상품'] },
     ])
     expect(
-      pickSimilarListPins([
-        { id: 'n', adultKrw: 1000, durationMatch: 'near' as const, noShopping: false, departureSort: null },
-      ]),
-    ).toEqual([])
+      pickSimilarListPins(
+        [
+          { id: 'a', adultKrw: 500000, durationMatch: 'exact' as const, noShopping: true, departureSort: '2026-11-28' },
+          { id: 'b', adultKrw: 700000, durationMatch: 'exact' as const, noShopping: false, departureSort: '2026-11-23' },
+        ],
+        400000,
+      ),
+    ).toEqual([
+      { id: 'a', labels: ['노쇼핑 최저가'] },
+      { id: 'b', labels: ['출발 가장 빠른 상품'] },
+    ])
   })
 })
