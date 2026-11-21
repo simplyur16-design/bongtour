@@ -29822,6 +29822,32 @@
       ]
     },
     {
+      "id": "register-auto-photo-web-when-heal-disabled",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "셀프힐 cron 이 꺼진 웹에 사진·등록 스위치가 있으면 KST 06:30/14:30/22:30 에 사진 작업만 등록. 셀프힐이 켜진 프로세스는 기존 틱만 사용",
+      "checks": [
+        {
+          "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-auto-photo-web-when-heal-disabled]",
+            "shouldScheduleStandaloneAutoPhotoCron",
+            "healCronEnabled === false",
+            "REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON = '30 6,14,22 * * *'"
+          ]
+        },
+        {
+          "file": "instrumentation.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-auto-photo-web-when-heal-disabled]",
+            "startInstrumentationRegisterAutoPhotoWhenHealDisabled()"
+          ]
+        }
+      ]
+    },
+    {
       "id": "airline-code-follow-departure",
       "tier": [
         "prebuild",
