@@ -6,11 +6,12 @@ function src(path: string) {
 }
 
 describe('public brand hex uses existing tokens', () => {
-  it('상세 견적 카드의 남색·브랜드 블루는 토큰이다', () => {
+  it('상세 견적 카드의 남색은 토큰이고, 사실 비교 블루는 여행사별 비교 리스트에 있다', () => {
     const quote = src('app/components/detail/ProductLiveQuoteCard.tsx')
     expect(quote).toContain('bg-bt-text-navy')
-    expect(quote).toContain('border-bt-brand-blue-strong')
     expect(quote).not.toMatch(/#1[Ff]1[Bb]2[Dd]|#2[Ff]8[Ff][Cc]7/)
+    const shelf = src('app/components/detail/SimilarItineraryDetailShelf.tsx')
+    expect(shelf).toContain('border-bt-brand-blue-strong')
   })
 
   it('홈 페르소나 탭의 골드는 토큰이다', () => {

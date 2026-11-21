@@ -13,6 +13,7 @@ import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { ItineraryExtraInfoBoxes } from '@/components/itinerary/ItineraryExtraInfoBoxes'
 import { ScheduleDayItineraryBlocks } from '@/components/itinerary/ScheduleDayItineraryBlocks'
+import SimilarItineraryDetailShelf from '@/app/components/detail/SimilarItineraryDetailShelf'
 import { publicDayTitleRouteLine } from '@/lib/schedule-day-supplier-original'
 import type { FlightStructuredBody } from '@/lib/public-product-extras'
 import {
@@ -75,6 +76,7 @@ type Props = {
   productMetaChips: ProductMetaChip[]
   omitBriefRows?: boolean
   showEsimCrossSell?: boolean
+  selectedAdultKrw?: number | null
 }
 
 export function ItineraryViewPackageMain({
@@ -82,6 +84,7 @@ export function ItineraryViewPackageMain({
   calendarAlignedDepartureFacts = null,
   selectedDepartureIso = null,
   showEsimCrossSell = false,
+  selectedAdultKrw = null,
 }: Props) {
   const schedule = product.schedule ?? []
   const pageSize = 2
@@ -220,7 +223,7 @@ export function ItineraryViewPackageMain({
         <div
           ref={dayTabsBarRef}
           data-testid="package-day-tabs-bar"
-          className="sticky top-[72px] sm:top-20 z-10 -mx-1 bg-[#FAFAFC]/95 backdrop-blur-sm border-b border-[#DAD4EE] py-3"
+          className="sticky top-[72px] sm:top-20 z-30 -mx-1 bg-[#FAFAFC] border-b border-[#DAD4EE] py-3"
           style={siteHeaderOffsetPx != null ? { top: siteHeaderOffsetPx } : undefined}
         >
           <div className="flex items-center gap-2 overflow-x-auto">
@@ -324,6 +327,8 @@ export function ItineraryViewPackageMain({
       ) : (
         <p className="text-sm fit-tx-meta">등록된 일정 요약이 없습니다.</p>
       )}
+
+      <SimilarItineraryDetailShelf shelf={product.similarItineraryShelf} selectedAdultKrw={selectedAdultKrw} />
 
       {/* REGRESSION-FREEZE[public-itinerary-route-map-removed]: 공개 상세에 동선지도 칸을 두지 않는다 — manifest */}
       {flightDisplay ? (

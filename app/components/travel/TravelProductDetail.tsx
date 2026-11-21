@@ -24,6 +24,7 @@ import {
   toLegacyBookingTypeLabel,
 } from '@/lib/optional-tours-ui-model'
 import { computeKRWQuotation } from '@/lib/price-utils'
+import { getStickyDisplayPerPaxKrw } from '@/lib/public-sticky-pax-display'
 import {
   pickAnyRowForDateKey,
   pickBookableRowForDateKey,
@@ -424,6 +425,7 @@ export default function TravelProductDetail({
       : null
     return quotePriceRowStrictForSelectedDate(mergedPrices, selectedDate, explicit)
   }, [mergedPrices, selectedDate, selectedDepartureRowId])
+  const selectedAdultKrw = getStickyDisplayPerPaxKrw(selectedPriceRow, 'adult', product.originSource)
 
   const collectUi = useDeparturePriceCollectPhase(departureCollectOpen)
   const priceCollectUiPhase = useMemo(
@@ -757,6 +759,7 @@ export default function TravelProductDetail({
             productMetaChips={productMetaChips}
             omitBriefRows={departurePickerOpen}
             showEsimCrossSell={showEsimCrossSell}
+            selectedAdultKrw={selectedAdultKrw}
           />
 
           <aside className="hidden lg:block lg:sticky lg:top-[100px] lg:self-start">

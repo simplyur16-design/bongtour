@@ -16,6 +16,7 @@ import { isAirHotelDetailVariant } from '@/lib/air-hotel-product-ssot'
 import { publicProductPath } from '@/lib/product-public-path'
 import { formatPublicDestinationDisplayLabel } from '@/lib/bongtour-product-display-title-ssot'
 import { applyLocalDepartureDisplayPrefix, resolveDetailLocalDepartureTags } from '@/lib/local-departure-display-prefix'
+import type { SimilarItineraryDetailShelf } from '@/lib/similar-itinerary-detail-shelf'
 import type {
   ProductPublicDetailAirHotelRenderModel,
   ProductPublicDetailRenderModel,
@@ -47,6 +48,7 @@ export function renderProductDetailFromModel(
   model: ProductPublicDetailRenderModel,
   travelProduct: Pick<ProductDetailViewRow, 'id' | 'registrationStatus'>,
   isMobile: boolean,
+  similarItineraryShelf: SimilarItineraryDetailShelf | null = null,
 ) {
   const isAdminDraftPreview = travelProduct.registrationStatus !== 'registered'
 
@@ -178,7 +180,10 @@ export function renderProductDetailFromModel(
     throw new Error(`[renderProductDetailFromModel] unsupported variant: ${model.variant}`)
   }
   const { ybtourDetailProduct, showEsimCrossSell, seo } = model
-  const viewProduct = withPublicTripDuration(model.viewProduct)
+  const viewProduct = {
+    ...withPublicTripDuration(model.viewProduct),
+    similarItineraryShelf,
+  }
   const ybtourProduct = mergeViewProductWithYbtourSlice(viewProduct, ybtourDetailProduct)
 
   const packageDetailMobile = <MobileProductDetail product={viewProduct} showEsimCrossSell={showEsimCrossSell} />
