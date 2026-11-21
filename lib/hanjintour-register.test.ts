@@ -32,7 +32,7 @@ const malta = {
 }
 
 describe('hanjintour pending enqueue', () => {
-  it('선정 + 미래 원문 성인 요금만 등록대기 계획이고 아동 요금은 비어 있으면 null', () => {
+  it('미래 원문 성인 요금만 등록대기 계획이고 아동 요금은 비어 있으면 null', () => {
     const plan = planHanjintourPendingEnqueue({ ...malta, departures: [dep({ childPrice: null, infantPrice: null })] })
     expect(plan.ok).toBe(true)
     if (!plan.ok) return
@@ -46,14 +46,14 @@ describe('hanjintour pending enqueue', () => {
     expect(schedule[0]?.spots).toEqual(['발레타 구시가지'])
   })
 
-  it('기존 7곳에 있는 도시는 등록대기에 넣지 않는다', () => {
+  it('기존 7곳에 있는 도시도 지역 필터 없이 등록대기 계획을 만든다', () => {
     const plan = planHanjintourPendingEnqueue({
       ...malta,
       title: '도쿄 자유여행',
       categoryPaths: [['일본', '도쿄']],
       departures: [dep()],
     })
-    expect(plan).toMatchObject({ ok: false, reason: 'not_selected' })
+    expect(plan).toMatchObject({ ok: true, registrationStatus: 'pending' })
   })
 
   it('출발일이나 원문 성인 요금이 없으면 등록대기에 넣지 않는다', () => {

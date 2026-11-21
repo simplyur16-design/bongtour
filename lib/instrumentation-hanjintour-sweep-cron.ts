@@ -1,6 +1,6 @@
 /**
  * hanjintour 일 1회 신규 수집 — KST 10:30.
- * 기존 7곳 가격 sweep과 겹치지 않는다. 지역 필터·간격·재시도 1회·실패 SKIP은 한진 수집 모듈을 그대로 쓴다.
+ * 기존 7곳 가격 sweep과 겹치지 않는다. 지역 필터 없이 목록 상품을 그대로 넘기며, 간격·재시도 1회·실패 SKIP은 한진 수집 모듈을 그대로 쓴다.
  * 비활성화: `DISABLE_INSTRUMENTATION_HANJINTOUR_SWEEP_CRON=1`
  * REGRESSION-FREEZE[hanjin-daily-ingest-1121]: 정기 수집 등록 — manifest
  */
@@ -55,6 +55,7 @@ async function tickHanjintourSweepCron() {
       selected: summary.selected,
       applied: summary.applied,
       skipped: summary.skipped,
+      skipReasons: summary.skipReasons,
       stoppedReason: summary.stoppedReason,
       held: summary.held,
       excluded: summary.excluded,

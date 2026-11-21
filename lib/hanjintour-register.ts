@@ -1,17 +1,12 @@
 /**
  * 한진관광 수집 → 등록대기 upsert.
- * 진입은 지역 필터(선정만)와 출발일·원문 성인 요금 검사를 거친 뒤에만 쓴다.
+ * 진입은 출발일·원문 성인 요금 검사를 거친 뒤에만 쓴다. 지역·특수지역 선정 필터는 없다(2026-11-21 사장님 지시).
  * registrationStatus 는 pending 만 기록한다. 공개(registered)로 바꾸는 분기는 없다.
  * 가격은 파서가 남긴 양의 정수만 저장하고, 없는 아동·유아 요금을 성인가로 채우지 않는다.
  * REGRESSION-FREEZE[hanjintour-register-pending-only]: 등록대기 전용·원문 정수 가격 — manifest
  */
 import type { Prisma, PrismaClient } from '@prisma/client'
-import {
-  buildExistingRegionIndex,
-  classifyHanjintourListing,
-  hanjintourDetailCollectAllowed,
-  type ExistingProductRegionRow,
-} from '@/lib/hanjintour-region-filter'
+import type { ExistingProductRegionRow } from '@/lib/hanjintour-region-filter'
 import {
   hanjintourShouldEnqueuePending,
   type HanjintourDeparture,
@@ -84,35 +79,29 @@ function scheduleJson(days: HanjintourScheduleDay[] | undefined): string {
 }
 
 /**
- * 수집 진입점. 지역 필터를 통과하고, 오늘 이후 원문 성인 요금이 있는 출발일이 있을 때만 pending 계획을 만든다.
+ * 수집 진입점. 오늘 이후 원문 성인 요금이 있는 출발일이 있을 때만 pending 계획을 만든다(지역 필터 없음).
  */
 export function planHanjintourPendingEnqueue(input: HanjintourRegisterInput): HanjintourRegisterPlan {
   const originCode = String(input.gdsNo ?? '').trim()
   const title = String(input.title ?? '').trim()
   if (!originCode || !title) return { ok: false, reason: 'missing_code' }
 
-  const decision = classifyHanjintourListing(
-    { gdsNo: originCode, title, categoryPaths: input.categoryPaths ?? [] },
-    buildExistingRegionIndex(input.existingRows ?? []),
-  )
-  if (!hanjintourDetailCollectAllowed(decision)) {
-    return { ok: false, reason: 'not_selected', basis: decision.basis }
-  }
+  const basis = '목록 상품 전체 수집(지역 필터 없음)'
 
   const todayIso = input.todayIso ?? new Date().toISOString().slice(0, 10)
   if (!hanjintourShouldEnqueuePending({ departures: input.departures ?? [] }, todayIso)) {
-    return { ok: false, reason: 'no_departure', basis: decision.basis }
+    return { ok: false, reason: 'no_departure', basis }
   }
 
   const departures: HanjintourDepartureWrite[] = []
   for (const d of input.departures ?? []) {
     if (!d.date || d.date < todayIso) continue
     const adult = originalPositiveInt(d.adultPrice)
-    if (adult === 'bad') return { ok: false, reason: 'bad_price', basis: decision.basis }
+    if (adult === 'bad') return { ok: false, reason: 'bad_price', basis }
     if (adult == null) continue
     const child = originalPositiveInt(d.childPrice)
     const infant = originalPositiveInt(d.infantPrice)
-    if (child === 'bad' || infant === 'bad') return { ok: false, reason: 'bad_price', basis: decision.basis }
+    if (child === 'bad' || infant === 'bad') return { ok: false, reason: 'bad_price', basis }
     departures.push({
       date: d.date,
       adultPrice: adult,
@@ -123,7 +112,7 @@ export function planHanjintourPendingEnqueue(input: HanjintourRegisterInput): Ha
       airline: d.airline ?? null,
     })
   }
-  if (departures.length === 0) return { ok: false, reason: 'no_departure', basis: decision.basis }
+  if (departures.length === 0) return { ok: false, reason: 'no_departure', basis }
 
   const priceFrom = Math.min(...departures.map((d) => d.adultPrice))
   return {
@@ -138,7 +127,7 @@ export function planHanjintourPendingEnqueue(input: HanjintourRegisterInput): Ha
     duration: input.duration ?? null,
     originUrl: input.originUrl?.trim() || null,
     departures,
-    basis: decision.basis,
+    basis,
   }
 }
 

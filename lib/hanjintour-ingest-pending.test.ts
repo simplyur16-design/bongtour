@@ -46,6 +46,41 @@ describe('hanjintour ingest pending', () => {
     expect(summary.held).toBe(0)
     expect(summary.excluded).toBe(0)
     expect(summary.stoppedReason).toBeNull()
+    expect(summary.skipReasons).toEqual({})
+  })
+
+  it('기존 7곳 지역 상품도 목록에 있으면 상세 수집하고, 출발일 없는 상품은 사유를 센다', async () => {
+    const base = client()
+    const c = {
+      ...base,
+      call: async (part: string, ...rest: unknown[]) => {
+        if (part === 'list') {
+          return {
+            result: true,
+            goodsList: [
+              { gdsNo: 'TYO1', gdsNm: '도쿄 3박 4일' },
+              { gdsNo: 'NODEP', gdsNm: '오사카 3일' },
+            ],
+            totalCnt: 2,
+          }
+        }
+        if (part === 'calendar' && JSON.stringify(rest).includes('NODEP')) return { result: true, eventCalendarList: [] }
+        return (base.call as (p: string, ...r: unknown[]) => Promise<unknown>)(part, ...rest)
+      },
+    } as HanjintourClient
+    const summary = await runHanjintourIngestPending({
+      client: c,
+      loadExistingRows: async () => [{ originSource: 'hanatour', title: '도쿄 3일', destination: '도쿄', primaryDestination: '도쿄' }],
+      apply: false,
+      limit: 5,
+      now: new Date('2026-11-15T00:00:00Z'),
+    })
+    expect(summary.listed).toBe(2)
+    expect(summary.selected).toBe(2)
+    expect(summary.excluded).toBe(0)
+    expect(summary.held).toBe(0)
+    expect(summary.gdsNos).toEqual(['TYO1'])
+    expect(summary.skipReasons).toEqual({ no_departure: 1 })
   })
 
   it('403이면 다음 분류를 읽지 않고 사유만 남긴다', async () => {

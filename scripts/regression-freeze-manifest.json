@@ -33469,13 +33469,12 @@
         "prebuild",
         "ci"
       ],
-      "summary": "한진관광 수집 결과는 지역 필터 선정과 출발일·원문 정수 가격이 있을 때만 등록대기(pending)로 적재하고 공개(registered)로 바꾸는 분기가 없다. 기존 7곳 canonical 목록은 유지하고 관리자 상품 목록 필터에만 hanjintour를 더한다.",
+      "summary": "한진관광 수집 결과는 지역 필터 없이(2026-11-21 사장님 지시) 목록 상품 전부를 대상으로, 출발일·원문 정수 가격이 있을 때만 등록대기(pending)로 적재하고 공개(registered)로 바꾸는 분기가 없다. 기존 7곳 canonical 목록은 유지하고 관리자 상품 목록 필터에만 hanjintour를 더한다.",
       "checks": [
         {
           "file": "lib/hanjintour-register.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[hanjintour-register-pending-only]",
-            "classifyHanjintourListing(",
             "hanjintourShouldEnqueuePending(",
             "registrationStatus: HANJINTOUR_PENDING_STATUS",
             "ensureBrandIdForKey"
@@ -33519,7 +33518,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[hanjintour-register-pending-only]",
             "handleParseAndRegisterHanjintourRequest",
-            "hanjintourDetailCollectAllowed",
+            "skipReasons",
             "if (!opts.apply)"
           ]
         },
