@@ -8,6 +8,7 @@ import { TOP_NAV_MEGA_REGIONS } from '@/lib/top-nav-resolve'
 import { buildMegaMenuGroupHeaderHref, buildMegaMenuLeafHref } from '@/lib/top-nav-resolve'
 import { OVERSEAS_SUB_NAV_ITEMS } from '@/components/top-nav/overseas-sub-nav-items'
 import { useVisibleMegaMenuRegions } from '@/components/top-nav/use-local-departure-tab-visibility'
+import { useMegaMenuLiveRegions } from '@/components/top-nav/use-mega-menu-live-regions'
 
 type Step = 'types' | 'regions' | 'countries' | 'cities'
 
@@ -22,9 +23,11 @@ export default function MobileDrilldownMenu({ embedded = false }: Props) {
   const [countryLabel, setCountryLabel] = useState<string | null>(null)
   const [step, setStep] = useState<Step>('types')
   // REGRESSION-FREEZE[local-departure-display-prefix]: 제주출발 탭 ≥1건일 때만 — manifest
-  const visibleRegions = useVisibleMegaMenuRegions(TOP_NAV_MEGA_REGIONS)
+  // REGRESSION-FREEZE[mega-menu-live-auto-1122]: 공개 상품 수로 자동 숨김·정렬 — manifest
+  const liveRegions = useMegaMenuLiveRegions(TOP_NAV_MEGA_REGIONS)
+  const visibleRegions = useVisibleMegaMenuRegions(liveRegions)
 
-  const region = regionId ? TOP_NAV_MEGA_REGIONS.find((r) => r.id === regionId) : null
+  const region = regionId ? liveRegions.find((r) => r.id === regionId) : null
 
   const reset = () => {
     setStep('types')
