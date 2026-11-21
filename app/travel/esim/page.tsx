@@ -3,6 +3,7 @@ import { buildEsimSearchMetadata, esimSearchTitle } from '@/lib/seo/esim-search-
 import nextDynamic from 'next/dynamic'
 import Header from '@/app/components/Header'
 import EsimLandingHero from '@/app/travel/esim/EsimLandingHero'
+import EsimHelpChat from '@/components/bongsim/esim/EsimHelpChat'
 import { SUBPAGE_PAGE_SHELL_CLASS } from '@/lib/subpage-design-system'
 
 const EsimLandingBelowFold = nextDynamic(() => import('./EsimLandingBelowFold'), {
@@ -29,6 +30,7 @@ export default function EsimPage() {
       <Header />
       <EsimLandingHero />
       <EsimLandingBelowFold />
+      <EsimHelpChat />
     </div>
   )
 }

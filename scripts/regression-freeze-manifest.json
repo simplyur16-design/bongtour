@@ -7050,6 +7050,35 @@
       ]
     },
     {
+      "id": "esim-help-chat-1121",
+      "tier": ["prebuild", "ci"],
+      "summary": "eSIM 상담은 설치 안내·FAQ·여행자 인증 문장만 읽고, 화면의 연결 버튼은 고객센터 연결링크다.",
+      "checks": [
+        {
+          "file": "lib/esim-help-chat.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-help-chat-1121]",
+            "ESIM_AGENT_CHAT_LABEL",
+            "ESIM_TRAVELER_AUTH_BULLETS"
+          ]
+        },
+        {
+          "file": "components/bongsim/esim/EsimHelpChat.tsx",
+          "mustInclude": [
+            "상담 내용 복사",
+            "/images/bongtour-logo.webp"
+          ],
+          "mustNotInclude": [
+            "유심사",
+            "카카오톡"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/esim-help-chat.test.ts"
+      ]
+    },
+    {
       "id": "hanjin-ingest-stop-reason",
       "tier": ["prebuild", "ci"],
       "summary": "한진 화면 수집은 403·429·타임아웃이면 그 자리에서 멈추고 사유만 남긴다. 지역 색인 읽기 실패는 1회만 다시 한다. 호출 간격은 그대로다.",
@@ -7073,7 +7102,8 @@
           "file": "scripts/hanjintour-ingest-pending.ts",
           "mustInclude": [
             "hanjinWalkStopReason",
-            "db_read"
+            "db_read",
+            "load-env-for-scripts"
           ]
         }
       ],

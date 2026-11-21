@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import EsimHelpChat from "@/components/bongsim/esim/EsimHelpChat";
 
 type TopupUi = {
   topup_id: string;
@@ -481,6 +482,7 @@ export default function MyEsimOrdersClient() {
           </div>
         </div>
       ) : null}
+      <EsimHelpChat />
     </div>
   );
 }
