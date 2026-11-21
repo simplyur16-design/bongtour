@@ -288,13 +288,14 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
 }
 
 /**
- * 대표 사진 검색어. 도시 이름만 있는 키워드는 빼고, 일정 일차 명소로 채운다.
+ * 대표 사진 검색어. 일정 특색 장소를 대표 도시보다 먼저 쓰고, 도시 이름만 있는 검색어는 뺀다.
  * REGRESSION-FREEZE[photo-cover-day-sight]: 대표가 비었으면 일차 명소로 검색 — manifest
+ * REGRESSION-FREEZE[thumbnail-least-used-1121]: 일정 특색 장소 우선 — manifest
  */
 export function coverSearchSights(heroKeywords: readonly string[], dayKeywords: readonly string[]): string[] {
   const out: string[] = []
   const seen = new Set<string>()
-  for (const raw of [...heroKeywords, ...dayKeywords]) {
+  for (const raw of [...dayKeywords, ...heroKeywords]) {
     const name = String(raw ?? '').trim()
     if (!name) continue
     const profile = sightProfile(name)

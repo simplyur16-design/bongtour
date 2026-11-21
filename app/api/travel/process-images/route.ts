@@ -101,6 +101,7 @@ import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-
 import { acquireVerifiedPhoto } from '@/lib/photo-autofill-acquire'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, photoIdentityKeys } from '@/lib/photo-autofill-gate'
 import { coverSearchSights, sightProfile } from '@/lib/photo-autofill-sight'
+import { isSupplierPhotoSource, isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
 import { createLiveAcquireDeps } from '@/lib/photo-autofill-live-deps'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
 import { destinationTermsOf } from '@/lib/photo-gate-runner'
@@ -913,16 +914,24 @@ export async function POST(req: Request) {
       ? createLiveAcquireDeps({ prisma, destination, probe: (u) => probeStoredImage(u) })
       : null
     const strictPublicUsage = strictAutofill ? await loadPublicPhotoUsageCached(prisma) : null
-    if (preserveHero && strictPublicUsage && existingHeroUrl) {
+    const heroSourceUrl = (product as { bgImageSourceUrl?: string | null }).bgImageSourceUrl
+    const supplierHero =
+      isSupplierPhotoUrl(existingHeroUrl) ||
+      isSupplierPhotoUrl(heroSourceUrl) ||
+      isSupplierPhotoSource((product as { bgImageSource?: string | null }).bgImageSource)
+    let sharedHero = false
+    if (preserveHero && strictPublicUsage && existingHeroUrl && !supplierHero) {
       const heroKeys = photoIdentityKeys({
         url: existingHeroUrl,
         externalId: (product as { bgImageExternalId?: string | null }).bgImageExternalId,
-        originalLink: (product as { bgImageSourceUrl?: string | null }).bgImageSourceUrl,
+        originalLink: heroSourceUrl,
       })
-      if (strictPublicUsage.coverConflict(heroKeys, String(product.id))) {
-        preserveHero = false
-        poolMain = undefined
-      }
+      sharedHero = strictPublicUsage.coverUseCount(heroKeys, String(product.id)) > 0
+    }
+    // REGRESSION-FREEZE[thumbnail-least-used-1121]: 공급사 대표와 이미 쓰인 대표는 다시 고른다 — manifest
+    if (strictAutofill && preserveHero && (supplierHero || sharedHero)) {
+      preserveHero = false
+      poolMain = undefined
     }
     const strictOwnKeys = new Set<string>()
     const strictAdopt = (p: PhotoResult, kind: 'cover' | 'day') => {

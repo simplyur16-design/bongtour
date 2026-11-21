@@ -23,6 +23,7 @@ import {
   type DaySightInput,
 } from '@/lib/photo-autofill-sight'
 import type { PhotoException, PhotoExceptionOrigin } from '@/lib/photo-exception-list'
+import { orderThumbnailCandidates } from '@/lib/thumbnail-pick'
 
 export type StockTier = 'pexels' | 'unsplash'
 
@@ -164,7 +165,17 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
       }
       passing.push({ candidate: c, matched: verdict.matched })
     }
-    for (const p of rankAutofillCandidates(passing)) {
+    const ranked = rankAutofillCandidates(passing)
+    const ordered =
+      input.kind === 'cover'
+        ? orderThumbnailCandidates(ranked, input.productId, (p) =>
+            input.usage.coverUseCount(
+              photoIdentityKeys({ url: p.candidate.url, externalId: p.candidate.id, originalLink: p.candidate.originalLink }),
+              input.productId,
+            ),
+          )
+        : ranked
+    for (const p of ordered) {
       if (evaluated >= max) {
         limitNotes.add('candidate_cap')
         return 'cap'
@@ -254,7 +265,7 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
     }
   }
 
-  if (deps.generate && lastSight) {
+  if (deps.generate && lastSight && input.kind !== 'cover') {
     await deps.pause()
     let gen: AutofillCandidate | null = null
     try {

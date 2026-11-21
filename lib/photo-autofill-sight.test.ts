@@ -77,6 +77,7 @@ describe('photo-autofill-sight: 이름 일치(별칭 포함)', () => {
 
   it('대표 검색어가 도시뿐이면 일차 명소를 쓴다', () => {
     expect(coverSearchSights(['홍콩', 'Hong Kong'], ['Ruins of St Paul', 'Hong Kong'])).toEqual(['Ruins of St Paul'])
+    expect(coverSearchSights(['Ruins of St Paul'], ['National Palace Museum'])[0]).toBe('National Palace Museum')
     expect(coverSearchSights([''], ['National Palace Museum'])).toEqual(['National Palace Museum'])
   })
 })
