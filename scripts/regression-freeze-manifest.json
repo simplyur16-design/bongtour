@@ -31983,6 +31983,48 @@
       ]
     },
     {
+      "id": "photo-skip-no-place-day",
+      "tier": ["prebuild", "ci"],
+      "summary": "이동·귀국처럼 장소가 없는 날은 사진 필수가 아니고, 그 날의 숙소 키워드는 사진 전 차단 사유가 아니다",
+      "checks": [
+        {
+          "file": "lib/register-pending-photos-ready.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-skip-no-place-day]",
+            "isRegisterScheduleNoPlacePhotoDay"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-verify.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-skip-no-place-day]",
+            "noPlaceDay"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "photo-lodging-keyword-place",
+      "tier": ["prebuild", "ci"],
+      "summary": "숙소·비장소 일차 키워드는 그날 원문의 명소나 도시로 바꿔 사진을 찾는다. 설명 문장은 그대로 둔다",
+      "checks": [
+        {
+          "file": "lib/register-auto-photo-missing-day.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-lodging-keyword-place]",
+            "export function lodgingKeywordReplacement"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "scheduleReplacingLodgingKeywords",
+            "pre_photo_blocked"
+          ]
+        }
+      ]
+    },
+    {
       "id": "photo-autofill-gate",
       "tier": [
         "prebuild",

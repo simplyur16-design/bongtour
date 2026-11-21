@@ -11,7 +11,11 @@
  * REGRESSION-FREEZE[register-auto-register-gate]: 기본 꺼짐, 통과만 registered, 실패는 사유만 — manifest
  */
 import { logAutoPhotoAttempt, providerErrorClass } from '@/lib/auto-photo-attempt-log'
-import { autoPhotoFillRequest, scheduleHasMissingEligiblePhotoSlot } from '@/lib/register-auto-photo-missing-day'
+import {
+  autoPhotoFillRequest,
+  scheduleHasMissingEligiblePhotoSlot,
+  scheduleReplacingLodgingKeywords,
+} from '@/lib/register-auto-photo-missing-day'
 import { prisma } from '@/lib/prisma'
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
 import { REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE } from '@/lib/register-pre-photo-pending-queue-query'
@@ -133,17 +137,36 @@ export async function runAutoPhotoRegisterJob(opts?: {
 
   const ids = await prisma.product.findMany({
     where: {
-      OR: [REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE, { registrationStatus: 'pending' }],
+      OR: [
+        REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE,
+        { registrationStatus: 'pending' },
+        { registrationStatus: 'pre_photo_blocked' },
+      ],
     },
-    select: { id: true, bgImageUrl: true, schedule: true },
+    select: { id: true, bgImageUrl: true, schedule: true, destination: true },
     orderBy: { updatedAt: 'asc' },
     take: limit,
   })
 
-  for (const { id, bgImageUrl, schedule } of ids) {
+  for (const row of ids) {
+    const { id, bgImageUrl } = row
+    let schedule = row.schedule
     result.scanned++
+    if (sw.fill || sw.record || sw.flip) {
+      const replaced = scheduleReplacingLodgingKeywords(schedule, row.destination)
+      if (replaced?.changed) {
+        const wrote = await prisma.product.updateMany({
+          where: {
+            id,
+            OR: [{ registrationStatus: 'pending' }, { registrationStatus: 'pre_photo_blocked' }],
+          },
+          data: { schedule: replaced.json },
+        })
+        if (wrote.count === 1) schedule = replaced.json
+      }
+    }
     // 03·04: 사진 채움. 대표가 있어도 당일 키워드가 있는 빈 일차만 채운다.
-    // pre_photo_blocked 는 위 큐 조건에서 빠진다. queueReady 는 여기서 바꾸지 않는다.
+    // 대시보드 큐 조건에는 차단 상품이 없다. 이 작업은 차단 상품의 숙소 키워드와 빈 사진만 다룬다. queueReady 는 바꾸지 않는다.
     // REGRESSION-FREEZE[auto-photo-missing-day-fill]: missing-day-only — manifest
     const hasMainPhoto = String(bgImageUrl ?? '').trim() !== ''
     const missingDay = scheduleHasMissingEligiblePhotoSlot(schedule)
@@ -327,7 +350,12 @@ export async function runAutoPhotoRegisterJob(opts?: {
           // 문과장 1106: 검수 판단에 쓴 일정·rawMeta 그대로일 때만 전환 (판단 후 remat 커밋되면 count0)
           where: {
             id,
-            OR: [{ registrationStatus: null }, { registrationStatus: '' }, { registrationStatus: 'pending' }],
+            OR: [
+              { registrationStatus: null },
+              { registrationStatus: '' },
+              { registrationStatus: 'pending' },
+              { registrationStatus: 'pre_photo_blocked' },
+            ],
             schedule: p.schedule ?? null,
             rawMeta: p.rawMeta ?? null,
             // v3: 판단 후 대표사진이 바뀌면 전환 금지

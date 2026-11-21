@@ -210,6 +210,7 @@ describe('photo-autofill-gate: 공개 중복은 목록 카드 대표만', () => 
 describe('photo-autofill-gate: 해상도·용량 기준', () => {
   it('1200px 미만과 세로 사진은 탈락', () => {
     expect(judge(cand({ width: 1199, height: 800 })).reasons).toContain('low_res')
+    expect(judge(cand({ width: 0, height: 0 })).reasons).not.toContain('low_res')
     expect(judge(cand({ width: 1200, height: 800 })).ok).toBe(true)
     expect(judge(cand({ width: 1300, height: 2000 })).reasons).toContain('portrait_orientation')
   })
