@@ -84,7 +84,7 @@ export default function EsimHelpChat() {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+    <div className="pointer-events-none fixed bottom-24 right-4 z-50 flex flex-col items-end gap-2 lg:bottom-4">
       {open ? (
         <section
           className="pointer-events-auto flex max-h-[min(70vh,560px)] w-[min(100vw-2rem,22rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
