@@ -15,7 +15,7 @@ export function scheduleDayPhotoNotRequired(
   const text = `${row.title ?? ''} ${row.routeText ?? ''}`
   const travel = /귀국|출발|공항/.test(text) || (maxDay >= 2 && Number(row.day) === maxDay)
   if (!travel) return false
-  return isRegisterScheduleNoPlacePhotoDay(row, maxDay)
+  return isRegisterScheduleNoPlacePhotoDay({ ...row, day: Number(row.day) || 0 }, maxDay)
 }
 
 export function productScheduleNeedsImages(schedule: string | null | undefined): boolean {
