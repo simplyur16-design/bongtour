@@ -38,6 +38,7 @@ type UsageResponse = {
   total_used_mb: number;
   unlimited: boolean;
   cap_mb: number | null;
+  cap_scope?: "daily" | "total" | "none";
   allowance_label: string;
   history: { date: string; usageMb: number }[];
   error?: string;
@@ -414,17 +415,17 @@ export default function MyEsimOrdersClient() {
                 <div>
                   {usage.unlimited ? (
                     <p className="text-sm font-medium text-slate-800">
-                      사용량: <span className="text-teal-700">{mbToGbOneDecimal(usage.total_used_mb)}GB</span>
+                      {usage.cap_scope === "none" ? "오늘 " : ""}사용량: <span className="text-teal-700">{mbToGbOneDecimal(usage.total_used_mb)}GB</span>
                       <span className="text-slate-500"> (무제한)</span>
                     </p>
                   ) : (
                     <p className="text-sm text-slate-700">
-                      사용량{" "}
+                      {usage.cap_scope === "daily" ? "오늘 사용량" : "사용량"}{" "}
                       <span className="font-semibold text-teal-800">{mbToGbOneDecimal(usage.total_used_mb)}GB</span>
                       {usage.cap_mb != null ? (
                         <>
                           {" "}
-                          / 총 <span className="font-medium">{mbToGbOneDecimal(usage.cap_mb)}GB</span>
+                          / {usage.cap_scope === "daily" ? "하루" : "총"} <span className="font-medium">{mbToGbOneDecimal(usage.cap_mb)}GB</span>
                         </>
                       ) : (
                         <span className="text-slate-500"> (플랜 용량 정보 없음)</span>
