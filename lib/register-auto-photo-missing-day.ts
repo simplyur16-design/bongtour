@@ -7,6 +7,7 @@ import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-
 import { isBrokenRegisterLandmarkKeyword } from '@/lib/register-pre-photo-guards'
 import { findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
 import { sightProfile, sightsOverlap } from '@/lib/photo-autofill-sight'
+import { registerTravelDayPhotoEligible } from '@/lib/register-day-photo-travel-day'
 
 export type MissingDaySlot = {
   day: number
@@ -90,6 +91,8 @@ export function scheduleReplacingLodgingKeywords(
 
 export function missingDayFillAction(day: MissingDaySlot, maxDay: number): MissingDayFillAction {
   if (String(day.imageUrl ?? '').trim()) return 'keep'
+  // REGRESSION-FREEZE[register-photo-travel-day-1121]: 출국·귀국·이동일은 키워드가 있으면 채운다(사장님 11/21 23:13) — manifest
+  if (registerTravelDayPhotoEligible(day, maxDay)) return 'fill'
   if (isRegisterScheduleNoPlacePhotoDay(day, maxDay)) return 'skip'
   if (registerScheduleDayIsCityOnlyPhotoSkip(day)) return 'skip'
   if (!String(day.imageKeyword ?? '').trim()) return 'skip'

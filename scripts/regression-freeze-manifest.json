@@ -29937,7 +29937,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "셀프힐 cron 이 꺼진 웹에 사진·등록 스위치가 있으면 KST 06:30/14:30/22:30 에 사진 작업만 등록. 셀프힐이 켜진 프로세스는 기존 틱만 사용",
+      "summary": "셀프힐 cron 이 꺼진 웹에 사진·등록 스위치가 있으면 KST 매시 30분에 사진 작업만 등록(배포 재시작에 끊겨도 다음 시간에 이어감). 셀프힐이 켜진 프로세스는 기존 틱만 사용",
       "checks": [
         {
           "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
@@ -29945,7 +29945,7 @@
             "REGRESSION-FREEZE[register-auto-photo-web-when-heal-disabled]",
             "shouldScheduleStandaloneAutoPhotoCron",
             "healCronEnabled === false",
-            "REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON = '30 6,14,22 * * *'"
+            "REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON = '30 * * * *'"
           ]
         },
         {
@@ -30850,6 +30850,46 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-schedule-round3-title-summary-kw]",
             "destination: dest"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "register-photo-travel-day-1121",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/21: 출국일=첫 목적지 대표, 귀국일=마지막 체류지 대표, 이동일=설명·교통수단(기차·국내선·크루즈) 느낌 사진. 공항·기내 사진 금지. 글은 그대로, 사진이 빈 날의 키워드만. 공개 상품 빈 일차도 자동 채움(상태 전환 없음)",
+      "checks": [
+        {
+          "file": "lib/register-day-photo-travel-day.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-travel-day-1121]",
+            "export function registerTravelDayKind",
+            "export function scheduleApplyingTravelDayKeywords"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-missing-day.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-travel-day-1121]",
+            "if (registerTravelDayPhotoEligible(day, maxDay)) return 'fill'"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-travel-day-1121]",
+            "registerTravelDayPhotoEligible(sched, scheduleMaxDay)"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-photo-travel-day-1121]",
+            "pickPublicMissingDayProducts",
+            "if (row.publicRow) continue"
           ]
         }
       ]
