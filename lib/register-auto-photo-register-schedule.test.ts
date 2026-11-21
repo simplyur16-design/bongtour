@@ -16,6 +16,7 @@ vi.mock('@/lib/public-response-guard', () => ({
 }))
 
 import { POST } from '@/app/api/cron/register-auto-photo-register/route'
+import { shouldScheduleStandaloneAutoPhotoCron } from '@/lib/instrumentation-register-pre-photo-self-heal-cron'
 import { readFileSync } from 'node:fs'
 
 describe('register-auto-photo-register schedule', () => {
@@ -52,5 +53,16 @@ describe('register-auto-photo-register schedule', () => {
     expect(cron).toContain('switches_off')
     expect(cron).toContain('if (healOnlyTickRunning) return')
     expect(cron).toContain('auto-photo-done')
+  })
+
+  it('schedules the photo job on a process whose heal cron is off and a switch is on', () => {
+    expect(shouldScheduleStandaloneAutoPhotoCron({ healCronEnabled: false, anySwitchOn: true })).toBe(true)
+    expect(shouldScheduleStandaloneAutoPhotoCron({ healCronEnabled: true, anySwitchOn: true })).toBe(false)
+    expect(shouldScheduleStandaloneAutoPhotoCron({ healCronEnabled: false, anySwitchOn: false })).toBe(false)
+    const cron = readFileSync('lib/instrumentation-register-pre-photo-self-heal-cron.ts', 'utf8')
+    const instrumentation = readFileSync('instrumentation.ts', 'utf8')
+    expect(cron).toContain("REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON = '30 6,14,22 * * *'")
+    expect(cron).toContain('startInstrumentationRegisterAutoPhotoWhenHealDisabled')
+    expect(instrumentation).toContain('startInstrumentationRegisterAutoPhotoWhenHealDisabled()')
   })
 })

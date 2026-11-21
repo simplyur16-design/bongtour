@@ -32,12 +32,96 @@ import {
 
 /** KST — 수집 없이도 대기열 힐 (06/14/22시) */
 export const REGISTER_PRE_PHOTO_HEAL_ONLY_CRON = '15 6,14,22 * * *'
+/**
+ * KST — 셀프힐 cron 이 꺼진 프로세스(웹)에 사진·등록 스위치가 켜져 있을 때만.
+ * 워커 힐(:15)이 끝난 뒤에 시작하도록 15분 뒤로 둔다.
+ */
+export const REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON = '30 6,14,22 * * *'
 /** KST — 야간 창(22–10) 종료 직후 수집·힐 다이제스트 1통 */
 export const REGISTER_PRE_PHOTO_INGEST_DIGEST_CRON = '5 10 * * *'
 
 let healOnlyTickRunning = false
+let autoPhotoTickRunning = false
 let ingestNightTickRunning = false
+
+/**
+ * 셀프힐 틱이 이미 사진 작업을 부르는 프로세스에서는 두 번째 cron 을 만들지 않는다.
+ * 셀프힐이 꺼져 있고 스위치가 하나라도 켜진 프로세스만 따로 등록한다.
+ */
+export function shouldScheduleStandaloneAutoPhotoCron(input: {
+  healCronEnabled: boolean
+  anySwitchOn: boolean
+}): boolean {
+  return input.healCronEnabled === false && input.anySwitchOn
+}
 const ingestNightLastAttemptAtMs: Record<string, number> = {}
+
+/**
+ * 웹은 DISABLE_REGISTER_PRE_PHOTO_SELF_HEAL_CRON=1 로 셀프힐을 끄고,
+ * 사진·등록 스위치는 웹에만 있다. 워커 힐 틱은 그때 switches_off 로 사진 작업을 건너뛴다.
+ * REGRESSION-FREEZE[register-auto-photo-web-when-heal-disabled]: 셀프힐이 꺼진 프로세스에 스위치가 있으면 사진 작업만 등록 — manifest
+ */
+export function startInstrumentationRegisterAutoPhotoWhenHealDisabled(): void {
+  const healCronEnabled = isRegisterPrePhotoHealOnlyCronEnabled()
+  void import('@/lib/register-auto-photo-register-job')
+    .then(({ autoRegisterSwitches }) => {
+      const switches = autoRegisterSwitches()
+      const anySwitchOn = switches.fill || switches.flip || switches.record
+      if (!shouldScheduleStandaloneAutoPhotoCron({ healCronEnabled, anySwitchOn })) return
+      return import('node-cron').then((m) => {
+        const cron = m.default
+        cron.schedule(
+          REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON,
+          () => {
+            void tickRegisterAutoPhotoWhenHealDisabled()
+          },
+          { timezone: 'Asia/Seoul' },
+        )
+        console.log(
+          `[register-auto-photo-cron] registered: ${REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON} (Asia/Seoul, heal cron disabled in this process)`,
+        )
+      })
+    })
+    .catch((e) => {
+      console.error('[register-auto-photo-cron] failed to register', e)
+    })
+}
+
+async function tickRegisterAutoPhotoWhenHealDisabled(): Promise<void> {
+  if (!(process.env.DATABASE_URL ?? '').trim()) {
+    console.warn('[register-auto-photo-cron] skip: DATABASE_URL')
+    return
+  }
+  if (healOnlyTickRunning || autoPhotoTickRunning) return
+  autoPhotoTickRunning = true
+  try {
+    const { autoRegisterSwitches, runAutoPhotoRegisterJob } = await import(
+      '@/lib/register-auto-photo-register-job'
+    )
+    const switches = autoRegisterSwitches()
+    if (!switches.fill && !switches.flip && !switches.record) {
+      console.log('[register-auto-photo-cron] auto-photo skip: switches_off')
+      return
+    }
+    const photo = await runAutoPhotoRegisterJob({ limit: 50 })
+    console.log(
+      '[register-auto-photo-cron] auto-photo-done',
+      JSON.stringify({
+        scanned: photo.scanned,
+        filled: photo.filled,
+        fillFailed: photo.fillFailed,
+        registered: photo.registered,
+        held: photo.held,
+        fillFailByReason: photo.fillFailByReason,
+        heldByReason: photo.heldByReason,
+      }),
+    )
+  } catch (e) {
+    console.error('[register-auto-photo-cron] error', e)
+  } finally {
+    autoPhotoTickRunning = false
+  }
+}
 
 export function startInstrumentationRegisterPrePhotoSelfHealCron(): void {
   if (!isRegisterPrePhotoHealOnlyCronEnabled()) {

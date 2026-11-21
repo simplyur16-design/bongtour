@@ -111,12 +111,15 @@ export async function register() {
         const { isRegisterPrePhotoHealOnlyCronEnabled } = await import(
           '@/lib/register-listing-ingest-cron-gate'
         )
+        const {
+          startInstrumentationRegisterPrePhotoSelfHealCron,
+          startInstrumentationRegisterAutoPhotoWhenHealDisabled,
+        } = await import('@/lib/instrumentation-register-pre-photo-self-heal-cron')
         if (isRegisterPrePhotoHealOnlyCronEnabled()) {
-          const { startInstrumentationRegisterPrePhotoSelfHealCron } = await import(
-            '@/lib/instrumentation-register-pre-photo-self-heal-cron'
-          )
           startInstrumentationRegisterPrePhotoSelfHealCron()
         }
+        // REGRESSION-FREEZE[register-auto-photo-web-when-heal-disabled]: 웹은 셀프힐을 끄고 스위치는 켜 둔다. 사진 작업은 그 프로세스에 따로 등록 — manifest
+        startInstrumentationRegisterAutoPhotoWhenHealDisabled()
       }
     }
 
