@@ -31116,6 +31116,32 @@
       ]
     },
     {
+      "id": "cleared-slot-refill-priority-1122",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/21 23:07(봉실장 11/22 지시): 점검·수동(흑백 제거 등)으로 비운 사진 칸(AssetUsageLog site-health-clear)이 남은 공개 상품은 다음 :30 채움 맨 앞(최근 14일, 상한 30), 일반 순번 limit 은 따로",
+      "checks": [
+        {
+          "file": "lib/cleared-slot-refill-priority.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cleared-slot-refill-priority-1122]",
+            "export function mergeClearedSlotPriorityPicks",
+            "return [...prior, ...cleared, ...rotate(rest).slice(0, limit)]"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cleared-slot-refill-priority-1122]",
+            "sourceType: 'site-health-clear'",
+            "mergeClearedSlotPriorityPicks(eligible, priorityIds, cleared, limit"
+          ]
+        }
+      ]
+    },
+    {
       "id": "register-photo-travel-day-1121",
       "tier": [
         "prebuild",
