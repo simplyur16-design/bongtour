@@ -4,6 +4,8 @@
  * 생성은 마지막이고, 없거나 기준을 못 넘기면 그 칸은 예외 '생성 대상'.
  * 호출 규칙: 동시 호출 없음(순차), 호출마다 간격+지터(pause), 읽기 재시도 최대 1회, 외부 장애·한도는 사유만 남기고 다음으로.
  * 칸당 확인하는 후보는 AUTOFILL_MAX_CANDIDATES_PER_SLOT(5)개까지 — 넘으면 예외 목록으로.
+ * 흑백 사진은 대표·일차 모두 저장 전에 버린다(deps.isMonochrome, 사장님 11/22).
+ * REGRESSION-FREEZE[photo-monochrome-all-slots-1122]: 자동 채움 후보는 대표·일차 모두 흑백 판정 후 저장 — manifest
  * REGRESSION-FREEZE[photo-autofill-acquire]: 순차·재시도 1회·후보 5개 상한·생성은 마지막(생성 대상) — manifest
  */
 import {
@@ -52,6 +54,8 @@ export type AcquireDeps = {
   searchCc0?: (query: string, perPage: number) => Promise<AutofillCandidate[]>
   /** 재고가 하나도 없을 때만 1장. null 이면 예외 '생성 대상'. */
   generate?: (input: { sight: string; cityTerms: readonly string[] }) => Promise<AutofillCandidate | null>
+  /** 흑백 판정(사장님 11/22: 대표·일차 모두 흑백 금지). true 면 저장 전에 버린다. 판정 실패는 false(막지 않음). */
+  isMonochrome?: (c: AutofillCandidate) => Promise<boolean>
   now?: () => Date
 }
 
@@ -181,6 +185,11 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
         return 'cap'
       }
       evaluated++
+      if (deps.isMonochrome && (await deps.isMonochrome(p.candidate).catch(() => false))) {
+        bump('monochrome')
+        tried.push({ tier, query, id: p.candidate.id, outcome: 'rejected', reasons: ['monochrome'] })
+        continue
+      }
       const res = await deps.commit(p.candidate, { kind: input.kind, day: input.day, label: sightLabel.slice(0, 80) })
       if (!res.ok) {
         bump(`commit_${res.reason}`)

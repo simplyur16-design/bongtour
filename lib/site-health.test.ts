@@ -104,6 +104,11 @@ describe('site-health photo checks', () => {
     expect(s['photo-monochrome-day']).toMatchObject({ found: 1, fixed: 1 })
     expect(s['photo-cover-problem']).toMatchObject({ found: 1, fixed: 0, remaining: 1 })
   })
+  it('흑백 대표사진은 기록만 한다(사장님 11/22)', async () => {
+    const p = { id: 'p5', bgImageUrl: 'https://x/mono-cover.jpg', schedule: sched([place(1, 'https://x/a.jpg')]) }
+    const s = await sum(photoCtx([p], { probe: async () => ({ status: 200, bytes: 10 }), isMonochrome: async (u) => u.includes('mono') }))
+    expect(s['photo-cover-problem']).toMatchObject({ found: 1, fixed: 0, remaining: 1 })
+  })
   it('예산이 끝난 probe(null)는 문제로 세지 않는다', async () => {
     const p = { id: 'p4', bgImageUrl: 'c', schedule: sched([place(1, 'https://x/a.jpg')]) }
     const s = await sum(photoCtx([p], { probe: async () => null, isMonochrome: async () => null }))

@@ -30980,6 +30980,55 @@
       ]
     },
     {
+      "id": "photo-monochrome-all-slots-1122",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/22 03:05: 흑백 사진은 대표·일차·월별 추천(대표사진 사용) 모두 금지. 자동 채움(사진 풀·Pexels·Unsplash·CC0·생성) 후보는 저장 전에 흑백 판정, 관리자 사진 처리도 일차 칸까지 흑백 확인, 사진 풀 보충도 흑백 제외, 매시 점검은 흑백 대표사진을 기록",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-acquire.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-monochrome-all-slots-1122]",
+            "bump('monochrome')",
+            "isMonochrome?: (c: AutofillCandidate) => Promise<boolean>"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-live-deps.ts",
+          "mustInclude": [
+            "isMonochrome: async (c) =>",
+            "if (await isMonochromePhotoUrl(c.url)) return false"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "verify: chainMainNotMonochrome,"
+          ]
+        },
+        {
+          "file": "lib/register-photo-source-chain.ts",
+          "mustInclude": [
+            "if (altSaysMonochrome(alt)) return slot === 'main' ? 'main_monochrome' : 'day_monochrome'"
+          ]
+        },
+        {
+          "file": "lib/site-health-photo-checks.ts",
+          "mustInclude": [
+            "detail: 'cover monochrome'"
+          ]
+        },
+        {
+          "file": "lib/photo-monochrome-all-slots-1122.test.ts",
+          "mustInclude": [
+            "흑백 사진: 대표·일차 모두 금지(사장님 11/22)"
+          ]
+        }
+      ]
+    },
+    {
       "id": "site-health-hourly-1122",
       "tier": [
         "prebuild",

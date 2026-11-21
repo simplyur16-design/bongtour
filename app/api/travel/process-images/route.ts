@@ -806,9 +806,9 @@ export async function POST(req: Request) {
       const isMainSlot = slot === 'main'
       const r = await findStockPhotoByChain(query, {
         accept: chainAccept(extra, gateCtx),
-        // 사장님 11/01: 대표사진 흑백 금지(일차 칸 흑백은 허용) — 고른 뒤 미리보기 화소로 확인
+        // 사장님 11/22: 대표·일차 모두 흑백 금지(11/01 은 대표만) — 고른 뒤 미리보기 화소로 확인
         slot: isMainSlot ? 'main' : 'day',
-        verify: isMainSlot ? chainMainNotMonochrome : undefined,
+        verify: chainMainNotMonochrome,
         // 품질 점수 우선 − 최근 사용 감점 − 같은 도시 사용 감점
         pick: (cands) => {
           const ranked = rankPhotosByScore(cands, { keywords: [query, mapDestination(destination)], recent: recentIndex })
