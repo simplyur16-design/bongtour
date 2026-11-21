@@ -1,1 +1,1 @@
-﻿Fully redesigned plan, checkout, install guide and My eSIM screens. Guest checkout with just your email.
+﻿Data usage in My eSIM is now accurate: daily plans show today's use against the daily allowance.

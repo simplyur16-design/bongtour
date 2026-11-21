@@ -29,7 +29,7 @@ Simplyur eSIMは、海外からの訪韓旅行者向けの韓国eSIMです（韓
 プライバシーポリシー：https://bongtour.com/simplyur/ja/legal/privacy
 
 What's New
-デザインを全面リニューアルしました。プラン選択、決済、設定ガイド、My eSIMの画面がより見やすく、使いやすくなりました。メールアドレスだけでゲスト購入できます。
+My eSIMのデータ使用量表示を修正しました。デイリープランは本日の使用量を1日の容量と比べて表示します。
 
 Category: Travel / Lifestyle
 Privacy: https://bongtour.com/simplyur/en/legal/privacy

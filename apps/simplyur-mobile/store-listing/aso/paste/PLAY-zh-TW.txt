@@ -23,7 +23,7 @@ Simplyur eSIM 是專為赴韓國際旅客打造的韓國 eSIM（不適用於韓�
 隱私權政策：https://bongtour.com/simplyur/zh-TW/legal/privacy
 
 What's new
-全新設計上線。方案選擇、結帳、安裝教學與 My eSIM 頁面更清楚、更好用。只要電子郵件即可免註冊購買。
+修正 My eSIM 數據用量顯示：每日方案現在顯示今日用量與每日流量。
 
 Category: Travel & Local
 Email: bongtour24@naver.com

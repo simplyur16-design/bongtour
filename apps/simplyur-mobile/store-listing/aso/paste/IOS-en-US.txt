@@ -30,7 +30,7 @@ Privacy: https://bongtour.com/simplyur/en/legal/privacy
 Terms: https://bongtour.com/simplyur/en/legal/terms
 
 What's New
-Fully redesigned plan, checkout, install guide and My eSIM screens. Guest checkout with just your email.
+Data usage in My eSIM is now accurate: daily plans show today's use against the daily allowance.
 
 Category: Travel / Lifestyle
 Privacy: https://bongtour.com/simplyur/en/legal/privacy

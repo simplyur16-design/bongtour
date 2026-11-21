@@ -26,6 +26,11 @@ export type MyEsimUsage = {
   unlimited: boolean;
   cap_mb: number | null;
   history: { date: string; usageMb: number }[];
+  /** 1.0.3 API: "daily" = cap_mb is a per-day allowance; total_used_mb/used_mb is today's usage. */
+  cap_scope?: 'daily' | 'total' | 'none';
+  used_mb?: number;
+  today_used_mb?: number;
+  cumulative_used_mb?: number;
 };
 
 async function authHeaders(): Promise<HeadersInit> {

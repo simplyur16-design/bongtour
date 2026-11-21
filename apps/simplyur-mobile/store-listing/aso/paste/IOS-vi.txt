@@ -29,7 +29,7 @@ Trung tâm hỗ trợ khách hàng: bongtour24@naver.com
 Chính sách bảo mật: https://bongtour.com/simplyur/vi/legal/privacy
 
 What's New
-Giao diện mới: chọn gói, thanh toán, hướng dẫn cài đặt và My eSIM dễ dùng hơn. Mua chỉ cần email, không cần tài khoản.
+Sửa hiển thị dung lượng trong My eSIM: gói theo ngày hiển thị mức đã dùng hôm nay so với dung lượng mỗi ngày.
 
 Category: Travel / Lifestyle
 Privacy: https://bongtour.com/simplyur/en/legal/privacy
