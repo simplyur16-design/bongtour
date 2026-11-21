@@ -15,6 +15,7 @@ export type HealWriteField =
   | 'registerPhotosReady'
   | 'rejectReason'
   | 'rejectedAt'
+  | 'autoRegisterBlockReason'
   | 'countryKey'
   | 'continentKey'
   | 'cityKey'
