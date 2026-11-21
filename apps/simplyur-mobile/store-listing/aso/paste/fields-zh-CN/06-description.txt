@@ -1,13 +1,14 @@
-﻿simplyur 是赴韩国际游客的韩国 eSIM（不面向韩国居民）。
+﻿Simplyur eSIM 是面向赴韩国际游客的韩国 eSIM（不适用于韩国居民）。
 
-购买全国流量套餐。付款后邮件收二维码。出发前安装，落地后激活。无需实体卡。
+购买覆盖首尔、釜山、济州及韩国全境的流量套餐。付款后，二维码将发送到你的邮箱。出发前安装，落地后激活。无需实体 SIM 卡，也不用去机场柜台。
 
-• 按出行天数选套餐
-• 付款后即时二维码邮件
-• 中 / 英 / 日 / 越指南
-• My eSIM：二维码与剩余流量
-• Google / Apple 登录
-• 国际卡支付（Eximbay）
+• 按出行天数选择套餐
+• 只需邮箱即可免注册下单（登录为可选）
+• 付款后立即通过邮件发送二维码
+• 所有套餐均支持热点共享（可能受运营商政策限制）
+• 中文、英文、日文、越南文安装指南
+• My eSIM：查看二维码、剩余流量和安装步骤
+• 支持国际信用卡支付（Eximbay）
 
-Bong Tour · bongtour24@naver.com
-https://bongtour.com/simplyur/zh/legal/privacy
+客服中心：bongtour24@naver.com
+隐私政策：https://bongtour.com/simplyur/zh/legal/privacy

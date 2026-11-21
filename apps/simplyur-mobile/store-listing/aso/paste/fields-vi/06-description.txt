@@ -1,13 +1,14 @@
-﻿simplyur la eSIM Han Quoc cho khách quoc te den Han — khong danh cho cu dan Han.
+﻿Simplyur eSIM là eSIM Hàn Quốc dành cho du khách quốc tế — không dành cho người đang sinh sống tại Hàn Quốc.
 
-Mua goi data toan quoc. Nhan QR qua email sau thanh toan. Cai truoc khi bay, kich hoat khi ha canh. Khong can SIM vat ly.
+Mua gói data dùng trên toàn Hàn Quốc: Seoul, Busan, Jeju và các nơi khác. Sau khi thanh toán, mã QR sẽ được gửi qua email. Cài đặt trước khi bay và kích hoạt khi hạ cánh. Không cần SIM vật lý, không cần ra quầy sân bay.
 
-• Goi theo so ngay luu tru
-• QR email ngay sau mua
-• Huong dan EN / JA / ZH / VI
-• My eSIM: QR, data con lai
-• Dang nhap Google / Apple
-• The quoc te (Eximbay)
+• Gói cước theo số ngày lưu trú
+• Mua không cần tài khoản, chỉ cần email (đăng nhập là tùy chọn)
+• Nhận mã QR qua email ngay sau khi mua
+• Mọi gói đều phát được hotspot (có thể bị giới hạn theo chính sách nhà mạng)
+• Hướng dẫn bằng tiếng Việt, Anh, Nhật, Trung
+• My eSIM: mã QR, dung lượng còn lại, các bước cài đặt
+• Thanh toán bằng thẻ quốc tế (Eximbay)
 
-Bong Tour · bongtour24@naver.com
-https://bongtour.com/simplyur/vi/legal/privacy
+Trung tâm hỗ trợ khách hàng: bongtour24@naver.com
+Chính sách bảo mật: https://bongtour.com/simplyur/vi/legal/privacy

@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "product": "simplyur",
   "bundleId": "com.bongtour.simplyur",
   "category": {
@@ -19,14 +19,17 @@
   },
   "locales": {
     "en-US": {
-      "storeLocale": { "play": "en-US", "ios": "en-US" },
+      "storeLocale": {
+        "play": "en-US",
+        "ios": "en-US"
+      },
       "title": "Simplyur eSIM",
       "iosSubtitle": "QR before you fly",
       "iosKeywords": "south,travel,sim,data,plan,visitor,tourist,seoul,busan,jeju,wifi,roaming,prepaid,install,activate",
       "iosPromo": "Korea eSIM for visitors. Get your QR by email, install before you fly, connect when you land.",
       "playShort": "Korea eSIM for visitors. QR by email, install before you fly.",
-      "description": "simplyur is Korea eSIM for international visitors — not for Korea residents.\n\nBuy a nationwide data plan. Get a QR by email after payment. Install before you fly, activate when you land. No physical SIM.\n\n• Plans by trip length\n• QR by email after purchase\n• Guides: English, Japanese, Chinese, Vietnamese\n• My eSIM: QR, data left, steps\n• Google / Apple sign-in\n• International cards (Eximbay)\n\nBong Tour · bongtour24@naver.com\nPrivacy: https://bongtour.com/simplyur/en/legal/privacy\nTerms: https://bongtour.com/simplyur/en/legal/terms",
-      "whatsNew": "simplyur 1.0.0 — first public production release. Korea eSIM for international visitors, not for residents of Korea.\n\nBuy nationwide data for Seoul, Busan, Jeju, and the rest of South Korea. Pay, get a QR by email, install before you fly, activate on landing. No physical SIM, no airport kiosk.\n\nPlans by trip length. Guides in English, Japanese, Chinese, Vietnamese. My eSIM: QR, remaining data, install steps. Google sign-in and Eximbay cards.\n\nAndroid 15/16 ready. Support: bongtour24@naver.com",
+      "description": "Simplyur eSIM is a Korea eSIM for international visitors — not for people who live in Korea.\n\nBuy a nationwide data plan for Seoul, Busan, Jeju and the rest of South Korea. After payment you get a QR code by email. Install it before you fly, then activate when you land. No physical SIM, no airport kiosk.\n\n• Plans by trip length\n• Guest checkout with just your email — sign-in optional\n• QR by email right after purchase\n• Hotspot available on every plan (may be limited by carrier policy)\n• Guides in English, Japanese, Chinese and Vietnamese\n• My eSIM: QR, remaining data, install steps\n• International cards (Eximbay)\n\nCustomer Center: bongtour24@naver.com\nPrivacy: https://bongtour.com/simplyur/en/legal/privacy\nTerms: https://bongtour.com/simplyur/en/legal/terms",
+      "whatsNew": "Fully redesigned plan, checkout, install guide and My eSIM screens. Guest checkout with just your email.",
       "screenshotCaptions": [
         "Korea eSIM for visitors",
         "Buy a plan — QR by email",
@@ -36,14 +39,17 @@
       ]
     },
     "ja": {
-      "storeLocale": { "play": "ja-JP", "ios": "ja" },
+      "storeLocale": {
+        "play": "ja-JP",
+        "ios": "ja"
+      },
       "title": "Simplyur eSIM",
       "iosSubtitle": "出発前にQRを設定",
       "iosKeywords": "訪韓,データ通信,旅行,ソウル,釜山,済州,観光,プリペイド,空港,ローミング,sim,wifi,インストール,全国,到着,回線,海外旅行,インバウンド,データプラン,観光客",
-      "iosPromo": "訪韓向け韓国eSIM。QRをメールで受け取り、出発前に設定、到着ですぐ接続。",
-      "playShort": "訪韓者向け韓国eSIM。QRメール受信、出発前設定、到着すぐ接続。",
-      "description": "simplyurは訪韓海外旅行者向けの韓国eSIMです（韓国在住者は対象外）。\n\n全国データプランを購入。決済後QRをメールで受信。出発前にインストール、到着後に有効化。物理SIM不要。\n\n• 滞在日数に合わせたプラン\n• 購入直後のQRメール\n• 日・英・中・越ガイド\n• My eSIM（QR・残データ）\n• Google / Appleサインイン\n• 海外カード決済（Eximbay）\n\nBong Tour · bongtour24@naver.com\nhttps://bongtour.com/simplyur/ja/legal/privacy",
-      "whatsNew": "simplyur 1.0.0 — 初の正式公開版。韓国在住者向けではなく、訪韓旅行者向けの韓国eSIMです。\n\nソウル・釜山・済州など韓国全国のデータプランを購入。決済後、QRをメールでお送りします。出発前にインストールし、到着後に有効化。物理SIMも空港カウンターも不要です。\n\n滞在日数で選べるプラン。案内は英語・日本語・中国語・ベトナム語。My eSIMでQR・残データ・手順を確認。GoogleログインとEximbay決済。\n\nAndroid 15/16対応。サポート: bongtour24@naver.com",
+      "iosPromo": "訪韓旅行者向けの韓国eSIM。QRコードはメールで届くので、出発前に設定して到着後すぐにつながります。",
+      "playShort": "訪韓旅行者向け韓国eSIM。QRはメールで受信、出発前に設定して到着後すぐ接続。",
+      "description": "Simplyur eSIMは、海外からの訪韓旅行者向けの韓国eSIMです（韓国在住の方はご利用いただけません）。\n\nソウル・釜山・済州など韓国全国で使えるデータプランを購入できます。お支払い後、QRコードがメールで届きます。出発前にインストールし、到着後に有効化してください。物理SIMも空港カウンターも不要です。\n\n• 滞在日数に合わせて選べるプラン\n• メールアドレスだけでゲスト購入（ログインは任意）\n• 購入後すぐにQRコードをメールでお届け\n• 全プランでテザリング可能（通信事業者のポリシーにより制限される場合があります）\n• 日本語・英語・中国語・ベトナム語の設定ガイド\n• My eSIM：QRコード、データ残量、設定手順を確認\n• 海外発行カードで決済（Eximbay）\n\nカスタマーセンター：bongtour24@naver.com\nプライバシーポリシー：https://bongtour.com/simplyur/ja/legal/privacy",
+      "whatsNew": "デザインを全面リニューアルしました。プラン選択、決済、設定ガイド、My eSIMの画面がより見やすく、使いやすくなりました。メールアドレスだけでゲスト購入できます。",
       "screenshotCaptions": [
         "訪韓者向け韓国eSIM",
         "購入後すぐQRメール",
@@ -53,14 +59,17 @@
       ]
     },
     "zh-CN": {
-      "storeLocale": { "play": "zh-CN", "ios": "zh-Hans" },
+      "storeLocale": {
+        "play": "zh-CN",
+        "ios": "zh-Hans"
+      },
       "title": "Simplyur eSIM",
       "iosSubtitle": "出发前安装二维码",
       "iosKeywords": "赴韩,流量,旅游,首尔,釜山,济州,游客,预付,机场,漫游,sim,wifi,安装,激活,全国,上网,出境游,数据套餐,旅行者,落地",
-      "iosPromo": "赴韩游客韩国eSIM。邮件收码，出发前安装，落地连网。",
-      "playShort": "赴韩游客韩国eSIM。邮件收码，出发前安装，落地连网。",
-      "description": "simplyur 是赴韩国际游客的韩国 eSIM（不面向韩国居民）。\n\n购买全国流量套餐。付款后邮件收二维码。出发前安装，落地后激活。无需实体卡。\n\n• 按出行天数选套餐\n• 付款后即时二维码邮件\n• 中 / 英 / 日 / 越指南\n• My eSIM：二维码与剩余流量\n• Google / Apple 登录\n• 国际卡支付（Eximbay）\n\nBong Tour · bongtour24@naver.com\nhttps://bongtour.com/simplyur/zh/legal/privacy",
-      "whatsNew": "simplyur 1.0.0 — 首个正式上线版本。面向赴韩旅客的韩国eSIM，不面向韩国常住居民。\n\n购买首尔、釜山、济州及韩国全国流量套餐。付款后邮箱发送QR。出发前安装，落地后启用。无需实体SIM，也无需机场柜台。\n\n按行程天数选套餐。指南支持英语、日语、中文、越南语。My eSIM可查看QR、剩余流量和安装步骤。支持Google登录与Eximbay支付。\n\n已适配 Android 15/16。支持：bongtour24@naver.com",
+      "iosPromo": "面向赴韩游客的韩国eSIM。二维码通过邮件发送，出发前安装，落地即可上网。",
+      "playShort": "赴韩游客专用韩国eSIM。邮件接收二维码，出发前安装，落地即可上网。",
+      "description": "Simplyur eSIM 是面向赴韩国际游客的韩国 eSIM（不适用于韩国居民）。\n\n购买覆盖首尔、釜山、济州及韩国全境的流量套餐。付款后，二维码将发送到你的邮箱。出发前安装，落地后激活。无需实体 SIM 卡，也不用去机场柜台。\n\n• 按出行天数选择套餐\n• 只需邮箱即可免注册下单（登录为可选）\n• 付款后立即通过邮件发送二维码\n• 所有套餐均支持热点共享（可能受运营商政策限制）\n• 中文、英文、日文、越南文安装指南\n• My eSIM：查看二维码、剩余流量和安装步骤\n• 支持国际信用卡支付（Eximbay）\n\n客服中心：bongtour24@naver.com\n隐私政策：https://bongtour.com/simplyur/zh/legal/privacy",
+      "whatsNew": "全新设计。套餐选择、结账、安装指南和 My eSIM 页面更清晰、更好用。只需邮箱即可免注册下单。",
       "screenshotCaptions": [
         "赴韩游客韩国eSIM",
         "付款后邮件收码",
@@ -70,14 +79,17 @@
       ]
     },
     "zh-TW": {
-      "storeLocale": { "play": "zh-TW", "ios": "zh-Hant" },
+      "storeLocale": {
+        "play": "zh-TW",
+        "ios": "zh-Hant"
+      },
       "title": "Simplyur eSIM",
-      "iosSubtitle": "出發前安裝QR",
+      "iosSubtitle": "出發前先安裝QR碼",
       "iosKeywords": "赴韓,流量,旅遊,首爾,釜山,濟州,旅客,預付,機場,漫遊,sim,wifi,安裝,啟用,全國,上網,出境遊,數據方案,旅行者,落地",
-      "iosPromo": "赴韓旅客韓國eSIM。郵件收碼，出發前安裝，落地連線。",
-      "playShort": "赴韓旅客韓國eSIM。郵件收碼，出發前安裝，落地連線。",
-      "description": "simplyur 是赴韓國際旅客的韓國 eSIM（不適用韓國居民）。\n\n購買全國流量方案。付款後郵件收 QR。出發前安裝，落地後啟用。無需實體卡。\n\n• 依停留天數選方案\n• 付款後即時 QR 郵件\n• 繁中 / 英 / 日 / 越指南\n• My eSIM：QR 與剩餘流量\n• Google / Apple 登入\n• 國際卡付款（Eximbay）\n\nBong Tour · bongtour24@naver.com\nhttps://bongtour.com/simplyur/zh-TW/legal/privacy",
-      "whatsNew": "simplyur 1.0.0 — 首個正式上線版本。面向赴韓旅客的韓國eSIM，不面向韓國常住居民。\n\n購買首爾、釜山、濟州及韓國全國方案。付款後以電子郵件寄送QR。出發前安裝，落地後啟用。不需實體SIM，也不需機場櫃檯。\n\n依行程天數選方案。指南支援英文、日文、中文、越南文。My eSIM可查看QR、剩餘流量與安裝步驟。支援Google登入與Eximbay付款。\n\n已支援 Android 15/16。客服：bongtour24@naver.com",
+      "iosPromo": "專為赴韓旅客打造的韓國eSIM。QR碼以電子郵件寄送，出發前安裝，落地就能上網。",
+      "playShort": "赴韓旅客專用韓國eSIM。QR碼寄到信箱，出發前安裝，落地就能上網。",
+      "description": "Simplyur eSIM 是專為赴韓國際旅客打造的韓國 eSIM（不適用於韓國居民）。\n\n購買涵蓋首爾、釜山、濟州及韓國全境的上網方案。付款後，QR 碼會寄到你的電子信箱。出發前安裝，落地後啟用。不需實體 SIM 卡，也不必到機場櫃檯。\n\n• 依停留天數選擇方案\n• 只要電子郵件即可免註冊購買（登入為選填）\n• 付款後立即以電子郵件寄送 QR 碼\n• 所有方案皆可開熱點分享（可能受電信業者政策限制）\n• 繁體中文、英文、日文、越南文安裝教學\n• My eSIM：查看 QR 碼、剩餘流量與安裝步驟\n• 支援國際信用卡付款（Eximbay）\n\n客服中心：bongtour24@naver.com\n隱私權政策：https://bongtour.com/simplyur/zh-TW/legal/privacy",
+      "whatsNew": "全新設計上線。方案選擇、結帳、安裝教學與 My eSIM 頁面更清楚、更好用。只要電子郵件即可免註冊購買。",
       "screenshotCaptions": [
         "赴韓旅客韓國eSIM",
         "付款後郵件收QR",
@@ -87,31 +99,37 @@
       ]
     },
     "vi": {
-      "storeLocale": { "play": "vi-VN", "ios": "vi" },
+      "storeLocale": {
+        "play": "vi-VN",
+        "ios": "vi"
+      },
       "title": "Simplyur eSIM",
-      "iosSubtitle": "Cai QR truoc khi bay",
-      "iosKeywords": "dulich,data,seoul,busan,jeju,khach,traphi,sanbay,roaming,sim,wifi,caidat,kichhoat",
-      "iosPromo": "eSIM Han Quoc cho khach. Nhan QR email, cai truoc bay, online khi ha canh.",
-      "playShort": "eSIM Han Quoc cho khach. QR email, cai truoc bay, online luc ha canh.",
-      "description": "simplyur la eSIM Han Quoc cho khách quoc te den Han — khong danh cho cu dan Han.\n\nMua goi data toan quoc. Nhan QR qua email sau thanh toan. Cai truoc khi bay, kich hoat khi ha canh. Khong can SIM vat ly.\n\n• Goi theo so ngay luu tru\n• QR email ngay sau mua\n• Huong dan EN / JA / ZH / VI\n• My eSIM: QR, data con lai\n• Dang nhap Google / Apple\n• The quoc te (Eximbay)\n\nBong Tour · bongtour24@naver.com\nhttps://bongtour.com/simplyur/vi/legal/privacy",
-      "whatsNew": "simplyur 1.0.0 — bản phát hành chính thức đầu tiên. eSIM Hàn Quốc cho khách quốc tế, không dành cho người cư trú tại Hàn Quốc.\n\nMua data toàn quốc (Seoul, Busan, Jeju và các nơi khác). Thanh toán xong nhận QR qua email. Cài trước khi bay, kích hoạt khi hạ cánh. Không cần SIM vật lý hay quầy sân bay.\n\nGói theo số ngày. Hướng dẫn tiếng Anh, Nhật, Trung, Việt. My eSIM: QR, dung lượng còn lại, các bước cài. Đăng nhập Google và thẻ Eximbay.\n\nSẵn sàng Android 15/16. Hỗ trợ: bongtour24@naver.com",
+      "iosSubtitle": "Cài QR trước khi bay",
+      "iosKeywords": "du,lịch,khách,data,seoul,busan,jeju,trả,sân,roaming,sim,wifi,đặt,kích,hoạt,hàn,quốc,dulich",
+      "iosPromo": "eSIM Hàn Quốc cho du khách. Nhận mã QR qua email, cài trước khi bay, có mạng ngay khi hạ cánh.",
+      "playShort": "eSIM Hàn Quốc cho du khách: nhận QR qua email, cài trước khi bay.",
+      "description": "Simplyur eSIM là eSIM Hàn Quốc dành cho du khách quốc tế — không dành cho người đang sinh sống tại Hàn Quốc.\n\nMua gói data dùng trên toàn Hàn Quốc: Seoul, Busan, Jeju và các nơi khác. Sau khi thanh toán, mã QR sẽ được gửi qua email. Cài đặt trước khi bay và kích hoạt khi hạ cánh. Không cần SIM vật lý, không cần ra quầy sân bay.\n\n• Gói cước theo số ngày lưu trú\n• Mua không cần tài khoản, chỉ cần email (đăng nhập là tùy chọn)\n• Nhận mã QR qua email ngay sau khi mua\n• Mọi gói đều phát được hotspot (có thể bị giới hạn theo chính sách nhà mạng)\n• Hướng dẫn bằng tiếng Việt, Anh, Nhật, Trung\n• My eSIM: mã QR, dung lượng còn lại, các bước cài đặt\n• Thanh toán bằng thẻ quốc tế (Eximbay)\n\nTrung tâm hỗ trợ khách hàng: bongtour24@naver.com\nChính sách bảo mật: https://bongtour.com/simplyur/vi/legal/privacy",
+      "whatsNew": "Giao diện mới: chọn gói, thanh toán, hướng dẫn cài đặt và My eSIM dễ dùng hơn. Mua chỉ cần email, không cần tài khoản.",
       "screenshotCaptions": [
-        "eSIM Han cho khach",
-        "Mua goi — QR email",
-        "Cai truoc khi bay",
-        "Kich hoat khi ha canh",
-        "Huong dan EN·JA·ZH·VI"
+        "eSIM Hàn Quốc cho du khách",
+        "Mua gói — nhận QR qua email",
+        "Cài trước khi bay",
+        "Kích hoạt khi hạ cánh",
+        "Hướng dẫn VI · EN · JA · ZH"
       ]
     }
   },
   "homeScreenName": "Simplyur eSIM",
   "contactEmail": "bongtour24@naver.com",
   "privacyPolicyUrl": "https://bongtour.com/simplyur/en/legal/privacy",
-  "androidVersionCode": 12,
+  "androidVersionCode": 17,
   "notes": [
     "Keep playShort ≤70 chars when possible (Play rejects near-limit / fancy punctuation).",
     "Paste ONLY the text under each --- field --- (not the whole .txt file).",
-    "Home-screen label stays simplyur. Store title carries Korea eSIM.",
-    "androidVersionCode must increase for every Play upload."
+    "Brand is always written \"Simplyur eSIM\" (capital S) — store title, home-screen label and first word of every description.",
+    "Customer contact is labelled Customer Center (고객센터) in every locale; never name third-party suppliers.",
+    "Hotspot line (may be limited by carrier policy) and guest checkout line stay in every description.",
+    "iOS: name/subtitle/description/keywords/what's new can only be edited on a new editable App Store version; promotional text can be edited anytime.",
+    "androidVersionCode must increase for every Play upload (last uploaded: 17)."
   ]
 }
