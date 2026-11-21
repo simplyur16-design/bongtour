@@ -12,6 +12,7 @@ import { ProductDetailV1View } from "@/components/bongsim/detail-v1/ProductDetai
 import { getProductDetailByOptionApiIdCached } from "@/lib/bongsim/data/load-product-detail-cached";
 import { listKycFlagProductsForPlanName } from "@/lib/bongsim/data/list-kyc-flag-products-for-plan-name";
 import { getKycLabelDistribution } from "@/lib/bongsim/esim/kyc-required";
+import EsimHelpChat from '@/components/bongsim/esim/EsimHelpChat'
 
 type Props = { params: Promise<{ optionApiId: string }> };
 
@@ -80,6 +81,7 @@ export default async function ProductDetailV1Page({ params }: Props) {
         <ProductDetailV1View detail={res.detail} kycDistribution={kycDistribution} />
       </main>
       </div>
+      <EsimHelpChat />
     </div>
   );
 }

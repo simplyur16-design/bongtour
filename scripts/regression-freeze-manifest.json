@@ -7079,6 +7079,22 @@
       ]
     },
     {
+      "id": "esim-help-chat-visible-1122",
+      "tier": ["prebuild", "ci"],
+      "summary": "eSIM 상담 입구는 'eSIM 도움이 필요하세요?' 문구로 보이고, eSIM 메인·설치 안내·상품 상세·주문 완료·내 eSIM 주문 화면에 붙어 있다.",
+      "checks": [
+        {
+          "file": "components/bongsim/esim/EsimHelpChat.tsx",
+          "mustInclude": ["REGRESSION-FREEZE[esim-help-chat-visible-1122]", "eSIM 도움이 필요하세요?", "data-esim-help-entry"]
+        },
+        { "file": "app/travel/esim/page.tsx", "mustInclude": ["<EsimHelpChat />"] },
+        { "file": "app/travel/esim/guide/install/page.tsx", "mustInclude": ["<EsimHelpChat />"] },
+        { "file": "app/travel/esim/product/[optionApiId]/page.tsx", "mustInclude": ["<EsimHelpChat />"] },
+        { "file": "app/travel/esim/order/[orderId]/complete/page.tsx", "mustInclude": ["<EsimHelpChat />"] },
+        { "file": "app/mypage/esim/MyEsimOrdersClient.tsx", "mustInclude": ["<EsimHelpChat />"] }
+      ]
+    },
+    {
       "id": "hanjin-ingest-stop-reason",
       "tier": ["prebuild", "ci"],
       "summary": "한진 화면 수집은 403·429·타임아웃이면 그 자리에서 멈추고 사유만 남긴다. 지역 색인 읽기 실패는 1회만 다시 한다. 호출 간격은 그대로다.",

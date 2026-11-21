@@ -158,14 +158,23 @@ export default function EsimHelpChat() {
           </footer>
         </section>
       ) : null}
+      {/* REGRESSION-FREEZE[esim-help-chat-visible-1122]: 입구는 'eSIM 도움이 필요하세요?' 문구가 보이는 떠 있는 버튼 — manifest */}
       <button
         type="button"
-        className="pointer-events-auto flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm"
+        data-esim-help-entry
+        className="pointer-events-auto flex items-center gap-2 rounded-full border-2 border-[#2f8fc7] bg-white py-1.5 pl-1.5 pr-4 shadow-lg"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
+        aria-label="eSIM 도움이 필요하세요? 봉실장 상담 열기"
       >
-        <img src="/images/bongtour-logo.webp" alt="" className="h-5 w-auto" />
-        <span className="text-sm font-bold text-slate-900">봉실장</span>
+        <Face mood={open ? 'help' : 'hello'} />
+        <span className="flex flex-col items-start leading-tight">
+          <span className="text-[13px] font-bold text-slate-900">eSIM 도움이 필요하세요?</span>
+          <span className="flex items-center gap-1 text-[11px] font-semibold text-[#2f8fc7]">
+            <img src="/images/bongtour-logo.webp" alt="" className="h-3.5 w-auto" />
+            봉실장에게 물어보기
+          </span>
+        </span>
       </button>
     </div>
   )
