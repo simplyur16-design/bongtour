@@ -31771,7 +31771,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "대표 사진은 유지하고 당일 키워드가 있는 빈 일차만 채운다. 차단 상품은 큐에 넣지 않는다. FIT 키워드는 앞선 날·상품 도시로 채우지 않고 stale imageKeyword2 를 지운다",
+      "summary": "대표 사진은 유지하고 당일 키워드가 있는 빈 일차만 채운다. 대시보드 큐 조건은 차단 상품을 넣지 않고, 자동 등록 실행은 숙소 키워드·빈 사진을 고치려고 차단 상품도 본다. FIT 키워드는 앞선 날·상품 도시로 채우지 않고 stale imageKeyword2 를 지운다",
       "checks": [
         {
           "file": "lib/register-auto-photo-register-job.ts",
@@ -31781,9 +31781,6 @@
             "autoPhotoFillRequest",
             "REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE",
             "logAutoPhotoAttempt"
-          ],
-          "mustNotInclude": [
-            "registrationStatus: 'pre_photo_blocked'"
           ]
         },
         {
