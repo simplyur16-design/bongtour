@@ -16,7 +16,7 @@ import {
   fetchHanjintourSchedule,
   hanjintourSearchWindow,
 } from '../lib/hanjintour-api'
-import { HanjintourBlockedError, type HanjintourClient } from '../lib/hanjintour-http'
+import { type HanjintourClient } from '../lib/hanjintour-http'
 import {
   parseHanjintourCalendar,
   parseHanjintourDisplayList,
@@ -25,6 +25,7 @@ import {
   parseHanjintourSchedule,
   type HanjintourDeparture,
 } from '../lib/hanjintour-parse'
+import { hanjinFailureName, hanjinWalkStopReason } from '../lib/hanjintour-ingest-stop'
 import {
   HANJINTOUR_EXISTING_SUPPLIERS,
   buildExistingRegionIndex,
@@ -42,6 +43,7 @@ export type HanjintourIngestSummary = {
   applied: number
   skipped: number
   gdsNos: string[]
+  stoppedReason: string | null
 }
 
 export async function runHanjintourIngestPending(opts: {
@@ -55,7 +57,38 @@ export async function runHanjintourIngestPending(opts: {
   const now = opts.now ?? new Date()
   const win = hanjintourSearchWindow(now)
   const todayIso = now.toISOString().slice(0, 10)
-  const gnb = await fetchHanjintourGnbMenu(opts.client)
+  const empty = (stoppedReason: string | null, listed = 0): HanjintourIngestSummary => ({
+    listed,
+    selected: 0,
+    held: 0,
+    excluded: 0,
+    planned: 0,
+    applied: 0,
+    skipped: 0,
+    gdsNos: [],
+    stoppedReason,
+  })
+  // 지역 색인은 화면을 읽기 전에 불러 온다. 읽기 실패는 1회만 다시 한다.
+  let existingRaw: ExistingProductRegionRow[]
+  try {
+    existingRaw = await opts.loadExistingRows()
+  } catch {
+    try {
+      existingRaw = await opts.loadExistingRows()
+    } catch {
+      return empty('db_read')
+    }
+  }
+  const existingRows = existingRaw.filter((r) =>
+    (HANJINTOUR_EXISTING_SUPPLIERS as readonly string[]).includes(String(r.originSource)),
+  )
+  const index = buildExistingRegionIndex(existingRows)
+  let gnb: unknown
+  try {
+    gnb = await fetchHanjintourGnbMenu(opts.client)
+  } catch (e) {
+    return empty(hanjinWalkStopReason(e) ?? hanjinFailureName(e))
+  }
   const leaves = parseHanjintourPackageLeaves(gnb)
   const byGds = new Map<string, HanjintourListingForRegion>()
   const PAGE = 100
@@ -66,7 +99,8 @@ export async function runHanjintourIngestPending(opts: {
       try {
         body = await fetchHanjintourDisplayList(opts.client, { dspCtgNo: leaf.dspCtgNo, ...win, start, size: PAGE })
       } catch (e) {
-        if (e instanceof HanjintourBlockedError) throw e
+        const stop = hanjinWalkStopReason(e)
+        if (stop) return empty(stop, byGds.size)
         break
       }
       const { items, totalCnt } = parseHanjintourDisplayList(body)
@@ -81,10 +115,6 @@ export async function runHanjintourIngestPending(opts: {
     }
   }
 
-  const existingRows = (await opts.loadExistingRows()).filter((r) =>
-    (HANJINTOUR_EXISTING_SUPPLIERS as readonly string[]).includes(String(r.originSource)),
-  )
-  const index = buildExistingRegionIndex(existingRows)
   let held = 0
   let excluded = 0
   const selected: HanjintourListingForRegion[] = []
@@ -137,7 +167,20 @@ export async function runHanjintourIngestPending(opts: {
       } else skipped++
     } catch (e) {
       skipped++
-      if (e instanceof HanjintourBlockedError) break
+      const stop = hanjinWalkStopReason(e)
+      if (stop) {
+        return {
+          listed: byGds.size,
+          selected: selected.length,
+          held,
+          excluded,
+          planned: 0,
+          applied,
+          skipped,
+          gdsNos,
+          stoppedReason: stop,
+        }
+      }
     }
   }
 
@@ -150,6 +193,7 @@ export async function runHanjintourIngestPending(opts: {
     applied,
     skipped,
     gdsNos,
+    stoppedReason: null,
   }
 }
 
@@ -192,6 +236,7 @@ async function main() {
       planned: summary.planned,
       applied: summary.applied,
       skipped: summary.skipped,
+      stoppedReason: summary.stoppedReason,
       gdsNos: summary.gdsNos,
     }),
   )
@@ -200,7 +245,7 @@ async function main() {
 const entry = process.argv[1]?.replace(/\\/g, '/')
 if (entry?.endsWith('scripts/hanjintour-ingest-pending.ts')) {
   main().catch((e) => {
-    const message = e instanceof HanjintourBlockedError ? `blocked ${e.status}` : 'ingest_failed'
+    const message = hanjinFailureName(e)
     console.error(message)
     process.exit(1)
   })
