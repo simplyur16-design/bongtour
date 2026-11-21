@@ -104,7 +104,8 @@ async function tickRegisterAutoPhotoWhenHealDisabled(): Promise<void> {
       console.log('[register-auto-photo-cron] auto-photo skip: switches_off')
       return
     }
-    const photo = await runAutoPhotoRegisterJob({ limit: 50 })
+    // REGRESSION-FREEZE[site-health-hourly-1122]: 매시 틱에서만 사진·SEO·AEO 점검을 같이 돌린다 — manifest
+    const photo = await runAutoPhotoRegisterJob({ limit: 50, siteHealth: true })
     console.log(
       '[register-auto-photo-cron] auto-photo-done',
       JSON.stringify({
@@ -114,6 +115,7 @@ async function tickRegisterAutoPhotoWhenHealDisabled(): Promise<void> {
         registered: photo.registered,
         held: photo.held,
         publicScanned: photo.publicScanned,
+        siteHealth: photo.siteHealth,
         fillFailByReason: photo.fillFailByReason,
         heldByReason: photo.heldByReason,
       }),
