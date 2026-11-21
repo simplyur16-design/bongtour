@@ -78,6 +78,7 @@ import {
 } from '@/lib/supplier-product-title-display'
 import {
   REGISTER_PRE_PHOTO_BLOCKED_STATUS,
+  formatPrePhotoBlockedReason,
   registrationStatusAfterPrePhotoVerify,
 } from '@/lib/register-pre-photo-pending-queue'
 
@@ -192,6 +193,7 @@ export async function healPendingRegisterPrePhoto(
       includedText: true,
       rejectReason: true,
       rejectedAt: true,
+      autoRegisterBlockReason: true,
       registerPrePhotoQueueReady: true,
       registerPhotosReady: true,
       brand: { select: { brandKey: true } },
@@ -684,6 +686,16 @@ export async function healPendingRegisterPrePhoto(
           ? 'registered'
           : registrationStatusAfterPrePhotoVerify(verify)
       const statusChanged = currentStatus !== nextStatus
+      // REGRESSION-FREEZE[register-pre-photo-blocked-reason]: 차단이면 사유를 남기고, 대기로 돌아오면 비운다 — manifest
+      const desiredBlockReason =
+        nextStatus === REGISTER_PRE_PHOTO_BLOCKED_STATUS
+          ? formatPrePhotoBlockedReason(verify.issues)
+          : nextStatus === 'pending'
+            ? null
+            : undefined
+      const reasonChanged =
+        desiredBlockReason !== undefined &&
+        (product.autoRegisterBlockReason ?? null) !== desiredBlockReason
       if (statusChanged && nextStatus === REGISTER_PRE_PHOTO_BLOCKED_STATUS) blocked += 1
       if (statusChanged && nextStatus === 'pending' && currentStatus === REGISTER_PRE_PHOTO_BLOCKED_STATUS) {
         promoted += 1
@@ -722,6 +734,7 @@ export async function healPendingRegisterPrePhoto(
         !themeChanged &&
         !geoRematerialized &&
         !highlightChanged &&
+        !reasonChanged &&
         healNotes.length === 0
       ) {
         skippedUnchanged += 1
@@ -798,6 +811,18 @@ export async function healPendingRegisterPrePhoto(
             'derived_ops',
             () => {
               data.registrationStatus = nextStatus
+            },
+          )
+        }
+        if (reasonChanged && desiredBlockReason !== undefined) {
+          consider(
+            'autoRegisterBlockReason',
+            product.autoRegisterBlockReason ?? null,
+            desiredBlockReason,
+            'verify_gate_reason',
+            'derived_ops',
+            () => {
+              data.autoRegisterBlockReason = desiredBlockReason
             },
           )
         }
@@ -952,7 +977,7 @@ export async function healPendingRegisterPrePhoto(
       failed += 1
       console.error('[register-pre-photo-self-heal] product failed', product.id, e)
       if (!dryRun) {
-        await holdOffPendingQueueIfNotPublic(product.id)
+        await holdOffPendingQueueIfNotPublic(product.id, '검증 중 오류')
       }
     }
   }
@@ -1007,7 +1032,7 @@ function registerPendingScheduleJsonChanged(
   }
 }
 
-async function holdOffPendingQueueIfNotPublic(productId: string): Promise<void> {
+async function holdOffPendingQueueIfNotPublic(productId: string, reason: string): Promise<void> {
   try {
     await withPrismaRetry(`heal-hold-off:${productId}`, () =>
       prisma.product.updateMany({
@@ -1018,6 +1043,7 @@ async function holdOffPendingQueueIfNotPublic(productId: string): Promise<void> 
         data: {
           registrationStatus: REGISTER_PRE_PHOTO_BLOCKED_STATUS,
           registerPrePhotoQueueReady: false,
+          autoRegisterBlockReason: formatPrePhotoBlockedReason([reason]),
         },
       }),
     )
@@ -1035,12 +1061,12 @@ export async function applyRegisterPrePhotoQueueGateAfterSave(
   try {
     const result = await healPendingRegisterPrePhoto({ productId: id, limit: 1, probeImageUrls: false })
     if (result.failed > 0 || result.scanned < 1) {
-      await holdOffPendingQueueIfNotPublic(id)
+      await holdOffPendingQueueIfNotPublic(id, '검증을 마치지 못함')
     }
     return result
   } catch (err) {
     console.error('[register-pre-photo-self-heal] gate threw', id, err)
-    await holdOffPendingQueueIfNotPublic(id)
+    await holdOffPendingQueueIfNotPublic(id, '검증 중 오류')
     return null
   }
 }

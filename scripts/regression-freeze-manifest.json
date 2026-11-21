@@ -29875,6 +29875,32 @@
       ]
     },
     {
+      "id": "register-pre-photo-blocked-reason",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "pre_photo_blocked 로 내릴 때 autoRegisterBlockReason 을 비우지 않는다. 이슈가 없으면 검증 미통과",
+      "checks": [
+        {
+          "file": "lib/register-pre-photo-pending-queue.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-blocked-reason]",
+            "export function formatPrePhotoBlockedReason",
+            "검증 미통과"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-pre-photo-blocked-reason]",
+            "formatPrePhotoBlockedReason(verify.issues)",
+            "autoRegisterBlockReason: formatPrePhotoBlockedReason([reason])"
+          ]
+        }
+      ]
+    },
+    {
       "id": "airline-code-follow-departure",
       "tier": [
         "prebuild",
