@@ -11,7 +11,6 @@
  * REGRESSION-FREEZE[register-auto-register-gate]: 기본 꺼짐, 통과만 registered, 실패는 사유만 — manifest
  */
 import { logAutoPhotoAttempt, providerErrorClass } from '@/lib/auto-photo-attempt-log'
-import { isAutoRegisterReviewPassed } from '@/lib/register-auto-register-review-pass'
 import { autoPhotoFillRequest, scheduleHasMissingEligiblePhotoSlot } from '@/lib/register-auto-photo-missing-day'
 import { prisma } from '@/lib/prisma'
 import { getAdminServiceBearerSecret } from '@/lib/admin-secrets'
@@ -318,25 +317,8 @@ export async function runAutoPhotoRegisterJob(opts?: {
       gate.ok = false
     }
 
-    // 문과장 사진 검수 통과 목록 밖이면 자동 검사를 통과해도 등록 전환하지 않음 (REGRESSION-FREEZE[auto-register-review-pass])
-    const reviewPassed = isAutoRegisterReviewPassed(id, {
-      rawMeta: p.rawMeta,
-      schedule: p.schedule,
-      row: {
-        id,
-        schedule: p.schedule ?? null,
-        rawMeta: p.rawMeta ?? null,
-        originSource: p.originSource ?? null,
-        originCode: p.originCode ?? null,
-        originUrl: p.originUrl ?? null,
-        bgImageUrl: p.bgImageUrl ?? null,
-        bgImageExternalId: p.bgImageExternalId ?? null,
-        bgImageStoragePath: p.bgImageStoragePath ?? null,
-        bgImageSourceUrl: p.bgImageSourceUrl ?? null,
-      },
-    })
-    if (!reviewPassed && !gate.reasons.includes('photo_review_pending')) gate.reasons.push('photo_review_pending')
-    if (gate.ok && reviewPassed) {
+    // REGRESSION-FREEZE[auto-register-review-pass]: 2026-11-21 16:02 사장님 승인 — 기존 검사(제목·가격·출발·일정)를 통과하고 대표·일차 사진이 있으면 검수 목록 없이 공개. 사진 없음·불일치·중복·사진 전 차단은 gate.ok 가 아니므로 대기 — manifest
+    if (gate.ok) {
       if (sw.flip) {
         const upd = await prisma.product.updateMany({
           // 문과장 1106: 검수 판단에 쓴 일정·rawMeta 그대로일 때만 전환 (판단 후 remat 커밋되면 count0)

@@ -25,12 +25,14 @@ describe('auto-register review-pass allowlist (봉실장 10/31)', () => {
     expect(AUTO_REGISTER_BLOCK_REASON_KO.photo_review_pending).toContain('검수')
     expect(formatAutoRegisterBlockReasons(['photo_review_pending'])).toBe('사진 검수 대기(문과장 통과 전)')
   })
-  it('작업은 검수 통과일 때만 registered 로 전환', () => {
+  it('작업은 검사와 사진이 통과하면 검수 목록 없이 registered 로 전환', () => {
     const src = fs.readFileSync(path.join(process.cwd(), 'lib/register-auto-photo-register-job.ts'), 'utf8')
-    expect(src).toContain('if (gate.ok && reviewPassed) {')
+    expect(src).toContain('if (gate.ok) {')
+    expect(src).not.toContain('reviewPassed')
+    expect(src).not.toContain('isAutoRegisterReviewPassed')
     const flipIdx = src.indexOf("registrationStatus: 'registered'")
-    expect(src.indexOf('if (gate.ok && reviewPassed) {')).toBeGreaterThan(-1)
-    expect(src.indexOf('if (gate.ok && reviewPassed) {')).toBeLessThan(flipIdx)
+    expect(src.indexOf('if (gate.ok) {')).toBeGreaterThan(-1)
+    expect(src.indexOf('if (gate.ok) {')).toBeLessThan(flipIdx)
     expect(src.match(/registrationStatus: 'registered'/g)?.length).toBe(1)
   })
 })
