@@ -49,6 +49,30 @@ export type SimplyurKoreaProductsResult =
   | { ok: true; products: ProductOption[] }
   | { ok: false; reason: "db_unconfigured" | "db_error" | "connection_timeout" };
 
+/**
+ * min_display must be the display of the cheapest plan (same rule as min_price_krw).
+ * It used to be the first mapped product (best-capacity-first order), which showed
+ * $3.08 while min_price_krw already pointed at the $1.03 plan.
+ */
+function minSimplyurDisplay(
+  products: ProductOption[],
+  mapped: SimplyurPublicProduct[],
+): SimplyurPublicProduct["simplyur_display"] {
+  let best: SimplyurPublicProduct["simplyur_display"] = null;
+  let bestKrw: number | null = null;
+  for (let i = 0; i < products.length; i++) {
+    const display = mapped[i]?.simplyur_display;
+    if (!display) continue;
+    const krw = simplyurSellPriceKrw(products[i].price_block);
+    if (krw == null) continue;
+    if (bestKrw == null || krw < bestKrw) {
+      bestKrw = krw;
+      best = display;
+    }
+  }
+  return best;
+}
+
 function minSimplyurPrice(products: ProductOption[]): number | null {
   let min: number | null = null;
   for (const p of products) {
@@ -77,14 +101,14 @@ export function buildSimplyurKoreaPack(
   return {
     roaming: {
       min_price_krw: minSimplyurPrice(roamingArr),
-      min_display: roamingMapped.find((p) => p.simplyur_display)?.simplyur_display ?? null,
+      min_display: minSimplyurDisplay(roamingArr, roamingMapped),
       products: roamingMapped,
     },
     local:
       localArr.length > 0
         ? {
             min_price_krw: minSimplyurPrice(localArr),
-            min_display: localMapped.find((p) => p.simplyur_display)?.simplyur_display ?? null,
+            min_display: minSimplyurDisplay(localArr, localMapped),
             products: localMapped,
           }
         : null,
