@@ -22232,6 +22232,23 @@
       "vitestSuites": ["lib/public-brand-token-swap.test.ts"]
     },
     {
+      "id": "talktalk-faq-specific-topics-1122",
+      "tier": ["prebuild", "ci"],
+      "summary": "톡톡 FAQ는 잔여석·출발확정·포함/불포함·유류·팁·쇼핑·1인실·아동·상담원 문의를 좁은 주제로 먼저 고른다",
+      "checks": [
+        {
+          "file": "lib/talktalk-draft/faq.ts",
+          "mustInclude": ["REGRESSION-FREEZE[talktalk-faq-specific-topics-1122]", "rankFaqByTopics", "faq-seat-left", "faq-fuel-surcharge", "faq-guide-tip", "faq-agent-connect"],
+          "mustNotInclude": ["[브랜드명]", "유심사"]
+        },
+        {
+          "file": "lib/talktalk-autoreply/reply.ts",
+          "mustInclude": ["talktalkSpecificTopicsForText", "rankFaqByTopics"]
+        }
+      ],
+      "vitestSuites": ["lib/talktalk-autoreply/faq-coverage-1122.test.ts"]
+    },
+    {
       "id": "talktalk-draft-no-send-no-price-invent",
       "tier": ["prebuild", "ci"],
       "summary": "톡톡 답변 초안은 관리자 표시만 하고 발송·가격 생성을 하지 않는다",

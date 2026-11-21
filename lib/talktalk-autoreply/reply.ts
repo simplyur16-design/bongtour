@@ -3,7 +3,12 @@
  * 가격·출발일·잔여석 문장은 만들지 않는다(상품 페이지 달력 기준 안내만). 공급사 이름·eSIM 공급사 이름은 넣지 않는다.
  * 자동답변 안전장치: 가격 생성 금지·상담원 연결·기본 발송 꺼짐
  */
-import { faqMemberships, ADMIN_DRAFT_FAQ, type TalktalkDraftFaqItem, type TalktalkFaqTopic } from '@/lib/talktalk-draft/faq'
+import {
+  faqMemberships,
+  ADMIN_DRAFT_FAQ,
+  rankFaqByTopics,
+  talktalkSpecificTopicsForText,
+  type TalktalkDraftFaqItem, type TalktalkFaqTopic } from '@/lib/talktalk-draft/faq'
 import { inferTalktalkFaqCategory } from '@/lib/talktalk-draft/parse-inquiry'
 import { ESIM_AGENT_CHAT_LABEL, ESIM_AGENT_CHAT_URL } from '@/lib/talktalk-draft/esim-agent-chat'
 
@@ -89,6 +94,7 @@ export function matchedFaqTopics(text: string): Set<TalktalkFaqTopic> {
   if (/비자|전자여행허가|eta|esta/i.test(text)) topics.add('visa')
   if (/진행|순서|절차/.test(text)) topics.add('process')
   if (/e\s*sim|이심|qr|설치|로밍|apn|갤럭시|아이폰|핫스팟|테더|사용량/i.test(text)) topics.add('esim')
+  for (const t of talktalkSpecificTopicsForText(text)) topics.add(t)
   return topics
 }
 
@@ -97,11 +103,17 @@ export function selectAutoReplyFaq(text: string, limit = 2): TalktalkDraftFaqIte
   const topics = matchedFaqTopics(text)
   if (topics.size === 0) return []
   const category = inferTalktalkFaqCategory(text)
-  const topical = ADMIN_DRAFT_FAQ.filter((item) => item.topics.some((t) => topics.has(t)))
+  const topical = rankFaqByTopics(
+    ADMIN_DRAFT_FAQ.filter((item) => item.topics.some((t) => topics.has(t))),
+    topics,
+    text,
+  )
   const pool =
     category === 'esim'
       ? topical.filter((item) => faqMemberships(item).includes('esim'))
-      : topical.filter((item) => faqMemberships(item).includes(category) || item.category === 'common')
+      : category === 'common'
+        ? topical.filter((item) => !faqMemberships(item).every((c) => c === 'esim'))
+        : topical.filter((item) => faqMemberships(item).includes(category) || item.category === 'common')
   return (pool.length > 0 ? pool : topical).slice(0, limit)
 }
 
