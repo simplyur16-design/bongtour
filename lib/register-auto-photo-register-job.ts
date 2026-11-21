@@ -11,6 +11,7 @@
  * REGRESSION-FREEZE[register-auto-register-gate]: 기본 꺼짐, 통과만 registered, 실패는 사유만 — manifest
  */
 import { logAutoPhotoAttempt, providerErrorClass } from '@/lib/auto-photo-attempt-log'
+import { runSiteHealthHourly } from '@/lib/site-health-run'
 import {
   autoPhotoFillRequest,
   scheduleHasMissingEligiblePhotoSlot,
@@ -109,6 +110,8 @@ export type AutoPhotoRegisterRunResult = {
   /** 빈 일차 사진만 채운 공개 상품 수(상태·글은 그대로) */
   publicScanned: number
   nightly: { ran: boolean; replaced: number; broken: number; duplicates: number; deferred: number; exceptions: number } | null
+  /** 매시 자동 점검(사진·SEO·AEO) 합계. 점검을 안 돌린 실행은 null */
+  siteHealth: { found: number; fixed: number; codeIssues: number } | null
 }
 
 export async function runAutoPhotoRegisterJob(opts?: {
@@ -120,6 +123,8 @@ export async function runAutoPhotoRegisterJob(opts?: {
   /** 한 번에 빈 일차를 채울 공개 상품 수(기본 10) */
   publicLimit?: number
   now?: Date
+  /** 매시 cron 만 true: 채움 앞에서 사진·SEO·AEO 점검(lib/site-health-run.ts)을 돌린다 */
+  siteHealth?: boolean
 }): Promise<AutoPhotoRegisterRunResult> {
   const env = opts?.env ?? process.env
   const f = opts?.fetchImpl ?? fetch
@@ -140,6 +145,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     photoExceptions: 0,
     publicScanned: 0,
     nightly: null,
+    siteHealth: null,
   }
 
   const ids = await prisma.product.findMany({
@@ -155,7 +161,19 @@ export async function runAutoPhotoRegisterJob(opts?: {
     take: limit,
   })
   const publicLimit = Math.max(0, Math.min(50, opts?.publicLimit ?? 10))
-  const publicRows = sw.fill && publicLimit > 0 ? await pickPublicMissingDayProducts(publicLimit, opts?.now ?? new Date()) : []
+  // REGRESSION-FREEZE[site-health-hourly-1122]: 점검이 비운 칸의 상품을 같은 실행 공개 채움 맨 앞에 — manifest
+  let healthRefillIds: string[] = []
+  if (opts?.siteHealth && sw.fill) {
+    try {
+      const h = await runSiteHealthHourly({ origin: appOrigin(env), now: opts?.now, fetchImpl: f, clearBudget: publicLimit })
+      result.siteHealth = h.totals
+      healthRefillIds = h.refillIds
+    } catch (e) {
+      console.warn('[site-health] skipped', e instanceof Error ? e.name : 'Error')
+    }
+  }
+  const publicRows =
+    sw.fill && publicLimit > 0 ? await pickPublicMissingDayProducts(publicLimit, opts?.now ?? new Date(), healthRefillIds) : []
   const queue: Array<(typeof ids)[number] & { publicRow: boolean }> = [
     ...ids.map((r) => ({ ...r, publicRow: false })),
     ...publicRows.map((r) => ({ ...r, publicRow: true })),
@@ -479,6 +497,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
       healed: result.healed,
       photoExceptions: result.photoExceptions,
       publicScanned: result.publicScanned,
+      siteHealth: result.siteHealth,
     }),
   )
   return result
@@ -488,7 +507,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
  * 공개 상품 중 사진 채움 대상 빈 일차가 남은 상품. 실패하는 상품이 앞을 막지 않게 시각마다 시작 위치를 돌린다.
  * REGRESSION-FREEZE[register-photo-travel-day-1121]: 공개 상품 빈 일차 자동 채움(상태 전환 없음) — manifest
  */
-async function pickPublicMissingDayProducts(limit: number, now: Date) {
+async function pickPublicMissingDayProducts(limit: number, now: Date, priorityIds: readonly string[] = []) {
   const rows = await prisma.product.findMany({
     // 읽기 전용 조회(상태 전환 아님). 전환은 위 한 곳뿐 — register-auto-register-review-pass.test
     where: { registrationStatus: { equals: 'registered' } },
@@ -499,5 +518,8 @@ async function pickPublicMissingDayProducts(limit: number, now: Date) {
     const s = scheduleApplyingTravelDayKeywords(r.schedule, r.destination)
     return scheduleHasMissingEligiblePhotoSlot(s?.json ?? r.schedule)
   })
-  return rotatePublicMissingDayPicks(eligible, limit, now)
+  const first = new Set(priorityIds)
+  const prior = eligible.filter((r) => first.has(r.id))
+  const rest = eligible.filter((r) => !first.has(r.id))
+  return [...prior, ...rotatePublicMissingDayPicks(rest, limit, now)].slice(0, limit)
 }

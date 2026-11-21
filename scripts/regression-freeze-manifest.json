@@ -30855,6 +30855,64 @@
       ]
     },
     {
+      "id": "site-health-hourly-1122",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/22 00:12: 매시 자동 점검 공용 틀(항목 추가형). 사진(빈 일차·중복·용량·공항/기내·흑백·깨짐·대표사진 없음)은 데이터만 자동 수정(재채움 가능 일차만 비우고 같은 실행에서 다시 채움), SEO·AEO(title·description·JSON-LD·canonical·sitemap·alt·FAQ·eSIM 문구)는 기록만. AI 토큰 없음",
+      "checks": [
+        {
+          "file": "lib/site-health-registry.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-health-hourly-1122]",
+            "export async function runHealthChecks",
+            "export function healthTotals"
+          ]
+        },
+        {
+          "file": "lib/site-health-photo-checks.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-health-hourly-1122]",
+            "export function dayRefillableAfterClear",
+            "if (ref.raw.imageManualSelected === true) return false",
+            "kind: 'code'"
+          ]
+        },
+        {
+          "file": "lib/site-health-seo-checks.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-health-hourly-1122]",
+            "export const SEO_HEALTH_CHECKS",
+            "ESIM_FORBIDDEN_WORD_RE"
+          ]
+        },
+        {
+          "file": "lib/site-health-run.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-health-hourly-1122]",
+            "if (clears >= clearBudget) return false",
+            "where: { id: productId, schedule: p.schedule }",
+            "sourceType: 'site-health-clear'"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-health-hourly-1122]",
+            "if (opts?.siteHealth && sw.fill)"
+          ]
+        },
+        {
+          "file": "lib/instrumentation-register-pre-photo-self-heal-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[site-health-hourly-1122]",
+            "runAutoPhotoRegisterJob({ limit: 50, siteHealth: true })"
+          ]
+        }
+      ]
+    },
+    {
       "id": "register-photo-travel-day-1121",
       "tier": [
         "prebuild",
@@ -33757,7 +33815,8 @@
         "lib/register-auto-photo-register-schedule.test.ts",
         "lib/departure-airline-display.test.ts",
         "lib/naeiltour-airline-flight-region.test.ts",
-        "lib/representative-departure-snapshot.test.ts"
+        "lib/representative-departure-snapshot.test.ts",
+        "lib/site-health.test.ts"
       ]
     },
     {
