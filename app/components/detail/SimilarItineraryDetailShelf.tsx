@@ -2,96 +2,67 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import type {
-  SimilarItineraryDetailCard,
-  SimilarItineraryDetailDiffs,
-  SimilarItineraryDetailShelf as ShelfModel,
-} from '@/lib/similar-itinerary-detail-shelf'
+import type { SimilarItineraryDetailShelf as ShelfModel } from '@/lib/similar-itinerary-detail-shelf'
 
 type SortKey = 'price' | 'date' | 'supplier'
 
-const DIFF_LABEL: Record<keyof SimilarItineraryDetailDiffs, string> = {
-  airline: '항공사',
-  hotel: '호텔 등급',
-  shopping: '쇼핑',
-  option: '옵션',
-  tip: '팁',
-  meal: '식사',
-  price: '가격',
+const VISIBLE_COUNT = 5
+
+function shortDeparture(label: string, count: number): string {
+  const dated = label.match(/(\d{1,2}\/\d{1,2}\([^)]+\))/)
+  const nearest = dated?.[1]
+  if (!nearest) return label
+  if (count > 1) return `${nearest} · ${count}일`
+  return nearest
 }
 
-function Fact({
-  label,
-  value,
-  differs,
+function Row({
+  supplier,
+  title,
+  departure,
+  airline,
+  shopping,
+  option,
+  price,
+  href,
 }: {
-  label: string
-  value: string
-  differs: boolean
+  supplier: string
+  title: string
+  departure: string
+  airline: string
+  shopping: string
+  option: string
+  price: string
+  href: string
 }) {
   return (
-    <p className="text-[13px] leading-5 text-bt-body">
-      <span className="text-bt-meta">{label}</span>{' '}
-      <span className={differs ? 'font-semibold text-bt-card-accent-strong' : 'font-medium text-bt-title'}>
-        {value}
-      </span>
-      {differs ? <span className="ml-1 text-[11px] font-semibold text-bt-card-accent-strong">다름</span> : null}
-    </p>
-  )
-}
-
-function CardView({ card }: { card: SimilarItineraryDetailCard }) {
-  const diffs = (Object.keys(DIFF_LABEL) as Array<keyof SimilarItineraryDetailDiffs>).filter((key) => card.differs[key])
-  return (
     <Link
-      href={card.href}
+      href={href}
       data-similar-card=""
-      className="group flex h-full flex-col rounded-2xl border border-bt-border bg-bt-surface p-4 shadow-[0_10px_24px_-18px_rgba(28,24,51,0.45)] outline-none transition-shadow hover:shadow-[0_16px_28px_-16px_rgba(28,24,51,0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-card-accent-strong"
+      className="group block border-b border-bt-border-soft px-1 py-2.5 outline-none last:border-b-0 hover:bg-bt-surface-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-card-accent-strong"
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-semibold text-bt-card-title">{card.supplierLabel}</p>
-        <p className="shrink-0 text-sm font-semibold tabular-nums text-bt-title">{card.priceLabel}</p>
-      </div>
-      <h3 className="mt-2 line-clamp-3 text-[15px] font-semibold leading-snug text-bt-title group-hover:underline">
-        {card.title}
-      </h3>
-      <p className="mt-1 text-xs text-bt-meta">
-        {card.durationLabel}
-        {card.durationMatch === 'near' ? ' · 하루 차이' : ''} · {card.departureLabel}
-      </p>
-      <div className="mt-3 space-y-1">
-        <Fact label="항공" value={card.airlineLabel} differs={card.differs.airline} />
-        <Fact label="호텔" value={card.hotelGradeLabel} differs={card.differs.hotel} />
-        <Fact label="쇼핑" value={card.shoppingLabel} differs={card.differs.shopping} />
-        <Fact label="옵션" value={card.optionLabel} differs={card.differs.option} />
-        <Fact label="팁" value={card.tipLabel} differs={card.differs.tip} />
-        <Fact label="식사" value={card.mealLabel} differs={card.differs.meal} />
-      </div>
-      {diffs.length > 0 ? (
-        <p className="mt-3 text-xs font-medium text-bt-card-accent-strong">
-          이 상품과 다른 점 · {diffs.map((key) => DIFF_LABEL[key]).join(' · ')}
-        </p>
-      ) : (
-        <p className="mt-3 text-xs text-bt-meta">보는 중인 상품과 같은 사실</p>
-      )}
+      <span className="flex min-w-0 items-baseline gap-2 sm:gap-3">
+        <span className="w-16 shrink-0 text-xs font-semibold text-bt-card-title sm:w-[4.5rem] sm:text-sm">{supplier}</span>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-bt-title group-hover:underline">{title}</span>
+        <span className="hidden shrink-0 text-xs tabular-nums text-bt-meta sm:inline">{departure}</span>
+        <span className="hidden max-w-[5.5rem] shrink-0 truncate text-xs text-bt-body sm:inline">{airline}</span>
+        <span className="hidden shrink-0 text-xs text-bt-body sm:inline">{shopping}</span>
+        <span className="hidden max-w-[8.5rem] shrink-0 truncate text-xs text-bt-body sm:inline">{option}</span>
+        <span className="shrink-0 text-sm font-semibold tabular-nums text-bt-title">{price}</span>
+      </span>
+      <span className="mt-0.5 block truncate pl-[4.5rem] text-xs text-bt-body sm:hidden">
+        {departure} · {airline} · {shopping} · {option}
+      </span>
     </Link>
   )
 }
 
 export default function SimilarItineraryDetailShelf({ shelf }: { shelf: ShelfModel | null | undefined }) {
-  const [noShopping, setNoShopping] = useState(false)
-  const [noTip, setNoTip] = useState(false)
-  const [sameWeek, setSameWeek] = useState(false)
   const [sort, setSort] = useState<SortKey>('price')
+  const [expanded, setExpanded] = useState(false)
 
   const cards = useMemo(() => {
-    const list = (shelf?.cards ?? []).filter((card) => {
-      if (noShopping && !card.noShopping) return false
-      if (noTip && !card.noTip) return false
-      if (sameWeek && !card.sameWeek) return false
-      return true
-    })
-    const copy = [...list]
+    const copy = [...(shelf?.cards ?? [])]
     copy.sort((a, b) => {
       if (sort === 'supplier') return a.supplierLabel.localeCompare(b.supplierLabel, 'ko')
       if (sort === 'date') {
@@ -106,44 +77,28 @@ export default function SimilarItineraryDetailShelf({ shelf }: { shelf: ShelfMod
       return a.priceSort - b.priceSort
     })
     return copy
-  }, [shelf, noShopping, noTip, sameWeek, sort])
+  }, [shelf, sort])
 
-  if (!shelf || shelf.cards.length === 0) return null
+  if (!shelf || cards.length === 0) return null
+  const visible = expanded ? cards : cards.slice(0, VISIBLE_COUNT)
+  const hiddenCount = cards.length - visible.length
 
   return (
     <section aria-labelledby="similar-itinerary-heading" data-similar-shelf="" className="mt-8">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="similar-itinerary-heading" className="border-l-4 border-bt-card-title pl-3 text-lg font-semibold text-bt-card-title">
-            비슷한 일정 상품
-          </h2>
-          <p className="mt-2 pl-4 text-sm text-bt-body">
+      <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+        <h2 id="similar-itinerary-heading" className="text-base font-semibold text-bt-card-title">
+          비슷한 일정 상품
+          <span className="ml-2 text-sm font-medium text-bt-meta">
             {shelf.placeLabel} · {shelf.durationLabel}
-            {shelf.widened ? ' · 같은 기간이 적어 하루 차이까지 포함' : ''}
-          </p>
-        </div>
-        {shelf.compareHref ? (
-          <Link href={shelf.compareHref} className="text-sm font-medium text-bt-card-accent-strong underline-offset-4 hover:underline">
-            공급사별 표로 보기
-          </Link>
-        ) : null}
-      </div>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <FilterChip pressed={noShopping} onClick={() => setNoShopping((v) => !v)}>
-          노쇼핑
-        </FilterChip>
-        <FilterChip pressed={noTip} onClick={() => setNoTip((v) => !v)}>
-          노팁
-        </FilterChip>
-        <FilterChip pressed={sameWeek} onClick={() => setSameWeek((v) => !v)}>
-          {shelf.weekLabel ? `같은 주 ${shelf.weekLabel}` : '같은 주'}
-        </FilterChip>
-        <label className="ml-auto flex items-center gap-2 text-sm text-bt-body">
+            {shelf.widened ? ' · 하루 차이 포함' : ''}
+          </span>
+        </h2>
+        <label className="flex items-center gap-1.5 text-xs text-bt-meta">
           정렬
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
-            className="rounded-lg border border-bt-border bg-bt-surface px-2 py-1.5 text-sm text-bt-title outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-card-accent-strong"
+            className="rounded-md border border-bt-border bg-bt-surface px-1.5 py-1 text-xs text-bt-title outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-card-accent-strong"
           >
             <option value="price">가격 낮은 순</option>
             <option value="date">출발 빠른 순</option>
@@ -151,44 +106,30 @@ export default function SimilarItineraryDetailShelf({ shelf }: { shelf: ShelfMod
           </select>
         </label>
       </div>
-      {cards.length === 0 ? (
-        <p className="rounded-2xl border border-bt-border bg-bt-surface px-4 py-6 text-sm text-bt-body">
-          이 조건에 맞는 상품이 없습니다. 필터를 끄면 다시 볼 수 있습니다.
-        </p>
-      ) : (
-        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 min-[430px]:grid min-[430px]:grid-cols-2 min-[430px]:overflow-visible min-[1100px]:grid-cols-3">
-          {cards.map((card) => (
-            <div key={card.id} className="w-[86%] shrink-0 snap-start min-[430px]:w-auto">
-              <CardView card={card} />
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="border-t border-bt-border-soft">
+        {visible.map((card) => (
+          <Row
+            key={card.id}
+            href={card.href}
+            supplier={card.supplierLabel}
+            title={card.title}
+            departure={shortDeparture(card.departureLabel, card.departureCount)}
+            airline={card.airlineLabel}
+            shopping={card.shoppingLabel}
+            option={card.optionLabel}
+            price={card.priceLabel}
+          />
+        ))}
+      </div>
+      {cards.length > VISIBLE_COUNT ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((open) => !open)}
+          className="mt-2 text-sm font-medium text-bt-card-accent-strong underline-offset-4 hover:underline"
+        >
+          {expanded ? '접기' : `더 보기 ${hiddenCount}개`}
+        </button>
+      ) : null}
     </section>
-  )
-}
-
-function FilterChip({
-  pressed,
-  onClick,
-  children,
-}: {
-  pressed: boolean
-  onClick: () => void
-  children: string
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={pressed}
-      onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bt-card-accent-strong ${
-        pressed
-          ? 'border-bt-card-title bg-bt-card-title text-white'
-          : 'border-bt-border bg-bt-surface text-bt-body hover:bg-bt-surface-soft'
-      }`}
-    >
-      {children}
-    </button>
   )
 }
