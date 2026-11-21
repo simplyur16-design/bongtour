@@ -35,7 +35,7 @@ import {
   tripDaysSharingTemplateCloser,
   type RegisterPrePhotoHealRow,
 } from '@/lib/register-pre-photo-guards'
-import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
+import { scheduleDayPhotoNotRequired } from '@/lib/register-pending-photos-ready'
 import {
   resolveScheduleKeywordSlotKind,
   type ScheduleKeywordSlotKind,
@@ -490,7 +490,7 @@ function packageScheduleIssues(
   const activeDays = days.length
   for (const row of days) {
     const day = Number(row.day)
-    const noPlaceDay = isRegisterScheduleNoPlacePhotoDay(
+    const noPlaceDay = scheduleDayPhotoNotRequired(
       {
         day,
         title: row.title,
