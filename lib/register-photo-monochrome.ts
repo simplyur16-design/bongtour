@@ -1,5 +1,5 @@
 /**
- * 흑백 사진 판정 (사장님 11/01: 대표사진은 흑백 금지, 일차 칸 흑백은 허용).
+ * 흑백 사진 판정. 사장님 11/01 은 대표만 금지였고, 11/22 부터 대표·일차·월별 추천 모두 흑백 금지.
  * 작은 미리보기(가로 64px)를 받아 화소별 채도(max−min)를 본다. CDN 미리보기만 받으므로 검색 API 호출 수에 들지 않는다.
  * 받기·해석 실패면 판단 보류(false = 흑백 아님) — 사진을 막지 않는다.
  */
@@ -42,6 +42,16 @@ export function stockThumbnailUrl(url: string): string {
     return u.toString()
   } catch {
     return url
+  }
+}
+
+/** 이미 받은 이미지(생성본 등) 흑백 판정. 해석 실패면 false */
+export async function isMonochromeImageBuffer(buf: Buffer): Promise<boolean> {
+  try {
+    const { data, info } = await sharp(buf).resize(32, 32, { fit: 'inside' }).removeAlpha().raw().toBuffer({ resolveWithObject: true })
+    return isMonochromeRgb(data, info.channels)
+  } catch {
+    return false
   }
 }
 

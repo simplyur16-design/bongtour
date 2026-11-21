@@ -137,7 +137,7 @@ describe('Pexels 3.5초 간격 · 403/429 멈춤', () => {
   })
 })
 
-describe('대표사진 흑백 금지(일차 칸은 허용)', () => {
+describe('흑백 사진 금지(11/01 대표 → 11/22 대표·일차 모두)', () => {
   it('화소 채도로 흑백을 가린다', () => {
     const gray = Buffer.alloc(32 * 32 * 3)
     for (let i = 0; i < gray.length; i += 3) gray[i] = gray[i + 1] = gray[i + 2] = (i / 3) % 256
@@ -158,14 +158,14 @@ describe('대표사진 흑백 금지(일차 칸은 허용)', () => {
     expect(await isMonochromePhotoUrl('https://images.pexels.com/photos/1/a.jpeg', { fetchImpl: f(colorPng) })).toBe(false)
     expect(await isMonochromePhotoUrl('https://x', { fetchImpl: (async () => { throw new Error('x') }) as unknown as typeof fetch })).toBe(false)
   })
-  it('대표 칸은 흑백 후보를 건너뛰고 다음 컬러 후보, 일차 칸은 흑백 허용', async () => {
+  it('대표·일차 칸 모두 흑백 후보를 건너뛰고 다음 컬러 후보(사장님 11/22)', async () => {
     expect(altSaysMonochrome('black and white photo of Wat Pho')).toBe(true)
     const bw = px(1, { altText: 'black and white Wat Pho temple' })
     const col = px(2)
     const main = await findStockPhotoByChain('Wat Pho', { accept: () => true, slot: 'main', deps: { searchPexels: async () => [bw, col] } })
     expect(main.photo?.externalId).toBe('2')
     const day = await findStockPhotoByChain('Wat Pho', { accept: () => true, slot: 'day', deps: { searchPexels: async () => [bw, col] } })
-    expect(day.photo?.externalId).toBe('1')
+    expect(day.photo?.externalId).toBe('2')
     const verifyMain = await findStockPhotoByChain('Wat Pho', {
       accept: () => true,
       slot: 'main',

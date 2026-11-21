@@ -197,7 +197,7 @@ export const PHOTO_HEALTH_CHECKS: HealthCheck<PhotoHealthCtx>[] = [
     id: 'photo-cover-problem',
     area: 'photo',
     kind: 'code',
-    summary: `대표사진 깨짐·용량 초과(${SITE_HEALTH_COVER_MAX_BYTES}B) — 대표사진은 자동으로 비우지 않고 기록만`,
+    summary: `대표사진 깨짐·용량 초과(${SITE_HEALTH_COVER_MAX_BYTES}B)·흑백 — 대표사진은 자동으로 비우지 않고 기록만`,
     async find(ctx) {
       const out: HealthFinding[] = []
       for (const p of ctx.products) {
@@ -208,6 +208,8 @@ export const PHOTO_HEALTH_CHECKS: HealthCheck<PhotoHealthCtx>[] = [
         if (r.status >= 400) out.push({ checkId: 'photo-cover-problem', target: p.id, productId: p.id, detail: `cover http ${r.status}` })
         else if (r.bytes != null && r.bytes > SITE_HEALTH_COVER_MAX_BYTES)
           out.push({ checkId: 'photo-cover-problem', target: p.id, productId: p.id, detail: `cover bytes ${r.bytes}` })
+        else if (r.status < 400 && (await ctx.isMonochrome(url)))
+          out.push({ checkId: 'photo-cover-problem', target: p.id, productId: p.id, detail: 'cover monochrome' })
       }
       return out
     },
