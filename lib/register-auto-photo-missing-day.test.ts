@@ -8,11 +8,26 @@ import {
   missingDayFillAction,
   photoFillHttpResult,
   processImagesProductUpdate,
+  lodgingKeywordReplacement,
   scheduleHasMissingEligiblePhotoSlot,
   shouldBulkAssignUndistinctPool,
 } from '@/lib/register-auto-photo-missing-day'
 
 describe('missing-day photo fill', () => {
+  it('replaces a lodging keyword with a place named in that day text', () => {
+    const next = lodgingKeywordReplacement(
+      {
+        imageKeyword: 'Hotel Nikko',
+        title: '오사카',
+        routeText: '오사카성 - 도톤보리',
+        description: '오사카성을 봅니다',
+      },
+      '오사카',
+    )
+    expect(next).toBeTruthy()
+    expect(String(next)).not.toMatch(/hotel/i)
+  })
+
   it('keeps a day that already has a photo and fills only an empty day with a place keyword', () => {
     const schedule = JSON.stringify([
       { day: 1, title: '도착', routeText: '간사이 국제공항 - 아라시야마', imageKeyword: 'Arashiyama', imageUrl: 'https://cdn.example/hero-day.jpg' },
@@ -33,11 +48,11 @@ describe('missing-day photo fill', () => {
     )
   })
 
-  it('does not queue pre_photo_blocked products or flip queueReady', () => {
+  it('keeps blocked products out of the dashboard queue and does not flip queueReady', () => {
     expect(JSON.stringify(REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE)).not.toContain('pre_photo_blocked')
     const src = fs.readFileSync(path.join(process.cwd(), 'lib/register-auto-photo-register-job.ts'), 'utf8')
     expect(src).toContain('REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE')
-    expect(src).not.toContain("registrationStatus: 'pre_photo_blocked'")
+    expect(src).toContain("registrationStatus: 'pre_photo_blocked'")
     expect(src).not.toContain('registerPrePhotoQueueReady:')
     expect(src).toContain('filled: filledCount')
     expect(src).toContain('j.filled')

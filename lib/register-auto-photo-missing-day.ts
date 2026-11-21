@@ -4,6 +4,8 @@
  */
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
+import { isBrokenRegisterLandmarkKeyword } from '@/lib/register-pre-photo-guards'
+import { findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
 
 export type MissingDaySlot = {
   day: number
@@ -21,6 +23,58 @@ export type MissingDayFillAction = 'keep' | 'fill' | 'skip'
 function dayNum(day: MissingDaySlot, index: number): number {
   const n = Math.floor(Number(day.day))
   return Number.isFinite(n) && n > 0 ? n : index + 1
+}
+
+/**
+ * 숙소·식당·비장소 키워드는 그날 원문(제목·동선·설명)의 명소로 바꾼다. 설명 문장은 건드리지 않는다.
+ * REGRESSION-FREEZE[photo-lodging-keyword-place]: 숙소 키워드 → 그날 장소 — manifest
+ */
+export function lodgingKeywordReplacement(
+  day: Pick<MissingDaySlot, 'imageKeyword' | 'title' | 'routeText'> & { description?: string | null },
+  destination?: string | null,
+): string | null {
+  const kw = String(day.imageKeyword ?? '').trim()
+  if (!kw || !isBrokenRegisterLandmarkKeyword(kw)) return null
+  const blob = [day.title, day.routeText, day.description].map((x) => String(x ?? '')).join('\n')
+  for (const hit of findAllScheduleSpotMatchesInText(blob)) {
+    const name = String(hit.en ?? '').trim()
+    if (name && !isBrokenRegisterLandmarkKeyword(name)) return name
+  }
+  const city = String(destination ?? '').trim()
+  if (city && !isBrokenRegisterLandmarkKeyword(city)) return city
+  return null
+}
+
+export function scheduleReplacingLodgingKeywords(
+  schedule: string | null,
+  destination?: string | null,
+): { json: string; changed: boolean } | null {
+  if (!schedule?.trim()) return null
+  let rows: Array<Record<string, unknown>>
+  try {
+    const parsed = JSON.parse(schedule) as unknown
+    if (!Array.isArray(parsed)) return null
+    rows = parsed as Array<Record<string, unknown>>
+  } catch {
+    return null
+  }
+  let changed = false
+  const next = rows.map((row) => {
+    const replacement = lodgingKeywordReplacement(
+      {
+        imageKeyword: typeof row.imageKeyword === 'string' ? row.imageKeyword : null,
+        title: typeof row.title === 'string' ? row.title : null,
+        routeText: typeof row.routeText === 'string' ? row.routeText : null,
+        description: typeof row.description === 'string' ? row.description : null,
+      },
+      destination,
+    )
+    if (!replacement) return row
+    changed = true
+    return { ...row, imageKeyword: replacement }
+  })
+  if (!changed) return { json: schedule, changed: false }
+  return { json: JSON.stringify(next), changed: true }
 }
 
 export function missingDayFillAction(day: MissingDaySlot, maxDay: number): MissingDayFillAction {

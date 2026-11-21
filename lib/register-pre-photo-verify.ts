@@ -35,6 +35,7 @@ import {
   tripDaysSharingTemplateCloser,
   type RegisterPrePhotoHealRow,
 } from '@/lib/register-pre-photo-guards'
+import { scheduleDayPhotoNotRequired } from '@/lib/register-pending-photos-ready'
 import {
   resolveScheduleKeywordSlotKind,
   type ScheduleKeywordSlotKind,
@@ -489,10 +490,20 @@ function packageScheduleIssues(
   const activeDays = days.length
   for (const row of days) {
     const day = Number(row.day)
-    if (isBrokenRegisterLandmarkKeyword(row.imageKeyword)) {
+    const noPlaceDay = scheduleDayPhotoNotRequired(
+      {
+        day,
+        title: row.title,
+        routeText: row.routeText,
+        hotelText: null,
+      },
+      maxDay,
+    )
+    // REGRESSION-FREEZE[photo-skip-no-place-day]: 장소 없는 날의 숙소 키워드는 사진 전 차단 사유가 아니다 — manifest
+    if (!noPlaceDay && isBrokenRegisterLandmarkKeyword(row.imageKeyword)) {
       issues.push(`day${day}_keyword_lodging_or_non_landmark`)
     }
-    if (isBrokenRegisterLandmarkKeyword(row.imageKeyword2)) {
+    if (!noPlaceDay && isBrokenRegisterLandmarkKeyword(row.imageKeyword2)) {
       issues.push(`day${day}_keyword2_lodging_or_non_landmark`)
     }
     const slot = resolveScheduleKeywordSlotKind(day, maxDay, activeDays)

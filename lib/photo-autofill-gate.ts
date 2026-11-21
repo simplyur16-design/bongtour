@@ -272,7 +272,8 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
   const text = candidateText(c)
   const folded = foldPhotoText(text)
 
-  if (!(c.width >= AUTOFILL_MIN_WIDTH)) reasons.add('low_res')
+  // 가로를 아직 모르면(0) 여기서 탈락시키지 않는다. 저장 후 측정에서 1200px 미만을 거른다.
+  if (c.width > 0 && c.width < AUTOFILL_MIN_WIDTH) reasons.add('low_res')
   if (c.width > 0 && c.height > c.width) reasons.add('portrait_orientation')
   if (!String(c.id ?? '').trim() || !(String(c.photographer ?? '').trim() || String(c.originalLink ?? '').trim())) {
     reasons.add('missing_attribution')
