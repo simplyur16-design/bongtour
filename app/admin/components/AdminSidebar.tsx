@@ -83,6 +83,7 @@ const navEntries: NavEntry[] = [
   { type: 'link', href: '/admin/registration-stats', label: '등록 현황', icon: BarChart3 },
   { type: 'link', href: '/admin/inquiries', label: '문의 접수', icon: Inbox },
   { type: 'link', href: '/admin/talktalk-draft', label: '톡톡 답변 초안', icon: MessageCircle },
+  { type: 'link', href: '/admin/talktalk-autoreply', label: '톡톡 자동답변', icon: MessageCircle },
   { type: 'link', href: '/admin/reviews', label: '회원 여행 후기', icon: Star },
   { type: 'link', href: '/admin/bookings', label: '상담·예약', icon: MessageCircle },
   { type: 'link', href: '/admin/scheduler-settings', label: '스케줄러·보안', icon: Settings },
