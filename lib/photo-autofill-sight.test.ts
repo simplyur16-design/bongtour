@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deriveDaySights, isCityOnlySight, sightMatchInText, sightProfile, sightSearchQueries } from '@/lib/photo-autofill-sight'
+import { coverSearchSights, deriveDaySights, isCityOnlySight, sightMatchInText, sightProfile, sightSearchQueries } from '@/lib/photo-autofill-sight'
 
 const day = (routeText: string, title = '', description: string | null = null, imageKeyword: string | null = null) => ({
   title,
@@ -54,5 +54,20 @@ describe('photo-autofill-sight: 이름 일치(별칭 포함)', () => {
     expect(p.kind).toBe('generic')
     expect(sightMatchInText(p, 'Central market hall in Budapest', ['budapest'])).toBeTruthy()
     expect(sightMatchInText(p, 'Central market hall in the old quarter', ['budapest'])).toBeNull()
+  })
+
+  it('명소 이름 안의 도시는 상품 대표 도시와 달라도 앵커가 된다', () => {
+    const otaru = sightProfile('Otaru Music Box Museum')
+    expect(sightMatchInText(otaru, 'Otaru music box museum wooden dolls', ['hakodate'])).toBeTruthy()
+    expect(sightMatchInText(otaru, 'Hakodate night view bay', ['hakodate'])).toBeNull()
+    const whip = sightProfile('Golden Whip Stream')
+    expect(sightMatchInText(whip, 'Golden Whip stream in the canyon', ['zhangjiajie'])).toBeTruthy()
+    const park = sightProfile('Arakurayama Sengen Park Kawaguchiko')
+    expect(sightMatchInText(park, 'Chureito Pagoda and cherry blossoms', ['shizuoka'])).toBeTruthy()
+  })
+
+  it('대표 검색어가 도시뿐이면 일차 명소를 쓴다', () => {
+    expect(coverSearchSights(['홍콩', 'Hong Kong'], ['Ruins of St Paul', 'Hong Kong'])).toEqual(['Ruins of St Paul'])
+    expect(coverSearchSights([''], ['National Palace Museum'])).toEqual(['National Palace Museum'])
   })
 })

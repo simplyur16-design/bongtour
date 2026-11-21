@@ -100,6 +100,7 @@ import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-
 // REGRESSION-FREEZE[photo-autofill-route-strict]: 자동 채움(photoChain v2 + fillMissingOnly)은 검증된 방문지 사진만 — manifest
 import { acquireVerifiedPhoto } from '@/lib/photo-autofill-acquire'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, photoIdentityKeys } from '@/lib/photo-autofill-gate'
+import { coverSearchSights } from '@/lib/photo-autofill-sight'
 import { createLiveAcquireDeps } from '@/lib/photo-autofill-live-deps'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
 import { destinationTermsOf } from '@/lib/photo-gate-runner'
@@ -926,7 +927,17 @@ export async function POST(req: Request) {
       mainPhoto = { url: '', source: '', photographer: '', originalLink: '' }
       preserveHero = true
     } else if (strictAutofill && !preserveHero && !poolMain) {
-      const sights = [...new Set([mainQuery, heroPick.keyword].map((x) => String(x ?? '').trim()).filter(Boolean))]
+      const dayKeywords = (() => {
+        try {
+          const parsed = JSON.parse(String(product.schedule ?? '')) as unknown
+          if (!Array.isArray(parsed)) return []
+          return parsed.map((row) => String((row as { imageKeyword?: unknown })?.imageKeyword ?? '').trim()).filter(Boolean)
+        } catch {
+          return []
+        }
+      })()
+      // REGRESSION-FREEZE[photo-cover-day-sight]: 도시만 있는 대표 검색어는 빼고 일차 명소를 쓴다 — manifest
+      const sights = coverSearchSights([mainQuery, heroPick.keyword], dayKeywords)
       const res = await acquireVerifiedPhoto(
         {
           productId: String(product.id),
