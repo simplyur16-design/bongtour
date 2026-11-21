@@ -18,6 +18,7 @@ export async function registerSupplierSweepCrons(): Promise<void> {
     { startInstrumentationVerygoodtourSweepCron },
     { startInstrumentationKyowontourSweepCron },
     { startInstrumentationNaeiltourSweepCron },
+    { startInstrumentationHanjintourSweepCron },
   ] = await Promise.all([
     import('@/lib/instrumentation-modetour-sweep-cron'),
     import('@/lib/instrumentation-hanatour-sweep-cron'),
@@ -26,6 +27,7 @@ export async function registerSupplierSweepCrons(): Promise<void> {
     import('@/lib/instrumentation-verygoodtour-sweep-cron'),
     import('@/lib/instrumentation-kyowontour-sweep-cron'),
     import('@/lib/instrumentation-naeiltour-sweep-cron'),
+    import('@/lib/instrumentation-hanjintour-sweep-cron'),
   ])
 
   startInstrumentationModetourSweepCron()
@@ -35,4 +37,6 @@ export async function registerSupplierSweepCrons(): Promise<void> {
   startInstrumentationVerygoodtourSweepCron()
   startInstrumentationKyowontourSweepCron()
   startInstrumentationNaeiltourSweepCron()
+  // 한진관광 신규 수집은 7곳 가격 sweep과 따로 등록한다.
+  startInstrumentationHanjintourSweepCron()
 }

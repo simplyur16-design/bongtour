@@ -7005,6 +7005,7 @@
             "startInstrumentationModetourSweepCron",
             "startInstrumentationKyowontourSweepCron",
             "startInstrumentationNaeiltourSweepCron",
+            "startInstrumentationHanjintourSweepCron",
             "7공급사"
           ]
         },
@@ -7027,6 +7028,25 @@
       ],
       "vitestSuites": [
         "lib/naeiltour-sweep.test.ts"
+      ]
+    },
+    {
+      "id": "hanjin-daily-ingest-1121",
+      "tier": ["prebuild", "ci"],
+      "summary": "한진관광은 worker 정기 수집에 따로 들어간다. KST 10:30, 기존 7곳에 없는 지역만, 간격·재시도는 한진 모듈, 하루 20건까지 등록대기.",
+      "checks": [
+        {
+          "file": "lib/instrumentation-hanjintour-sweep-cron.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanjin-daily-ingest-1121]",
+            "30 10 * * *",
+            "apply: true",
+            "HANJINTOUR_DAILY_INGEST_LIMIT = 20"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanjin-daily-ingest.test.ts"
       ]
     },
     {
