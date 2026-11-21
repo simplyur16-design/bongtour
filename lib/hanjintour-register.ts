@@ -16,6 +16,11 @@ import { HANJINTOUR_SUPPLIER_KEY } from '@/lib/hanjintour-supplier-key'
 import { ensureBrandIdForKey } from '@/lib/ensure-product-brand'
 import { computeDepartureSlotKeyFromDate } from '@/lib/departure-slot-key'
 import { recomputeProductDepartureCacheSafe } from '@/lib/product-departure-cache'
+import {
+  classifyHanjintourCategory,
+  isHanjintourDomesticListing,
+  type HanjintourCategory,
+} from '@/lib/hanjintour-category'
 
 export const HANJINTOUR_PENDING_STATUS = 'pending' as const
 
@@ -31,7 +36,13 @@ export type HanjintourRegisterInput = {
   originUrl?: string | null
 }
 
-export type HanjintourSkipReason = 'missing_code' | 'not_selected' | 'no_departure' | 'bad_price' | 'already_public'
+export type HanjintourSkipReason =
+  | 'missing_code'
+  | 'not_selected'
+  | 'no_departure'
+  | 'bad_price'
+  | 'already_public'
+  | 'domestic'
 
 export type HanjintourDepartureWrite = {
   date: string
@@ -55,6 +66,8 @@ export type HanjintourPendingPlan = {
   duration: string | null
   originUrl: string | null
   departures: HanjintourDepartureWrite[]
+  /** 원문 GNB 분류 경로 기준 분류(패키지·자유여행·테마여행·지방출발) */
+  category: HanjintourCategory
   basis: string
 }
 
@@ -87,6 +100,8 @@ export function planHanjintourPendingEnqueue(input: HanjintourRegisterInput): Ha
   if (!originCode || !title) return { ok: false, reason: 'missing_code' }
 
   const basis = '목록 상품 전체 수집(지역 필터 없음)'
+  // REGRESSION-FREEZE[ingest-domestic-skip-category-1122]: 국내 목적지는 등록대기에 넣지 않는다 — manifest
+  if (isHanjintourDomesticListing(title, input.categoryPaths)) return { ok: false, reason: 'domestic', basis }
 
   const todayIso = input.todayIso ?? new Date().toISOString().slice(0, 10)
   if (!hanjintourShouldEnqueuePending({ departures: input.departures ?? [] }, todayIso)) {
@@ -127,6 +142,7 @@ export function planHanjintourPendingEnqueue(input: HanjintourRegisterInput): Ha
     duration: input.duration ?? null,
     originUrl: input.originUrl?.trim() || null,
     departures,
+    category: classifyHanjintourCategory(title, input.categoryPaths),
     basis,
   }
 }
@@ -166,6 +182,10 @@ export async function applyHanjintourPendingPlan(
     airline: plan.airline,
     duration: plan.duration,
     originUrl: plan.originUrl,
+    productType: plan.category.kind,
+    travelScope: plan.category.travelScope,
+    themeTags: plan.category.themeTag,
+    localDepartureTag: plan.category.localDepartureTag,
     ...(brandId ? { brandId } : {}),
   }
 

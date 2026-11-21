@@ -9,10 +9,10 @@ import {
 } from '@/lib/instrumentation-process-role'
 
 /**
- * 야간 총량 기본 상한 — `REGISTER_PRE_PHOTO_INGEST_OPERATOR_NIGHT_TOTAL`(4사×3=12)과 동일.
+ * 야간 총량 기본 상한 — `REGISTER_PRE_PHOTO_INGEST_OPERATOR_NIGHT_TOTAL`(7사×15=105)과 동일.
  * FREEZE 숫자는 night-window 쪽을 건드리지 않는다.
  */
-const REGISTER_INGEST_NIGHT_MAX_TOTAL_DEFAULT = 12
+const REGISTER_INGEST_NIGHT_MAX_TOTAL_DEFAULT = 105
 
 export function isRegisterListingIngestCronEnabled(): boolean {
   return process.env.ENABLE_REGISTER_PRE_PHOTO_LISTING_INGEST === '1'

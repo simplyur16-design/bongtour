@@ -1,5 +1,5 @@
 /**
- * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 검색 시드 geo · 공급사당 3건 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-listing-ingest]: 검색 시드 geo · 공급사당 15건 — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: KST 22:00–10:00 — manifest
  * REGRESSION-FREEZE[register-listing-discover-playwright]: rotate slots per supplier — manifest
  * REGRESSION-FREEZE[register-pre-photo-pending-verify-gate]: 검증 통과만 등록대기 — manifest
@@ -95,8 +95,8 @@ function row(partial: Partial<RegisterPrePhotoIngestProductRow> & { originSource
 }
 
 describe('register-pre-photo-listing-ingest', () => {
-  it('이미 등록된 URL은 건너뛰고 공급사마다 하루 3건이다', () => {
-    assert.equal(REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER, 3)
+  it('이미 등록된 URL은 건너뛰고 공급사마다 하루 15건이다', () => {
+    assert.equal(REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER, 15)
     assert.equal(REGISTER_PRE_PHOTO_INGEST_PER_GEO, 1)
     assert.deepEqual([...REGISTER_PRE_PHOTO_INGEST_LANES], ['package', 'air_hotel_free'])
     assert.deepEqual(parseRegisterPrePhotoIngestOnlySuppliers('modetour,verygoodtour,ybtour'), [
@@ -116,7 +116,7 @@ describe('register-pre-photo-listing-ingest', () => {
     ])
   })
 
-  it('등록대기 leftover가 있어도 모르는 URL은 오늘 3건까지 받는다', () => {
+  it('등록대기 leftover가 있어도 모르는 URL은 오늘 할당량까지 받는다', () => {
     const leftoverQueuePending = 12
     void leftoverQueuePending
     const known = new Set(['https://known.example/a'])

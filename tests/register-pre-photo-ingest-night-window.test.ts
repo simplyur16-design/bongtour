@@ -1,5 +1,5 @@
 /**
- * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: 22:00–10:00 · 공급사당 3건 — manifest
+ * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: 22:00–10:00 · 공급사당 15건 — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-all-canonical-suppliers]: 창 동안 할당량까지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-night-leftover-not-quota]: leftover pending ≠ 오늘 할당량 — manifest
  */
@@ -23,9 +23,10 @@ import {
 import { REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER } from '../lib/register-pre-photo-ingest-geo-slots'
 
 describe('register-pre-photo-ingest-night-window', () => {
-  it('공급사마다 하루 신규 3건이다', () => {
-    assert.equal(REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER, 3)
-    assert.equal(REGISTER_PRE_PHOTO_INGEST_OPERATOR_NIGHT_TOTAL, 12)
+  const N = REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER
+  it('공급사마다 하루 신규 15건이다', () => {
+    assert.equal(REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER, 15)
+    assert.equal(REGISTER_PRE_PHOTO_INGEST_OPERATOR_NIGHT_TOTAL, 105)
   })
 
   it('어제부터 쌓인 등록대기 12건은 오늘 밤 할당량을 채우지 않는다', () => {
@@ -38,10 +39,10 @@ describe('register-pre-photo-ingest-night-window', () => {
     assert.equal(shouldRunRegisterPrePhotoIngestNightTick(at2200, false), true)
     assert.equal(
       createdTonightFillsRegisterPrePhotoIngestQuota({
-        hanatour: 3,
-        modetour: 3,
-        ybtour: 3,
-        verygoodtour: 3,
+        hanatour: N,
+        modetour: N,
+        ybtour: N,
+        verygoodtour: N,
       }),
       false,
     )
@@ -103,20 +104,20 @@ describe('register-pre-photo-ingest-night-window', () => {
 
   it('할당량이 남은 공급사부터 이어서 받는다', () => {
     assert.equal(pickNextRegisterPrePhotoIngestNightSupplier({}), 'hanatour')
-    assert.equal(pickNextRegisterPrePhotoIngestNightSupplier({ hanatour: 3 }), 'modetour')
+    assert.equal(pickNextRegisterPrePhotoIngestNightSupplier({ hanatour: N }), 'modetour')
     assert.equal(
       pickNextRegisterPrePhotoIngestNightSupplier({
-        hanatour: 3,
-        modetour: 3,
-        ybtour: 3,
-        verygoodtour: 3,
-        kyowontour: 3,
-        lottetour: 3,
-        naeiltour: 3,
+        hanatour: N,
+        modetour: N,
+        ybtour: N,
+        verygoodtour: N,
+        kyowontour: N,
+        lottetour: N,
+        naeiltour: N,
       }),
       null,
     )
-    assert.equal(remainingRegisterPrePhotoIngestTonight({ hanatour: 1 }, 'hanatour'), 2)
+    assert.equal(remainingRegisterPrePhotoIngestTonight({ hanatour: 1 }, 'hanatour'), N - 1)
     const now = Date.parse('2026-08-27T13:20:00.000Z')
     assert.equal(
       pickNextRegisterPrePhotoIngestNightSupplierAfterCooldown({}, { hanatour: now - 60_000 }, now),

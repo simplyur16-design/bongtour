@@ -109,6 +109,8 @@ export type IngestUnregisteredPrePhotoResult = {
   created: number
   skippedDuplicate: number
   skippedNoListing: string[]
+  /** 사유별 건너뛴 수. 국내 목적지는 'domestic'(사장님 11/22 00:46: 국내 상품 수집 안 함). */
+  skipReasons?: Record<string, number>
   failed: number
   perGeo: number
   perSupplier: number
@@ -235,6 +237,7 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
     created: 0,
     skippedDuplicate: 0,
     skippedNoListing: [],
+    skipReasons: {},
     failed: 0,
     perGeo,
     perSupplier,
@@ -404,6 +407,8 @@ export async function ingestUnregisteredRegisterPendingPrePhoto(
             }
             // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 국내여행 스킵 — manifest
             if (!confirm.ok && confirm.reason === 'domestic_korea_rejected') {
+              const sr = (result.skipReasons ??= {})
+              sr.domestic = (sr.domestic ?? 0) + 1
               console.error(
                 '[register-pre-photo-listing-ingest] domestic_korea_rejected',
                 supplier,
