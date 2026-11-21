@@ -7081,11 +7081,11 @@
     {
       "id": "esim-help-chat-visible-1122",
       "tier": ["prebuild", "ci"],
-      "summary": "eSIM 상담 입구는 'eSIM 도움이 필요하세요?' 문구로 보이고, eSIM 메인·설치 안내·상품 상세·주문 완료·내 eSIM 주문 화면에 붙어 있다.",
+      "summary": "eSIM 상담 입구는 오른쪽 아래 작은 동그란 봉실장 얼굴 아이콘(이름 'eSIM 도움이 필요하세요?')이고 누르면 대화창이 열리며, eSIM 메인·설치 안내·상품 상세·주문 완료·내 eSIM 주문 화면에 붙어 있다.",
       "checks": [
         {
           "file": "components/bongsim/esim/EsimHelpChat.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[esim-help-chat-visible-1122]", "eSIM 도움이 필요하세요?", "data-esim-help-entry"]
+          "mustInclude": ["REGRESSION-FREEZE[esim-help-chat-visible-1122]", "eSIM 도움이 필요하세요?", "data-esim-help-entry", "h-14 w-14", "rounded-full", "aria-expanded={open}"]
         },
         { "file": "app/travel/esim/page.tsx", "mustInclude": ["<EsimHelpChat />"] },
         { "file": "app/travel/esim/guide/install/page.tsx", "mustInclude": ["<EsimHelpChat />"] },

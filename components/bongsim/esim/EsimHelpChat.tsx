@@ -20,11 +20,11 @@ type OrderHit = {
   can_show_qr?: boolean
 }
 
-function Face({ mood }: { mood: ChatMood }) {
+function Face({ mood, className = 'h-9 w-9' }: { mood: ChatMood; className?: string }) {
   const mouth =
     mood === 'sorry' ? 'M8 16 q4 0 8-3' : mood === 'think' ? 'M9 16 h6' : 'M8 15 q4 4 8 0'
   return (
-    <svg viewBox="0 0 32 32" className="h-9 w-9 shrink-0" aria-hidden>
+    <svg viewBox="0 0 32 32" className={`${className} shrink-0`} aria-hidden>
       <circle cx="16" cy="16" r="15" fill="#F2C94C" />
       <path d="M4 14c2-6 6-8 8-4" fill="#58B7E8" />
       <rect x="14" y="3" width="2" height="5" rx="1" fill="#E2B93A" />
@@ -93,7 +93,17 @@ export default function EsimHelpChat() {
           <header className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
             <img src="/images/bongtour-logo.webp" alt="봉투어" className="h-6 w-auto" />
             <Face mood={mood} />
-            <p className="text-sm font-bold text-slate-900">봉실장</p>
+            <p className="flex-1 text-sm font-bold text-slate-900">봉실장</p>
+            <button
+              type="button"
+              className="rounded-full p-1 text-slate-500 hover:bg-slate-100"
+              onClick={() => setOpen(false)}
+              aria-label="상담 닫기"
+            >
+              <svg viewBox="0 0 20 20" className="h-5 w-5" aria-hidden>
+                <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
           </header>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3 text-sm leading-relaxed text-slate-800">
             {topic && line ? <p className="rounded-xl bg-sky-50 px-3 py-2">{line}</p> : null}
@@ -158,23 +168,23 @@ export default function EsimHelpChat() {
           </footer>
         </section>
       ) : null}
-      {/* REGRESSION-FREEZE[esim-help-chat-visible-1122]: 입구는 'eSIM 도움이 필요하세요?' 문구가 보이는 떠 있는 버튼 — manifest */}
+      {/* REGRESSION-FREEZE[esim-help-chat-visible-1122]: 입구는 오른쪽 아래 작은 동그란 봉실장 얼굴 아이콘만 보이고(채널톡·카카오 상담 방식), 누르면 대화창이 열린다. 390에서는 하단 고정 막대 위(bottom-24)에 둔다 — manifest */}
       <button
         type="button"
         data-esim-help-entry
-        className="pointer-events-auto flex items-center gap-2 rounded-full border-2 border-[#2f8fc7] bg-white py-1.5 pl-1.5 pr-4 shadow-lg"
+        className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#2f8fc7] bg-white shadow-lg transition active:scale-95"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        aria-label="eSIM 도움이 필요하세요? 봉실장 상담 열기"
+        aria-label={open ? '봉실장 상담 닫기' : 'eSIM 도움이 필요하세요? 봉실장 상담 열기'}
+        title="eSIM 도움이 필요하세요?"
       >
-        <Face mood={open ? 'help' : 'hello'} />
-        <span className="flex flex-col items-start leading-tight">
-          <span className="text-[13px] font-bold text-slate-900">eSIM 도움이 필요하세요?</span>
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-[#2f8fc7]">
-            <img src="/images/bongtour-logo.webp" alt="" className="h-3.5 w-auto" />
-            봉실장에게 물어보기
-          </span>
-        </span>
+        {open ? (
+          <svg viewBox="0 0 20 20" className="h-6 w-6 text-slate-700" aria-hidden>
+            <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        ) : (
+          <Face mood="hello" className="h-11 w-11" />
+        )}
       </button>
     </div>
   )
