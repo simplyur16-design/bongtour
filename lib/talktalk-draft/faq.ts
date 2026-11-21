@@ -56,6 +56,72 @@ export type TalktalkFaqTopic =
   | 'payment'
   | 'process'
   | 'esim'
+  | 'seat'
+  | 'departure'
+  | 'included'
+  | 'shopping'
+  | 'extra-fee'
+  | 'agent'
+
+/** 좁은 주제. 문의에 이 주제가 맞으면 넓은 주제(예약·결제 등)보다 먼저 고른다. */
+export const TALKTALK_SPECIFIC_FAQ_TOPICS: ReadonlySet<TalktalkFaqTopic> = new Set<TalktalkFaqTopic>([
+  'seat',
+  'departure',
+  'included',
+  'shopping',
+  'extra-fee',
+  'agent',
+  'passport',
+  'visa',
+])
+
+/** REGRESSION-FREEZE[talktalk-faq-specific-topics-1122]: 잔여석·출발확정·포함·유류·팁·쇼핑·1인실·아동·상담원 문의 주제. */
+export function talktalkSpecificTopicsForText(text: string): TalktalkFaqTopic[] {
+  const out: TalktalkFaqTopic[] = []
+  if (/잔여\s*석|남은\s*(자리|좌석)|자리\s*(있|남)|좌석\s*(있|남)|마감/.test(text)) out.push('seat')
+  if (/출발\s*확정|출확|확정\s*출발|최소\s*(출발|인원)|인원.{0,6}부족/.test(text)) out.push('departure')
+  if (/불포함|포함|유류|할증|가이드\s*(경비|비|팁)|팁/.test(text)) out.push('included')
+  if (/쇼핑|선택\s*관광|현지\s*옵션|옵션/.test(text)) out.push('shopping')
+  if (/1인실|싱글|독실|아동|유아|어린이|아이\s*(요금|나이)/.test(text)) out.push('extra-fee')
+  if (/상담원|상담사|사람이랑|직원\s*연결|전화\s*상담/.test(text)) out.push('agent')
+  return out
+}
+
+/** 좁은 주제가 맞은 항목을 앞으로, 맞은 주제 수가 많은 항목을 앞으로. 같은 점수는 원래 순서 유지. */
+function koBigrams(text: string): Set<string> {
+  const compact = String(text ?? '').replace(/[^0-9A-Za-z가-힣]/g, '')
+  const out = new Set<string>()
+  for (let i = 0; i + 1 < compact.length; i++) out.add(compact.slice(i, i + 2))
+  return out
+}
+
+export function rankFaqByTopics(
+  items: readonly TalktalkDraftFaqItem[],
+  topics: ReadonlySet<TalktalkFaqTopic>,
+  inquiryText = '',
+): TalktalkDraftFaqItem[] {
+  const asked = koBigrams(inquiryText)
+  const overlap = (item: TalktalkDraftFaqItem) => {
+    if (asked.size === 0) return 0
+    let n = 0
+    for (const g of koBigrams(item.question)) if (asked.has(g)) n += 1
+    return n
+  }
+  const score = (item: TalktalkDraftFaqItem) => {
+    let specific = 0
+    let any = 0
+    for (const t of item.topics) {
+      if (!topics.has(t)) continue
+      any += 1
+      if (TALKTALK_SPECIFIC_FAQ_TOPICS.has(t)) specific += 1
+    }
+    return specific * 1000 + overlap(item) * 10 + any
+  }
+  return items
+    .map((item, index) => ({ item, index, s: score(item) }))
+    .sort((a, b) => b.s - a.s || a.index - b.index)
+    .map((x) => x.item)
+}
 
 export type TalktalkDraftFaqItem = {
   id: string
@@ -309,7 +375,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '최소출발 인원이 부족하면 어떻게 되나요?',
     supportAnswer('faq-12'),
     'lib/support-content.ts',
-    ['booking'],
+    ['booking', 'departure'],
     'package',
   ),
   inquiry(
@@ -331,7 +397,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '단체 상품의 출발은 언제 확정되나요?',
     supportAnswer('faq-12'),
     'lib/support-content.ts',
-    ['booking'],
+    ['booking', 'departure'],
     'package',
   ),
   inquiry(
@@ -372,15 +438,15 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
     '1인실을 요청할 수 있나요?',
     '예약 상담 화면에서 1인실 사용을 요청할 수 있습니다. 그 화면에는 가능 여부나 추가 금액이 적혀 있지 않습니다.',
     'app/components/travel/BookingIntakeModal.tsx',
-    ['booking'],
+    ['booking', 'extra-fee'],
     'package',
   ),
   inquiry(
     'inquiry-shopping',
     '쇼핑 환불은 어떻게 되나요?',
-    '쇼핑 일정·환불 규정은 현지 및 공급사 운영에 따라 달라질 수 있습니다.',
+    '쇼핑 일정과 환불 규정은 상품과 현지 운영에 따라 달라요. 상품 페이지의 쇼핑정보를 먼저 확인해 주시고, 구매하신 물건의 환불은 담당자가 상품 조건을 확인해 안내해 드릴게요.',
     'app/components/detail/ModetourShoppingTable.tsx',
-    ['refund'],
+    ['refund', 'shopping'],
     'package',
   ),
   inquiry(
@@ -443,7 +509,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'inquiry-organizer',
     '행사와 판매는 누가 하나요?',
-    '본 상품은 [브랜드명]의 상품으로, 실제 행사는 해당 여행사와 현지 랜드사에서 진행합니다. 판매 대행은 Bong투어입니다.',
+    '실제 행사는 상품마다 해당 여행사와 현지 랜드사에서 진행하고, 봉투어는 판매를 대행하고 있어요. 어느 여행사 행사인지는 상품 페이지 안내에서 확인하실 수 있어요.',
     'app/components/detail/OrganizerNotice.tsx',
     ['booking'],
   ),
@@ -836,7 +902,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   officialEsim(
     'esim-carrier-popup',
     '설치 후 이동통신사 설정 업데이트 팝업은 어떻게 하나요?',
-    '지금 안 함을 누릅니다.',
+    '팝업이 뜨면 \'지금 안 함\'을 눌러 주세요.',
   ),
   officialEsim(
     'esim-add-ios',
@@ -914,7 +980,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'boss-hotel-only-later',
     '호텔만 단독으로 예약하는 절차는 무엇인가요?',
-    '추후 API 연결 후 안내',
+    '호텔만 단독 예약은 추후 API 연결 후 안내드릴 예정이라, 지금은 온라인으로 바로 진행되지 않아요. 원하시는 도시와 날짜를 남겨 주시면 상담원이 확인해 드릴게요.',
     'docs/talktalk-faq-inventory-1116.md',
     ['booking'],
     'hotel',
@@ -922,7 +988,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'boss-quote-hours',
     '견적서는 몇 시간 안에 나오나요?',
-    '3시간',
+    '견적서는 문의를 받은 뒤 3시간 안에 보내 드리는 것을 기준으로 하고 있어요.',
     'docs/talktalk-faq-inventory-1116.md',
     ['process'],
     'common',
@@ -931,7 +997,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'boss-passport-remain',
     '여권 잔여 유효기간은 얼마나 있어야 하나요?',
-    '출발일을 기준으로 계산',
+    '여권 남은 유효기간은 출발일을 기준으로 계산해요. 필요한 기간은 나라마다 달라서, 여행하실 나라를 알려 주시면 확인해 드릴게요.',
     'docs/talktalk-faq-inventory-1116.md',
     ['passport'],
     'common',
@@ -940,7 +1006,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'boss-visa-free',
     '무비자 국가 안내는 어떻게 구분하나요?',
-    '무비자 국가 안내',
+    '무비자 국가 안내는 여행하실 나라와 여권 국적에 따라 달라져요. 나라와 여행 기간을 알려 주시면 담당자가 확인해 안내해 드릴게요.',
     'docs/talktalk-faq-inventory-1116.md',
     ['visa'],
     'common',
@@ -949,7 +1015,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'boss-visa-required',
     '사전 비자가 필요한 국가 안내는 어떻게 구분하나요?',
-    '사전 비자 필요 국가 안내',
+    '출발 전에 비자나 전자여행허가가 필요한 나라가 있어요. 사전 비자 필요 국가 안내는 나라와 여권 국적에 따라 달라서, 알려 주시면 필요한 서류를 확인해 드릴게요.',
     'docs/talktalk-faq-inventory-1116.md',
     ['visa'],
     'common',
@@ -958,7 +1024,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'boss-cancel-fee',
     '출발 며칠 전 취소 수수료는 몇 %인가요?',
-    '상품별로 고지된 금액 기준',
+    '취소 수수료는 상품별로 고지된 금액 기준으로 적용돼요. 상품 페이지의 취소 규정과 여행 표준약관을 바탕으로, 예약 내용을 확인한 뒤 정확한 금액을 안내해 드릴게요.',
     'docs/talktalk-faq-inventory-1116.md',
     ['cancel', 'refund'],
     'common',
@@ -967,7 +1033,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'boss-deposit',
     '예약금·계약금은 얼마인가요?',
-    '추후 안내',
+    '예약금은 상품과 인원에 따라 달라서, 금액과 입금 방법은 예약 상담 때 추후 안내해 드려요.',
     'docs/talktalk-faq-inventory-1116.md',
     ['payment'],
     'common',
@@ -976,32 +1042,32 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'boss-child-age',
     '아동·유아 요금은 성인 요금의 몇 %인가요?',
-    '각 여행상품에 적힌 나이 기준을 따름',
+    '아동·유아 요금은 각 여행상품에 적힌 나이 기준을 따름으로, 상품마다 기준 나이와 금액이 달라요. 요금표에 적혀 있지 않으면 상담원이 확인해 드릴게요.',
     'docs/talktalk-faq-inventory-1116.md',
-    ['payment'],
+    ['payment', 'extra-fee'],
     'package',
     ['fit', 'private'],
   ),
   inquiry(
     'boss-optional-tour',
     '선택관광은 필수인가요, 비용은 얼마인가요?',
-    '필수 아님(선택)',
+    '선택관광은 필수 아님(선택)이라 원하실 때만 참여하시면 돼요. 비용은 상품 페이지 현지옵션 안내에 적힌 금액과 통화 그대로를 기준으로 해요.',
     'docs/talktalk-faq-inventory-1116.md',
-    ['booking'],
+    ['booking', 'shopping'],
     'package',
   ),
   inquiry(
     'boss-single-room',
     '1인실 추가 금액은 얼마인가요?',
-    '해당 상품은 1인실 금액 확인 후 안내',
+    '1인실 추가 금액은 상품마다 달라서, 해당 상품은 1인실 금액 확인 후 안내해 드려요. 상품 안내에 금액이 적혀 있으면 그 금액 그대로 알려 드릴게요.',
     'docs/talktalk-faq-inventory-1116.md',
-    ['payment'],
+    ['payment', 'extra-fee'],
     'package',
   ),
   inquiry(
     'boss-name-fix',
     '발권 후 영문 이름을 어떻게 고치나요?',
-    '항공사 규약에 따릅니다',
+    '발권 후 영문 이름 수정은 항공사 규약에 따릅니다. 항공사마다 가능 여부와 비용이 달라서, 예약번호와 함께 남겨 주시면 상담원이 확인해 드릴게요.',
     'docs/talktalk-faq-inventory-1116.md',
     ['booking'],
     'air',
@@ -1010,7 +1076,7 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'boss-esim-topup',
     '데이터가 떨어지면 고객이 어떻게 충전하나요?',
-    '상품별로 다름',
+    '충전 가능 여부는 상품별로 다름에 유의해 주세요. 이용 중인 상품명을 알려 주시면 고객센터에서 확인해 안내해 드려요.',
     'docs/talktalk-faq-inventory-1116.md',
     ['esim'],
     'esim',
@@ -1018,10 +1084,70 @@ export const ADMIN_DRAFT_FAQ: readonly TalktalkDraftFaqItem[] = [
   inquiry(
     'boss-esim-speed',
     '어느 정도 속도가 정상인가요?',
-    '상품별 고지 내용을 확인해 주세요',
+    '정상 속도는 상품마다 달라서 상품별 고지 내용을 확인해 주세요. 고지보다 많이 느리면 고객센터 연결링크로 문의해 주세요.',
     'docs/talktalk-faq-inventory-1116.md',
     ['esim'],
     'esim',
+  ),
+  inquiry(
+    'faq-seat-left',
+    '원하는 날짜에 자리가 남아 있나요?',
+    '출발일별 요금과 예약 가능 여부는 상품 페이지 달력에서 먼저 보실 수 있어요. 좌석은 수시로 바뀌기 때문에, 원하시는 날짜와 인원을 남겨 주시면 상담원이 남은 자리를 확인해 드릴게요.',
+    'app/terms/page.tsx',
+    ['seat', 'booking'],
+    'package',
+    ['fit', 'air', 'private'],
+  ),
+  inquiry(
+    'faq-departure-confirmed',
+    '제가 고른 날짜는 출발이 확정됐나요?',
+    '단체 상품은 최소출발 인원이 모여야 출발이 확정돼요. 날짜별 확정 여부는 바뀔 수 있어서, 원하시는 출발일을 알려 주시면 지금 상태를 확인해 안내해 드릴게요.',
+    'lib/support-content.ts',
+    ['departure', 'booking'],
+    'package',
+  ),
+  inquiry(
+    'faq-included',
+    '여행 요금에 무엇이 포함되고 무엇이 빠져 있나요?',
+    '상품 페이지 아래쪽 포함/불포함사항에 항목별로 정리되어 있어요. 거기에 없는 내용이 궁금하시면 상품명과 함께 남겨 주세요. 담당자가 확인해 드릴게요.',
+    'app/components/travel/ybtour/YbtourProductExtraInfoTabs.tsx',
+    ['included'],
+    'package',
+    ['fit', 'private'],
+  ),
+  inquiry(
+    'faq-fuel-surcharge',
+    '유류할증료는 요금에 포함되어 있나요?',
+    '상품마다 달라서 상품 페이지 포함/불포함사항에서 확인하실 수 있어요. 유류할증료와 세금은 발권 시점에 따라 바뀔 수 있어, 확정 금액은 예약 상담 때 다시 안내해 드려요.',
+    'app/terms/page.tsx',
+    ['included', 'payment'],
+    'package',
+    ['fit', 'air', 'private'],
+  ),
+  inquiry(
+    'faq-guide-tip',
+    '가이드 경비(팁)는 따로 내나요?',
+    '상품마다 달라요. 가이드 경비가 요금에 들어 있는지는 상품 페이지 포함/불포함사항에 적혀 있고, 현지에서 따로 내는 금액은 상품 안내에 적힌 금액과 통화 그대로 안내해 드려요.',
+    'app/components/travel/ybtour/YbtourProductExtraInfoTabs.tsx',
+    ['included'],
+    'package',
+  ),
+  inquiry(
+    'faq-shopping-schedule',
+    '쇼핑 일정이 들어 있나요?',
+    '쇼핑 일정이 있는 상품은 상품 페이지 쇼핑정보에 들르는 곳이 정리되어 있어요. 쇼핑이 부담스러우시면 노쇼핑 상품으로 찾아 드릴 수 있으니 편하게 말씀해 주세요.',
+    'app/components/travel/ybtour/YbtourProductExtraInfoTabs.tsx',
+    ['shopping'],
+    'package',
+  ),
+  inquiry(
+    'faq-agent-connect',
+    '상담원과 직접 이야기하고 싶어요.',
+    "'상담원 연결'이라고 남겨 주시면 담당 상담원에게 바로 연결해 드려요. 상담 가능 시간에 순서대로 답변드리고 있어요.",
+    'lib/talktalk-autoreply/reply.ts',
+    ['agent', 'process'],
+    'common',
+    ['package', 'fit', 'air', 'hotel', 'training', 'institution', 'private', 'bus'],
   ),
 ]
 
@@ -1108,11 +1234,21 @@ export function selectDraftFaq(inquiryText: string, limit = 4): TalktalkDraftFaq
   if (/여권|영문/.test(text)) topics.add('passport')
   if (/진행|순서|상담/.test(text)) topics.add('process')
   if (/e\s*sim|이심|qr|설치|로밍|apn|갤럭시|아이폰|핫스팟|테더|사용량/i.test(text)) topics.add('esim')
+  for (const t of talktalkSpecificTopicsForText(text)) topics.add(t)
   if (topics.size === 0) topics.add('booking')
-  const topical = ADMIN_DRAFT_FAQ.filter((item) => item.topics.some((topic) => topics.has(topic)))
+  const topical = rankFaqByTopics(
+    ADMIN_DRAFT_FAQ.filter((item) => item.topics.some((topic) => topics.has(topic))),
+    topics,
+    text,
+  )
   const inCategory = topical.filter(
     (item) => faqMemberships(item).includes(category) || item.category === 'common',
   )
-  const pool = category === 'esim' ? topical.filter((item) => faqMemberships(item).includes('esim')) : inCategory
+  const pool =
+    category === 'esim'
+      ? topical.filter((item) => faqMemberships(item).includes('esim'))
+      : category === 'common'
+        ? topical.filter((item) => !faqMemberships(item).every((c) => c === 'esim'))
+        : inCategory
   return (pool.length > 0 ? pool : topical).slice(0, limit)
 }
