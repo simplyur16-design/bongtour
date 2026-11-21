@@ -7,6 +7,7 @@ import OverseasMegaMenuHoverTrigger from '@/components/top-nav/OverseasMegaMenuH
 import RegionHoverTabs from '@/components/top-nav/RegionHoverTabs'
 import CountryCityMegaPanel from '@/components/top-nav/CountryCityMegaPanel'
 import { useVisibleMegaMenuRegions } from '@/components/top-nav/use-local-departure-tab-visibility'
+import { useMegaMenuLiveRegions } from '@/components/top-nav/use-mega-menu-live-regions'
 import {
   decideMegaMenu,
   matchesFineHover,
@@ -23,7 +24,9 @@ export default function TopMegaMenu() {
   const [activeRegionId, setActiveRegionId] = useState<string | null>(TOP_NAV_MEGA_REGIONS[0]?.id ?? null)
   const [isMegaMenuOpen, setMegaMenuOpen] = useState(false)
   // REGRESSION-FREEZE[local-departure-display-prefix]: 제주출발 탭 ≥1건일 때만 — manifest
-  const visibleRegions = useVisibleMegaMenuRegions(TOP_NAV_MEGA_REGIONS)
+  // REGRESSION-FREEZE[mega-menu-live-auto-1122]: 공개 상품 수로 자동 숨김·정렬 — manifest
+  const liveRegions = useMegaMenuLiveRegions(TOP_NAV_MEGA_REGIONS)
+  const visibleRegions = useVisibleMegaMenuRegions(liveRegions)
 
   const openTimerRef = useRef<number | null>(null)
   const closeTimerRef = useRef<number | null>(null)
@@ -95,7 +98,10 @@ export default function TopMegaMenu() {
     }
   }, [])
 
-  const activeRegion = TOP_NAV_MEGA_REGIONS.find((r) => r.id === activeRegionId) ?? TOP_NAV_MEGA_REGIONS[0]
+  const activeRegion =
+    visibleRegions.find((r) => r.id === activeRegionId && r.countryGroups?.length) ??
+    visibleRegions.find((r) => r.countryGroups?.length) ??
+    visibleRegions[0]
 
   return (
     <div ref={navRef} className="relative w-full">

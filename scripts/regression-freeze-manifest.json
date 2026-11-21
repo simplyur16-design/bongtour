@@ -28429,14 +28429,14 @@
         {
           "file": "components/top-nav/TopMegaMenu.tsx",
           "mustInclude": [
-            "useVisibleMegaMenuRegions(TOP_NAV_MEGA_REGIONS)",
+            "useVisibleMegaMenuRegions(liveRegions)",
             "regions={visibleRegions}"
           ]
         },
         {
           "file": "components/top-nav/MobileDrilldownMenu.tsx",
           "mustInclude": [
-            "useVisibleMegaMenuRegions(TOP_NAV_MEGA_REGIONS)",
+            "useVisibleMegaMenuRegions(liveRegions)",
             "{visibleRegions.map((r) => {"
           ]
         },
@@ -30891,6 +30891,74 @@
           "mustInclude": [
             "REGRESSION-FREEZE[ingest-domestic-skip-category-1122]",
             "HANJINTOUR_DAILY_INGEST_LIMIT = 50"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mega-menu-live-auto-1122",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/22 00:50 \"메가메뉴의 틀도 고정하지말고 우리가 가져오는 상품에 따라 잘 정리되게\": 링크별 공개 상품 수(1시간 캐시)로 0인 탭·중분류·도시 자동 숨김, 많은 순 정렬, 수 모르면 원래 메뉴. 매시 점검에 빈 메뉴·깨진 링크 기록",
+      "checks": [
+        {
+          "file": "lib/mega-menu-live-menu.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-live-auto-1122]",
+            "if (!counts) return [...regions]",
+            "export function collectMegaMenuHrefs"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-live-counts.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-live-auto-1122]",
+            "registrationStatus: 'registered'",
+            "publicProductWhereClause()"
+          ]
+        },
+        {
+          "file": "app/api/mega-menu/counts/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-live-auto-1122]",
+            "revalidate: 3600"
+          ]
+        },
+        {
+          "file": "components/top-nav/use-mega-menu-live-regions.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-live-auto-1122]",
+            "arrangeMegaMenuRegionsByCounts(regions, counts)"
+          ]
+        },
+        {
+          "file": "components/top-nav/TopMegaMenu.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-live-auto-1122]",
+            "useVisibleMegaMenuRegions(liveRegions)"
+          ]
+        },
+        {
+          "file": "components/top-nav/MobileDrilldownMenu.tsx",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-live-auto-1122]",
+            "useVisibleMegaMenuRegions(liveRegions)"
+          ]
+        },
+        {
+          "file": "lib/site-health-menu-checks.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-live-auto-1122]",
+            "menu-shown-empty",
+            "menu-broken-link"
+          ]
+        },
+        {
+          "file": "lib/mega-menu-live-menu.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[mega-menu-live-auto-1122]"
           ]
         }
       ]
@@ -33858,7 +33926,8 @@
         "lib/naeiltour-airline-flight-region.test.ts",
         "lib/representative-departure-snapshot.test.ts",
         "lib/site-health.test.ts",
-        "lib/ingest-domestic-category.test.ts"
+        "lib/ingest-domestic-category.test.ts",
+        "lib/mega-menu-live-menu.test.ts"
       ]
     },
     {

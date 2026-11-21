@@ -12,12 +12,18 @@ import { healthTotals, rotateByHour, runHealthChecks, type HealthCheckSummary } 
 import { PHOTO_HEALTH_CHECKS, type PhotoHealthProduct, type PhotoProbe } from '@/lib/site-health-photo-checks'
 import { SEO_HEALTH_CHECKS, type SeoPage } from '@/lib/site-health-seo-checks'
 import { COLLECT_HEALTH_CHECKS } from '@/lib/site-health-collect-checks'
+import { MENU_HEALTH_CHECKS, type MenuLinkProbe } from '@/lib/site-health-menu-checks'
+import { collectMegaMenuHrefs } from '@/lib/mega-menu-live-menu'
+import { computeMegaMenuLiveCounts } from '@/lib/mega-menu-live-counts'
+import { TOP_NAV_MEGA_REGIONS } from '@/lib/top-nav-resolve'
 import { parseSitemapLocs, pathOf } from '@/lib/site-health-seo-parse'
 
 export const SITE_HEALTH_PROBE_BUDGET = 40
 export const SITE_HEALTH_MONO_BUDGET = 6
 export const SITE_HEALTH_PRODUCT_PAGES_PER_RUN = 6
 export const SITE_HEALTH_MENU_PAGES_PER_RUN = 4
+/** 메가메뉴 링크 표본(매시 돌려가며) — 페이지 200·목록 건수 확인 */
+export const SITE_HEALTH_MEGA_LINKS_PER_RUN = 6
 export const SITE_HEALTH_FIXED_PAGES: ReadonlyArray<{ path: string; kind: SeoPage['kind'] }> = [
   { path: '/', kind: 'menu' },
   { path: '/travel/esim', kind: 'esim' },
@@ -170,7 +176,34 @@ export async function runSiteHealthHourly(opts: {
   })
   const collect = await runHealthChecks(COLLECT_HEALTH_CHECKS, { products: collectRows })
 
-  const totals = healthTotals([...photo, ...seo, ...collect])
+  const menuHrefs = collectMegaMenuHrefs(TOP_NAV_MEGA_REGIONS)
+  let menuCounts: Record<string, number> | null = null
+  try {
+    menuCounts = (await computeMegaMenuLiveCounts()).counts
+  } catch {
+    menuCounts = null
+  }
+  const shownHrefs = menuHrefs.filter((h) => (menuCounts?.[h] ?? 1) > 0)
+  const menuProbes: MenuLinkProbe[] = []
+  for (const href of rotateByHour(shownHrefs, SITE_HEALTH_MEGA_LINKS_PER_RUN, now)) {
+    await gap(800, 400)
+    const page = await fetchText(`${origin}${href}`, f)
+    const qs = new URL(href, origin).searchParams
+    qs.set('limit', '1')
+    await gap(300, 200)
+    const api = await fetchText(`${origin}/api/products/browse?${qs.toString()}`, f)
+    let listTotal: number | null = null
+    try {
+      const j = api.text ? (JSON.parse(api.text) as { total?: unknown }) : null
+      listTotal = j && typeof j.total === 'number' ? j.total : null
+    } catch {
+      listTotal = null
+    }
+    menuProbes.push({ href, pageStatus: page.status, listTotal })
+  }
+  const menu = await runHealthChecks(MENU_HEALTH_CHECKS, { hrefs: menuHrefs, counts: menuCounts, probes: menuProbes })
+
+  const totals = healthTotals([...photo, ...seo, ...collect, ...menu])
   const brief = (l: HealthCheckSummary[]) =>
     l.map((s) => ({ id: s.id, found: s.found, fixed: s.fixed, remaining: s.remaining, samples: s.samples, ...(s.error ? { error: s.error } : {}) }))
   console.log(
@@ -184,6 +217,7 @@ export async function runSiteHealthHourly(opts: {
       photo: brief(photo),
       seo: brief(seo),
       collect: brief(collect),
+      menu: brief(menu),
     }),
   )
   return { photo, seo, totals, refillIds: [...refillIds] }
