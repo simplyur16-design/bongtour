@@ -6,6 +6,7 @@
  * 출력은 건수와 상품번호(gdsNo)만.
  * REGRESSION-FREEZE[hanjintour-register-pending-only]: 계획 기본·--apply 때만 기록 — manifest
  */
+import './load-env-for-scripts'
 import { handleParseAndRegisterHanjintourRequest } from '../lib/parse-and-register-hanjintour-handler'
 import { planHanjintourPendingEnqueue } from '../lib/hanjintour-register'
 import {
