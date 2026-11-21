@@ -1178,6 +1178,12 @@ const TOPIC_SUBGROUP_LABEL: Record<TalktalkFaqTopic, string> = {
   passport: '여권·비자',
   visa: '여권·비자',
   esim: 'eSIM',
+  seat: '예약·잔여석',
+  departure: '출발 확정',
+  included: '포함·불포함',
+  shopping: '쇼핑·선택관광',
+  'extra-fee': '추가 요금',
+  agent: '상담원 연결',
 }
 
 /** eSIM 탭은 챗봇과 같은 중분류로 나눈다. */
@@ -1189,7 +1195,7 @@ const ESIM_SUBGROUP_IDS: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['기기 호환', ['esim-device-check', 'esim-models', 'esim-lock', 'esim-dual', 'esim-voice']],
 ]
 
-/** REGRESSION-FREEZE[talktalk-faq-subgroup-1122]: 관리자 FAQ도 종류 탭 → 중분류 → 질문 순서로 연다 — manifest */
+/** REGRESSION-FREEZE[esim-help-chat-categories-1122]: 관리자 FAQ도 종류 탭 → 중분류 → 질문 순서로 연다 — manifest */
 export function talktalkFaqSubgroup(item: Pick<TalktalkDraftFaqItem, 'id' | 'topics'>, categoryId: TalktalkFaqCategory): string {
   if (categoryId === 'esim') {
     const hit = ESIM_SUBGROUP_IDS.find(([, ids]) => ids.includes(item.id))

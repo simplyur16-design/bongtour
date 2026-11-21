@@ -7079,6 +7079,18 @@
       ]
     },
     {
+      "id": "esim-help-chat-categories-1122",
+      "tier": ["prebuild", "ci"],
+      "summary": "eSIM 상담 대화창은 처음에 인사 한 줄과 중분류 버튼 6개만 보이고, 분류를 누르면 그 안 질문 3~5개, 질문을 누르면 짧은 답과 더 보기가 나온다. 뒤로 가기가 있고 관리자 톡톡 FAQ도 종류 탭 → 중분류 → 질문 순서다(사장님 11/22 03:02).",
+      "checks": [
+        { "file": "lib/esim-help-chat.ts", "mustInclude": ["REGRESSION-FREEZE[esim-help-chat-categories-1122]", "ESIM_HELP_CATEGORIES", "splitHelpAnswer"] },
+        { "file": "components/bongsim/esim/EsimHelpChat.tsx", "mustInclude": ["data-esim-help-categories", "더 보기", "‹ 처음으로"] },
+        { "file": "lib/talktalk-draft/faq.ts", "mustInclude": ["REGRESSION-FREEZE[esim-help-chat-categories-1122]", "상담원 연결"] },
+        { "file": "app/admin/talktalk-draft/TalktalkDraftClient.tsx", "mustInclude": ["data-talktalk-faq-subgroups"] }
+      ],
+      "vitestSuites": ["lib/esim-help-chat.test.ts"]
+    },
+    {
       "id": "esim-help-chat-visible-1122",
       "tier": ["prebuild", "ci"],
       "summary": "eSIM 상담 입구는 오른쪽 아래 작은 동그란 봉실장 얼굴 아이콘(이름 'eSIM 도움이 필요하세요?')이고 누르면 대화창이 열리며, eSIM 메인·설치 안내·상품 상세·주문 완료·내 eSIM 주문 화면에 붙어 있다.",
@@ -22248,6 +22260,23 @@
       "vitestSuites": ["lib/public-brand-token-swap.test.ts"]
     },
     {
+      "id": "talktalk-faq-specific-topics-1122",
+      "tier": ["prebuild", "ci"],
+      "summary": "톡톡 FAQ는 잔여석·출발확정·포함/불포함·유류·팁·쇼핑·1인실·아동·상담원 문의를 좁은 주제로 먼저 고른다",
+      "checks": [
+        {
+          "file": "lib/talktalk-draft/faq.ts",
+          "mustInclude": ["REGRESSION-FREEZE[talktalk-faq-specific-topics-1122]", "rankFaqByTopics", "faq-seat-left", "faq-fuel-surcharge", "faq-guide-tip", "faq-agent-connect"],
+          "mustNotInclude": ["[브랜드명]", "유심사"]
+        },
+        {
+          "file": "lib/talktalk-autoreply/reply.ts",
+          "mustInclude": ["talktalkSpecificTopicsForText", "rankFaqByTopics"]
+        }
+      ],
+      "vitestSuites": ["lib/talktalk-autoreply/faq-coverage-1122.test.ts"]
+    },
+    {
       "id": "talktalk-draft-no-send-no-price-invent",
       "tier": ["prebuild", "ci"],
       "summary": "톡톡 답변 초안은 관리자 표시만 하고 발송·가격 생성을 하지 않는다",
@@ -30975,55 +31004,6 @@
           "file": "lib/mega-menu-live-menu.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[mega-menu-live-auto-1122]"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "photo-monochrome-all-slots-1122",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "사장님 11/22 03:05: 흑백 사진은 대표·일차·월별 추천(대표사진 사용) 모두 금지. 자동 채움(사진 풀·Pexels·Unsplash·CC0·생성) 후보는 저장 전에 흑백 판정, 관리자 사진 처리도 일차 칸까지 흑백 확인, 사진 풀 보충도 흑백 제외, 매시 점검은 흑백 대표사진을 기록",
-      "checks": [
-        {
-          "file": "lib/photo-autofill-acquire.ts",
-          "mustInclude": [
-            "REGRESSION-FREEZE[photo-monochrome-all-slots-1122]",
-            "bump('monochrome')",
-            "isMonochrome?: (c: AutofillCandidate) => Promise<boolean>"
-          ]
-        },
-        {
-          "file": "lib/photo-autofill-live-deps.ts",
-          "mustInclude": [
-            "isMonochrome: async (c) =>",
-            "if (await isMonochromePhotoUrl(c.url)) return false"
-          ]
-        },
-        {
-          "file": "app/api/travel/process-images/route.ts",
-          "mustInclude": [
-            "verify: chainMainNotMonochrome,"
-          ]
-        },
-        {
-          "file": "lib/register-photo-source-chain.ts",
-          "mustInclude": [
-            "if (altSaysMonochrome(alt)) return slot === 'main' ? 'main_monochrome' : 'day_monochrome'"
-          ]
-        },
-        {
-          "file": "lib/site-health-photo-checks.ts",
-          "mustInclude": [
-            "detail: 'cover monochrome'"
-          ]
-        },
-        {
-          "file": "lib/photo-monochrome-all-slots-1122.test.ts",
-          "mustInclude": [
-            "흑백 사진: 대표·일차 모두 금지(사장님 11/22)"
           ]
         }
       ]
