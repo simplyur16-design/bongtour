@@ -22,6 +22,7 @@ import { REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE } from '@/lib/register-pre-photo
 import { refreshRegisterPrePhotoQueueFlagsForProductId } from '@/lib/register-pre-photo-queue-flags'
 import { loadRegisterPublishFacts } from '@/lib/register-publish-facts'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
+import { rotatePublicMissingDayPicks, scheduleApplyingTravelDayKeywords } from '@/lib/register-day-photo-travel-day'
 import { buildRegistrationPhotoInput, runPhotoHealForProduct, runPublicPhotoNightlyAuditLive } from '@/lib/photo-gate-runner'
 import { isNightlyAuditWindowKst } from '@/lib/photo-nightly-audit'
 import { summarizePhotoExceptions, type PhotoException } from '@/lib/photo-exception-list'
@@ -105,6 +106,8 @@ export type AutoPhotoRegisterRunResult = {
   /** 등록 전 사진 게이트가 막아 자가 힐로 교체한 칸 수 / 못 고쳐 예외 목록에 오른 칸 수 */
   healed: number
   photoExceptions: number
+  /** 빈 일차 사진만 채운 공개 상품 수(상태·글은 그대로) */
+  publicScanned: number
   nightly: { ran: boolean; replaced: number; broken: number; duplicates: number; deferred: number; exceptions: number } | null
 }
 
@@ -114,6 +117,9 @@ export async function runAutoPhotoRegisterJob(opts?: {
   fetchImpl?: typeof fetch
   /** 상품 사이 간격(ms) — Pexels·서버 부하를 사람처럼 */
   gapMs?: number
+  /** 한 번에 빈 일차를 채울 공개 상품 수(기본 10) */
+  publicLimit?: number
+  now?: Date
 }): Promise<AutoPhotoRegisterRunResult> {
   const env = opts?.env ?? process.env
   const f = opts?.fetchImpl ?? fetch
@@ -132,6 +138,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     fillFailByReason: {},
     healed: 0,
     photoExceptions: 0,
+    publicScanned: 0,
     nightly: null,
   }
 
@@ -147,12 +154,30 @@ export async function runAutoPhotoRegisterJob(opts?: {
     orderBy: { updatedAt: 'asc' },
     take: limit,
   })
+  const publicLimit = Math.max(0, Math.min(50, opts?.publicLimit ?? 10))
+  const publicRows = sw.fill && publicLimit > 0 ? await pickPublicMissingDayProducts(publicLimit, opts?.now ?? new Date()) : []
+  const queue: Array<(typeof ids)[number] & { publicRow: boolean }> = [
+    ...ids.map((r) => ({ ...r, publicRow: false })),
+    ...publicRows.map((r) => ({ ...r, publicRow: true })),
+  ]
 
-  for (const row of ids) {
+  for (const row of queue) {
     const { id, bgImageUrl } = row
     let schedule = row.schedule
-    result.scanned++
-    if (sw.fill || sw.record || sw.flip) {
+    if (row.publicRow) result.publicScanned++
+    else result.scanned++
+    // REGRESSION-FREEZE[register-photo-travel-day-1121]: 사진이 빈 출국·귀국·이동일 키워드만 그날 동선으로 — manifest
+    if (sw.fill) {
+      const travel = scheduleApplyingTravelDayKeywords(schedule, row.destination)
+      if (travel?.changed) {
+        const wrote = await prisma.product.updateMany({
+          where: { id, schedule: row.schedule ?? undefined },
+          data: { schedule: travel.json },
+        })
+        if (wrote.count === 1) schedule = travel.json
+      }
+    }
+    if (!row.publicRow && (sw.fill || sw.record || sw.flip)) {
       const replaced = scheduleReplacingLodgingKeywords(schedule, row.destination)
       if (replaced?.changed) {
         const wrote = await prisma.product.updateMany({
@@ -256,6 +281,8 @@ export async function runAutoPhotoRegisterJob(opts?: {
       }
       await sleep(gapMs)
     }
+    // 공개 상품은 빈 일차 사진 채움까지만. 힐·검사·상태 전환은 하지 않는다.
+    if (row.publicRow) continue
 
     // 04b: 등록 전 사진 게이트가 막은 칸은 다음 후보(칸당 5개)로 자가 힐. 못 고친 칸은 예외 목록 + 이 상품만 보류.
     // REGRESSION-FREEZE[photo-registration-gate-wiring]: 힐 → 게이트 → 보류 사유 기록 — manifest
@@ -451,7 +478,26 @@ export async function runAutoPhotoRegisterJob(opts?: {
       fillFailByReason: result.fillFailByReason,
       healed: result.healed,
       photoExceptions: result.photoExceptions,
+      publicScanned: result.publicScanned,
     }),
   )
   return result
+}
+
+/**
+ * 공개 상품 중 사진 채움 대상 빈 일차가 남은 상품. 실패하는 상품이 앞을 막지 않게 시각마다 시작 위치를 돌린다.
+ * REGRESSION-FREEZE[register-photo-travel-day-1121]: 공개 상품 빈 일차 자동 채움(상태 전환 없음) — manifest
+ */
+async function pickPublicMissingDayProducts(limit: number, now: Date) {
+  const rows = await prisma.product.findMany({
+    // 읽기 전용 조회(상태 전환 아님). 전환은 위 한 곳뿐 — register-auto-register-review-pass.test
+    where: { registrationStatus: { equals: 'registered' } },
+    select: { id: true, bgImageUrl: true, schedule: true, destination: true },
+    orderBy: { id: 'asc' },
+  })
+  const eligible = rows.filter((r) => {
+    const s = scheduleApplyingTravelDayKeywords(r.schedule, r.destination)
+    return scheduleHasMissingEligiblePhotoSlot(s?.json ?? r.schedule)
+  })
+  return rotatePublicMissingDayPicks(eligible, limit, now)
 }

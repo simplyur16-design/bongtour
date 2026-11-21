@@ -39,6 +39,7 @@ import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-pr
 import { parseStoredScheduleRows, preserveStoredScheduleDayEvidence } from '@/lib/schedule-stored-day-evidence-preserve'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
+import { registerTravelDayPhotoEligible } from '@/lib/register-day-photo-travel-day'
 import { logAutoPhotoAttempt } from '@/lib/auto-photo-attempt-log'
 import {
   countNewlyFilledPhotoSlots,
@@ -1153,7 +1154,9 @@ export async function POST(req: Request) {
       const itRow = itineraryRows.find((r) => r.day === dayNum) ?? itineraryRows[n] ?? null
 
       // REGRESSION-FREEZE[register-photo-no-place-day]: v2 — 장소 없는 날(공항 이동·숙박 없는 귀국일)은 사진을 붙이지 않는다 — manifest
-      if (photoChainV2 && sched && isRegisterScheduleNoPlacePhotoDay(sched, scheduleMaxDay)) {
+      // REGRESSION-FREEZE[register-photo-travel-day-1121]: 출국(첫 목적지)·귀국(마지막 체류지)·이동일(교통 느낌)은 키워드로 검색 — manifest
+      const travelDay = !!sched && registerTravelDayPhotoEligible(sched, scheduleMaxDay)
+      if (photoChainV2 && sched && !travelDay && isRegisterScheduleNoPlacePhotoDay(sched, scheduleMaxDay)) {
         console.log(`[GATE] day ${dayNum} 장소 없는 날 — 사진 비움`)
         slotDebug.push({
           day: dayNum,
@@ -1167,7 +1170,7 @@ export async function POST(req: Request) {
         continue
       }
       // 사장님 11/01: 도시 이름만 있는 날(경유·이동)은 사진 비움 — 도시=명소(우유니·이과수·카르타고·마트마타 …)는 제외
-      if (photoChainV2 && sched && registerScheduleDayIsCityOnlyPhotoSkip(sched)) {
+      if (photoChainV2 && sched && !travelDay && registerScheduleDayIsCityOnlyPhotoSkip(sched)) {
         console.log(`[GATE] day ${dayNum} 도시만 있는 날 — 사진 비움`)
         slotDebug.push({
           day: dayNum,
@@ -1184,7 +1187,7 @@ export async function POST(req: Request) {
       const confirmedDayText = confirmedTextForScheduleDay(sched)
       // 제목·설명·동선·supplierOriginal·자유일 키워드는 입력만 읽는다. 문장은 고치지 않는다.
       // 방향이 없는 날만 검색을 건너뛰고 기존 사진을 유지한다. 예정지·체류지·교통 구간은 아래에서 조건부 검색한다.
-      const keptExisting = sched ? keptDayImagesWhenConfirmedPlaceSkipped(sched) : null
+      const keptExisting = sched && !travelDay ? keptDayImagesWhenConfirmedPlaceSkipped(sched) : null
       if (keptExisting?.skipped) {
         console.log(`[GATE] day ${dayNum} 확인된 관광 없음 — 기존 사진 유지, 풀·hero 생략`)
         preserveExistingPhotoIdx.add(n)

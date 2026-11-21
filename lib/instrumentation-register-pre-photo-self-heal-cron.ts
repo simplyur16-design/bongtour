@@ -34,9 +34,10 @@ import {
 export const REGISTER_PRE_PHOTO_HEAL_ONLY_CRON = '15 6,14,22 * * *'
 /**
  * KST — 셀프힐 cron 이 꺼진 프로세스(웹)에 사진·등록 스위치가 켜져 있을 때만.
- * 워커 힐(:15)이 끝난 뒤에 시작하도록 15분 뒤로 둔다.
+ * 매시 30분. 하루 3번이면 배포 재시작에 실행이 끊겨 다음 8시간을 놓친다(11/21 22:30 실행이 22:45 배포로 중단).
+ * 겹침은 autoPhotoTickRunning 으로 막는다.
  */
-export const REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON = '30 6,14,22 * * *'
+export const REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON = '30 * * * *'
 /** KST — 야간 창(22–10) 종료 직후 수집·힐 다이제스트 1통 */
 export const REGISTER_PRE_PHOTO_INGEST_DIGEST_CRON = '5 10 * * *'
 
@@ -112,6 +113,7 @@ async function tickRegisterAutoPhotoWhenHealDisabled(): Promise<void> {
         fillFailed: photo.fillFailed,
         registered: photo.registered,
         held: photo.held,
+        publicScanned: photo.publicScanned,
         fillFailByReason: photo.fillFailByReason,
         heldByReason: photo.heldByReason,
       }),

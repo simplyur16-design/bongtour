@@ -61,7 +61,7 @@ describe('register-auto-photo-register schedule', () => {
     expect(shouldScheduleStandaloneAutoPhotoCron({ healCronEnabled: false, anySwitchOn: false })).toBe(false)
     const cron = readFileSync('lib/instrumentation-register-pre-photo-self-heal-cron.ts', 'utf8')
     const instrumentation = readFileSync('instrumentation.ts', 'utf8')
-    expect(cron).toContain("REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON = '30 6,14,22 * * *'")
+    expect(cron).toContain("REGISTER_AUTO_PHOTO_WHEN_HEAL_DISABLED_CRON = '30 * * * *'")
     expect(cron).toContain('startInstrumentationRegisterAutoPhotoWhenHealDisabled')
     expect(instrumentation).toContain('startInstrumentationRegisterAutoPhotoWhenHealDisabled()')
   })
