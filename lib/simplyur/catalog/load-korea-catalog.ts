@@ -18,6 +18,7 @@ import { resolveSimplyurFxRates } from "@/lib/simplyur/fx-rates";
 import { toSimplyurPublicProduct, type SimplyurPublicProduct } from "@/lib/simplyur/public-product";
 import { simplyurSellPriceKrw } from "@/lib/simplyur/pricing";
 import { sortKoreaPlansBestFirst } from "@/lib/simplyur/catalog/sort-korea-plans";
+import { orderFeaturedFirst } from "@/lib/simplyur/catalog/featured-plans";
 
 // REGRESSION-FREEZE[simplyur-catalog-server-fetch-p0]: 카탈로그 DB 로더 — manifest
 // REGRESSION-FREEZE[simplyur-fx-daily-price]: catalog uses resolveSimplyurFxRates — manifest
@@ -89,14 +90,24 @@ export function buildSimplyurKoreaPack(
   locale: SimplyurLocale,
   rates: SimplyurFxRates,
 ): SimplyurKoreaPack {
-  const roamingArr = sortKoreaPlansBestFirst(
-    products.filter((p) => (p.network_family || "").toLowerCase() === "roaming"),
+  const roamingSorted = orderFeaturedFirst(
+    sortKoreaPlansBestFirst(
+      products.filter((p) => (p.network_family || "").toLowerCase() === "roaming"),
+    ),
   );
-  const localArr = sortKoreaPlansBestFirst(
-    products.filter((p) => (p.network_family || "").toLowerCase() === "local"),
+  const localSorted = orderFeaturedFirst(
+    sortKoreaPlansBestFirst(
+      products.filter((p) => (p.network_family || "").toLowerCase() === "local"),
+    ),
   );
-  const roamingMapped = roamingArr.map((p) => toSimplyurPublicProduct(p, locale, rates));
-  const localMapped = localArr.map((p) => toSimplyurPublicProduct(p, locale, rates));
+  const roamingArr = roamingSorted.products;
+  const localArr = localSorted.products;
+  const mapWithFeatured = (p: ProductOption, featured: Set<string>) => {
+    const m = toSimplyurPublicProduct(p, locale, rates);
+    return featured.has(p.option_api_id) ? { ...m, featured: true } : m;
+  };
+  const roamingMapped = roamingArr.map((p) => mapWithFeatured(p, roamingSorted.featuredIds));
+  const localMapped = localArr.map((p) => mapWithFeatured(p, localSorted.featuredIds));
 
   return {
     roaming: {

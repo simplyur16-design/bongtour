@@ -22921,6 +22921,33 @@
       ]
     },
     {
+      "id": "simplyur-featured-plans",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "eSIM 상품목록 — 대표 요금제(5·3·10일 무제한 3Mbps) 맨 앞 + featured 추천 태그, 나머지 순서·최저가 유지",
+      "checks": [
+        {
+          "file": "lib/simplyur/catalog/featured-plans.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[simplyur-featured-plans]",
+            "SIMPLYUR_FEATURED_TRIP_DAYS = [5, 3, 10]"
+          ]
+        },
+        {
+          "file": "lib/simplyur/catalog/load-korea-catalog.ts",
+          "mustInclude": [
+            "orderFeaturedFirst",
+            "featured: true"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/simplyur/catalog/featured-plans.test.ts"
+      ]
+    },
+    {
       "id": "simplyur-mobile-p2-polish",
       "tier": [
         "prebuild",

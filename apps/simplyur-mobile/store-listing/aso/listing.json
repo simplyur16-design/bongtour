@@ -122,7 +122,7 @@
   "homeScreenName": "Simplyur eSIM",
   "contactEmail": "bongtour24@naver.com",
   "privacyPolicyUrl": "https://bongtour.com/simplyur/en/legal/privacy",
-  "androidVersionCode": 18,
+  "androidVersionCode": 19,
   "notes": [
     "Keep playShort ≤70 chars when possible (Play rejects near-limit / fancy punctuation).",
     "Paste ONLY the text under each --- field --- (not the whole .txt file).",
@@ -130,6 +130,6 @@
     "Customer contact is labelled Customer Center (고객센터) in every locale; never name third-party suppliers.",
     "Hotspot line (may be limited by carrier policy) and guest checkout line stay in every description.",
     "iOS: name/subtitle/description/keywords/what's new can only be edited on a new editable App Store version; promotional text can be edited anytime.",
-    "androidVersionCode must increase for every Play upload (1.0.2 = 17 uploaded; 1.0.3 = 18). iOS 1.0.2 = build 33; 1.0.3 = build 34."
+    "androidVersionCode must increase for every Play upload (1.0.2 = 17 uploaded; 1.0.3 = 18 built, superseded by 19). iOS 1.0.2 = build 33; 1.0.3 = build 34 uploaded, superseded by 35."
   ]
 }
