@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   }
   const url = new URL(req.url)
   const limitRaw = Number.parseInt(url.searchParams.get('limit') ?? '', 10)
-  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(50, limitRaw) : 20
+  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(100, limitRaw) : 20
   const switches = autoRegisterSwitches()
   // REGRESSION-FREEZE[register-auto-photo-register-schedule]: 정기 호출(scheduled=1)은 스위치가 모두 꺼져 있으면 아무것도 안 함 — manifest
   const scheduled = url.searchParams.get('scheduled') === '1'

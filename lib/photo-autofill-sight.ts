@@ -263,10 +263,7 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
       rejected.push({ keyword: kw, why: 'other_city' })
       continue
     }
-    if (spotProfiles.length > 0 && !spotProfiles.some((s) => sightsOverlap(prof, s))) {
-      rejected.push({ keyword: kw, why: 'not_in_route' })
-      continue
-    }
+    // REGRESSION-FREEZE[photo-day-keyword-fill]: 그날 imageKeyword 명소는 대표만 채우고 일차를 비우지 않는다. 다른 도시 키워드만 버린다 — manifest
     keywordSights.push(kw)
   }
 

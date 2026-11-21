@@ -114,7 +114,8 @@ export async function runAutoPhotoRegisterJob(opts?: {
   const env = opts?.env ?? process.env
   const f = opts?.fetchImpl ?? fetch
   const sw = autoRegisterSwitches(env)
-  const limit = Math.max(1, Math.min(50, opts?.limit ?? 20))
+  // 한 번 호출로 현재 등록대기 전체를 본다. 정기 cron 은 50을 넘긴다.
+  const limit = Math.max(1, Math.min(100, opts?.limit ?? 20))
   const gapMs = opts?.gapMs ?? 1500
   const result: AutoPhotoRegisterRunResult = {
     switches: sw,
@@ -131,7 +132,9 @@ export async function runAutoPhotoRegisterJob(opts?: {
   }
 
   const ids = await prisma.product.findMany({
-    where: REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE,
+    where: {
+      OR: [REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE, { registrationStatus: 'pending' }],
+    },
     select: { id: true, bgImageUrl: true, schedule: true },
     orderBy: { updatedAt: 'asc' },
     take: limit,

@@ -100,7 +100,7 @@ import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-
 // REGRESSION-FREEZE[photo-autofill-route-strict]: 자동 채움(photoChain v2 + fillMissingOnly)은 검증된 방문지 사진만 — manifest
 import { acquireVerifiedPhoto } from '@/lib/photo-autofill-acquire'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, photoIdentityKeys } from '@/lib/photo-autofill-gate'
-import { coverSearchSights } from '@/lib/photo-autofill-sight'
+import { coverSearchSights, sightProfile } from '@/lib/photo-autofill-sight'
 import { createLiveAcquireDeps } from '@/lib/photo-autofill-live-deps'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
 import { destinationTermsOf } from '@/lib/photo-gate-runner'
@@ -913,6 +913,17 @@ export async function POST(req: Request) {
       ? createLiveAcquireDeps({ prisma, destination, probe: (u) => probeStoredImage(u) })
       : null
     const strictPublicUsage = strictAutofill ? await loadPublicPhotoUsageCached(prisma) : null
+    if (preserveHero && strictPublicUsage && existingHeroUrl) {
+      const heroKeys = photoIdentityKeys({
+        url: existingHeroUrl,
+        externalId: (product as { bgImageExternalId?: string | null }).bgImageExternalId,
+        originalLink: (product as { bgImageSourceUrl?: string | null }).bgImageSourceUrl,
+      })
+      if (strictPublicUsage.coverConflict(heroKeys, String(product.id))) {
+        preserveHero = false
+        poolMain = undefined
+      }
+    }
     const strictOwnKeys = new Set<string>()
     const strictAdopt = (p: PhotoResult, kind: 'cover' | 'day') => {
       const keys = photoIdentityKeys({ url: p.url, externalId: p.externalId, originalLink: p.originalLink })
@@ -1210,7 +1221,10 @@ export async function POST(req: Request) {
           unresolvedReason,
           generateInvoked: false,
         })
-        if (dayPhotoContextFromFacts(dayFacts).kind === 'none') return keep('no_confirmed_sightseeing')
+        const dayKeywordKind = sightProfile(String(sched?.imageKeyword ?? '')).kind
+        const dayKeywordIsSight = dayKeywordKind === 'sight' || dayKeywordKind === 'generic'
+        // REGRESSION-FREEZE[photo-day-keyword-fill]: 일차 키워드가 명소면 문맥이 없어도 그 키워드로 채운다 — manifest
+        if (dayPhotoContextFromFacts(dayFacts).kind === 'none' && !dayKeywordIsSight) return keep('no_confirmed_sightseeing')
         const exclude = new Set(strictOwnKeys)
         const res = await acquireVerifiedPhoto(
           {

@@ -31936,6 +31936,53 @@
       ]
     },
     {
+      "id": "photo-day-keyword-fill",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "자동 채움은 대표만 채우지 않는다. 그날 imageKeyword가 명소면 일차 사진을 검색하고, 다른 도시 키워드만 버린다.",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-sight.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-day-keyword-fill]",
+            "다른 도시 키워드만 버린다"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-day-keyword-fill]",
+            "dayKeywordIsSight"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "photo-cover-duplicate-pending",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "대표 사진 중복은 공개 상품뿐 아니라 등록대기 대표도 막는다. 이미 쓴 대표는 다음 출처로 다시 고른다.",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-public-usage.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-cover-duplicate-pending]",
+            "registrationStatus: 'pending'"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "coverConflict(heroKeys, String(product.id))"
+          ]
+        }
+      ]
+    },
+    {
       "id": "photo-autofill-gate",
       "tier": [
         "prebuild",
