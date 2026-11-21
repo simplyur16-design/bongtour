@@ -7041,7 +7041,7 @@
             "REGRESSION-FREEZE[hanjin-daily-ingest-1121]",
             "30 10 * * *",
             "apply: true",
-            "HANJINTOUR_DAILY_INGEST_LIMIT = 20"
+            "HANJINTOUR_DAILY_INGEST_LIMIT = 50"
           ]
         }
       ],
@@ -13484,7 +13484,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "이미 있는 상품은 건너뛰고 공급사마다 하루 신규 3건 — 검색 시드는 geo, 사진 전 pending",
+      "summary": "이미 있는 상품은 건너뛰고 공급사마다 하루 신규 15건 — 검색 시드는 geo, 사진 전 pending",
       "checks": [
         {
           "file": "lib/register-pre-photo-self-heal.ts",
@@ -13502,7 +13502,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-listing-ingest]",
             "REGISTER_PRE_PHOTO_INGEST_PER_GEO = 1",
-            "REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 3",
+            "REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 15",
             "REGISTER_PRE_PHOTO_INGEST_LANES",
             "REGISTER_PRE_PHOTO_INGEST_MAX_SLOTS_PER_SUPPLIER_PER_RUN",
             "buildRegisterPrePhotoIngestGeoSlots"
@@ -13602,7 +13602,7 @@
             "도시별",
             "rotateRegisterPrePhotoIngestSlots",
             "* 22-23 * * *",
-            "공급사마다 하루 3건"
+            "공급사마다 하루 15건"
           ]
         }
       ],
@@ -13751,13 +13751,13 @@
         "prebuild",
         "ci"
       ],
-      "summary": "신규등록은 이미 있는 URL을 건너뛰고 공급사마다 하루 3건. 실행은 KST 22:00–10:00 창 동안 할당량을 채울 때까지",
+      "summary": "신규등록은 이미 있는 URL을 건너뛰고 공급사마다 하루 15건. 실행은 KST 22:00–10:00 창 동안 할당량을 채울 때까지",
       "checks": [
         {
           "file": "lib/register-pre-photo-ingest-geo-slots.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]",
-            "REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 3"
+            "REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 15"
           ]
         },
         {
@@ -13807,7 +13807,7 @@
           "file": "tests/register-pre-photo-listing-ingest.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]",
-            "이미 등록된 URL은 건너뛰고 공급사마다 하루 3건이다"
+            "이미 등록된 URL은 건너뛰고 공급사마다 하루 15건이다"
           ]
         }
       ],
@@ -13859,7 +13859,7 @@
           "file": "tests/register-pre-photo-listing-ingest.test.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[register-pre-photo-ingest-night-leftover-not-quota]",
-            "등록대기 leftover가 있어도 모르는 URL은 오늘 3건까지 받는다"
+            "등록대기 leftover가 있어도 모르는 URL은 오늘 할당량까지 받는다"
           ]
         },
         {
@@ -14555,7 +14555,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "이미 있는 목록 URL은 건너뛰고, 4장에서 끝내지 않고 공급사당 3건을 채울 때까지 다음 geo를 본다",
+      "summary": "이미 있는 목록 URL은 건너뛰고, 4장에서 끝내지 않고 공급사당 15건을 채울 때까지 다음 geo를 본다",
       "checks": [
         {
           "file": "lib/register-pre-photo-ingest-geo-slots.ts",
@@ -30855,6 +30855,47 @@
       ]
     },
     {
+      "id": "ingest-domestic-skip-category-1122",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "국내 목적지 상품은 수집하지 않고 skipReasons domestic으로 센다. 지방출발 해외는 받는다. 한진은 원문 분류로 패키지·자유여행·테마여행·지방출발을 저장하고, 매시 점검이 공개 국내·분류 없음을 기록한다",
+      "checks": [
+        {
+          "file": "lib/hanjintour-category.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ingest-domestic-skip-category-1122]",
+            "isHanjintourDomesticListing",
+            "classifyHanjintourCategory"
+          ]
+        },
+        {
+          "file": "lib/hanjintour-register.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ingest-domestic-skip-category-1122]",
+            "reason: 'domestic'",
+            "productType: plan.category.kind",
+            "localDepartureTag: plan.category.localDepartureTag"
+          ]
+        },
+        {
+          "file": "lib/site-health-collect-checks.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ingest-domestic-skip-category-1122]",
+            "collect-public-domestic"
+          ]
+        },
+        {
+          "file": "lib/ingest-domestic-category.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[ingest-domestic-skip-category-1122]",
+            "HANJINTOUR_DAILY_INGEST_LIMIT = 50"
+          ]
+        }
+      ]
+    },
+    {
       "id": "site-health-hourly-1122",
       "tier": [
         "prebuild",
@@ -33816,7 +33857,8 @@
         "lib/departure-airline-display.test.ts",
         "lib/naeiltour-airline-flight-region.test.ts",
         "lib/representative-departure-snapshot.test.ts",
-        "lib/site-health.test.ts"
+        "lib/site-health.test.ts",
+        "lib/ingest-domestic-category.test.ts"
       ]
     },
     {

@@ -11,6 +11,7 @@ import { publicProductPath } from '@/lib/product-public-path'
 import { healthTotals, rotateByHour, runHealthChecks, type HealthCheckSummary } from '@/lib/site-health-registry'
 import { PHOTO_HEALTH_CHECKS, type PhotoHealthProduct, type PhotoProbe } from '@/lib/site-health-photo-checks'
 import { SEO_HEALTH_CHECKS, type SeoPage } from '@/lib/site-health-seo-checks'
+import { COLLECT_HEALTH_CHECKS } from '@/lib/site-health-collect-checks'
 import { parseSitemapLocs, pathOf } from '@/lib/site-health-seo-parse'
 
 export const SITE_HEALTH_PROBE_BUDGET = 40
@@ -163,7 +164,13 @@ export async function runSiteHealthHourly(opts: {
   }
   const seo = await runHealthChecks(SEO_HEALTH_CHECKS, { pages, sitemapPaths, publicProductPaths: productPaths })
 
-  const totals = healthTotals([...photo, ...seo])
+  const collectRows = await prisma.product.findMany({
+    where: { registrationStatus: { equals: 'registered' } },
+    select: { id: true, originSource: true, title: true, destination: true, countryKey: true, travelScope: true },
+  })
+  const collect = await runHealthChecks(COLLECT_HEALTH_CHECKS, { products: collectRows })
+
+  const totals = healthTotals([...photo, ...seo, ...collect])
   const brief = (l: HealthCheckSummary[]) =>
     l.map((s) => ({ id: s.id, found: s.found, fixed: s.fixed, remaining: s.remaining, samples: s.samples, ...(s.error ? { error: s.error } : {}) }))
   console.log(
@@ -176,6 +183,7 @@ export async function runSiteHealthHourly(opts: {
       ...totals,
       photo: brief(photo),
       seo: brief(seo),
+      collect: brief(collect),
     }),
   )
   return { photo, seo, totals, refillIds: [...refillIds] }

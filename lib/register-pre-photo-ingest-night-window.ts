@@ -1,6 +1,6 @@
 /**
  * 신규등록 ingest 시각 — KST 22:00 포함 ~ 10:00 미만.
- * 창 동안 공급사당 3건을 채울 때까지 이어 돈다. 한 시각에 한 번 끊지 않는다.
+ * 창 동안 공급사당 15건을 채울 때까지 이어 돈다. 한 시각에 한 번 끊지 않는다.
  * 이미 큐에 등록대기가 있어도(예: 12건) 오늘 할당량을 채운 것으로 보지 않는다.
  * REGRESSION-FREEZE[register-pre-photo-ingest-three-per-supplier-night-window]: 22:00–10:00 · 할당량까지 — manifest
  * REGRESSION-FREEZE[register-pre-photo-ingest-all-canonical-suppliers]: 창 동안 할당량까지 — manifest
@@ -24,9 +24,9 @@ export const REGISTER_PRE_PHOTO_INGEST_NIGHT_WINDOW_MINUTES = 12 * 60
 export const REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_EVENING = '* 22-23 * * *'
 export const REGISTER_PRE_PHOTO_INGEST_NIGHT_CRON_MORNING = '* 0-9 * * *'
 
-/** 운영 4사 × 하루 3건. 큐 leftover와 무관하게 매일 밤 이만큼 새로 받는다. */
+/** canonical 7사 × 하루 15건(사장님 11/21 23:31). 큐 leftover와 무관하게 매일 밤 이만큼 새로 받는다. */
 export const REGISTER_PRE_PHOTO_INGEST_OPERATOR_NIGHT_TOTAL =
-  REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER * 4
+  REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER * CANONICAL_OVERSEAS_SUPPLIER_KEYS.length
 
 export type RegisterPrePhotoKstClock = {
   ymd: string

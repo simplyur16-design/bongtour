@@ -28,11 +28,11 @@ import {
 export const REGISTER_PRE_PHOTO_INGEST_LANES = ['package', 'air_hotel_free'] as const
 export type RegisterPrePhotoIngestLane = (typeof REGISTER_PRE_PHOTO_INGEST_LANES)[number]
 
-/** 목록 검색 시드는 geo당 1페이지. 생성 한도는 공급사당 3건. */
+/** 목록 검색 시드는 geo당 1페이지. 생성 한도는 공급사당 15건(사장님 11/21 23:31). */
 export const REGISTER_PRE_PHOTO_INGEST_PER_GEO = 1
 
-/** 이미 등록된 URL은 건너뛰고, 공급사마다 하루에 신규 3건. */
-export const REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 3
+/** 이미 등록된 URL은 건너뛰고, 공급사마다 하루에 신규 15건(사장님 11/21 23:31, 한진은 별도 50건). */
+export const REGISTER_PRE_PHOTO_INGEST_PER_SUPPLIER = 15
 
 /**
  * canonical 전 공급사 — 지방출발(부산/대구/청주) 검색 시드를 앞에 두고 밤마다 최소 1건 확보.

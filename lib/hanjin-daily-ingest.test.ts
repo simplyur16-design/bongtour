@@ -8,7 +8,7 @@ describe('hanjin daily ingest', () => {
     expect(cron).toContain("30 10 * * *")
     expect(cron).toContain('apply: true')
     expect(cron).toContain('runHanjintourIngestPending')
-    expect(cron).toContain('HANJINTOUR_DAILY_INGEST_LIMIT = 20')
+    expect(cron).toContain('HANJINTOUR_DAILY_INGEST_LIMIT = 50')
     expect(reg).toContain('startInstrumentationHanjintourSweepCron')
     expect(reg).toContain('7공급사')
   })

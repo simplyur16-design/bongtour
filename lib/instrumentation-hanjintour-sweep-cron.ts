@@ -4,7 +4,7 @@
  * 비활성화: `DISABLE_INSTRUMENTATION_HANJINTOUR_SWEEP_CRON=1`
  * REGRESSION-FREEZE[hanjin-daily-ingest-1121]: 정기 수집 등록 — manifest
  */
-export const HANJINTOUR_DAILY_INGEST_LIMIT = 20
+export const HANJINTOUR_DAILY_INGEST_LIMIT = 50
 
 export function startInstrumentationHanjintourSweepCron(): void {
   if (process.env.DISABLE_INSTRUMENTATION_HANJINTOUR_SWEEP_CRON === '1') {

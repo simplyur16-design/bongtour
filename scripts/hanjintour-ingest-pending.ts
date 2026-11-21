@@ -28,6 +28,7 @@ import {
   type HanjintourDeparture,
 } from '../lib/hanjintour-parse'
 import { hanjinFailureName, hanjinWalkStopReason } from '../lib/hanjintour-ingest-stop'
+import { isHanjintourDomesticListing } from '../lib/hanjintour-category'
 import {
   HANJINTOUR_EXISTING_SUPPLIERS,
   type ExistingProductRegionRow,
@@ -119,10 +120,15 @@ export async function runHanjintourIngestPending(opts: {
   // 지역 선정 필터 없음: 목록에 나온 상품을 그대로 상세 수집한다.
   const held = 0
   const excluded = 0
-  const selected: HanjintourListingForRegion[] = [...byGds.values()]
+  // 국내 목적지는 상세 호출 전에 뺀다(사장님 11/22 00:46). 하루 한도는 해외 상품만 센다.
+  const skipReasons: Record<string, number> = {}
+  const selected: HanjintourListingForRegion[] = []
+  for (const it of byGds.values()) {
+    if (isHanjintourDomesticListing(it.title, it.categoryPaths)) skipReasons.domestic = (skipReasons.domestic ?? 0) + 1
+    else selected.push(it)
+  }
   const queue = selected.slice(0, Math.max(0, opts.limit))
   const gdsNos: string[] = []
-  const skipReasons: Record<string, number> = {}
   const skip = (reason: string | null | undefined) => {
     const k = reason || 'unknown'
     skipReasons[k] = (skipReasons[k] ?? 0) + 1
