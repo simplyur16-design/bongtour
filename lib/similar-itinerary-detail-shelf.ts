@@ -82,6 +82,8 @@ export type SimilarItineraryDetailCard = {
   departureCount: number
   departureSort: string | null
   priceLabel: string
+  /** 성인 1인 원화. 표시 금액이 외화여도 차이 계산에만 쓴다. */
+  adultKrw: number | null
   priceSort: number | null
   airlineLabel: string
   hotelGradeLabel: string
@@ -101,6 +103,8 @@ export type SimilarItineraryDetailShelf = {
   widened: boolean
   weekLabel: string | null
   compareHref: string | null
+  /** 지금 보는 상품의 가장 가까운 출발 성인 1인 원화 */
+  anchorAdultKrw: number | null
   cards: SimilarItineraryDetailCard[]
 }
 
@@ -250,6 +254,73 @@ function isKrwCurrency(currency: string | null | undefined): boolean {
   const t = String(currency ?? '').trim()
   if (!t) return true
   return /^(KRW|원|￦|WON|₩|원화)$/i.test(t)
+}
+
+export function formatAdultPriceDelta(cardKrw: number | null | undefined, anchorKrw: number | null | undefined): string | null {
+  if (cardKrw == null || anchorKrw == null) return null
+  if (!Number.isFinite(cardKrw) || !Number.isFinite(anchorKrw) || cardKrw <= 0 || anchorKrw <= 0) return null
+  const delta = Math.round(cardKrw) - Math.round(anchorKrw)
+  if (delta === 0) return '같은 가격'
+  const sign = delta > 0 ? '+' : '-'
+  return `${sign}${Math.abs(delta).toLocaleString('ko-KR')}원`
+}
+
+const PIN_LABELS = ['같은 일정 최저가', '노쇼핑 최저가', '출발 가장 빠른 상품'] as const
+
+export function pickSimilarListPins<
+  T extends {
+    id: string
+    adultKrw: number | null
+    durationMatch: 'exact' | 'near'
+    noShopping: boolean
+    departureSort: string | null
+  },
+>(cards: readonly T[]): Array<{ id: string; labels: string[] }> {
+  const priced = (list: readonly T[]) => list.filter((card) => card.adultKrw != null && card.adultKrw > 0)
+  const cheapest = (list: readonly T[]): T | null => {
+    const rows = priced(list)
+    if (rows.length === 0) return null
+    return rows.reduce((best, cur) => {
+      if (cur.adultKrw! < best.adultKrw!) return cur
+      if (cur.adultKrw !== best.adultKrw) return best
+      const curDate = cur.departureSort ?? '9999-99-99'
+      const bestDate = best.departureSort ?? '9999-99-99'
+      if (curDate < bestDate) return cur
+      if (curDate === bestDate && cur.id < best.id) return cur
+      return best
+    })
+  }
+  const picks: Array<{ id: string; label: (typeof PIN_LABELS)[number] }> = []
+  const exactLow = cheapest(cards.filter((card) => card.durationMatch === 'exact'))
+  if (exactLow) picks.push({ id: exactLow.id, label: '같은 일정 최저가' })
+  const noShopLow = cheapest(cards.filter((card) => card.noShopping))
+  if (noShopLow) picks.push({ id: noShopLow.id, label: '노쇼핑 최저가' })
+  const dated = cards.filter((card) => card.departureSort)
+  if (dated.length > 0) {
+    const earliest = dated.reduce((best, cur) => {
+      if (cur.departureSort! < best.departureSort!) return cur
+      if (cur.departureSort !== best.departureSort) return best
+      const curPrice = cur.adultKrw ?? Number.POSITIVE_INFINITY
+      const bestPrice = best.adultKrw ?? Number.POSITIVE_INFINITY
+      if (curPrice < bestPrice) return cur
+      if (curPrice === bestPrice && cur.id < best.id) return cur
+      return best
+    })
+    picks.push({ id: earliest.id, label: '출발 가장 빠른 상품' })
+  }
+  const labelsById = new Map<string, string[]>()
+  const order: string[] = []
+  for (const pick of picks) {
+    if (!labelsById.has(pick.id)) {
+      labelsById.set(pick.id, [])
+      order.push(pick.id)
+    }
+    labelsById.get(pick.id)!.push(pick.label)
+  }
+  return order.map((id) => ({
+    id,
+    labels: PIN_LABELS.filter((label) => labelsById.get(id)!.includes(label)),
+  }))
 }
 
 export function shelfPackagePriceLabel(input: {
@@ -442,6 +513,7 @@ export async function loadSimilarItineraryDetailShelf(input: {
   baseDate?: Date
 }): Promise<SimilarItineraryDetailShelf | null> {
   const baseDate = input.baseDate ?? new Date()
+  const departureSince = new Date(baseDate.getTime() - 2 * 24 * 60 * 60 * 1000)
   const kind = similarItineraryCompareKindFromProduct({
     listingKind: input.listingKind,
     productType: input.productType,
@@ -449,7 +521,13 @@ export async function loadSimilarItineraryDetailShelf(input: {
   })
   const anchor = (await prisma.product.findFirst({
     where: { id: input.id, registrationStatus: 'registered' },
-    select: shelfSelect,
+    select: {
+      ...shelfSelect,
+      departures: {
+        ...shelfSelect.departures,
+        where: { departureDate: { gte: departureSince } },
+      },
+    },
   })) as ShelfRow | null
   if (!anchor) return null
 
@@ -463,7 +541,6 @@ export async function loadSimilarItineraryDetailShelf(input: {
 
   const placeTerms = comparePlaceDbSearchTerms(place)
   if (placeTerms.length === 0) return null
-  const departureSince = new Date(baseDate.getTime() - 2 * 24 * 60 * 60 * 1000)
   const products = (await prisma.product.findMany({
     where: {
       registrationStatus: 'registered',
@@ -577,6 +654,7 @@ export async function loadSimilarItineraryDetailShelf(input: {
       totalDays: anchor.tripDays,
     }),
     cards,
+    anchorAdultKrw: nearestBookableAdultKrw(anchor, baseDate),
   }
 }
 
@@ -588,6 +666,14 @@ type AnchorFacts = {
   tip: string
   meal: string
   price: string
+}
+
+function nearestBookableAdultKrw(row: ShelfRow, baseDate: Date): number | null {
+  const bookable = bookableCompareWeekRows(toCompareWeekRows(row.departures ?? []), baseDate)
+  const nearest = [...bookable].sort((a, b) => a.date.localeCompare(b.date))[0]
+  if (nearest && nearest.adult > 0) return Math.round(nearest.adult)
+  if (isKrwCurrency(row.priceCurrency) && row.priceFrom != null && row.priceFrom > 0) return Math.round(row.priceFrom)
+  return null
 }
 
 function factsFor(
@@ -606,6 +692,7 @@ function factsFor(
   departureCount: number
   departureSort: string | null
   priceSort: number | null
+  adultKrw: number | null
   noShopping: boolean
   noTip: boolean
   sameWeek: boolean
@@ -653,6 +740,7 @@ function factsFor(
     tip: tip.label,
     meal: hotelMeal.mealLabel?.trim() || '정보 없음',
     price: price.label,
+    adultKrw: focus?.adultKrw && focus.adultKrw > 0 ? Math.round(focus.adultKrw) : price.sort,
     departureLabel: count > 1 ? `가장 가까운 ${nearestLabel} · 출발일 ${count}개` : nearestLabel,
     departureCount: count,
     departureSort: dateYmd,
@@ -693,6 +781,7 @@ function toCard(
     departureCount: facts.departureCount,
     departureSort: facts.departureSort,
     priceLabel: facts.price,
+    adultKrw: facts.adultKrw,
     priceSort: facts.priceSort,
     airlineLabel: facts.airline,
     hotelGradeLabel: facts.hotel,

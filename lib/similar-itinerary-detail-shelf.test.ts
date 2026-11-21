@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   deriveShelfTip,
+  formatAdultPriceDelta,
   groupSimilarShelfItems,
   interleaveSimilarCardsBySupplier,
+  pickSimilarListPins,
   productCodeStem,
   selectSimilarDetailPeers,
   shelfPackagePriceLabel,
@@ -71,5 +73,29 @@ describe('similar itinerary detail shelf', () => {
   it('장소와 박일만 있는 짧은 제목 대신 공급사 상품명을 쓴다', () => {
     expect(similarShelfProductTitle('다낭 3박 5일', '신라모노그램 망고빙수 다낭 5일')).toBe('신라모노그램 망고빙수 다낭 5일')
     expect(similarShelfProductTitle('다낭/호이안 5일 #5성 #NO옵션', null)).toContain('#5성')
+  })
+
+  it('성인 1인 차이는 원화로 붙이고, 같은 금액은 같은 가격이다', () => {
+    expect(formatAdultPriceDelta(439000, 579000)).toBe('-140,000원')
+    expect(formatAdultPriceDelta(639000, 579000)).toBe('+60,000원')
+    expect(formatAdultPriceDelta(579000, 579000)).toBe('같은 가격')
+    expect(formatAdultPriceDelta(null, 579000)).toBeNull()
+  })
+
+  it('상단 고정은 없는 기준을 숨기고 같은 상품의 라벨을 한 줄로 합친다', () => {
+    const pins = pickSimilarListPins([
+      { id: 'a', adultKrw: 500000, durationMatch: 'exact' as const, noShopping: true, departureSort: '2026-11-28' },
+      { id: 'b', adultKrw: 700000, durationMatch: 'exact' as const, noShopping: false, departureSort: '2026-11-23' },
+      { id: 'c', adultKrw: 400000, durationMatch: 'near' as const, noShopping: false, departureSort: '2026-12-01' },
+    ])
+    expect(pins).toEqual([
+      { id: 'a', labels: ['같은 일정 최저가', '노쇼핑 최저가'] },
+      { id: 'b', labels: ['출발 가장 빠른 상품'] },
+    ])
+    expect(
+      pickSimilarListPins([
+        { id: 'n', adultKrw: 1000, durationMatch: 'near' as const, noShopping: false, departureSort: null },
+      ]),
+    ).toEqual([])
   })
 })
