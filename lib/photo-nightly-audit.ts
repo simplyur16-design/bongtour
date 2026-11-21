@@ -87,33 +87,12 @@ export function slotsOfProduct(p: PublicProductPhotos): Slot[] {
   return out
 }
 
-function ts(v: Date | string): number {
-  return new Date(v).getTime()
-}
-
-/** 목록 카드 대표끼리만 중복. 가장 먼저 만든 상품이 대표를 갖고, 나중 상품의 대표만 교체 대상. 일차 사진은 같아도 중복이 아니다. */
-export function planDuplicateIssues(products: readonly PublicProductPhotos[]): PhotoIssue[] {
-  const order = [...products].sort((a, b) => ts(a.createdAt) - ts(b.createdAt) || a.id.localeCompare(b.id))
-  const owners = new Map<string, string>()
-  for (const p of order) {
-    for (const s of slotsOfProduct(p)) {
-      if (s.kind !== 'cover') continue
-      for (const k of s.keys) if (!owners.has(k)) owners.set(k, p.id)
-    }
-  }
-  const issues: PhotoIssue[] = []
-  const seen = new Set<string>()
-  for (const p of order) {
-    for (const s of slotsOfProduct(p)) {
-      if (s.kind !== 'cover') continue
-      const earlier = s.keys.map((k) => owners.get(k)).find((o) => o && o !== p.id)
-      const slotKey = `${p.id}:${s.url}`
-      if (!earlier || seen.has(slotKey)) continue
-      seen.add(slotKey)
-      issues.push({ productId: p.id, kind: 'cover', day: null, reason: 'public_duplicate', url: s.url, detail: `same cover as ${earlier}` })
-    }
-  }
-  return issues
+/**
+ * 대표가 다른 상품과 같아도 교체 대상이 아니다. 고르기는 덜 쓴 사진과 상품 id 회전이 한다.
+ * 깨진 주소만 야간 점검이 바꾼다. 일차 사진이 다른 상품과 같은 것도 교체하지 않는다.
+ */
+export function planDuplicateIssues(_products: readonly PublicProductPhotos[]): PhotoIssue[] {
+  return []
 }
 
 export type HeadResult = { status: number | null; error?: string }

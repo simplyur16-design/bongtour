@@ -158,12 +158,10 @@ describe('photo-nightly-audit: 깨짐 확인(재시도 1회, 외부 장애는 SK
 })
 
 describe('photo-nightly-audit: 공개 상품 사이 중복은 대표만', () => {
-  it('일차 사진이 같아도 중복이 아니고, 대표끼리 같으면 나중 상품 대표만 중복', () => {
+  it('대표가 다른 상품과 같아도 교체 대상으로 올리지 않는다', () => {
     const a = product('A', '2026-01-01', [{ url: 'https://cdn.example.com/1.webp', extId: '100' }], { url: 'https://cdn.example.com/ca.webp', extId: '900' })
     const b = product('B', '2026-02-01', [{ url: 'https://cdn.example.com/2.webp', extId: '100' }], { url: 'https://cdn.example.com/cb.webp', extId: '900' })
-    const issues = planDuplicateIssues([b, a])
-    expect(issues).toHaveLength(1)
-    expect(issues[0]).toMatchObject({ productId: 'B', kind: 'cover', day: null, reason: 'public_duplicate' })
+    expect(planDuplicateIssues([b, a])).toEqual([])
   })
 
   it('대표가 다른 상품의 일차 사진과만 같으면 중복이 아니다', () => {
@@ -201,15 +199,15 @@ describe('photo-nightly-audit: 깨진·중복 사진을 같은 게이트 후보�
     expect(note!.prev).toMatchObject({ imageUrl: 'https://cdn.example.com/dead.webp' })
   })
 
-  it('대표 중복은 나중 상품 대표만 교체하고 일차 사진은 그대로', async () => {
+  it('대표가 같아도 야간 점검은 사진을 바꾸지 않는다', async () => {
     const a = product('A', '2026-01-01', [{ url: 'https://cdn.example.com/day-a.webp', extId: '1' }], { url: 'https://cdn.example.com/cover-a.webp', extId: '100' })
     const b = product('B', '2026-02-01', [{ url: 'https://cdn.example.com/day-b.webp', extId: '100' }], { url: 'https://cdn.example.com/cover-b.webp', extId: '100' })
     const h = harness([a, b])
     const r = await runPublicPhotoNightlyAudit(h.deps)
-    expect(r.duplicates).toBe(1)
-    expect(r.replaced).toEqual([{ productId: 'B', kind: 'cover', day: null, reason: 'public_duplicate' }])
+    expect(r.duplicates).toBe(0)
+    expect(r.replaced).toEqual([])
     expect(h.db.get('A')!.bgImageUrl).toBe('https://cdn.example.com/cover-a.webp')
-    expect(h.db.get('B')!.bgImageUrl).toContain('n-1')
+    expect(h.db.get('B')!.bgImageUrl).toBe('https://cdn.example.com/cover-b.webp')
     expect(h.db.get('B')!.schedule).toBe(b.schedule)
   })
 

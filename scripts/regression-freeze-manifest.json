@@ -31962,7 +31962,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "대표 사진 중복은 공개 상품뿐 아니라 등록대기 대표도 막는다. 이미 쓴 대표는 다음 출처로 다시 고른다.",
+      "summary": "대표 사용 횟수는 공개 상품과 등록대기를 같이 센다. 같아도 등록을 막지 않고, 덜 쓴 사진과 상품 id 회전으로 고른다. 공급사 주소는 쓰지 않는다.",
       "checks": [
         {
           "file": "lib/photo-autofill-public-usage.ts",
@@ -31974,9 +31974,53 @@
         {
           "file": "app/api/travel/process-images/route.ts",
           "mustInclude": [
+            "isSupplierPhotoUrl(",
+            "coverUseCount(heroKeys, String(product.id))"
+          ],
+          "mustNotInclude": [
             "coverConflict(heroKeys, String(product.id))"
           ]
         }
+      ]
+    },
+    {
+      "id": "thumbnail-least-used-1121",
+      "tier": ["prebuild", "ci"],
+      "summary": "썸네일은 일정 특색 장소를 도시보다 먼저 고르고, 장소 풀은 10~20장, 덜 쓴 사진부터 상품 id로 돌린다. 공급사 사진은 쓰지 않는다. 모자랄 때만 다시 쓴다.",
+      "checks": [
+        {
+          "file": "lib/thumbnail-pick.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[thumbnail-least-used-1121]",
+            "export function orderThumbnailCandidates",
+            "export function isSupplierPhotoUrl",
+            "export function thumbnailRotationIndex"
+          ]
+        },
+        {
+          "file": "lib/thumbnail-pool-topup.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[thumbnail-least-used-1121]",
+            "THUMBNAIL_POOL_MIN = 10",
+            "THUMBNAIL_POOL_MAX = 20"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-acquire.ts",
+          "mustInclude": [
+            "orderThumbnailCandidates"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-sight.ts",
+          "mustInclude": [
+            "일정 특색 장소"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/thumbnail-pick.test.ts",
+        "lib/thumbnail-pool-topup.test.ts"
       ]
     },
     {
@@ -32027,7 +32071,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "사진 자동 채움 채택 관문: 명소 이름(별칭) 일치, 도시 이름만 일치 탈락, 인물 주인공 탈락, 공개 중복은 목록 카드 대표만(일차는 같아도 통과, 같은 상품 재사용 허용), 해상도·용량(카드 200,000B·상세 400,000B·1200px).",
+      "summary": "사진 자동 채움 채택 관문: 명소 이름(별칭) 일치, 도시 이름만 일치 탈락, 인물 주인공 탈락, 공급사 주소 탈락, 대표가 다른 상품과 같다는 이유만으로 탈락하지 않음, 해상도·용량(카드 200,000B·상세 400,000B·1200px).",
       "checks": [
         {
           "file": "lib/photo-autofill-gate.ts",
@@ -32182,7 +32226,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "등록 전 사진 게이트: 방문지 불일치·목록 카드 대표 중복·무관 사진·저화질·용량 미달이면 등록하지 않는다. 일차 사진 중복은 막지 않는다. 기존 자동 등록 검사에 더하기만 한다.",
+      "summary": "등록 전 사진 게이트: 방문지 불일치·무관 사진·저화질·용량 미달이면 등록하지 않는다. 대표가 다른 상품과 같아도 막지 않고, 일차 사진 중복도 막지 않는다. 기존 자동 등록 검사에 더하기만 한다.",
       "checks": [
         {
           "file": "lib/register-photo-registration-gate.ts",
@@ -32235,7 +32279,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "야간 점검: 공개 상품 사진의 HTTP 깨짐과 대표 사진 중복만 재확인해 같은 게이트 후보로 사진 칸만 교체한다. 일차 중복은 교체하지 않는다. 실행당 교체 상한 10, 교체 전 값 기록, 순차·간격+지터·재시도 1회, 외부 장애는 SKIP+사유. 기존 자동 등록 job 의 야간 구간에만 붙는다.",
+      "summary": "야간 점검: 공개 상품 사진의 HTTP 깨짐만 재확인해 같은 게이트 후보로 사진 칸만 교체한다. 대표가 다른 상품과 같아도 교체하지 않는다. 실행당 교체 상한 10, 교체 전 값 기록, 순차·간격+지터·재시도 1회, 외부 장애는 SKIP+사유. 기존 자동 등록 job 의 야간 구간에만 붙는다.",
       "checks": [
         {
           "file": "lib/photo-nightly-audit.ts",

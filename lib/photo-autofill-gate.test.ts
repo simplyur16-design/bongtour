@@ -175,11 +175,11 @@ describe('photo-autofill-gate: 공개 중복은 목록 카드 대표만', () => 
     expect(judge(coverCand(), usage, 'p-new', 'day').reasons).not.toContain('public_duplicate')
   })
 
-  it('대표는 다른 공개 상품 대표와 같으면 탈락', () => {
+  it('대표는 다른 공개 상품 대표와 같아도 그 이유만으로 탈락하지 않는다', () => {
     const usage = buildPublicPhotoUsage(rows)
     const r = judge(coverCand(), usage, 'p-new', 'cover')
-    expect(r.ok).toBe(false)
-    expect(r.reasons).toContain('public_duplicate')
+    expect(r.reasons).not.toContain('public_duplicate')
+    expect(r.ok).toBe(true)
   })
 
   it('대표가 다른 상품의 일차 사진과만 같으면 통과', () => {

@@ -14,6 +14,9 @@ import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
 import type { AcquireDeps, StockTier } from '@/lib/photo-autofill-acquire'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, type AutofillCandidate } from '@/lib/photo-autofill-gate'
+import { claimThumbnailTopUpSlot, thumbnailPoolFetchCount, topUpThumbnailPlacePool } from '@/lib/thumbnail-pool-topup'
+import { isExistingIstockImage } from '@/lib/product-image-source-policy'
+import { isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
 
 /** 외부 호출 전 간격(사람처럼). Pexels 3.5초 가드 위에 얹는 지터다. */
 export const AUTOFILL_PAUSE_BASE_MS = 400
@@ -59,11 +62,35 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
     pause: () => sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS)),
     lookupPool: async (sight) => {
       if (typeof opts.prisma?.photoPool?.findMany !== 'function') return []
-      const rows = await findPhotoPoolByPlaceName(opts.prisma, sight, 8)
+      const loadRows = () => findPhotoPoolByPlaceName(opts.prisma, sight, 20)
+      let rows = await loadRows()
+      if (rows.length < 10 && thumbnailPoolFetchCount(rows.length) > 0 && claimThumbnailTopUpSlot()) {
+        await topUpThumbnailPlacePool({
+          have: rows.length,
+          pause: () => sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS)),
+          search: async (tier) => (await collectChainCandidates(sight, tier)).map(chainToAutofillCandidate),
+          searchCc0: async () => searchWikimediaCc0(sight, 15),
+          save: async (c) => {
+            if (isSupplierPhotoUrl(c.url) || isSupplierPhotoUrl(c.originalLink)) return false
+            const saved = await savePhotoFromUrl(
+              opts.prisma,
+              c.url,
+              opts.destination || sight,
+              sight,
+              c.source || 'Pexels',
+              { photographer: c.photographer, sourceUrl: c.originalLink, sourcePhotoId: c.id },
+              AUTOFILL_COVER_MAX_BYTES,
+            )
+            return !!saved
+          },
+        }).catch(() => ({ added: 0, skipped: ['topup'] }))
+        rows = await loadRows()
+      }
       const out: AutofillCandidate[] = []
       for (const row of rows) {
         const url = String(row.filePath ?? '').trim()
-        if (!url) continue
+        if (!url || isSupplierPhotoUrl(url) || isSupplierPhotoUrl(row.sourceUrl)) continue
+        if (/istock/i.test(String(row.source ?? '')) && !isExistingIstockImage(url)) continue
         await sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS))
         const dim = await probeImageDimensions(url).catch(() => null)
         const sized = await opts.probe(url)

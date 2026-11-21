@@ -3,7 +3,7 @@
  * 모두 통과해야 채택:
  *  (a) 사진 제목·설명·alt·태그에 그날 명소 이름(또는 별칭)이 있어야 한다. 도시 이름만 맞으면 탈락.
  *  (b) 사람이 주인공인 사진(portrait·woman·man·person·selfie·model 등 태그·제목) 탈락. 풍경 속 작은 사람·간판은 허용.
- *  (c) 목록 카드 대표 사진만 공개 중복을 본다. 다른 공개 상품의 대표와 출처 id·주소가 겹치면 탈락. 일차 사진은 다른 상품과 같아도 탈락하지 않는다. 같은 상품 안 재사용은 허용.
+ *  (c) 대표가 다른 상품과 같다는 이유만으로 탈락시키지 않는다. 고르기는 덜 쓴 사진·상품 id 회전이 한다. 공급사 주소는 탈락. 일차 사진은 다른 상품과 같아도 된다.
  *  (d) 가로 1200px 이상·가로형, 저장본은 대표 200,000B(카드)·일차 400,000B 미만(기존 상수 재사용).
  * 기존 관문(photoMatchGate)의 인물·차량·사물·실내·타국 명소 판정을 그대로 더해 쓴다(완화 없음).
  * REGRESSION-FREEZE[photo-autofill-gate]: 명소 이름 일치·인물 탈락·공개 중복 탈락·크기 기준 — manifest
@@ -13,6 +13,7 @@ import { photoCandidateText } from '@/lib/register-photo-subject-filter'
 import { IMAGE_MIN_WIDTH } from '@/lib/product-image-source-policy'
 import { DAY_PHOTO_DETAIL_MAX_BYTES } from '@/lib/register-day-photo-policy'
 import { foldPhotoText, sightMatchInText, type SightProfile } from '@/lib/photo-autofill-sight'
+import { isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
 
 export const AUTOFILL_MAX_CANDIDATES_PER_SLOT = 5
 export const AUTOFILL_MIN_WIDTH = IMAGE_MIN_WIDTH
@@ -54,6 +55,7 @@ export type AutofillRejectReason =
   | 'irrelevant_subject'
   | 'other_place'
   | 'public_duplicate'
+  | 'supplier_unlicensed'
 
 const PERSON_PORTRAIT_RE =
   /\b(portrait|portraits|selfie|selfies|headshot|headshots|model|models|posing|poses|posed|fashion|bride|groom|wedding)\b/
@@ -136,6 +138,20 @@ export class PublicPhotoUsage {
       }
     }
     return null
+  }
+
+  /** 다른 상품 대표로 쓰인 횟수. 같은 상품은 세지 않는다. */
+  coverUseCount(keys: readonly string[], productId: string): number {
+    const owners = new Set<string>()
+    for (const k of keys) {
+      const map = this.byKey.get(k)
+      if (!map) continue
+      for (const [pid, roles] of map) {
+        if (pid === productId || !roles.has('cover')) continue
+        owners.add(pid)
+      }
+    }
+    return owners.size
   }
 
   /** 목록 카드 대표끼리만 충돌. 다른 상품의 일차 사진과 같은 것은 충돌이 아니다. */
@@ -316,9 +332,8 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
 
   if (folded.length >= 3 && foreignCityInText(folded, `${input.slotText} ${input.cityTerms.join(' ')} ${input.sight.name}`)) reasons.add('other_place')
 
-  if (input.slotKind === 'cover') {
-    const conflict = input.usage.coverConflict(photoIdentityKeys({ url: c.url, externalId: c.id, originalLink: c.originalLink }), input.productId)
-    if (conflict) reasons.add('public_duplicate')
+  if (isSupplierPhotoUrl(c.url) || isSupplierPhotoUrl(c.originalLink) || isSupplierPhotoUrl(c.pageUrl)) {
+    reasons.add('supplier_unlicensed')
   }
 
   return { ok: reasons.size === 0, reasons: [...reasons], matched }
