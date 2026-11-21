@@ -320,6 +320,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     for (const u of [...new Set(urls)]) probes[u] = await probeStoredImage(u, f)
     const gate = evaluateAutoRegisterGate({
       ...p,
+      registrationStatus: p.registrationStatus === 'pre_photo_blocked' ? 'pending' : p.registrationStatus,
       sportsThemeTag: p.sportsThemeTag ?? null,
       departureCount: p._count.departures,
       futureDepartureCount: publishFacts.futureDepartureCount,
