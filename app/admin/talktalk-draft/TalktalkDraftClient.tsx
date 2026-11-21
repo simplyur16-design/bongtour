@@ -14,7 +14,7 @@ type Candidate = {
   href: string
 }
 
-type FaqHit = { id: string; question: string; answer: string; source: string }
+type FaqHit = { id: string; question: string; answer: string; source: string; subgroup?: string }
 type Need = { question: string; why: string }
 type FaqGroup = { id: string; label: string; items: FaqHit[] }
 
@@ -264,6 +264,10 @@ function FaqBrowser({
   setCopiedId: (id: string | null) => void
 }) {
   const group = groups.find((item) => item.id === activeCategory) ?? groups[0]
+  const [activeSub, setActiveSub] = useState<string | null>(null)
+  const subgroups = Array.from(new Set((group?.items ?? []).map((item) => item.subgroup ?? '기타')))
+  const direct = (group?.items.length ?? 0) <= 5 || subgroups.length <= 1
+  const visible = direct ? group?.items ?? [] : (group?.items ?? []).filter((item) => (item.subgroup ?? '기타') === activeSub)
   return (
     <section className="mt-10">
       <h2 className="text-base font-semibold text-slate-900">FAQ</h2>
@@ -274,6 +278,7 @@ function FaqBrowser({
             type="button"
             onClick={() => {
               setActiveCategory(item.id)
+              setActiveSub(null)
               setOpenId(null)
             }}
             className={
@@ -286,8 +291,31 @@ function FaqBrowser({
           </button>
         ))}
       </div>
+      {!direct && !activeSub ? (
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3" data-talktalk-faq-subgroups>
+          {subgroups.map((label) => (
+            <button
+              key={label}
+              type="button"
+              className="rounded-lg border border-slate-300 px-3 py-2 text-left text-sm font-medium text-slate-800"
+              onClick={() => {
+                setActiveSub(label)
+                setOpenId(null)
+              }}
+            >
+              {label} {(group?.items ?? []).filter((item) => (item.subgroup ?? '기타') === label).length}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {!direct && activeSub ? (
+        <button type="button" className="mt-4 text-sm font-semibold text-bt-text-navy" onClick={() => setActiveSub(null)}>
+          ‹ {group?.label} 분류
+        </button>
+      ) : null}
+      {visible.length > 0 ? (
       <ul className="mt-4 divide-y divide-slate-200 rounded-lg border border-slate-200">
-        {(group?.items ?? []).map((item) => {
+        {visible.map((item) => {
           const open = openId === item.id
           return (
             <li key={item.id} className="px-3 py-2">
@@ -317,6 +345,7 @@ function FaqBrowser({
           )
         })}
       </ul>
+      ) : null}
     </section>
   )
 }

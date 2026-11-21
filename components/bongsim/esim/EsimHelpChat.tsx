@@ -8,9 +8,12 @@ import {
   ESIM_HELP_NO_ORDERS,
   ESIM_HELP_ORDER_PROMPT,
   ESIM_HELP_QR_READY,
-  ESIM_HELP_TOPICS,
-  esimHelpTopic,
+  ESIM_HELP_CATEGORIES,
+  ESIM_HELP_CONTACT_CATEGORY,
+  ESIM_HELP_GREETING,
+  esimHelpCategory,
   esimHelpTranscript,
+  splitHelpAnswer,
   type ChatMood,
 } from '@/lib/esim-help-chat'
 
@@ -39,22 +42,38 @@ function Face({ mood, className = 'h-9 w-9' }: { mood: ChatMood; className?: str
 
 export default function EsimHelpChat() {
   const [open, setOpen] = useState(false)
-  const [topicId, setTopicId] = useState<string | null>(null)
-  const [step, setStep] = useState(0)
+  const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [questionId, setQuestionId] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
   const [orderNo, setOrderNo] = useState('')
   const [orderLine, setOrderLine] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const topic = topicId ? esimHelpTopic(topicId) : null
-  const line = topic?.lines[step] ?? null
-  const mood: ChatMood = orderLine || (topic && step >= (topic.lines.length || 1) - 1 && step > 0) ? 'sorry' : topic ? 'help' : orderNo ? 'think' : 'hello'
+  const category = categoryId ? esimHelpCategory(categoryId) : null
+  const isContact = categoryId === ESIM_HELP_CONTACT_CATEGORY.id
+  const question = category && questionId ? category.questions.find((item) => item.id === questionId) ?? null : null
+  const parts = question ? splitHelpAnswer(question.answer) : null
+  const mood: ChatMood = orderLine ? 'sorry' : question ? 'help' : isContact || orderNo ? 'think' : 'hello'
   const transcript = esimHelpTranscript(
-    [topic?.label, line, orderLine].filter((item): item is string => Boolean(item)),
+    [category?.label, question?.question, question?.answer, orderLine].filter((item): item is string => Boolean(item)),
   )
+
+  function goHome() {
+    setCategoryId(null)
+    setQuestionId(null)
+    setExpanded(false)
+    setOrderLine(null)
+  }
+
+  function goCategory(id: string) {
+    setCategoryId(id)
+    setQuestionId(null)
+    setExpanded(false)
+    setOrderLine(null)
+  }
 
   async function lookupOrder() {
     const needle = orderNo.trim()
     if (!needle) return
-    setTopicId('order')
     const res = await fetch('/api/bongsim/mypage/orders', { cache: 'no-store' })
     if (res.status === 401) {
       setOrderLine(ESIM_HELP_NO_ORDERS)
@@ -106,26 +125,72 @@ export default function EsimHelpChat() {
             </button>
           </header>
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3 text-sm leading-relaxed text-slate-800">
-            {topic && line ? <p className="rounded-xl bg-sky-50 px-3 py-2">{line}</p> : null}
-            {orderLine ? <p className="whitespace-pre-line rounded-xl bg-sky-50 px-3 py-2">{orderLine}</p> : null}
-            {!topic && !orderLine ? (
-              <div className="flex flex-wrap gap-2">
-                {ESIM_HELP_TOPICS.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-800"
-                    onClick={() => {
-                      setTopicId(item.id)
-                      setStep(0)
-                      setOrderLine(null)
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+            {categoryId ? (
+              <button
+                type="button"
+                className="text-xs font-semibold text-[#2f8fc7]"
+                onClick={() => (question ? goCategory(categoryId) : goHome())}
+              >
+                {question ? `‹ ${category?.label ?? ''}` : '‹ 처음으로'}
+              </button>
             ) : null}
+            {!categoryId ? (
+              <>
+                <p className="rounded-xl bg-sky-50 px-3 py-2">{ESIM_HELP_GREETING}</p>
+                <div className="grid grid-cols-2 gap-2" data-esim-help-categories>
+                  {[...ESIM_HELP_CATEGORIES, ESIM_HELP_CONTACT_CATEGORY].map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="rounded-xl border border-slate-200 px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:border-[#2f8fc7]"
+                      onClick={() => goCategory(item.id)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : null}
+            {category && !question ? (
+              <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                {category.questions.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm text-slate-800"
+                      onClick={() => {
+                        setQuestionId(item.id)
+                        setExpanded(false)
+                      }}
+                    >
+                      <span>{item.question}</span>
+                      <span className="text-slate-400" aria-hidden>›</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {question && parts ? (
+              <>
+                <p className="ml-auto w-fit max-w-[85%] rounded-xl bg-[#2f8fc7] px-3 py-2 text-white">{question.question}</p>
+                <div className="rounded-xl bg-sky-50 px-3 py-2">
+                  <p>{parts.short}</p>
+                  {parts.rest && expanded ? <p className="mt-2 whitespace-pre-line">{parts.rest}</p> : null}
+                  {parts.rest ? (
+                    <button
+                      type="button"
+                      className="mt-1 text-xs font-semibold text-[#2f8fc7]"
+                      onClick={() => setExpanded((value) => !value)}
+                      aria-expanded={expanded}
+                    >
+                      {expanded ? '접기' : '더 보기'}
+                    </button>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+            {isContact ? <p className="rounded-xl bg-sky-50 px-3 py-2">주문번호로 발급 상태를 확인하거나, 아래 {ESIM_AGENT_CHAT_LABEL}로 문의해 주세요.</p> : null}
+            {orderLine ? <p className="whitespace-pre-line rounded-xl bg-sky-50 px-3 py-2">{orderLine}</p> : null}
             <label className="block text-xs text-slate-500">
               {ESIM_HELP_ORDER_PROMPT}
               <span className="mt-1 flex gap-2">
@@ -143,15 +208,6 @@ export default function EsimHelpChat() {
             </label>
           </div>
           <footer className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3">
-            {topic && step < topic.lines.length - 1 ? (
-              <button
-                type="button"
-                className="col-span-2 rounded-lg border border-slate-200 py-2 text-sm font-semibold"
-                onClick={() => setStep((n) => n + 1)}
-              >
-                다음
-              </button>
-            ) : null}
             <a
               href={ESIM_AGENT_CHAT_URL}
               className="rounded-lg bg-[#2f8fc7] py-2 text-center text-sm font-semibold text-white"

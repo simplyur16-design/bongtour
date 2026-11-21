@@ -1169,10 +1169,46 @@ export function faqCountByCategory(): Record<TalktalkFaqCategory, number> {
   return counts
 }
 
+const TOPIC_SUBGROUP_LABEL: Record<TalktalkFaqTopic, string> = {
+  booking: '예약·접수',
+  process: '진행 절차',
+  payment: '결제·요금',
+  cancel: '취소·환불',
+  refund: '취소·환불',
+  passport: '여권·비자',
+  visa: '여권·비자',
+  esim: 'eSIM',
+  seat: '예약·잔여석',
+  departure: '출발 확정',
+  included: '포함·불포함',
+  shopping: '쇼핑·선택관광',
+  'extra-fee': '추가 요금',
+  agent: '상담원 연결',
+}
+
+/** eSIM 탭은 챗봇과 같은 중분류로 나눈다. */
+const ESIM_SUBGROUP_IDS: ReadonlyArray<readonly [string, readonly string[]]> = [
+  ['설치·개통', ['esim-iphone', 'esim-android', 'esim-when', 'esim-reg-wifi', 'esim-reg-manual-ios', 'esim-reg-manual-android', 'esim-reg-reset', 'esim-carrier-popup', 'esim-add-ios', 'esim-add-android', 'esim-install-window', 'esim-local-install-error', 'esim-early-install']],
+  ['데이터·핫스팟', ['esim-roaming', 'esim-offline', 'esim-data-roaming', 'esim-airplane', 'esim-apn', 'esim-hotspot', 'esim-usage-phone', 'esim-usage-mypage', 'boss-esim-topup', 'boss-esim-speed']],
+  ['구매·결제', ['esim-qr-sent', 'esim-qr-missing', 'esim-activate']],
+  ['취소·환불', ['esim-refund', 'esim-exchange', 'esim-reinstall', 'esim-remove-steps', 'esim-move']],
+  ['기기 호환', ['esim-device-check', 'esim-models', 'esim-lock', 'esim-dual', 'esim-voice']],
+]
+
+/** REGRESSION-FREEZE[esim-help-chat-categories-1122]: 관리자 FAQ도 종류 탭 → 중분류 → 질문 순서로 연다 — manifest */
+export function talktalkFaqSubgroup(item: Pick<TalktalkDraftFaqItem, 'id' | 'topics'>, categoryId: TalktalkFaqCategory): string {
+  if (categoryId === 'esim') {
+    const hit = ESIM_SUBGROUP_IDS.find(([, ids]) => ids.includes(item.id))
+    return hit ? hit[0] : '기타'
+  }
+  const first = item.topics.find((topic) => topic !== 'esim') ?? item.topics[0]
+  return first ? TOPIC_SUBGROUP_LABEL[first] : '기타'
+}
+
 export function talktalkFaqAdminGroups(): Array<{
   id: TalktalkFaqCategory
   label: string
-  items: Array<{ id: string; question: string; answer: string; source: string }>
+  items: Array<{ id: string; question: string; answer: string; source: string; subgroup: string }>
 }> {
   return TALKTALK_FAQ_CATEGORIES.map((category) => ({
     id: category.id,
@@ -1182,6 +1218,7 @@ export function talktalkFaqAdminGroups(): Array<{
       question: item.question,
       answer: item.answer,
       source: item.source,
+      subgroup: talktalkFaqSubgroup(item, category.id),
     })),
   }))
 }
