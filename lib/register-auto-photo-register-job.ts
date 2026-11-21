@@ -490,7 +490,8 @@ export async function runAutoPhotoRegisterJob(opts?: {
  */
 async function pickPublicMissingDayProducts(limit: number, now: Date) {
   const rows = await prisma.product.findMany({
-    where: { registrationStatus: 'registered' },
+    // 읽기 전용 조회(상태 전환 아님). 전환은 위 한 곳뿐 — register-auto-register-review-pass.test
+    where: { registrationStatus: { equals: 'registered' } },
     select: { id: true, bgImageUrl: true, schedule: true, destination: true },
     orderBy: { id: 'asc' },
   })
