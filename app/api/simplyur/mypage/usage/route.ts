@@ -1,6 +1,7 @@
 import { jsonWithLeakGuard } from "@/lib/public-response-guard";
 import { getPgPool } from "@/lib/bongsim/db/pool";
 import { parseAllowanceLabel } from "@/lib/bongsim/mypage-esim-display";
+import { resolveSimplyurUsageScope } from "@/lib/simplyur/usage-scope";
 import { fetchUsimsaTopupDailyUsage } from "@/lib/bongsim/supplier/usimsa/usage-api";
 import { isUsimsaSuccess } from "@/lib/bongsim/supplier/usimsa/types";
 import { UsimsaRequestError } from "@/lib/usimsa/client";
@@ -47,12 +48,23 @@ export async function GET(req: Request) {
       return jsonWithLeakGuard({ error: "not_found" }, "simplyur.mypage.usage", { status: 404 });
     }
 
-    const line = await pool.query<{ allowance_label: string | null }>(
-      `SELECT snapshot->>'allowance_label' AS allowance_label
+    const line = await pool.query<{
+      allowance_label: string | null;
+      plan_type: string | null;
+      network_family: string | null;
+      option_label: string | null;
+      plan_line_excel: string | null;
+    }>(
+      `SELECT snapshot->>'allowance_label' AS allowance_label,
+              snapshot->>'plan_type' AS plan_type,
+              snapshot->>'network_family' AS network_family,
+              snapshot->>'option_label' AS option_label,
+              snapshot->>'plan_line_excel' AS plan_line_excel
          FROM bongsim_order_line WHERE order_id = $1::uuid ORDER BY created_at ASC LIMIT 1`,
       [orderId],
     );
-    const allowanceLabel = line.rows[0]?.allowance_label?.trim() ?? "";
+    const lineRow = line.rows[0];
+    const allowanceLabel = lineRow?.allowance_label?.trim() ?? "";
     const allowance = parseAllowanceLabel(allowanceLabel);
 
     const top = await pool.query<{ topup_id: string }>(
@@ -77,14 +89,32 @@ export async function GET(req: Request) {
       return jsonWithLeakGuard({ error: "usage_unavailable" }, "simplyur.mypage.usage", { status: 502 });
     }
 
-    const totalUsedMb = norm.history.reduce((s, h) => s + (Number.isFinite(h.usageMb) ? h.usageMb : 0), 0);
+    // Daily plans: allowance_label is the per-DAY cap → compare today's usage, not the trip sum
+    // (1.0.2 showed e.g. "2.9 GB / 2.0 GB" by summing every day against a 2 GB daily cap).
+    const scope = resolveSimplyurUsageScope({
+      line: {
+        allowance_label: allowanceLabel,
+        plan_type: lineRow?.plan_type ?? null,
+        network_family: lineRow?.network_family ?? null,
+        option_label: lineRow?.option_label ?? null,
+        plan_line_excel: lineRow?.plan_line_excel ?? null,
+      },
+      history: norm.history,
+      supplierTodayUsageMb: norm.todayUsageMb,
+    });
 
     return jsonWithLeakGuard(
       {
         order_id: orderId,
-        unlimited: allowance.unlimited,
-        cap_mb: allowance.capMb,
-        total_used_mb: totalUsedMb,
+        unlimited: scope.unlimited,
+        cap_scope: scope.cap_scope,
+        cap_mb: scope.cap_mb,
+        // Usage measured against cap_mb (today for daily plans). App 1.0.2 renders
+        // total_used_mb / cap_mb, so this keeps installed clients truthful too.
+        total_used_mb: scope.used_mb,
+        used_mb: scope.used_mb,
+        today_used_mb: scope.today_used_mb,
+        cumulative_used_mb: scope.cumulative_used_mb,
         history: norm.history,
       },
       "simplyur.mypage.usage",

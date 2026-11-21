@@ -6,6 +6,8 @@ Bundle / package: **`com.bongtour.simplyur`**
 
 2026-11-17: iOS 1.0.1 (30) uploaded to App Store Connect. Train 1.0.0 is closed; the next iOS version must be above 1.0.1.
 
+2026-11-21: 1.0.2 released (iOS build 33, Android versionCode 17). 1.0.3 = iOS build 34 / Android versionCode 18 (data-usage ring fix + store name "Simplyur eSIM" and JA/ZH-Hant/VI/ZH-Hans listings).
+
 ## A. One-time accounts (operator)
 
 1. Expo account → https://expo.dev/signup  

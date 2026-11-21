@@ -1,7 +1,7 @@
 import {
   MY_ESIM_BADGE,
   type MyEsimBadgeTier,
-} from '@/src/constants/my-esim-design';
+} from '../constants/my-esim-design';
 
 export type MyEsimOrderRow = {
   order_id: string;
@@ -19,6 +19,11 @@ export type MyEsimUsageResponse = {
   unlimited: boolean;
   cap_mb: number | null;
   history: { date: string; usageMb: number }[];
+  /** 1.0.3 API: "daily" = cap_mb is a per-day allowance; total_used_mb/used_mb is today's usage. */
+  cap_scope?: "daily" | "total" | "none";
+  used_mb?: number;
+  today_used_mb?: number;
+  cumulative_used_mb?: number;
 };
 
 export function myEsimBadgeTier(
@@ -47,7 +52,8 @@ export function todayUsageMb(history: { date: string; usageMb: number }[]): numb
 
 export function usageUsedPercent(usedMb: number, capMb: number | null): number {
   if (capMb == null || capMb <= 0) return 0;
-  return Math.min(100, Math.round((usedMb / capMb) * 100));
+  if (!Number.isFinite(usedMb) || usedMb <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((usedMb / capMb) * 100)));
 }
 
 export function interpolate(template: string, vars: Record<string, string | number>): string {
@@ -62,6 +68,10 @@ export type UsageSummaryView = {
   usedDisplay: string;
   usedOfLabel: string;
   remainingDisplay: string | null;
+  /** Word after remainingDisplay ("left" / "left today"). */
+  leftLabel: string;
+  /** Plan allowance fully used (ring 100%, label says so instead of "X of Y"). */
+  capReached: boolean;
   showChart: boolean;
 };
 
@@ -79,6 +89,8 @@ export function buildUsageSummaryView(
       usedDisplay: '0 GB',
       usedOfLabel: tr('myEsim.usedSuffix'),
       remainingDisplay: null,
+      leftLabel: tr('myEsim.leftWord'),
+      capReached: false,
       showChart: false,
     };
   }
@@ -91,11 +103,13 @@ export function buildUsageSummaryView(
       usedDisplay: '—',
       usedOfLabel: '',
       remainingDisplay: null,
+      leftLabel: tr('myEsim.leftWord'),
+      capReached: false,
       showChart: false,
     };
   }
   if (usage.unlimited) {
-    const todayLabel = formatDataAmount(todayUsageMb(usage.history));
+    const todayLabel = formatDataAmount(usage.today_used_mb ?? todayUsageMb(usage.history));
     return {
       usageLabel: interpolate(tr('myEsim.usedToday'), { amount: todayLabel }),
       sublabel: tr('myEsim.unlimitedResetsDaily'),
@@ -104,22 +118,49 @@ export function buildUsageSummaryView(
       usedDisplay: todayLabel,
       usedOfLabel: tr('myEsim.usedTodaySuffix'),
       remainingDisplay: null,
+      leftLabel: tr('myEsim.leftWord'),
+      capReached: false,
       showChart: usage.history.length > 0,
     };
   }
-  const used = usage.total_used_mb;
-  const cap = usage.cap_mb ?? 0;
-  const remaining = Math.max(0, cap - used);
-  const usedLabel = formatDataAmount(used);
+  const daily = usage.cap_scope === 'daily';
+  const rawUsed = usage.used_mb ?? usage.total_used_mb;
+  const used = Number.isFinite(rawUsed) && rawUsed > 0 ? rawUsed : 0;
+  const cap = usage.cap_mb != null && usage.cap_mb > 0 ? usage.cap_mb : 0;
   const capLabel = formatDataAmount(cap);
+  const leftLabel = tr(daily ? 'myEsim.leftToday' : 'myEsim.leftWord');
+  if (cap <= 0) {
+    const usedLabel = formatDataAmount(used);
+    return {
+      usageLabel: interpolate(tr('myEsim.usedAmount'), { amount: usedLabel }),
+      sublabel: '',
+      hasCap: false,
+      usedPct: 0,
+      usedDisplay: usedLabel,
+      usedOfLabel: tr('myEsim.usedSuffix'),
+      remainingDisplay: null,
+      leftLabel,
+      capReached: false,
+      showChart: usage.history.length > 0,
+    };
+  }
+  // Never show "2.9 GB of 2.0 GB": at/over the cap the allowance is simply used up.
+  const capReached = used >= cap;
+  const shownUsed = Math.min(used, cap);
+  const usedLabel = formatDataAmount(shownUsed);
+  const usageLabel = capReached
+    ? interpolate(tr(daily ? 'myEsim.dailyCapReached' : 'myEsim.capReached'), { cap: capLabel })
+    : interpolate(tr(daily ? 'myEsim.usedOfCapToday' : 'myEsim.usedOfCap'), { used: usedLabel, cap: capLabel });
   return {
-    usageLabel: interpolate(tr('myEsim.usedOfCap'), { used: usedLabel, cap: capLabel }),
-    sublabel: '',
-    hasCap: cap > 0,
-    usedPct: usageUsedPercent(used, cap),
+    usageLabel,
+    sublabel: daily ? tr('myEsim.dailyPlanResets') : '',
+    hasCap: true,
+    usedPct: capReached ? 100 : usageUsedPercent(shownUsed, cap),
     usedDisplay: usedLabel,
-    usedOfLabel: interpolate(tr('myEsim.usedOfSuffix'), { cap: capLabel }),
-    remainingDisplay: formatDataAmount(remaining),
+    usedOfLabel: interpolate(tr(daily ? 'myEsim.usedOfSuffixToday' : 'myEsim.usedOfSuffix'), { cap: capLabel }),
+    remainingDisplay: formatDataAmount(Math.max(0, cap - shownUsed)),
+    leftLabel,
+    capReached,
     showChart: usage.history.length > 0,
   };
 }

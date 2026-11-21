@@ -368,7 +368,7 @@ export default function MyEsimScreen() {
                       {modalSummary.usedDisplay} {t('myEsim.usedWord')}
                     </Text>
                     <Text style={styles.capRemain}>
-                      {modalSummary.remainingDisplay} {t('myEsim.leftWord')}
+                      {modalSummary.remainingDisplay} {modalSummary.leftLabel}
                     </Text>
                   </View>
                 </View>
@@ -631,7 +631,7 @@ export default function MyEsimScreen() {
                 <View style={styles.ringCenter} pointerEvents="none">
                   <Text style={styles.ringBig}>{ring.remainingDisplay ?? ring.usedDisplay}</Text>
                   <Text style={styles.ringSmall}>
-                    {ring.remainingDisplay ? t('myEsim.leftWord') : ring.usedOfLabel}
+                    {ring.remainingDisplay ? ring.leftLabel : ring.usedOfLabel}
                   </Text>
                 </View>
                 <View style={styles.ringInfo}>

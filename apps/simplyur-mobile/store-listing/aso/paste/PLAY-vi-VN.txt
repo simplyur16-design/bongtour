@@ -4,39 +4,34 @@ App name
 Simplyur eSIM
 
 Short description
-eSIM Han Quoc cho khach. QR email, cai truoc bay, online luc ha canh.
+eSIM Hàn Quốc cho du khách: nhận QR qua email, cài trước khi bay.
 
 Full description
-simplyur la eSIM Han Quoc cho khách quoc te den Han — khong danh cho cu dan Han.
+Simplyur eSIM là eSIM Hàn Quốc dành cho du khách quốc tế — không dành cho người đang sinh sống tại Hàn Quốc.
 
-Mua goi data toan quoc. Nhan QR qua email sau thanh toan. Cai truoc khi bay, kich hoat khi ha canh. Khong can SIM vat ly.
+Mua gói data dùng trên toàn Hàn Quốc: Seoul, Busan, Jeju và các nơi khác. Sau khi thanh toán, mã QR sẽ được gửi qua email. Cài đặt trước khi bay và kích hoạt khi hạ cánh. Không cần SIM vật lý, không cần ra quầy sân bay.
 
-• Goi theo so ngay luu tru
-• QR email ngay sau mua
-• Huong dan EN / JA / ZH / VI
-• My eSIM: QR, data con lai
-• Dang nhap Google / Apple
-• The quoc te (Eximbay)
+• Gói cước theo số ngày lưu trú
+• Mua không cần tài khoản, chỉ cần email (đăng nhập là tùy chọn)
+• Nhận mã QR qua email ngay sau khi mua
+• Mọi gói đều phát được hotspot (có thể bị giới hạn theo chính sách nhà mạng)
+• Hướng dẫn bằng tiếng Việt, Anh, Nhật, Trung
+• My eSIM: mã QR, dung lượng còn lại, các bước cài đặt
+• Thanh toán bằng thẻ quốc tế (Eximbay)
 
-Bong Tour · bongtour24@naver.com
-https://bongtour.com/simplyur/vi/legal/privacy
+Trung tâm hỗ trợ khách hàng: bongtour24@naver.com
+Chính sách bảo mật: https://bongtour.com/simplyur/vi/legal/privacy
 
 What's new
-simplyur 1.0.0 — bản phát hành chính thức đầu tiên. eSIM Hàn Quốc cho khách quốc tế, không dành cho người cư trú tại Hàn Quốc.
-
-Mua data toàn quốc (Seoul, Busan, Jeju và các nơi khác). Thanh toán xong nhận QR qua email. Cài trước khi bay, kích hoạt khi hạ cánh. Không cần SIM vật lý hay quầy sân bay.
-
-Gói theo số ngày. Hướng dẫn tiếng Anh, Nhật, Trung, Việt. My eSIM: QR, dung lượng còn lại, các bước cài. Đăng nhập Google và thẻ Eximbay.
-
-Sẵn sàng Android 15/16. Hỗ trợ: bongtour24@naver.com
+Sửa hiển thị dung lượng trong My eSIM: gói theo ngày hiển thị mức đã dùng hôm nay so với dung lượng mỗi ngày.
 
 Category: Travel & Local
 Email: bongtour24@naver.com
 Privacy: https://bongtour.com/simplyur/en/legal/privacy
 
 Screenshot captions:
-1. eSIM Han cho khach
-2. Mua goi — QR email
-3. Cai truoc khi bay
-4. Kich hoat khi ha canh
-5. Huong dan EN·JA·ZH·VI
+1. eSIM Hàn Quốc cho du khách
+2. Mua gói — nhận QR qua email
+3. Cài trước khi bay
+4. Kích hoạt khi hạ cánh
+5. Hướng dẫn VI · EN · JA · ZH

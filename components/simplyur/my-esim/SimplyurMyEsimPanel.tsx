@@ -387,7 +387,7 @@ export function SimplyurMyEsimPanel({
                           {modalSummary.usedDisplay} {tr("myEsim.usedWord")}
                         </span>
                         <span className="font-bold" style={{ color: D.navy }}>
-                          {modalSummary.remainingDisplay} {tr("myEsim.leftWord")}
+                          {modalSummary.remainingDisplay} {modalSummary.leftLabel}
                         </span>
                       </div>
                     </div>
