@@ -1,6 +1,7 @@
 /**
  * 한진관광 첫 수집 → 등록대기 한 번에.
- * listing → 지역필터 선정만(판단보류·제외 제외) → detail → handler.
+ * listing → 목록에 나온 상품 전부 → detail → handler. (2026-11-21 사장님 지시: 지역·특수지역 선정 필터 없음)
+ * 출발일·원문 가격이 없는 상품은 handler 가 사유(no_departure·bad_price 등)를 돌려주고, skipReasons 에 사유별로 센다.
  * 기본은 계획만 출력한다. --apply 가 있을 때만 DB에 pending 을 기록한다.
  * 호출 간격·직렬·재시도·403/429 중단은 createHanjintourClient 그대로다.
  * 출력은 건수와 상품번호(gdsNo)만.
@@ -29,9 +30,6 @@ import {
 import { hanjinFailureName, hanjinWalkStopReason } from '../lib/hanjintour-ingest-stop'
 import {
   HANJINTOUR_EXISTING_SUPPLIERS,
-  buildExistingRegionIndex,
-  classifyHanjintourListing,
-  hanjintourDetailCollectAllowed,
   type ExistingProductRegionRow,
   type HanjintourListingForRegion,
 } from '../lib/hanjintour-region-filter'
@@ -43,6 +41,8 @@ export type HanjintourIngestSummary = {
   planned: number
   applied: number
   skipped: number
+  /** 건너뛴 사유별 건수 (no_departure·bad_price·already_public·fetch_error 등) */
+  skipReasons: Record<string, number>
   gdsNos: string[]
   stoppedReason: string | null
 }
@@ -66,6 +66,7 @@ export async function runHanjintourIngestPending(opts: {
     planned: 0,
     applied: 0,
     skipped: 0,
+    skipReasons: {},
     gdsNos: [],
     stoppedReason,
   })
@@ -83,7 +84,6 @@ export async function runHanjintourIngestPending(opts: {
   const existingRows = existingRaw.filter((r) =>
     (HANJINTOUR_EXISTING_SUPPLIERS as readonly string[]).includes(String(r.originSource)),
   )
-  const index = buildExistingRegionIndex(existingRows)
   let gnb: unknown
   try {
     gnb = await fetchHanjintourGnbMenu(opts.client)
@@ -116,17 +116,18 @@ export async function runHanjintourIngestPending(opts: {
     }
   }
 
-  let held = 0
-  let excluded = 0
-  const selected: HanjintourListingForRegion[] = []
-  for (const it of byGds.values()) {
-    const decision = classifyHanjintourListing(it, index)
-    if (decision.decision === '판단보류') held++
-    else if (decision.decision === '제외') excluded++
-    else if (hanjintourDetailCollectAllowed(decision)) selected.push(it)
-  }
+  // 지역 선정 필터 없음: 목록에 나온 상품을 그대로 상세 수집한다.
+  const held = 0
+  const excluded = 0
+  const selected: HanjintourListingForRegion[] = [...byGds.values()]
   const queue = selected.slice(0, Math.max(0, opts.limit))
   const gdsNos: string[] = []
+  const skipReasons: Record<string, number> = {}
+  const skip = (reason: string | null | undefined) => {
+    const k = reason || 'unknown'
+    skipReasons[k] = (skipReasons[k] ?? 0) + 1
+    skipped++
+  }
   let skipped = 0
   let applied = 0
   for (const it of queue) {
@@ -157,7 +158,7 @@ export async function runHanjintourIngestPending(opts: {
       }
       if (!opts.apply) {
         const plan = planHanjintourPendingEnqueue(body)
-        if (!plan.ok) skipped++
+        if (!plan.ok) skip(plan.reason)
         else gdsNos.push(it.gdsNo)
         continue
       }
@@ -165,10 +166,10 @@ export async function runHanjintourIngestPending(opts: {
       if (result.body.success) {
         applied++
         gdsNos.push(it.gdsNo)
-      } else skipped++
+      } else skip((result.body as { reason?: string }).reason)
     } catch (e) {
-      skipped++
       const stop = hanjinWalkStopReason(e)
+      skip(stop ?? 'fetch_error')
       if (stop) {
         return {
           listed: byGds.size,
@@ -178,6 +179,7 @@ export async function runHanjintourIngestPending(opts: {
           planned: 0,
           applied,
           skipped,
+          skipReasons,
           gdsNos,
           stoppedReason: stop,
         }
@@ -193,6 +195,7 @@ export async function runHanjintourIngestPending(opts: {
     planned: opts.apply ? 0 : gdsNos.length,
     applied,
     skipped,
+    skipReasons,
     gdsNos,
     stoppedReason: null,
   }
@@ -237,6 +240,7 @@ async function main() {
       planned: summary.planned,
       applied: summary.applied,
       skipped: summary.skipped,
+      skipReasons: summary.skipReasons,
       stoppedReason: summary.stoppedReason,
       gdsNos: summary.gdsNos,
     }),
