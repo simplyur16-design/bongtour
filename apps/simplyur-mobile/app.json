@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bongtour.simplyur",
-      "buildNumber": "34",
+      "buildNumber": "35",
       "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:bongtour.com",
@@ -40,7 +40,7 @@
     },
     "android": {
       "package": "com.bongtour.simplyur",
-      "versionCode": 18,
+      "versionCode": 19,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "backgroundColor": "#EEF1EC",

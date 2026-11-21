@@ -384,9 +384,10 @@ function PlanCard({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) 
 
 /** Proposal 3 — benefit tags from optional API fields; nothing renders on older servers. */
 function PlanBenefitChips({ plan, t }: { plan: PlanProduct; t: (k: string) => string }) {
-  if (!plan.free_apps_data && !plan.hotspot_note && !plan.unused_refund) return null;
+  if (!plan.featured && !plan.free_apps_data && !plan.hotspot_note && !plan.unused_refund) return null;
   return (
     <View style={styles.benefitRow}>
+      {plan.featured ? <Tag tone="primary" label={t('recommend.recommendedTag')} /> : null}
       {plan.free_apps_data ? <Tag tone="free" icon="map" label={t('product.freeAppsShort')} /> : null}
       {plan.hotspot_note ? <Tag tone="neutral" icon="wifi" label={t('product.hotspotShort')} /> : null}
       {plan.unused_refund ? <Tag tone="neutral" icon="refund" label={t('product.unusedRefundShort')} /> : null}

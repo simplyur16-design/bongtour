@@ -40,6 +40,8 @@ export type SimplyurPublicProduct = {
   hotspot_note?: string;
   /** Unused (not activated) eSIM refundable — wording follows the Refund & Service Policy. */
   unused_refund?: boolean;
+  /** Representative plan shown first with a "Recommended" tag (5/3/10-day unlimited). Older clients ignore it. */
+  featured?: boolean;
 };
 
 export function toSimplyurPublicProduct(

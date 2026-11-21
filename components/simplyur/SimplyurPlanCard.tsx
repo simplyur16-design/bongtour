@@ -32,6 +32,11 @@ export function SimplyurPlanCard({ plan, selectLabel, priceLabel, networkFamily 
               {networkFamily === "local" ? tr("recommend.local") : tr("recommend.roaming")}
             </span>
           ) : null}
+          {plan.featured ? (
+            <span className="rounded-full su-bg-dan px-2.5 py-0.5 text-[11px] font-semibold text-white">
+              {tr("recommend.recommendedTag")}
+            </span>
+          ) : null}
         </div>
         <div className="mt-2 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">

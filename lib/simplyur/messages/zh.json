@@ -98,6 +98,7 @@
     "local": "韩国本地网络",
     "selectPlan": "选择",
     "perDay": "{amount}/天",
+    "recommendedTag": "推荐",
     "checkoutSoon": "结账暂时不可用",
     "price": "价格",
     "durationLabel": "您行程几天？",

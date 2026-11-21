@@ -30,6 +30,14 @@ export function SimplyurPlansPlanCard({ plan }: Props) {
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
+          {plan.featured ? (
+            <span
+              className="mb-1.5 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+              style={{ backgroundColor: D.coral, color: "#fff" }}
+            >
+              {tr("recommend.recommendedTag")}
+            </span>
+          ) : null}
           <p className="text-xl font-extrabold" style={{ color: D.navy }}>
             {plan.data_label}
           </p>

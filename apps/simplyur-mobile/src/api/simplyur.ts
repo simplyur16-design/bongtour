@@ -21,6 +21,8 @@ export type PlanProduct = {
   hotspot_note?: string | null;
   /** Optional: unused (not activated) eSIM refundable per the refund policy. */
   unused_refund?: boolean;
+  /** Optional (server ≥ 2026-11-21): representative plan, listed first with a "Recommended" tag. */
+  featured?: boolean;
 };
 
 export type CountryPack = {

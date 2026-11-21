@@ -124,6 +124,7 @@
     "local": "Local Korean network",
     "selectPlan": "Select",
     "perDay": "{amount}/day",
+    "recommendedTag": "Recommended",
     "checkoutSoon": "Checkout temporarily unavailable",
     "price": "Price",
     "durationLabel": "How long is your trip?",
