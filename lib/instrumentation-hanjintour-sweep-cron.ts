@@ -55,6 +55,7 @@ async function tickHanjintourSweepCron() {
       selected: summary.selected,
       applied: summary.applied,
       skipped: summary.skipped,
+      stoppedReason: summary.stoppedReason,
       held: summary.held,
       excluded: summary.excluded,
     })

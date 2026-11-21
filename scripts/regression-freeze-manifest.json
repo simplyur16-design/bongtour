@@ -7050,6 +7050,39 @@
       ]
     },
     {
+      "id": "hanjin-ingest-stop-reason",
+      "tier": ["prebuild", "ci"],
+      "summary": "한진 화면 수집은 403·429·타임아웃이면 그 자리에서 멈추고 사유만 남긴다. 지역 색인 읽기 실패는 1회만 다시 한다. 호출 간격은 그대로다.",
+      "checks": [
+        {
+          "file": "lib/hanjintour-ingest-stop.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanjin-ingest-stop-reason]",
+            "blocked_",
+            "timeout"
+          ]
+        },
+        {
+          "file": "lib/hanjintour-http.ts",
+          "mustInclude": [
+            "HANJINTOUR_CALL_GAP_MS = 2_500",
+            "maxRetries: 1"
+          ]
+        },
+        {
+          "file": "scripts/hanjintour-ingest-pending.ts",
+          "mustInclude": [
+            "hanjinWalkStopReason",
+            "db_read"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hanjintour-ingest-stop.test.ts",
+        "lib/hanjintour-ingest-pending.test.ts"
+      ]
+    },
+    {
       "id": "modetour-sweep-e2e-recheck",
       "tier": [
         "prebuild",
