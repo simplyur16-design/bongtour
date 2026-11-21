@@ -3,6 +3,7 @@ import Header from "@/app/components/Header";
 import { EsimGuideSiteView } from "@/components/bongsim/esim/EsimGuideSiteView";
 import { esimGuideLocale } from "@/lib/bongsim/esim-guide-site/load";
 import { ESIM_INSTALL_GUIDE_PATH } from "@/lib/bongsim/esim-install-guide";
+import EsimHelpChat from "@/components/bongsim/esim/EsimHelpChat";
 
 const guide = esimGuideLocale().content.guide;
 
@@ -20,6 +21,7 @@ export default function EsimInstallGuideInstallPage() {
       <main>
         <EsimGuideSiteView page="guide" />
       </main>
+      <EsimHelpChat />
     </div>
   );
 }
