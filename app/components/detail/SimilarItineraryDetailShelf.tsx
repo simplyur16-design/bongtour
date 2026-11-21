@@ -205,7 +205,7 @@ export default function SimilarItineraryDetailShelf({
                 </button>
               ) : null}
               {shelf.compareHref ? (
-                <Link href={shelf.compareHref} className="mb-2 mt-3 block text-xs text-bt-meta underline-offset-2 hover:underline">
+                <Link href={shelf.compareHref} className="mb-2 mt-3 inline-flex rounded-md border border-bt-brand-blue-strong px-2 py-1 text-xs text-bt-meta underline-offset-2 hover:underline">
                   같은 일정, 공급사별 사실 비교
                 </Link>
               ) : null}

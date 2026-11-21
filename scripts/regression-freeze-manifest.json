@@ -22133,8 +22133,12 @@
       "checks": [
         {
           "file": "app/components/detail/ProductLiveQuoteCard.tsx",
-          "mustInclude": ["bg-bt-text-navy", "border-bt-brand-blue-strong"],
+          "mustInclude": ["bg-bt-text-navy"],
           "mustNotInclude": ["#1F1B2D", "#2f8fc7"]
+        },
+        {
+          "file": "app/components/detail/SimilarItineraryDetailShelf.tsx",
+          "mustInclude": ["border-bt-brand-blue-strong", "같은 일정, 공급사별 사실 비교"]
         },
         {
           "file": "app/components/home/PersonaTabsClient.tsx",
