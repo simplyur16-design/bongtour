@@ -47,18 +47,18 @@ export type ChainCandidate = {
 }
 
 /**
- * 사장님 11/01 검수: 로고·워터마크·글자 얹은 사진 금지, 대표사진 흑백 금지(일차 칸 흑백은 허용).
- * 후보 설명(alt)으로 먼저 거른다 — 대표사진 흑백은 고른 뒤 미리보기 화소로 한 번 더 본다(findStockPhotoByChain verify).
+ * 사장님 11/01 검수: 로고·워터마크·글자 얹은 사진 금지. 흑백은 11/01 대표만 → 11/22 대표·일차 모두 금지.
+ * 후보 설명(alt)으로 먼저 거른다 — 흑백은 고른 뒤 미리보기 화소로 한 번 더 본다(findStockPhotoByChain verify).
  */
 const TEXT_OVERLAY_RE = /\b(watermark|watermarked|typography|lettering|text overlay|overlay text|quote|quotes|motivational|logo|logos|caption|captions|meme|mockup|template)\b/i
 export function chainCandidateTextBlockReason(c: Pick<ChainCandidate, 'altText'>, slot: 'main' | 'day'): string | null {
   const alt = String(c.altText ?? '')
   if (TEXT_OVERLAY_RE.test(alt)) return 'text_or_logo'
-  if (slot === 'main' && altSaysMonochrome(alt)) return 'main_monochrome'
+  if (altSaysMonochrome(alt)) return slot === 'main' ? 'main_monochrome' : 'day_monochrome'
   return null
 }
 
-/** 대표사진 흑백 확인(미리보기 화소). 받기 실패는 통과. */
+/** 흑백 확인(미리보기 화소, 대표·일차 공용). 받기 실패는 통과. */
 export async function chainMainNotMonochrome(c: Pick<ChainCandidate, 'url'>): Promise<boolean> {
   return !(await isMonochromePhotoUrl(c.url))
 }

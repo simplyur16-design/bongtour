@@ -17,6 +17,7 @@ import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, type AutofillCandidat
 import { claimThumbnailTopUpSlot, thumbnailPoolFetchCount, topUpThumbnailPlacePool } from '@/lib/thumbnail-pool-topup'
 import { isExistingIstockImage } from '@/lib/product-image-source-policy'
 import { isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
+import { isMonochromeImageBuffer, isMonochromePhotoUrl } from '@/lib/register-photo-monochrome'
 
 /** 외부 호출 전 간격(사람처럼). Pexels 3.5초 가드 위에 얹는 지터다. */
 export const AUTOFILL_PAUSE_BASE_MS = 400
@@ -72,6 +73,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
           searchCc0: async () => searchWikimediaCc0(sight, 15),
           save: async (c) => {
             if (isSupplierPhotoUrl(c.url) || isSupplierPhotoUrl(c.originalLink)) return false
+            if (await isMonochromePhotoUrl(c.url)) return false
             const saved = await savePhotoFromUrl(
               opts.prisma,
               c.url,
@@ -109,6 +111,8 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
       }
       return out
     },
+    isMonochrome: async (c) =>
+      c.generatedBuffer ? isMonochromeImageBuffer(Buffer.from(c.generatedBuffer)) : /^https?:\/\//i.test(c.url) ? isMonochromePhotoUrl(c.url) : false,
     generate: async ({ sight, cityTerms }) => {
       const prompt = buildRegisterDayAiPhotoPrompt({ keyword: sight, destination: cityTerms[0] ?? opts.destination })
       if (!prompt) return null
