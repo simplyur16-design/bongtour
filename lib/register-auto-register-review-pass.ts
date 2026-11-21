@@ -5,7 +5,7 @@
  * - 목록에 넣는 것은 문과장 검수 통과 기록이 있는 상품만, 커밋으로만.
  * 2026-10-31 1차(48개 중 20): 교체 후 통과 14 + 기존 통과 6. 출처 기록 없음 20·용량 초과 7·#16 은 재검수 뒤 추가.
  * 2026-10-31 2차(47): 1차 20 + rework2 통과 26 + #32(12:14 새 사진 37519014 통과). #46 은 등록 직후 실화면 캡처 조건. 보류: #16(slug 결정 대기).
- * REGRESSION-FREEZE[auto-register-review-pass]: FLIP 이어도 검수 통과 목록 밖 상품은 등록 전환 안 함 — manifest
+ * REGRESSION-FREEZE[auto-register-review-pass]: 2026-11-21 16:02 사장님 승인으로 자동 공개는 검수 목록을 보지 않는다. 목록 함수는 10/31 기록으로만 남긴다 — manifest
  */
 import { isReviewRevisionStale, readMaterializedRevision } from '@/lib/register-pending-revision'
 import { verifyHumanReviewAudit, type ReviewEvidenceRow } from '@/lib/register-review-audit'

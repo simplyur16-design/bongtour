@@ -22,6 +22,15 @@ describe('photo-autofill-sight: 그날 방문지 추출', () => {
     expect(deriveDaySights(day('방콕 시내', '방콕'), '방콕 태국').sights).toEqual([])
   })
 
+  it('일정 정규식에 없는 일차 명소 키워드도 그 날 사진 검색에 쓴다', () => {
+    const r = deriveDaySights(
+      day('장가계 국립공원', '장가계', '금편계를 걷습니다', 'Golden Whip Stream'),
+      '장가계',
+    )
+    expect(r.sights.join(' ').toLowerCase()).toContain('golden whip')
+    expect(r.rejectedKeywords.some((k) => k.why === 'not_in_route')).toBe(false)
+  })
+
   it('다른 도시를 가리키는 낡은 키워드(예: 부다페스트 일정의 New York)는 쓰지 않는다', () => {
     const r = deriveDaySights(day('부다페스트 - 어부의 요새 - 세체니 다리', '부다페스트', null, 'New York'), '부다페스트 헝가리')
     expect(r.sights.join(' ').toLowerCase()).not.toContain('new york')

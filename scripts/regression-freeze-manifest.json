@@ -30406,23 +30406,23 @@
         "prebuild",
         "ci"
       ],
-      "summary": "자동 등록 FLIP 이어도 문과장 사진 검수 통과 목록(AUTO_REGISTER_REVIEW_PASS_IDS) 밖 상품은 registered 전환 안 함 — 새로 채운 상품은 검수 뒤 다음 배치 (봉실장 10/31 10:31)",
+      "summary": "2026-11-21 16:02 사장님 승인: 자동 공개는 검수 목록을 보지 않는다. 기존 검사(제목·가격·출발·일정) 통과와 대표·일차 사진이 있으면 registered. 사진 없음·불일치·중복·사진 전 차단은 대기. 10/31 목록 함수는 기록으로만 남긴다.",
       "checks": [
         {
           "file": "lib/register-auto-register-review-pass.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[auto-register-review-pass]",
             "export const AUTO_REGISTER_REVIEW_PASS_IDS",
-            "export function isAutoRegisterReviewPassed"
+            "export function isAutoRegisterReviewPassed",
+            "검수 목록을 보지 않는다"
           ]
         },
         {
           "file": "lib/register-auto-photo-register-job.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[auto-register-review-pass]",
-            "isAutoRegisterReviewPassed(id",
-            "if (gate.ok && reviewPassed) {",
-            "rawMeta"
+            "if (gate.ok) {",
+            "검수 목록 없이 공개"
           ]
         },
         {
@@ -31931,6 +31931,53 @@
           "file": "lib/register-photo-match-gate.ts",
           "mustInclude": [
             "kawaguchiko"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "photo-day-keyword-fill",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "자동 채움은 대표만 채우지 않는다. 그날 imageKeyword가 명소면 일차 사진을 검색하고, 다른 도시 키워드만 버린다.",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-sight.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-day-keyword-fill]",
+            "다른 도시 키워드만 버린다"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-day-keyword-fill]",
+            "dayKeywordIsSight"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "photo-cover-duplicate-pending",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "대표 사진 중복은 공개 상품뿐 아니라 등록대기 대표도 막는다. 이미 쓴 대표는 다음 출처로 다시 고른다.",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-public-usage.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-cover-duplicate-pending]",
+            "registrationStatus: 'pending'"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "coverConflict(heroKeys, String(product.id))"
           ]
         }
       ]

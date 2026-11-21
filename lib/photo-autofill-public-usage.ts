@@ -41,7 +41,15 @@ export function urlsNeedingPoolId(rows: readonly PublicUsageRow[]): string[] {
 
 export async function loadPublicPhotoUsage(prisma: PrismaClient): Promise<PublicPhotoUsage> {
   const rows = (await prisma.product.findMany({
-    where: { registrationStatus: 'registered' },
+    // REGRESSION-FREEZE[photo-cover-duplicate-pending]: 공개 대표와 대기 대표를 같이 본다. 대기끼리 같은 대표를 다시 고르지 않는다 — manifest
+    where: {
+      OR: [
+        { registrationStatus: 'registered' },
+        { registrationStatus: 'pending' },
+        { registrationStatus: null },
+        { registrationStatus: '' },
+      ],
+    },
     select: { id: true, bgImageUrl: true, bgImageExternalId: true, bgImageSourceUrl: true, schedule: true },
   })) as Array<{ id: string; bgImageUrl: string | null; bgImageExternalId: string | null; bgImageSourceUrl: string | null; schedule: string | null }>
   const usageRows: PublicUsageRow[] = rows.map((r) => ({
