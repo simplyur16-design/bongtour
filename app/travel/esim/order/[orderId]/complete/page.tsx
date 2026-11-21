@@ -7,6 +7,7 @@ import { OrderCompleteClientRetry } from "@/components/bongsim/order-complete/Or
 import { OrderCompleteRealView } from "@/components/bongsim/order-complete/OrderCompleteRealView";
 import { TestModeCompleteModal } from "@/components/bongsim/checkout-store/TestModeCompleteModal";
 import { getOrderPublic } from "@/lib/bongsim/data/get-order-public";
+import EsimHelpChat from "@/components/bongsim/esim/EsimHelpChat";
 
 type Props = { params: Promise<{ orderId: string }>; searchParams: Promise<{ read_key?: string }> };
 
@@ -43,6 +44,7 @@ export default async function OrderCompletePage({ params, searchParams }: Props)
             </div>
           </main>
         </div>
+        <EsimHelpChat />
       </div>
     );
   }
@@ -67,6 +69,7 @@ export default async function OrderCompletePage({ params, searchParams }: Props)
         <TestModeCompleteModal />
       </main>
       </div>
+      <EsimHelpChat />
     </div>
   );
 }
