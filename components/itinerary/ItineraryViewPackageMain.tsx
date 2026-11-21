@@ -13,6 +13,7 @@ import { normalizeSupplierOrigin } from '@/lib/normalize-supplier-origin'
 import { isAirHotelFreeListingForUi } from '@/lib/air-hotel-free-product-ui'
 import { ItineraryExtraInfoBoxes } from '@/components/itinerary/ItineraryExtraInfoBoxes'
 import { ScheduleDayItineraryBlocks } from '@/components/itinerary/ScheduleDayItineraryBlocks'
+import SimilarItineraryDetailShelf from '@/app/components/detail/SimilarItineraryDetailShelf'
 import { publicDayTitleRouteLine } from '@/lib/schedule-day-supplier-original'
 import type { FlightStructuredBody } from '@/lib/public-product-extras'
 import {
@@ -324,6 +325,8 @@ export function ItineraryViewPackageMain({
       ) : (
         <p className="text-sm fit-tx-meta">등록된 일정 요약이 없습니다.</p>
       )}
+
+      <SimilarItineraryDetailShelf shelf={product.similarItineraryShelf} />
 
       {/* REGRESSION-FREEZE[public-itinerary-route-map-removed]: 공개 상세에 동선지도 칸을 두지 않는다 — manifest */}
       {flightDisplay ? (

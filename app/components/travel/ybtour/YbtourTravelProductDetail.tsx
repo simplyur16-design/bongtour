@@ -12,6 +12,7 @@ import { formatFlightLegTwoLines } from '@/lib/flight-user-display'
 import YbtourProductExtraInfoTabs from '@/app/components/travel/ybtour/YbtourProductExtraInfoTabs'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
+import SimilarItineraryDetailShelf from '@/app/components/detail/SimilarItineraryDetailShelf'
 import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetailCrossSell'
 import type { PublicPricePromotionView, ShoppingStopRow } from '@/lib/public-product-extras'
 import {
@@ -151,6 +152,7 @@ export type ScheduleDay = {
 
 export type TravelProduct = {
   id: number | string
+  similarItineraryShelf?: import('@/lib/similar-itinerary-detail-shelf').SimilarItineraryDetailShelf | null
   originSource: string
   originCode: string
   /** REGRESSION-FREEZE[hero-departure-code-1031]: 히어로 표시 코드(가장 가까운 판매 중 출발 회차) — 없으면 originCode */
@@ -952,6 +954,8 @@ function YbtourTravelProductDetailView({ product: productInput, showEsimCrossSel
                 <p className="text-sm text-bt-meta">등록된 일정 요약이 없습니다.</p>
               )}
             </section>
+
+            <SimilarItineraryDetailShelf shelf={product.similarItineraryShelf} />
 
             <MustKnowEssentialsSection items={mustKnowFiltered} layout="desktop" originSource={product.originSource} />
 

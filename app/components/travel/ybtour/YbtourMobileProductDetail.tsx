@@ -85,6 +85,7 @@ import {
 import { applyHanatourFlightRoutingChipOverride } from '@/lib/hanatour-product-meta-chips-patch'
 import { filterPublicMustKnowItemsForTripReadiness } from '@/lib/public-must-know-display'
 import MustKnowEssentialsSection from '@/app/components/travel/MustKnowEssentialsSection'
+import SimilarItineraryDetailShelf from '@/app/components/detail/SimilarItineraryDetailShelf'
 import EsimProductDetailCrossSell from '@/app/components/travel/EsimProductDetailCrossSell'
 import { isScheduleUserPlaceholder, resolvePublicScheduleDayTitle } from '@/lib/public-schedule-display'
 import {
@@ -776,6 +777,8 @@ function YbtourMobileProductDetailView({ product: productInput, showEsimCrossSel
           <p className="text-sm text-bt-meta">등록된 일정 요약이 없습니다.</p>
         )}
       </section>
+
+      <SimilarItineraryDetailShelf shelf={product.similarItineraryShelf} />
 
       <MustKnowEssentialsSection items={mustKnowFiltered} layout="mobile" originSource={product.originSource} />
 

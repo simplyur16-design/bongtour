@@ -6,6 +6,7 @@ import type { PublicRouteMapView } from '@/lib/bongtour-route-map-public'
 import type { DepartureKeyFacts } from '@/lib/departure-key-facts'
 import type { FlightManualCorrectionPayload } from '@/lib/flight-manual-correction-hanatour'
 import type { FlightStructuredBody, PublicPricePromotionView, ShoppingStopRow } from '@/lib/public-product-extras'
+import type { SimilarItineraryDetailShelf } from '@/lib/similar-itinerary-detail-shelf'
 
 /** Prisma ProductPrice + quote price* fields (lib/price-utils PriceRowLike compatible) */
 export type ProductPriceRow = {
@@ -165,4 +166,6 @@ export type TravelProduct = {
   adultOnly2030?: boolean
   /** 등록 시 저장된 동선지도(공개 DTO) — rawMeta 미노출 */
   routeMap?: PublicRouteMapView | null
+  /** 상세 요청 때 읽는 비슷한 일정. 캐시 payload에는 넣지 않는다. */
+  similarItineraryShelf?: SimilarItineraryDetailShelf | null
 }
