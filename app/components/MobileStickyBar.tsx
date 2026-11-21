@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { MessageCircle, Phone, Wifi } from 'lucide-react'
 import {
@@ -21,7 +22,15 @@ const SLOT_BASE =
 // REGRESSION-FREEZE[site-chrome-hide-own-bottom-dock]: hide on mypage + training detail — manifest
 export default function MobileStickyBar() {
   const pathname = usePathname() ?? ''
-  if (shouldHideMobileStickyBar(pathname)) return null
+  const [hiddenByCompareSheet, setHiddenByCompareSheet] = useState(false)
+  useEffect(() => {
+    const sync = () => setHiddenByCompareSheet(document.body.dataset.similarCompareOpen === '1')
+    sync()
+    const observer = new MutationObserver(sync)
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-similar-compare-open'] })
+    return () => observer.disconnect()
+  }, [])
+  if (shouldHideMobileStickyBar(pathname) || hiddenByCompareSheet) return null
 
   return (
     <nav
