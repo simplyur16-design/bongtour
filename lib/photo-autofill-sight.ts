@@ -55,6 +55,9 @@ export const SIGHT_ALIAS_GROUPS: ReadonlyArray<readonly string[]> = [
   ['gamcheon culture village', 'gamcheon village', 'gamcheon', '감천문화마을'],
   ['eiffel tower', 'tour eiffel', '에펠탑'],
   ['mount fuji', 'mt fuji', 'fuji san', 'fujisan', '후지산'],
+  ['golden whip stream', 'golden whip', 'jinbianxi', 'jinbian creek', '금편계'],
+  ['arakurayama sengen', 'arakurayama sengen park', 'chureito pagoda', 'chureito', '아라쿠라야마'],
+  ['otaru music box museum', 'otaru music box', 'otaru orgel', '오타루 오르골', '오르골당'],
   ['marseille old port', 'vieux port', 'old port of marseille', 'vieux port marseille'],
   ['cours mirabeau', 'aix en provence cours mirabeau'],
   ['valensole', 'valensole lavender', 'valensole plateau'],
@@ -177,8 +180,13 @@ export function sightMatchInText(profile: SightProfile, textRaw: string, anchorT
     if (anchorOk() && (distinctive || anchored())) return p
   }
   const toks = profile.requiredTokens
-  // 낱말만 맞는 일치(구절 아님)는 두 낱말 이하면 도시 낱말이 같이 있어야 한다(aurora village 같은 흔한 이름)
-  if (toks.length > 0 && toks.every((t) => text.includes(` ${t} `)) && anchorOk() && (toks.length >= 3 || anchored())) return toks.join('+')
+  // 낱말만 맞는 일치(구절 아님)는 두 낱말 이하면 도시 낱말이 같이 있어야 한다(aurora village 같은 흔한 이름).
+  // 명소 이름에 들어 있는 도시(오타루 오르골, 가와구치코)는 상품 대표 도시(하코다테·시즈오카)와 달라도 앵커가 된다.
+  const namedCity = foldPhotoText(profile.name)
+    .split(' ')
+    .filter((t) => isCityToken(t))
+    .some((t) => text.includes(` ${t} `))
+  if (toks.length > 0 && toks.every((t) => text.includes(` ${t} `)) && anchorOk() && (toks.length >= 3 || anchored() || namedCity)) return toks.join('+')
   return null
 }
 
@@ -280,6 +288,27 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
       ? 'city_only'
       : 'no_sight'
   return { sights: [], reason, cityTerms, rejectedKeywords: rejected }
+}
+
+/**
+ * 대표 사진 검색어. 도시 이름만 있는 키워드는 빼고, 일정 일차 명소로 채운다.
+ * REGRESSION-FREEZE[photo-cover-day-sight]: 대표가 비었으면 일차 명소로 검색 — manifest
+ */
+export function coverSearchSights(heroKeywords: readonly string[], dayKeywords: readonly string[]): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const raw of [...heroKeywords, ...dayKeywords]) {
+    const name = String(raw ?? '').trim()
+    if (!name) continue
+    const profile = sightProfile(name)
+    if (profile.kind !== 'sight' && profile.kind !== 'generic') continue
+    const key = profile.phraseTerms[0] ?? foldPhotoText(name)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    out.push(name)
+    if (out.length >= 2) break
+  }
+  return out
 }
 
 /** 검색어: 명소 이름 그대로 → 도시를 덧붙인 것(같은 이름 다른 곳 구분). 최대 2개. */

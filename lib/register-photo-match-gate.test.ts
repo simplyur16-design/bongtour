@@ -21,6 +21,15 @@ describe('photoMatchGate — 문과장 batch-01 탈락 유형', () => {
   it('금문교를 다낭에 쓰지 않는다', () => {
     expect(g('Golden Gate Bridge at sunset', danangDay)).toBe('other_place_landmark')
   })
+  it('가와구치코 일차의 후지산 사진은 다른 도시로 보지 않는다', () => {
+    const fujiDay: MatchGateContext = {
+      placeTerms: ['Arakurayama Sengen Park', '가와구치코', 'kawaguchiko'],
+      destinationTerms: ['시즈오카', 'Shizuoka'],
+      slotText: 'Arakurayama Sengen Park Kawaguchiko 가와구치코',
+      slot: 'day',
+    }
+    expect(g('Chureito Pagoda with Mount Fuji and cherry blossoms', fujiDay)).toBeNull()
+  })
   it('바나힐 골든브릿지는 통과', () => {
     expect(g('Golden Bridge held by giant hands at Ba Na Hills, Da Nang', danangDay)).toBeNull()
     expect(g('Golden Bridge at Ba Na Hills Da Nang in fog', danangDay)).toBeNull()

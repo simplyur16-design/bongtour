@@ -31902,6 +31902,40 @@
       ]
     },
     {
+      "id": "photo-cover-day-sight",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "대표 사진이 없을 때 도시 이름만 있는 검색어는 빼고 일차 명소를 쓴다. 오타루·가와구치코처럼 명소 이름 안의 도시는 상품 대표 도시와 달라도 사진 일치 앵커가 된다. 금편계·아라쿠라야마·오타루 오르골은 별칭으로 맞춘다.",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-sight.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-cover-day-sight]",
+            "export function coverSearchSights",
+            "namedCity",
+            "golden whip stream",
+            "otaru music box museum",
+            "chureito pagoda"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-cover-day-sight]",
+            "coverSearchSights("
+          ]
+        },
+        {
+          "file": "lib/register-photo-match-gate.ts",
+          "mustInclude": [
+            "kawaguchiko"
+          ]
+        }
+      ]
+    },
+    {
       "id": "photo-autofill-gate",
       "tier": [
         "prebuild",

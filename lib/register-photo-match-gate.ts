@@ -161,7 +161,7 @@ export const PLACE_NAMES: Record<string, string[]> = {
   madrid: ['madrid', '마드리드'], london: ['london', '런던'], 'new york': ['new york', '뉴욕', '맨해튼', '맨하탄'], sydney: ['sydney', '시드니'],
   dubai: ['dubai', '두바이'], singapore: ['singapore', '싱가포르', '싱가폴'], taipei: ['taipei', '타이베이', '타이페이'],
   'kuala lumpur': ['kuala lumpur', '쿠알라룸푸르'], seoul: ['seoul', '서울'], busan: ['busan', '부산'], kyoto: ['kyoto', '교토'],
-  fuji: ['fuji', '후지', '가와구치코'], yamagata: ['yamagata', '긴잔', '야마가타'], hanoi: ['hanoi', '하노이'], bangkok: ['bangkok', '방콕'],
+  fuji: ['fuji', '후지', '가와구치코', 'kawaguchiko'], yamagata: ['yamagata', '긴잔', '야마가타'], hanoi: ['hanoi', '하노이'], bangkok: ['bangkok', '방콕'],
   hangzhou: ['hangzhou', '항주', '항저우', '서호'], poland: ['poland', '폴란드'], hungary: ['hungary', '헝가리', '부다페스트'],
   italy: ['italy', '이탈리아'], tobago: ['tobago', '토바고'], honolulu: ['honolulu', 'waikiki', '호놀룰루', '와이키키'],
   santorini: ['santorini', '산토리니'], 'mae hong son': ['mae hong son', '매홍손'], kunming: ['kunming', '곤명', '쿤밍', '석림'],
