@@ -39,7 +39,7 @@ import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-pr
 import { parseStoredScheduleRows, preserveStoredScheduleDayEvidence } from '@/lib/schedule-stored-day-evidence-preserve'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
-import { registerTravelDayPhotoEligible } from '@/lib/register-day-photo-travel-day'
+import { registerTravelDayPhotoEligible, travelDayRepresentativeSights } from '@/lib/register-day-photo-travel-day'
 import { logAutoPhotoAttempt } from '@/lib/auto-photo-attempt-log'
 import {
   countNewlyFilledPhotoSlots,
@@ -935,6 +935,25 @@ export async function POST(req: Request) {
       poolMain = undefined
     }
     const strictOwnKeys = new Set<string>()
+    // REGRESSION-FREEZE[autofill-own-photo-exclude-1122]: 같은 상품의 대표·기존 일차 사진(1·2칸)은 새 후보에서 뺀다(채운 뒤 '대표≠일차·앞 일차 중복'으로 조용히 지워지던 칸) — manifest
+    if (strictAutofill) {
+      if (preserveHero && existingHeroUrl) {
+        for (const k of photoIdentityKeys({
+          url: existingHeroUrl,
+          externalId: (product as { bgImageExternalId?: string | null }).bgImageExternalId,
+          originalLink: heroSourceUrl,
+        })) strictOwnKeys.add(k)
+      }
+      for (const row of scheduleArr) {
+        for (const [u, src] of [
+          [row.imageUrl, row.imageSource],
+          [row.imageUrl2, row.imageSource2],
+        ] as const) {
+          if (!String(u ?? '').trim()) continue
+          for (const k of photoIdentityKeys({ url: String(u), externalId: src?.externalId, originalLink: src?.originalLink })) strictOwnKeys.add(k)
+        }
+      }
+    }
     const strictAdopt = (p: PhotoResult, kind: 'cover' | 'day') => {
       const keys = photoIdentityKeys({ url: p.url, externalId: p.externalId, originalLink: p.originalLink })
       for (const k of keys) strictOwnKeys.add(k)
@@ -1187,7 +1206,8 @@ export async function POST(req: Request) {
       const confirmedDayText = confirmedTextForScheduleDay(sched)
       // 제목·설명·동선·supplierOriginal·자유일 키워드는 입력만 읽는다. 문장은 고치지 않는다.
       // 방향이 없는 날만 검색을 건너뛰고 기존 사진을 유지한다. 예정지·체류지·교통 구간은 아래에서 조건부 검색한다.
-      const keptExisting = sched && !travelDay ? keptDayImagesWhenConfirmedPlaceSkipped(sched) : null
+      // REGRESSION-FREEZE[autofill-kept-gate-defer-1122]: 자동 채움(strict)은 여기서 건너뛰지 않고 strictDayPick 이 문맥·명소 키워드를 다시 판단한다(일차 명소 키워드가 있어도 조용히 비워 두던 칸) — manifest
+      const keptExisting = sched && !travelDay && !strictAutofill ? keptDayImagesWhenConfirmedPlaceSkipped(sched) : null
       if (keptExisting?.skipped) {
         console.log(`[GATE] day ${dayNum} 확인된 관광 없음 — 기존 사진 유지, 풀·hero 생략`)
         preserveExistingPhotoIdx.add(n)
@@ -1222,7 +1242,16 @@ export async function POST(req: Request) {
       const dayFacts = scheduleDayPhotoFacts(sched)
 
       const strictDayPick = async (): Promise<DayPhotoPick<PhotoResult>> => {
-        const keep = (unresolvedReason: string): DayPhotoPick<PhotoResult> => ({
+        const keep = (unresolvedReason: string): DayPhotoPick<PhotoResult> => {
+          logAutoPhotoAttempt({
+            productId: String(product.id),
+            day: dayNum,
+            gate: `autofill-keep:${unresolvedReason}`.slice(0, 80),
+            providerErrorClass: null,
+            attemptAt: new Date().toISOString(),
+            result: 'skipped',
+          })
+          return {
           photo: null,
           stage: 'kept',
           imageUrl: sched?.imageUrl ?? null,
@@ -1232,11 +1261,14 @@ export async function POST(req: Request) {
           routeText: sched?.routeText ?? null,
           unresolvedReason,
           generateInvoked: false,
-        })
+          }
+        }
+        // REGRESSION-FREEZE[travel-day-city-representative-1122]: 출국·귀국일 도시 키워드는 그 도시 대표 명소로 찾는다(도시만 키워드라 조용히 건너뛰던 칸) — manifest
+        const travelRep = sched ? travelDayRepresentativeSights(sched, workingSchedule, destination, scheduleMaxDay) : null
         const dayKeywordKind = sightProfile(String(sched?.imageKeyword ?? '')).kind
         const dayKeywordIsSight = dayKeywordKind === 'sight' || dayKeywordKind === 'generic'
         // REGRESSION-FREEZE[photo-day-keyword-fill]: 일차 키워드가 명소면 문맥이 없어도 그 키워드로 채운다 — manifest
-        if (dayPhotoContextFromFacts(dayFacts).kind === 'none' && !dayKeywordIsSight) return keep('no_confirmed_sightseeing')
+        if (!travelRep && dayPhotoContextFromFacts(dayFacts).kind === 'none' && !dayKeywordIsSight) return keep('no_confirmed_sightseeing')
         const exclude = new Set(strictOwnKeys)
         const res = await acquireVerifiedPhoto(
           {
@@ -1250,8 +1282,9 @@ export async function POST(req: Request) {
               imageKeyword: sched?.imageKeyword ?? null,
               imageKeyword2: sched?.imageKeyword2 ?? null,
             },
-            cityTerms: strictTerms.cityTerms,
-            destinationText: [...strictTerms.terms, itRow?.city ?? ''].join(' '),
+            ...(travelRep ? { sights: travelRep.sights } : {}),
+            cityTerms: travelRep ? [...new Set([...strictTerms.cityTerms, travelRep.city])] : strictTerms.cityTerms,
+            destinationText: [...strictTerms.terms, itRow?.city ?? '', travelRep?.city ?? ''].join(' ').trim(),
             usage: strictPublicUsage!,
             exclude,
             origin: 'autofill',
