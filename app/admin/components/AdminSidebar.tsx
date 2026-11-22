@@ -192,6 +192,19 @@ function SidebarNav({
   )
 }
 
+/** 관리자 상단 로고: 공식 bongtour-logo.webp 하나로 통일(11/22) */
+function AdminBrandMark() {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span className="inline-flex shrink-0 items-center rounded-md bg-white px-1.5 py-0.5">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/bongtour-logo.webp" alt="봉투어" className="h-5 w-auto" />
+      </span>
+      <span className="truncate text-sm font-semibold text-white">관리</span>
+    </span>
+  )
+}
+
 /** REGRESSION-FREEZE[bongsim-affiliation-card-ocr]: admin mobile drawer shell — manifest */
 export default function AdminSidebar({ actorRole }: { actorRole?: string | null }) {
   const pathname = usePathname() ?? ''
@@ -222,11 +235,11 @@ export default function AdminSidebar({ actorRole }: { actorRole?: string | null 
       <>
         <div className="sticky top-0 z-40 flex h-12 items-center gap-2 border-b border-white/10 bg-bt-text-navy px-3 md:hidden">
           <span className="h-9 w-9" />
-          <span className="text-sm font-semibold text-white">Bong투어 관리</span>
+          <AdminBrandMark />
         </div>
         <aside className={`${ADMIN_SIDEBAR_CLASS} hidden w-56 md:flex`} aria-hidden="true">
           <div className={ADMIN_SIDEBAR_HEADER_CLASS}>
-            <span className="truncate text-sm font-semibold text-white">Bong투어 관리</span>
+            <AdminBrandMark />
             <span className="h-8 w-8 shrink-0" />
           </div>
           <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2" />
@@ -305,7 +318,7 @@ export default function AdminSidebar({ actorRole }: { actorRole?: string | null 
           />
           <aside className={`${ADMIN_SIDEBAR_CLASS} absolute inset-y-0 left-0 w-[min(18rem,88vw)] shadow-xl`}>
             <div className={ADMIN_SIDEBAR_HEADER_CLASS}>
-              <span className="truncate text-sm font-semibold text-white">Bong투어 관리</span>
+              <AdminBrandMark />
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
@@ -329,7 +342,7 @@ export default function AdminSidebar({ actorRole }: { actorRole?: string | null 
       <aside className={`${ADMIN_SIDEBAR_CLASS} hidden ${collapsed ? 'w-[56px]' : 'w-56'} md:flex`}>
         <div className={ADMIN_SIDEBAR_HEADER_CLASS}>
           {!collapsed && (
-            <span className="truncate text-sm font-semibold text-white">Bong투어 관리</span>
+            <AdminBrandMark />
           )}
           <button
             type="button"
