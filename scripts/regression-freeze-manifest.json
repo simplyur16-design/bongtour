@@ -31116,6 +31116,31 @@
       ]
     },
     {
+      "id": "cleared-slot-queue-front-1122",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/22 11:09(봉실장 전달): 비운 사진 칸 공개 상품을 등록대기 50개 처리보다 앞에 두어 :30 자동 채움이 실제로 닿게 함(등록대기 처리 1시간 초과로 공개 채움 미도달 원인 교정)",
+      "checks": [
+        {
+          "file": "lib/cleared-slot-refill-priority.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cleared-slot-queue-front-1122]",
+            "export function orderQueueClearedSlotsFirst",
+            "...front.map((r) => ({ ...r, publicRow: true as const })),"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cleared-slot-queue-front-1122]",
+            "orderQueueClearedSlotsFirst(ids, picked.rows, picked.frontIds)"
+          ]
+        }
+      ]
+    },
+    {
       "id": "cleared-slot-refill-priority-1122",
       "tier": [
         "prebuild",

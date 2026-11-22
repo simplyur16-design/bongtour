@@ -26,3 +26,21 @@ export function mergeClearedSlotPriorityPicks<T extends { id: string }>(
   return [...prior, ...cleared, ...rotate(rest).slice(0, limit)]
 }
 
+
+/**
+ * REGRESSION-FREEZE[cleared-slot-queue-front-1122]: 우선 채움 공개 상품(점검·수동으로 비운 칸)을 등록대기 처리보다 앞에 둔다.
+ * 등록대기 50개 처리가 1시간을 넘겨 공개 채움 단계에 닿지 못하던 원인(11/22 09:30·10:30 실행) 교정 — manifest
+ */
+export function orderQueueClearedSlotsFirst<P extends { id: string }, Q extends { id: string }>(
+  pending: readonly P[],
+  publicRows: readonly Q[],
+  frontIds: ReadonlySet<string>,
+): Array<(P & { publicRow: false }) | (Q & { publicRow: true })> {
+  const front = publicRows.filter((r) => frontIds.has(r.id))
+  const rest = publicRows.filter((r) => !frontIds.has(r.id))
+  return [
+    ...front.map((r) => ({ ...r, publicRow: true as const })),
+    ...pending.map((r) => ({ ...r, publicRow: false as const })),
+    ...rest.map((r) => ({ ...r, publicRow: true as const })),
+  ]
+}

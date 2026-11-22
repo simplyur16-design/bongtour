@@ -12,7 +12,11 @@
  */
 import { logAutoPhotoAttempt, providerErrorClass } from '@/lib/auto-photo-attempt-log'
 import { runSiteHealthHourly } from '@/lib/site-health-run'
-import { CLEARED_SLOT_PRIORITY_DAYS, mergeClearedSlotPriorityPicks } from '@/lib/cleared-slot-refill-priority'
+import {
+  CLEARED_SLOT_PRIORITY_DAYS,
+  mergeClearedSlotPriorityPicks,
+  orderQueueClearedSlotsFirst,
+} from '@/lib/cleared-slot-refill-priority'
 import {
   autoPhotoFillRequest,
   scheduleHasMissingEligiblePhotoSlot,
@@ -173,12 +177,12 @@ export async function runAutoPhotoRegisterJob(opts?: {
       console.warn('[site-health] skipped', e instanceof Error ? e.name : 'Error')
     }
   }
-  const publicRows =
-    sw.fill && publicLimit > 0 ? await pickPublicMissingDayProducts(publicLimit, opts?.now ?? new Date(), healthRefillIds) : []
-  const queue: Array<(typeof ids)[number] & { publicRow: boolean }> = [
-    ...ids.map((r) => ({ ...r, publicRow: false })),
-    ...publicRows.map((r) => ({ ...r, publicRow: true })),
-  ]
+  const picked =
+    sw.fill && publicLimit > 0
+      ? await pickPublicMissingDayProducts(publicLimit, opts?.now ?? new Date(), healthRefillIds)
+      : { rows: [], frontIds: new Set<string>() }
+  // REGRESSION-FREEZE[cleared-slot-queue-front-1122]: 비운 칸 공개 상품을 등록대기보다 먼저 채운다 — manifest
+  const queue: Array<(typeof ids)[number] & { publicRow: boolean }> = orderQueueClearedSlotsFirst(ids, picked.rows, picked.frontIds)
 
   for (const row of queue) {
     const { id, bgImageUrl } = row
@@ -521,7 +525,8 @@ async function pickPublicMissingDayProducts(limit: number, now: Date, priorityId
   })
   // REGRESSION-FREEZE[cleared-slot-refill-priority-1122]: 비운 칸 기록 상품을 우선 채움 — manifest
   const cleared = await loadRecentClearedSlotProductIds(now)
-  return mergeClearedSlotPriorityPicks(eligible, priorityIds, cleared, limit, (rest) => rotatePublicMissingDayPicks(rest, limit, now))
+  const picks = mergeClearedSlotPriorityPicks(eligible, priorityIds, cleared, limit, (rest) => rotatePublicMissingDayPicks(rest, limit, now))
+  return { rows: picks, frontIds: new Set<string>([...priorityIds, ...cleared]) }
 }
 
 async function loadRecentClearedSlotProductIds(now: Date): Promise<string[]> {
