@@ -14,6 +14,8 @@ import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
 import type { AcquireDeps, StockTier } from '@/lib/photo-autofill-acquire'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, type AutofillCandidate } from '@/lib/photo-autofill-gate'
+import { sightMatchInText, sightProfile } from '@/lib/photo-autofill-sight'
+import { poolCandidateEvidence, sourcePageEvidenceText } from '@/lib/photo-pool-evidence-1122'
 import { claimThumbnailTopUpSlot, thumbnailPoolFetchCount, topUpThumbnailPlacePool } from '@/lib/thumbnail-pool-topup'
 import { isExistingIstockImage } from '@/lib/product-image-source-policy'
 import { isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
@@ -74,6 +76,8 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
           searchCc0: async () => searchWikimediaCc0(sight, 15),
           save: async (c) => {
             if (isSupplierPhotoUrl(c.url) || isSupplierPhotoUrl(c.originalLink)) return false
+            // REGRESSION-FREEZE[pool-evidence-not-label-1122]: 보충 저장도 검색 결과 자체 설명이 그 명소일 때만 이 명소 이름표로 저장 — manifest
+            if (!sightMatchInText(sightProfile(sight), sourcePageEvidenceText(c.originalLink))) return false
             // REGRESSION-FREEZE[photo-monochrome-text-1122]: 풀 보충도 흑백 표시 글은 저장하지 않음 — manifest
             if (candidateSaysMonochrome(c)) return false
             if (await isMonochromePhotoUrl(c.url)) return false
@@ -96,6 +100,9 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         const url = String(row.filePath ?? '').trim()
         if (!url || isSupplierPhotoUrl(url) || isSupplierPhotoUrl(row.sourceUrl)) continue
         if (/istock/i.test(String(row.source ?? '')) && !isExistingIstockImage(url)) continue
+        // REGRESSION-FREEZE[pool-evidence-not-label-1122]: 이름표가 아니라 원본 주소 slug 로 명소를 확인한다. 확인할 수 없는 풀 행은 건너뛰고 새 검색으로 — manifest
+        const evidence = poolCandidateEvidence(row)
+        if (!evidence) continue
         await sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS))
         const dim = await probeImageDimensions(url).catch(() => null)
         const sized = await opts.probe(url)
@@ -107,8 +114,8 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
           height: dim?.height ?? 0,
           photographer: row.photographer,
           originalLink: row.sourceUrl,
-          altText: [row.attractionName, row.cityName].filter(Boolean).join(' '),
-          title: row.attractionName,
+          altText: evidence,
+          title: null,
           storedBytes: sized.bytes,
         })
       }
