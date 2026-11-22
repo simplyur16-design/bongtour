@@ -16,6 +16,7 @@ import {
   CLEARED_SLOT_PRIORITY_DAYS,
   mergeClearedSlotPriorityPicks,
   orderQueueClearedSlotsFirst,
+  clearedSlotProductsFirst,
 } from '@/lib/cleared-slot-refill-priority'
 import {
   autoPhotoFillRequest,
@@ -526,7 +527,8 @@ async function pickPublicMissingDayProducts(limit: number, now: Date, priorityId
   // REGRESSION-FREEZE[cleared-slot-refill-priority-1122]: 비운 칸 기록 상품을 우선 채움 — manifest
   const cleared = await loadRecentClearedSlotProductIds(now)
   const picks = mergeClearedSlotPriorityPicks(eligible, priorityIds, cleared, limit, (rest) => rotatePublicMissingDayPicks(rest, limit, now))
-  return { rows: picks, frontIds: new Set<string>([...priorityIds, ...cleared]) }
+  // REGRESSION-FREEZE[cleared-slot-newest-first-1122]: 최근 비운 칸 상품을 점검 재채움보다 먼저 — manifest
+  return { rows: clearedSlotProductsFirst(picks, cleared), frontIds: new Set<string>([...priorityIds, ...cleared]) }
 }
 
 async function loadRecentClearedSlotProductIds(now: Date): Promise<string[]> {
@@ -537,7 +539,7 @@ async function loadRecentClearedSlotProductIds(now: Date): Promise<string[]> {
         usedAt: { gte: new Date(now.getTime() - CLEARED_SLOT_PRIORITY_DAYS * 24 * 60 * 60 * 1000) },
       },
       select: { productId: true },
-      orderBy: { usedAt: 'asc' },
+      orderBy: { usedAt: 'desc' },
       take: 2000,
     })
     return [...new Set(rows.map((r) => r.productId))]

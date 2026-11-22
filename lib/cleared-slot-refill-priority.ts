@@ -44,3 +44,20 @@ export function orderQueueClearedSlotsFirst<P extends { id: string }, Q extends 
     ...rest.map((r) => ({ ...r, publicRow: true as const })),
   ]
 }
+
+/**
+ * REGRESSION-FREEZE[cleared-slot-newest-first-1122]: 비운 칸 상품(최근 비운 순)을 점검 재채움 목록보다 먼저 둔다.
+ * 점검 재채움 목록이 길어 비운 칸이 id 순으로 뒤에 밀리던 문제(11/22 12:30 실행) 교정 — manifest
+ */
+export function clearedSlotProductsFirst<T extends { id: string }>(picks: readonly T[], clearedNewestFirst: readonly string[]): T[] {
+  const byId = new Map(picks.map((r) => [r.id, r]))
+  const head: T[] = []
+  for (const id of clearedNewestFirst) {
+    const r = byId.get(id)
+    if (r) {
+      head.push(r)
+      byId.delete(id)
+    }
+  }
+  return [...head, ...picks.filter((r) => byId.has(r.id))]
+}

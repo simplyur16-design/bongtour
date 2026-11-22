@@ -31116,6 +31116,31 @@
       ]
     },
     {
+      "id": "cleared-slot-newest-first-1122",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/22 11:09(봉실장 전달): 최근 비운 사진 칸 상품을 점검 재채움 목록보다 먼저 채움(점검 재채움이 길어 비운 칸이 id 순으로 뒤에 밀리던 12:30 실행 교정)",
+      "checks": [
+        {
+          "file": "lib/cleared-slot-refill-priority.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cleared-slot-newest-first-1122]",
+            "export function clearedSlotProductsFirst"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cleared-slot-newest-first-1122]",
+            "clearedSlotProductsFirst(picks, cleared)",
+            "orderBy: { usedAt: 'desc' },"
+          ]
+        }
+      ]
+    },
+    {
       "id": "cleared-slot-queue-front-1122",
       "tier": [
         "prebuild",

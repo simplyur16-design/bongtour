@@ -48,3 +48,17 @@ describe('orderQueueClearedSlotsFirst', () => {
     expect(src).toContain('orderQueueClearedSlotsFirst(ids, picked.rows, picked.frontIds)')
   })
 })
+
+describe('clearedSlotProductsFirst', () => {
+  it('최근 비운 칸 상품을 점검 재채움 목록보다 먼저, 나머지는 원래 순서', async () => {
+    const { clearedSlotProductsFirst } = await import('@/lib/cleared-slot-refill-priority')
+    const out = clearedSlotProductsFirst([{ id: 'h1' }, { id: 'c2' }, { id: 'h2' }, { id: 'c1' }], ['c1', 'c2', 'zz'])
+    expect(out.map((r) => r.id)).toEqual(['c1', 'c2', 'h1', 'h2'])
+  })
+  it('job 이 최근 비운 순으로 읽고 이 함수로 정렬한다', async () => {
+    const fs = await import('node:fs')
+    const src = fs.readFileSync('lib/register-auto-photo-register-job.ts', 'utf8')
+    expect(src).toContain('clearedSlotProductsFirst(picks, cleared)')
+    expect(src).toContain("orderBy: { usedAt: 'desc' },")
+  })
+})
