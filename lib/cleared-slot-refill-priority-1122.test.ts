@@ -35,3 +35,16 @@ describe('cleared-slot-refill-priority-1122', () => {
     expect(src).toContain('mergeClearedSlotPriorityPicks(eligible, priorityIds, cleared, limit')
   })
 })
+
+describe('orderQueueClearedSlotsFirst', () => {
+  it('비운 칸 공개 상품이 등록대기보다 먼저, 나머지 공개 상품은 뒤', async () => {
+    const { orderQueueClearedSlotsFirst } = await import('@/lib/cleared-slot-refill-priority')
+    const q = orderQueueClearedSlotsFirst([{ id: 'w1' }, { id: 'w2' }], [{ id: 'c1' }, { id: 'r1' }, { id: 'c2' }], new Set(['c1', 'c2']))
+    expect(q.map((r) => `${r.id}:${r.publicRow}`)).toEqual(['c1:true', 'c2:true', 'w1:false', 'w2:false', 'r1:true'])
+  })
+  it('job 이 큐를 이 함수로 만든다', async () => {
+    const fs = await import('node:fs')
+    const src = fs.readFileSync('lib/register-auto-photo-register-job.ts', 'utf8')
+    expect(src).toContain('orderQueueClearedSlotsFirst(ids, picked.rows, picked.frontIds)')
+  })
+})
