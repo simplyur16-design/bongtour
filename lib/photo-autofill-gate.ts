@@ -14,6 +14,7 @@ import { IMAGE_MIN_WIDTH } from '@/lib/product-image-source-policy'
 import { DAY_PHOTO_DETAIL_MAX_BYTES } from '@/lib/register-day-photo-policy'
 import { foldPhotoText, sightMatchInText, type SightProfile } from '@/lib/photo-autofill-sight'
 import { isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
+import { candidateSaysMonochrome } from '@/lib/photo-monochrome-text-1122'
 
 export const AUTOFILL_MAX_CANDIDATES_PER_SLOT = 5
 export const AUTOFILL_MIN_WIDTH = IMAGE_MIN_WIDTH
@@ -56,6 +57,7 @@ export type AutofillRejectReason =
   | 'other_place'
   | 'public_duplicate'
   | 'supplier_unlicensed'
+  | 'monochrome_text'
 
 const PERSON_PORTRAIT_RE =
   /\b(portrait|portraits|selfie|selfies|headshot|headshots|model|models|posing|poses|posed|fashion|bride|groom|wedding)\b/
@@ -335,6 +337,8 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
   if (isSupplierPhotoUrl(c.url) || isSupplierPhotoUrl(c.originalLink) || isSupplierPhotoUrl(c.pageUrl)) {
     reasons.add('supplier_unlicensed')
   }
+  // REGRESSION-FREEZE[photo-monochrome-text-1122]: 주소 slug·문구·풀 파일 이름에 흑백 표시가 있으면 내려받기 전에 탈락(채도 검사는 그대로) — manifest
+  if (candidateSaysMonochrome(c)) reasons.add('monochrome_text')
 
   return { ok: reasons.size === 0, reasons: [...reasons], matched }
 }

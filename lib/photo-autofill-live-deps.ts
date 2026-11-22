@@ -18,6 +18,7 @@ import { claimThumbnailTopUpSlot, thumbnailPoolFetchCount, topUpThumbnailPlacePo
 import { isExistingIstockImage } from '@/lib/product-image-source-policy'
 import { isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
 import { isMonochromeImageBuffer, isMonochromePhotoUrl } from '@/lib/register-photo-monochrome'
+import { candidateSaysMonochrome } from '@/lib/photo-monochrome-text-1122'
 
 /** 외부 호출 전 간격(사람처럼). Pexels 3.5초 가드 위에 얹는 지터다. */
 export const AUTOFILL_PAUSE_BASE_MS = 400
@@ -73,6 +74,8 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
           searchCc0: async () => searchWikimediaCc0(sight, 15),
           save: async (c) => {
             if (isSupplierPhotoUrl(c.url) || isSupplierPhotoUrl(c.originalLink)) return false
+            // REGRESSION-FREEZE[photo-monochrome-text-1122]: 풀 보충도 흑백 표시 글은 저장하지 않음 — manifest
+            if (candidateSaysMonochrome(c)) return false
             if (await isMonochromePhotoUrl(c.url)) return false
             const saved = await savePhotoFromUrl(
               opts.prisma,
