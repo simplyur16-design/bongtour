@@ -31333,6 +31333,41 @@
       ]
     },
     {
+      "id": "pool-evidence-not-label-1122",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/22 17:41·17:43(봉실장 전달): 일차 사진은 그날 대표 관광지 사진 — 사진 풀 재사용 시 풀 이름표(attractionName·도시·<목적지>_<일차>_slot2)를 믿지 않고 원본 주소 slug 로 그 명소인지 확인, 확인 불가 풀 행은 건너뛰고 새 검색. 보충 저장도 원본 설명이 그 명소일 때만(이올라니 궁전←님라나 요새, 성 바울←불라 레지아, 간단사←메테오라, 쿠지←브론테, 공용 slot2 파일 일차 간 중복 교정)",
+      "checks": [
+        {
+          "file": "lib/photo-pool-evidence-1122.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pool-evidence-not-label-1122]",
+            "export function sourcePageEvidenceText",
+            "export function poolCandidateEvidence"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-live-deps.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pool-evidence-not-label-1122]",
+            "const evidence = poolCandidateEvidence(row)",
+            "altText: evidence,",
+            "if (!sightMatchInText(sightProfile(sight), sourcePageEvidenceText(c.originalLink))) return false"
+          ]
+        },
+        {
+          "file": "lib/pool-evidence-not-label-1122.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pool-evidence-not-label-1122]",
+            "neemrana-fort-palace-in-rajasthan-33797768",
+            "bulla-regia-s-archology-site-wallpaper-28121489"
+          ]
+        }
+      ]
+    },
+    {
       "id": "cleared-slot-newest-first-1122",
       "tier": [
         "prebuild",
