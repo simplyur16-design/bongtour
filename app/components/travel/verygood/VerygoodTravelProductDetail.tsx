@@ -814,7 +814,7 @@ function VerygoodTravelProductDetailView({ product: productInput, showEsimCrossS
             <button
               type="button"
               onClick={handleChangeDepartureDate}
-              className="w-full rounded-xl bg-bt-text-navy py-2.5 font-medium text-white transition hover:bg-[#2c2740] sm:w-auto sm:px-8"
+              className="w-full rounded-xl bg-bt-text-navy py-2.5 font-medium text-white transition hover:bg-bt-text-navy/90 sm:w-auto sm:px-8"
             >
               출발일 변경
             </button>

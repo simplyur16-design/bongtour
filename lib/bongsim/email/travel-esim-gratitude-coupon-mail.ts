@@ -87,7 +87,7 @@ export function buildTravelEsimGratitudeMailContent(input: TravelEsimGratitudeMa
     .filter(Boolean)
     .join("\n");
 
-  const logoUrl = `${publicSiteOrigin()}/images/logo-transparent.webp`;
+  const logoUrl = `${publicSiteOrigin()}/images/bongtour-logo.webp`;
   const safeName = escapeHtml(name);
   const safeTrip = escapeHtml(trip);
   const safeCode = escapeHtml(code);
@@ -102,7 +102,7 @@ export function buildTravelEsimGratitudeMailContent(input: TravelEsimGratitudeMa
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;padding:24px 12px;">
     <tr><td align="center">
       <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
-        <tr><td style="background:linear-gradient(135deg,#0f766e,#14b8a6);padding:20px 24px;text-align:center;">
+        <tr><td style="background:#ffffff;border-bottom:1px solid #e2e8f0;padding:20px 24px;text-align:center;">
           <img src="${escapeHtml(logoUrl)}" alt="Bong투어" width="160" height="auto" style="display:inline-block;max-width:160px;height:auto;" />
         </td></tr>
         <tr><td style="padding:28px 24px;color:#0f172a;">

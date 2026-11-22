@@ -13,8 +13,8 @@
 .bt-ocean-warm {
   /* Brand primary — one fixed blue (CTA · link · price · active tab) */
   --bt-ow-brand: #2f8fc7;
-  --bt-ow-brand-deep: #0e7cc0;
-  --bt-ow-brand-soft: #e8f4fc;
+  --bt-ow-brand-deep: var(--bt-brand-blue-strong);
+  --bt-ow-brand-soft: var(--bt-brand-blue-soft);
   --bt-ow-brand-hover: #1f78ad;
 
   /* Warm secondary — logo / counsel CTA / season accent (not Kakao yellow) */
