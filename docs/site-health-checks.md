@@ -8,6 +8,7 @@
 
 ## 무엇을 하나
 - `kind: 'data'` 항목은 데이터만 고친다. 사진은 재채움 가능한 일차만 칸을 비우고(AssetUsageLog `site-health-clear`, 이전 URL 기록 → 되돌림 가능) 같은 실행의 공개 상품 채움이 먼저 다시 채운다. 한 실행 비우기 상한 = 공개 채움 상한(10).
+- 비운 칸 우선 채움(11/22): 점검이든 수동(흑백 제거 등)이든 칸을 비울 때 AssetUsageLog `sourceType: site-health-clear` 기록을 남기면, 최근 14일 안에 기록된 상품은 다음 :30 공개 채움 맨 앞에 들어간다(상한 30, 일반 순번 10개는 따로).
 - `kind: 'code'` 항목은 기록만 한다(stdout `site-health-done` 한 줄: found·fixed·codeIssues, 항목별 표본 5개).
 - 일정 글·title·가격·스키마는 고치지 않는다. 수동 선택 사진과 대표사진은 비우지 않는다.
 

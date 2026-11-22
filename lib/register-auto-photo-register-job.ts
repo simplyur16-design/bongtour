@@ -12,6 +12,7 @@
  */
 import { logAutoPhotoAttempt, providerErrorClass } from '@/lib/auto-photo-attempt-log'
 import { runSiteHealthHourly } from '@/lib/site-health-run'
+import { CLEARED_SLOT_PRIORITY_DAYS, mergeClearedSlotPriorityPicks } from '@/lib/cleared-slot-refill-priority'
 import {
   autoPhotoFillRequest,
   scheduleHasMissingEligiblePhotoSlot,
@@ -518,8 +519,24 @@ async function pickPublicMissingDayProducts(limit: number, now: Date, priorityId
     const s = scheduleApplyingTravelDayKeywords(r.schedule, r.destination)
     return scheduleHasMissingEligiblePhotoSlot(s?.json ?? r.schedule)
   })
-  const first = new Set(priorityIds)
-  const prior = eligible.filter((r) => first.has(r.id))
-  const rest = eligible.filter((r) => !first.has(r.id))
-  return [...prior, ...rotatePublicMissingDayPicks(rest, limit, now)].slice(0, limit)
+  // REGRESSION-FREEZE[cleared-slot-refill-priority-1122]: 비운 칸 기록 상품을 우선 채움 — manifest
+  const cleared = await loadRecentClearedSlotProductIds(now)
+  return mergeClearedSlotPriorityPicks(eligible, priorityIds, cleared, limit, (rest) => rotatePublicMissingDayPicks(rest, limit, now))
+}
+
+async function loadRecentClearedSlotProductIds(now: Date): Promise<string[]> {
+  try {
+    const rows = await prisma.assetUsageLog.findMany({
+      where: {
+        sourceType: 'site-health-clear',
+        usedAt: { gte: new Date(now.getTime() - CLEARED_SLOT_PRIORITY_DAYS * 24 * 60 * 60 * 1000) },
+      },
+      select: { productId: true },
+      orderBy: { usedAt: 'asc' },
+      take: 2000,
+    })
+    return [...new Set(rows.map((r) => r.productId))]
+  } catch {
+    return []
+  }
 }
