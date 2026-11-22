@@ -10,6 +10,8 @@
 import { destinationEnKeysInKoreanText, koreanCityNameFromEnglish, mapDestination } from '@/lib/pexels-keyword'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
+import { collectRegisterScheduleCitySoftAltKeywords } from '@/lib/register-schedule-city-soft-alts'
+import { sightProfile, sightsOverlap } from '@/lib/photo-autofill-sight'
 
 export type TravelDayRow = {
   day: number
@@ -183,6 +185,47 @@ export function scheduleApplyingTravelDayKeywords(
   })
   if (!changed) return { json: schedule, changed: false, kinds }
   return { json: JSON.stringify(next), changed: true, kinds }
+}
+
+/**
+ * 출국·귀국·이동일 키워드가 도시 이름뿐이면(예: 'Budapest') 자동 채움 검색기는 도시만 있는 키워드를 명소로 보지 않아
+ * 그 칸을 조용히 건너뛰었다. 이 날은 '그 도시의 대표 사진'이 규칙이므로 도시 대표 명소(soft-alt 사전)로 바꿔 찾는다.
+ * 1일차는 국내 출발일이라 출국일로 본다(도시 이름 키워드일 때만). 같은 상품 다른 날 키워드와 겹치는 명소는 뒤로 미룬다.
+ * REGRESSION-FREEZE[travel-day-city-representative-1122]: 출국·귀국일 도시 키워드 → 그 도시 대표 명소로 검색 — manifest
+ */
+export function travelDayRepresentativeSights(
+  row: TravelDayRow,
+  rows: ReadonlyArray<TravelDayRow>,
+  destination: string | null | undefined,
+  maxDay: number,
+): { kind: TravelDayKind; city: string; sights: string[] } | null {
+  const kw = String(row.imageKeyword ?? '').trim()
+  if (!kw || sightProfile(kw).kind !== 'city') return null
+  const day = Number(row.day)
+  const kind = registerTravelDayKind(row, maxDay) ?? (day === 1 ? 'departure' : null)
+  if (!kind) return null
+  const planned =
+    kind === 'departure'
+      ? firstDestinationCityEn(rows, destination)
+      : kind === 'return'
+        ? lastStayCityEn(rows, day, destination)
+        : ''
+  const cities = [...new Set([planned, kw].map((c) => String(c ?? '').trim()).filter(Boolean))]
+  const otherDayProfiles = sortedDays(rows)
+    .filter((r) => Number(r.day) !== day)
+    .map((r) => sightProfile(String(r.imageKeyword ?? '')))
+    .filter((p) => p.kind === 'sight' || p.kind === 'generic')
+  for (const city of cities) {
+    const alts = collectRegisterScheduleCitySoftAltKeywords(city).filter((a) => {
+      const k = sightProfile(a).kind
+      return k === 'sight' || k === 'generic'
+    })
+    if (alts.length === 0) continue
+    const fresh = alts.filter((a) => !otherDayProfiles.some((p) => sightsOverlap(sightProfile(a), p)))
+    const used = alts.filter((a) => !fresh.includes(a))
+    return { kind, city, sights: [...fresh, ...used].slice(0, 3) }
+  }
+  return null
 }
 
 /** 공개 상품 빈 일차 채움 순서: 실패하는 상품이 앞을 막지 않게 시각마다 시작 위치를 돌린다 */
