@@ -269,6 +269,11 @@ export async function runAutoPhotoRegisterJob(opts?: {
               filled: filledCount,
             })
             result.filled += filledCount
+            // REGRESSION-FREEZE[autofill-public-payload-rebuild-1122]: 공개 상품 칸을 채우면 상세 공개 payload·캐시를 다시 만든다(안 하면 다음 날 00:05 재빌드 전까지 옛 사진) — manifest
+            if (row.publicRow) {
+              const { revalidateProductDetailCaches } = await import('@/lib/revalidate-product-detail-caches')
+              await revalidateProductDetailCaches(id).catch(() => {})
+            }
           } else {
             logAutoPhotoAttempt({
               productId: id,

@@ -100,6 +100,7 @@ import { probeStoredImage } from '@/lib/register-auto-photo-register-job'
 import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-ai-label'
 // REGRESSION-FREEZE[photo-autofill-route-strict]: 자동 채움(photoChain v2 + fillMissingOnly)은 검증된 방문지 사진만 — manifest
 import { acquireVerifiedPhoto } from '@/lib/photo-autofill-acquire'
+import { acquireOrRecordError, dayPolicyDropException } from '@/lib/autofill-silent-record-1122'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, photoIdentityKeys } from '@/lib/photo-autofill-gate'
 import { coverSearchSights, sightProfile } from '@/lib/photo-autofill-sight'
 import { isSupplierPhotoSource, isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
@@ -1270,7 +1271,8 @@ export async function POST(req: Request) {
         // REGRESSION-FREEZE[photo-day-keyword-fill]: 일차 키워드가 명소면 문맥이 없어도 그 키워드로 채운다 — manifest
         if (!travelRep && dayPhotoContextFromFacts(dayFacts).kind === 'none' && !dayKeywordIsSight) return keep('no_confirmed_sightseeing')
         const exclude = new Set(strictOwnKeys)
-        const res = await acquireVerifiedPhoto(
+        // REGRESSION-FREEZE[autofill-silent-record-1122]: 찾기 중 예외는 상품 전체 500(무기록) 대신 이 칸 예외로 남긴다 — manifest
+        const res = await acquireOrRecordError(() => acquireVerifiedPhoto(
           {
             productId: String(product.id),
             kind: 'day',
@@ -1290,7 +1292,7 @@ export async function POST(req: Request) {
             origin: 'autofill',
           },
           strictDeps!,
-        )
+        ), { productId: String(product.id), day: dayNum, kind: 'day', sight: sched?.imageKeyword?.trim() || null, origin: 'autofill' })
         if (!res.ok) {
           if (!res.skipped) await strictRecord(res.exception)
           return keep(res.exception.reason.slice(0, 120))
@@ -1518,6 +1520,11 @@ export async function POST(req: Request) {
             }
           }
           if (!verdict.ok) {
+            if (strictAutofill) {
+              await strictRecord(
+                dayPolicyDropException({ productId: String(product.id), day: dayNum, kind: 'day', sight: keywordUsed, origin: 'autofill' }, verdict.reasons),
+              )
+            }
             slotDebug.push({
               day: dayNum,
               imageUrl: '',

@@ -216,10 +216,14 @@ export function travelDayRepresentativeSights(
     .map((r) => sightProfile(String(r.imageKeyword ?? '')))
     .filter((p) => p.kind === 'sight' || p.kind === 'generic')
   for (const city of cities) {
-    const alts = collectRegisterScheduleCitySoftAltKeywords(city).filter((a) => {
+    const allAlts = collectRegisterScheduleCitySoftAltKeywords(city).filter((a) => {
       const k = sightProfile(a).kind
       return k === 'sight' || k === 'generic'
     })
+    // REGRESSION-FREEZE[travel-day-rep-city-named-1122]: 여러 도시가 섞인 묶음(하노이·시엠립)은 이 도시 이름이 든 명소만 — 하노이 귀국일에 앙코르와트 금지 — manifest
+    const cityKey = city.toLowerCase().replace(/[^a-z0-9가-힣]+/g, ' ').trim()
+    const named = cityKey ? allAlts.filter((a) => ` ${a.toLowerCase().replace(/[^a-z0-9가-힣]+/g, ' ')} `.includes(` ${cityKey} `)) : []
+    const alts = named.length > 0 ? named : allAlts
     if (alts.length === 0) continue
     const fresh = alts.filter((a) => !otherDayProfiles.some((p) => sightsOverlap(sightProfile(a), p)))
     const used = alts.filter((a) => !fresh.includes(a))

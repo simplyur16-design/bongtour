@@ -196,6 +196,12 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
         tried.push({ tier, query, id: p.candidate.id, outcome: 'commit_failed', reasons: [res.reason] })
         continue
       }
+      // REGRESSION-FREEZE[autofill-commit-own-dup-1122]: 저장 단계가 같은 원본의 기존 풀 파일을 돌려주면 주소가 바뀐다 — 저장본으로 같은 상품 중복을 다시 거른다 — manifest
+      if (photoIdentityKeys({ url: res.url, externalId: res.externalId, originalLink: res.originalLink }).some((k) => exclude.has(k))) {
+        bump('excluded')
+        tried.push({ tier, query, id: p.candidate.id, outcome: 'stored_rejected', reasons: ['excluded_after_commit'] })
+        continue
+      }
       const size = evaluateStoredPhotoSize({ kind: input.kind, bytes: res.bytes, width: res.width })
       if (size.length > 0) {
         for (const r of size) bump(`stored_${r}`)
