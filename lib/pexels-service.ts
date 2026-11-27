@@ -1,4 +1,3 @@
-import { createClient } from 'pexels'
 import { LUXURY_FALLBACK_IMAGE_URL } from '@/lib/image-fallback'
 import { withPexelsRealisticQuery } from '@/lib/image-style'
 import { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
@@ -6,14 +5,110 @@ import { sharedPexelsCallGuard, type PexelsCallGuard } from '@/lib/register-phot
 
 export { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
 
-// REGRESSION-FREEZE[register-pre-photo-pexels-keyword-must-hit]: lazy client — vitest without key — manifest
-let _pexelsClient: ReturnType<typeof createClient> | null = null
-/** 키가 있을 때만 클라이언트를 만든다. 빌드·vitest처럼 키가 없으면 null (throw 금지). */
-function getPexelsClient(): ReturnType<typeof createClient> | null {
-  const key = process.env.PEXELS_API_KEY?.trim()
+const PEXELS_SEARCH_URL = 'https://api.pexels.com/v1/search'
+/** 같은 검색어 결과 보관 시간 — 같은 키워드를 매시간·매 요청 다시 부르지 않는다 */
+export const PEXELS_RESULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+export const PEXELS_RESULT_CACHE_MAX = 2000
+
+type PexelsSearchParams = { query: string; per_page: number; orientation?: 'landscape' }
+export type PexelsSearchResult = { photos: PexelsApiPhoto[]; cached?: boolean } | { error: string }
+type PexelsCacheEntry = { at: number; photos: PexelsApiPhoto[] }
+const pexelsStore = globalThis as unknown as {
+  __btPexelsResultCache?: Map<string, PexelsCacheEntry>
+  __btPexelsInflight?: Map<string, Promise<PexelsSearchResult | null>>
+}
+function pexelsCache(): Map<string, PexelsCacheEntry> {
+  return (pexelsStore.__btPexelsResultCache ??= new Map())
+}
+function pexelsInflight(): Map<string, Promise<PexelsSearchResult | null>> {
+  return (pexelsStore.__btPexelsInflight ??= new Map())
+}
+/** 테스트용: 결과 보관·진행 중 호출 비우기 */
+export function resetPexelsSearchCacheForTest(): void {
+  pexelsCache().clear()
+  pexelsInflight().clear()
+}
+
+function headerNumber(res: Response, name: string): number | null {
+  const v = res.headers.get(name)
+  if (v == null || v.trim() === '') return null
+  const n = Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Pexels 검색 단일 관문. 모든 Pexels 검색은 여기를 지난다.
+ * REGRESSION-FREEZE[pexels-quota-1128]: 결과 24시간 보관(같은 검색어 재호출 없음)·동시 같은 검색 1번만·
+ * 멈춤(403·429·남은 한도 0) 중이면 호출하지 않고 다음 출처로 넘김·실제 호출마다 상태 한 줄 기록(키·본문 없음) — manifest
+ * - 키가 없으면 null(빌드·vitest).
+ * - spaced: 등록·자동채움 경로는 호출 사이 3.5초(sharedPexelsCallGuard) 를 지킨다.
+ */
+export async function pexelsSearch(
+  params: PexelsSearchParams,
+  deps: { spaced?: boolean; guard?: PexelsCallGuard; fetchImpl?: typeof fetch; now?: () => number; apiKey?: string } = {},
+): Promise<PexelsSearchResult | null> {
+  const key = (deps.apiKey ?? process.env.PEXELS_API_KEY ?? '').trim()
   if (!key) return null
-  if (!_pexelsClient) _pexelsClient = createClient(key)
-  return _pexelsClient
+  const query = params.query.trim()
+  if (!query) return { photos: [] }
+  const perPage = Math.min(Math.max(Math.floor(params.per_page) || 1, 1), 80)
+  const orientation = params.orientation ?? 'landscape'
+  const now = deps.now ?? (() => Date.now())
+  const ck = `${orientation}|${perPage}|${query.toLowerCase()}`
+  const cache = pexelsCache()
+  const hit = cache.get(ck)
+  if (hit && now() - hit.at < PEXELS_RESULT_CACHE_TTL_MS) return { photos: hit.photos, cached: true }
+  const inflight = pexelsInflight()
+  const pending = inflight.get(ck)
+  if (pending) return pending
+  const guard = deps.guard ?? sharedPexelsCallGuard()
+  const run = (async (): Promise<PexelsSearchResult | null> => {
+    if (guard.isStopped()) return { error: 'pexels_stopped' }
+    if (deps.spaced && !(await guard.acquire())) return { error: 'pexels_stopped' }
+    const f = deps.fetchImpl ?? fetch
+    let res: Response
+    try {
+      res = await f(`${PEXELS_SEARCH_URL}?query=${encodeURIComponent(query)}&per_page=${perPage}&orientation=${orientation}`, {
+        headers: { Authorization: key },
+        cache: 'no-store',
+      })
+    } catch (err) {
+      console.log(JSON.stringify({ kind: 'pexels-call', status: null, error: err instanceof Error ? err.name : 'Error' }))
+      return { error: 'network' }
+    }
+    const remaining = headerNumber(res, 'x-ratelimit-remaining')
+    const reset = headerNumber(res, 'x-ratelimit-reset')
+    guard.onQuotaHeaders(remaining, reset)
+    if (!res.ok) guard.onStatus(res.status)
+    console.log(
+      JSON.stringify({
+        kind: 'pexels-call',
+        status: res.status,
+        remaining,
+        stoppedUntil: guard.isStopped() ? new Date(guard.stoppedUntilMs()).toISOString() : null,
+      }),
+    )
+    if (!res.ok) return { error: `HTTP ${res.status}` }
+    let body: unknown
+    try {
+      body = await res.json()
+    } catch {
+      return { error: 'bad_json' }
+    }
+    const photos = Array.isArray((body as { photos?: unknown })?.photos) ? ((body as { photos: PexelsApiPhoto[] }).photos) : []
+    if (cache.size >= PEXELS_RESULT_CACHE_MAX) {
+      const first = cache.keys().next().value
+      if (first !== undefined) cache.delete(first)
+    }
+    cache.set(ck, { at: now(), photos })
+    return { photos }
+  })()
+  inflight.set(ck, run)
+  try {
+    return await run
+  } finally {
+    inflight.delete(ck)
+  }
 }
 
 /** 검색 실패 시 null 대신 럭셔리 파노라마 fallback 반환. 빈 칸/깨진 이미지 금지 */
@@ -98,17 +193,20 @@ export async function pexelsKeywordHasPhotos(keyword: string): Promise<boolean> 
   if (!imageKeywordHasPlaceIdentity(query)) return false
   if (!process.env.PEXELS_API_KEY?.trim()) return false
   try {
-    const client = getPexelsClient()
-    if (!client) return false
-    const result = await client.photos.search({
-      query,
-      per_page: 5,
-      orientation: 'landscape',
-    })
-    if (!('photos' in result) || !Array.isArray(result.photos) || result.photos.length < 1) {
+    const result = await pexelsSearch({ query, per_page: 5, orientation: 'landscape' }, { spaced: true })
+    if (!result) return false
+    if ('error' in result) {
+      // 연타·쿼터·멈춤 — miss로 비우면 정상 장소 키워드가 통째로 증발함
+      if (result.error === 'pexels_stopped' || pexelsErrorStopStatus(result.error)) {
+        console.warn('[pexelsKeywordHasPhotos] rate-limited — keep keyword', query.slice(0, 80))
+        return true
+      }
+      return false
+    }
+    if (result.photos.length < 1) {
       return evaluatePexelsKeywordPlacePhotoSamples(query, []).ok
     }
-    const samples = (result.photos as PexelsApiPhoto[])
+    const samples = result.photos
       .map((p) => {
         const url = pickPexelsCoverIngestUrl(p.src)
         if (!url || isPexelsFallbackUrl(url)) return null
@@ -139,26 +237,17 @@ export async function searchPexelsHeroCandidates(
   // 사장님 11/01: Pexels 호출 사이 3.5초 이상, 403·429 면 멈춤(재시도 없음)
   const guard = deps.guard ?? sharedPexelsCallGuard()
   try {
-    const client = getPexelsClient()
-    if (!client) return []
-    if (!(await guard.acquire())) {
-      console.warn('[pexels] hero search skipped (stopped after 403/429)')
-      return []
-    }
-    const result = await client.photos.search({
-      query,
-      per_page: take,
-      orientation: 'landscape',
-    })
-    if (!('photos' in result)) {
-      const st = pexelsErrorStopStatus((result as { error?: unknown }).error)
+    const result = await pexelsSearch({ query, per_page: take, orientation: 'landscape' }, { spaced: true, guard })
+    if (!result) return []
+    if ('error' in result) {
+      if (result.error === 'pexels_stopped') console.warn('[pexels] hero search skipped (stopped after 403/429/quota 0)')
+      const st = pexelsErrorStopStatus(result.error)
       if (st) guard.onStatus(st)
       return []
     }
     if (result.photos.length === 0) return []
     const out: PexelsHeroCandidateMeta[] = []
-    for (const photo of result.photos) {
-      const p = photo as PexelsApiPhoto
+    for (const p of result.photos) {
       const url = pickPexelsCoverIngestUrl(p.src)
       if (!url || isPexelsFallbackUrl(url)) continue
       out.push({
@@ -201,15 +290,10 @@ function photoToObject(photo: PexelsApiPhoto): PexelsPhotoObject {
 export async function fetchPexelsPhotoObject(keyword: string): Promise<PexelsPhotoObject> {
   const query = withPexelsRealisticQuery(keyword)
   try {
-    const client = getPexelsClient()
-    if (!client) return FALLBACK_OBJECT
-    const result = await client.photos.search({
-      query: query.trim(),
-      per_page: 1,
-      orientation: 'landscape',
-    })
+    const result = await pexelsSearch({ query, per_page: 1, orientation: 'landscape' }, { spaced: true })
+    if (!result) return FALLBACK_OBJECT
     if ('photos' in result && result.photos.length > 0) {
-      return photoToObject(result.photos[0] as PexelsApiPhoto)
+      return photoToObject(result.photos[0]!)
     }
     return FALLBACK_OBJECT
   } catch (err) {
@@ -228,16 +312,11 @@ export async function fetchPexelsFirstUnusedPhoto(
 ): Promise<PexelsPhotoObject> {
   const query = withPexelsRealisticQuery(baseKeyword.trim())
   try {
-    const client = getPexelsClient()
-    if (!client) return FALLBACK_OBJECT
-    const result = await client.photos.search({
-      query: query.trim(),
-      per_page: 15,
-      orientation: 'landscape',
-    })
+    const result = await pexelsSearch({ query, per_page: 15, orientation: 'landscape' }, { spaced: true })
+    if (!result) return FALLBACK_OBJECT
     if ('photos' in result && result.photos.length > 0) {
       for (const photo of result.photos) {
-        const obj = photoToObject(photo as PexelsApiPhoto)
+        const obj = photoToObject(photo)
         if (!isUsed(obj)) return obj
       }
     }
@@ -250,15 +329,10 @@ export async function fetchPexelsFirstUnusedPhoto(
 
 export async function fetchPexelsImage(keyword: string): Promise<string> {
   try {
-    const client = getPexelsClient()
-    if (!client) return LUXURY_FALLBACK_IMAGE_URL
-    const response = await client.photos.search({
-      query: keyword,
-      per_page: 1,
-      orientation: 'landscape',
-    })
+    const response = await pexelsSearch({ query: keyword, per_page: 1, orientation: 'landscape' })
+    if (!response) return LUXURY_FALLBACK_IMAGE_URL
     if ('photos' in response && response.photos.length > 0) {
-      const photo = response.photos[0] as PexelsApiPhoto
+      const photo = response.photos[0]!
       return withFallback(pickPexelsCoverIngestUrl(photo.src) || null)
     }
     return LUXURY_FALLBACK_IMAGE_URL
@@ -271,15 +345,11 @@ export async function fetchPexelsImage(keyword: string): Promise<string> {
 /** 가로형(landscape) 고화질 1장. 실패 시 럭셔리 fallback 반환 (null 없음) */
 export async function getPexelsImage(keyword: string): Promise<string> {
   try {
-    const client = getPexelsClient()
-    if (!client) return LUXURY_FALLBACK_IMAGE_URL
-    const result = await client.photos.search({
-      query: keyword,
-      per_page: 1,
-      orientation: 'landscape',
-    })
+    // 공개 화면(갤러리·추천)용 — 같은 검색어는 보관 결과, 멈춤 중이면 바로 기본 사진
+    const result = await pexelsSearch({ query: keyword, per_page: 1, orientation: 'landscape' })
+    if (!result) return LUXURY_FALLBACK_IMAGE_URL
     if ('photos' in result && result.photos.length > 0) {
-      return withFallback(pickPexelsCoverIngestUrl((result.photos[0] as PexelsApiPhoto).src) || null)
+      return withFallback(pickPexelsCoverIngestUrl(result.photos[0]!.src) || null)
     }
     return LUXURY_FALLBACK_IMAGE_URL
   } catch (err) {
