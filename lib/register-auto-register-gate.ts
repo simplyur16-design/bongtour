@@ -76,6 +76,7 @@ export type AutoRegisterBlockReason =
   | 'photo_sight_mismatch'
   | 'photo_public_duplicate'
   | 'photo_irrelevant_subject'
+  | 'photo_wrong_kind'
   | 'no_future_departures'
   | 'fit_itinerary_missing'
 
@@ -101,6 +102,8 @@ export const AUTO_REGISTER_BLOCK_REASON_KO: Record<AutoRegisterBlockReason, stri
   photo_sight_mismatch: '사진이 그날 방문지와 안 맞음(자동 교체 실패)',
   photo_public_duplicate: '목록 카드 대표 사진이 다른 공개 상품과 같음(자동 교체 실패)',
   photo_irrelevant_subject: '무관 사진(인물·회의실·로고 등, 자동 교체 실패)',
+  // REGRESSION-FREEZE[photo-replace-wrong-1128]: 지도·간판·노선도·AI 생성·흑백·상품 안 중복 사진 — manifest
+  photo_wrong_kind: '지도·간판·AI 생성·흑백·상품 안 중복 사진(자동 교체 실패)',
   no_future_departures: '향후 출발일 없음(등록 안 함)',
   fit_itinerary_missing: '자유여행 추천일정 없음·일차 부족',
 }

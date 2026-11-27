@@ -8,6 +8,7 @@
 import type { AcquireInput, AcquireResult } from '@/lib/photo-autofill-acquire'
 import { photoIdentityKeys, type PublicPhotoUsage } from '@/lib/photo-autofill-gate'
 import type { RegistrationPhotoBlock, RegistrationPhotoReason } from '@/lib/register-photo-registration-gate'
+import { scheduleOtherDaysText, scheduleRowSupplierText } from '@/lib/photo-autofill-sight'
 import { applyDayPhotoReplacement, coverReplacementData, replaceNote, type ReplacementPhoto } from '@/lib/photo-slot-apply'
 import type { PhotoException } from '@/lib/photo-exception-list'
 
@@ -19,6 +20,11 @@ const HEALABLE: ReadonlySet<RegistrationPhotoReason> = new Set([
   'photo_irrelevant_subject',
   'photo_low_res',
   'photo_over_bytes',
+  // REGRESSION-FREEZE[photo-replace-wrong-1128]: 지도·간판·AI 생성·흑백 표시·상품 안 중복도 실사진으로 교체(못 찾으면 기존 유지 + 예외 사유) — manifest
+  'photo_text_map',
+  'photo_ai_generated',
+  'photo_monochrome_text',
+  'photo_in_product_duplicate',
 ])
 
 export type HealDeps = {
@@ -31,6 +37,8 @@ export type HealDeps = {
   recordReplace: (input: { productId: string; day: number; assetPath: string; sourceType: string; notes: string }) => Promise<void>
   usage: PublicPhotoUsage
   now?: () => Date
+  /** 한 실행 전체 교체 상한(외부 검색 쿼터 보호). false 면 이 칸은 다음 실행으로 미룬다(기존 사진 유지). */
+  takeRunBudget?: () => boolean
 }
 
 export type HealCover = {
@@ -57,6 +65,8 @@ export type HealResult = {
   replaced: Array<{ kind: 'day' | 'cover'; day: number | null; reason: string }>
   exceptions: PhotoException[]
   schedule: string | null
+  /** 실행 상한으로 미룬 칸(기존 사진 그대로) */
+  deferred?: number
 }
 
 function slotKey(b: RegistrationPhotoBlock): string {
@@ -107,6 +117,10 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
   for (const { block, reasons } of byKey.values()) {
     if (healed >= HEAL_MAX_SLOTS_PER_PRODUCT) {
       await addException({ productId: input.productId, day: block.day, kind: block.kind, sight: null, query: null, reason: 'heal_cap', detail: `max ${HEAL_MAX_SLOTS_PER_PRODUCT} slots per product`, origin: 'heal', at })
+      continue
+    }
+    if (deps.takeRunBudget && !deps.takeRunBudget()) {
+      result.deferred = (result.deferred ?? 0) + 1
       continue
     }
     healed++
@@ -181,6 +195,9 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
         description: typeof row.description === 'string' ? row.description : null,
         imageKeyword: typeof row.imageKeyword === 'string' ? row.imageKeyword : null,
         imageKeyword2: typeof row.imageKeyword2 === 'string' ? row.imageKeyword2 : null,
+        // REGRESSION-FREEZE[photo-replace-wrong-1128]: 교체 검색도 그날 공급사 원문·다른 일차 글로 명소 판정 — manifest
+        supplierText: scheduleRowSupplierText(row as never),
+        otherDaysText: scheduleOtherDaysText(parseRows(result.schedule) as never, day),
       },
       cityTerms: input.cityTerms,
       destinationText: dest,

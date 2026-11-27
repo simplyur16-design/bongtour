@@ -60,6 +60,7 @@ export type AutofillRejectReason =
   | 'public_duplicate'
   | 'supplier_unlicensed'
   | 'monochrome_text'
+  | 'text_or_map'
 
 const PERSON_PORTRAIT_RE =
   /\b(portrait|portraits|selfie|selfies|headshot|headshots|model|models|posing|poses|posed|fashion|bride|groom|wedding)\b/
@@ -87,6 +88,22 @@ export function photoSubjectIsPerson(parts: { title: string; tags: string }): bo
 
 export function photoSubjectIsIrrelevant(text: string): boolean {
   return IRRELEVANT_RE.test(foldPhotoText(text))
+}
+
+// REGRESSION-FREEZE[photo-replace-wrong-1128]: 지도·간판·노선도·시간표·안내판 등 글·도면 위주 사진은 명소 사진이 아니다(fit-mt-0008 4일차 Kokusai-dori sign) — manifest
+const TEXT_OR_MAP_RE =
+  /\b(sign|signage|signboard|signpost|map|route map|bus route|bus stop|timetable|diagram|chart|floor plan|floorplan|menu|brochure|leaflet|flyer|pamphlet|ticket|notice|noticeboard|placard|plaque|document|receipt|wayfinding|information board|guide board|direction board|directory board)\b/
+// 복수형(cafe signs·shop signs)은 거리 풍경 속 간판이라 거르지 않는다 — 단수(간판·지도가 주인공)만
+
+/**
+ * 글·지도 위주 사진인가. 그날 명소 이름에 같은 낱말이 있으면(Hollywood Sign 등) 명소 자체라 제외.
+ */
+export function photoSubjectIsTextOrMap(text: string, sightNames: readonly string[] = []): boolean {
+  const folded = foldPhotoText(text)
+  const m = folded.match(TEXT_OR_MAP_RE)
+  if (!m) return false
+  const word = m[1]!
+  return !sightNames.some((n) => ` ${foldPhotoText(n)} `.includes(` ${word} `))
 }
 
 export function candidateText(c: AutofillCandidate): string {
@@ -310,6 +327,7 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
     reasons.add('person_subject')
   }
   if (photoSubjectIsIrrelevant(`${text} ${(c.tags ?? []).join(' ')}`)) reasons.add('irrelevant_subject')
+  if (photoSubjectIsTextOrMap(`${text} ${(c.tags ?? []).join(' ')}`, [input.sight.name])) reasons.add('text_or_map')
 
   if (folded.length >= 3) {
     const g = photoMatchGate(

@@ -34,6 +34,7 @@ export type ProductPhotoFacts = {
   bgImageSourceUrl: string | null
   bgImageRehostSearchLabel: string | null
   bgImagePlaceName: string | null
+  bgImageIsGenerated?: boolean | null
 }
 
 export const PHOTO_FACTS_SELECT = {
@@ -48,6 +49,7 @@ export const PHOTO_FACTS_SELECT = {
   bgImageSourceUrl: true,
   bgImageRehostSearchLabel: true,
   bgImagePlaceName: true,
+  bgImageIsGenerated: true,
 } as const
 
 export function destinationTermsOf(p: Pick<ProductPhotoFacts, 'destination' | 'primaryDestination'>): { terms: string[]; cityTerms: string[] } {
@@ -72,6 +74,7 @@ export function buildRegistrationPhotoInput(
           originalLink: p.bgImageSourceUrl,
           source: p.bgImageSource,
           placeLabel: p.bgImageRehostSearchLabel || p.bgImagePlaceName || null,
+          isGenerated: p.bgImageIsGenerated ?? null,
         }
       : null,
     schedule: p.schedule,
@@ -177,6 +180,7 @@ export async function runPhotoHealForProduct(
   prisma: PrismaClient,
   productId: string,
   probe: PhotoProbe,
+  takeRunBudget?: () => boolean,
 ): Promise<{ blocks: number; heal: HealResult | null; exceptions: PhotoException[] }> {
   const p = (await prisma.product.findUnique({ where: { id: productId }, select: PHOTO_FACTS_SELECT })) as ProductPhotoFacts | null
   if (!p) return { blocks: 0, heal: null, exceptions: [] }
@@ -210,10 +214,84 @@ export async function runPhotoHealForProduct(
       recordException: (e) => recordPhotoException(e),
       recordReplace: recordReplaceLive,
       usage: evald.usage,
+      takeRunBudget,
     },
   )
   if (heal.replaced.length > 0) await revalidateAfterPhotoChange(productId)
   return { blocks: evald.blocks.length, heal, exceptions: heal.exceptions }
+}
+
+export type PublicWrongPhotoReplaceResult = {
+  scanned: number
+  targets: number
+  replaced: Array<{ productId: string; kind: 'day' | 'cover'; day: number | null; reason: string }>
+  kept: Array<{ productId: string; kind: 'day' | 'cover'; day: number | null; reason: string }>
+  deferred: number
+}
+
+/**
+ * 공개 상품의 잘못 채워진 사진 칸 교체(사진 칸만, 관리자 선택 칸 제외, 못 찾으면 기존 유지).
+ * REGRESSION-FREEZE[photo-replace-wrong-1128]: 공개 상품 교체는 registered·같은 일정일 때만 쓰기 — manifest
+ */
+export async function runPublicWrongPhotoReplaceLive(
+  prisma: PrismaClient,
+  probe: PhotoProbe,
+  opts: { takeRunBudget: () => boolean; now?: Date; scanLimit?: number },
+): Promise<PublicWrongPhotoReplaceResult> {
+  const { publicWrongPhotoBlocks, rotateForHour, WRONG_PHOTO_REPLACE_PUBLIC_SCAN_PER_RUN } = await import('@/lib/photo-replace-wrong-1128')
+  const out: PublicWrongPhotoReplaceResult = { scanned: 0, targets: 0, replaced: [], kept: [], deferred: 0 }
+  const rows = (await prisma.product.findMany({
+    where: { registrationStatus: 'registered' },
+    select: PHOTO_FACTS_SELECT,
+    orderBy: { id: 'asc' },
+  })) as ProductPhotoFacts[]
+  const usage = await loadPublicPhotoUsageCached(prisma)
+  for (const p of rotateForHour(rows, opts.now ?? new Date(), opts.scanLimit ?? WRONG_PHOTO_REPLACE_PUBLIC_SCAN_PER_RUN)) {
+    out.scanned++
+    // 판정은 DB 글로만(사진 측정 없음) — 용량·해상도는 기존 점검 몫
+    const blocks = publicWrongPhotoBlocks(evaluateRegistrationPhotos(buildRegistrationPhotoInput(p, usage, {})).blocks)
+    if (blocks.length === 0) continue
+    out.targets += blocks.length
+    const { terms, cityTerms } = destinationTermsOf(p)
+    const live = createLiveAcquireDeps({ prisma, destination: terms.join(' '), probe })
+    const heal = await healBlockedSlots(
+      {
+        productId: p.id,
+        destinationTerms: terms,
+        cityTerms,
+        schedule: p.schedule,
+        cover: p.bgImageUrl
+          ? {
+              url: p.bgImageUrl,
+              externalId: p.bgImageExternalId,
+              originalLink: p.bgImageSourceUrl,
+              source: p.bgImageSource,
+              photographer: p.bgImagePhotographer,
+              sourceUrl: p.bgImageSourceUrl,
+              placeLabel: p.bgImageRehostSearchLabel || p.bgImagePlaceName || null,
+            }
+          : null,
+        blocks,
+      },
+      {
+        acquire: (input) => acquireVerifiedPhoto(input, live),
+        writeSchedule: async (id, expected, next) =>
+          (await prisma.product.updateMany({ where: { id, schedule: expected, registrationStatus: 'registered' }, data: { schedule: next } })).count === 1,
+        writeCover: async (id, data) =>
+          (await prisma.product.updateMany({ where: { id, bgImageUrl: p.bgImageUrl ?? null, registrationStatus: 'registered' }, data: data as never })).count === 1,
+        recordException: (e) => recordPhotoException(e),
+        recordReplace: recordReplaceLive,
+        usage,
+        takeRunBudget: opts.takeRunBudget,
+      },
+    )
+    for (const r of heal.replaced) out.replaced.push({ productId: p.id, ...r })
+    for (const e of heal.exceptions) out.kept.push({ productId: p.id, kind: e.kind === 'cover' ? 'cover' : 'day', day: e.day ?? null, reason: String(e.reason) })
+    out.deferred += heal.deferred ?? 0
+    if (heal.replaced.length > 0) await revalidateAfterPhotoChange(p.id)
+    if (heal.deferred) break
+  }
+  return out
 }
 
 export async function headStatus(url: string, fetchImpl: typeof fetch = fetch): Promise<{ status: number | null; error?: string }> {

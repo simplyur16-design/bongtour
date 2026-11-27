@@ -12,11 +12,22 @@ import {
   AUTOFILL_COVER_MAX_BYTES,
   AUTOFILL_DAY_MAX_BYTES,
   AUTOFILL_MIN_WIDTH,
+  photoIdentityKeys,
   photoSubjectIsIrrelevant,
   photoSubjectIsPerson,
+  photoSubjectIsTextOrMap,
   type PublicPhotoUsage,
 } from '@/lib/photo-autofill-gate'
-import { deriveDaySights, foldPhotoText, sightMatchInText, sightProfile, sightsOverlap } from '@/lib/photo-autofill-sight'
+import {
+  deriveDaySights,
+  foldPhotoText,
+  scheduleOtherDaysText,
+  scheduleRowSupplierText,
+  sightMatchInText,
+  sightProfile,
+  sightsOverlap,
+} from '@/lib/photo-autofill-sight'
+import { textHasMonochromeMarker } from '@/lib/photo-monochrome-text-1122'
 import { photoCandidateText } from '@/lib/register-photo-subject-filter'
 
 export type RegistrationPhotoReason =
@@ -26,6 +37,31 @@ export type RegistrationPhotoReason =
   | 'photo_low_res'
   | 'photo_over_bytes'
   | 'photo_not_measured'
+  | 'photo_text_map'
+  | 'photo_ai_generated'
+  | 'photo_monochrome_text'
+  | 'photo_in_product_duplicate'
+
+/** 이미 들어 있는 사진 중 실사진으로 바꿀 칸 사유(지도·간판, AI 생성, 흑백 표시, 상품 안 중복, 그날 명소와 다른 사진) */
+export const WRONG_PHOTO_REPLACE_REASONS: ReadonlySet<RegistrationPhotoReason> = new Set([
+  'photo_sight_mismatch',
+  'photo_irrelevant_subject',
+  'photo_text_map',
+  'photo_ai_generated',
+  'photo_monochrome_text',
+  'photo_in_product_duplicate',
+])
+
+/** '저장된 명소가 그날 원문 명소에 없음' — 근거가 확실한 불일치(공개 상품 교체는 이것만) */
+export const STORED_SIGHT_MISMATCH_DETAIL = 'stored sight not in day:'
+
+// REGRESSION-FREEZE[photo-replace-wrong-1128]: AI(Gemini) 생성 사진 표시(출처 이름·주소) — manifest
+const AI_SOURCE_RE = /gemini|imagen|ai[_ -]?gen|generated/i
+export function photoSourceIsAiGenerated(p: { source?: unknown; url?: unknown; isGenerated?: unknown }): boolean {
+  if (p.isGenerated === true) return true
+  if (AI_SOURCE_RE.test(String(p.source ?? ''))) return true
+  return /\/(?:gemini|ai-generated|imagen)[-_/]/i.test(String(p.url ?? ''))
+}
 
 export type RegistrationPhotoBlock = {
   kind: 'cover' | 'day'
@@ -45,6 +81,7 @@ export type RegistrationPhotoInput = {
     source?: string | null
     placeLabel?: string | null
     sightMatch?: string | null
+    isGenerated?: boolean | null
   } | null
   schedule: string | null
   usage: PublicPhotoUsage
@@ -85,6 +122,9 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
   if (cover && cover.url.trim()) {
     const locked = coverLocked(cover.source)
     measure('cover', null, cover.url, locked)
+    if (!locked && photoSourceIsAiGenerated({ source: cover.source, url: cover.url, isGenerated: cover.isGenerated })) {
+      push({ kind: 'cover', day: null, reason: 'photo_ai_generated', detail: String(cover.source ?? 'generated').slice(0, 60) })
+    }
     if (!locked) {
       const text = textOf(cover.originalLink)
       subject('cover', null, text)
@@ -104,15 +144,28 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
     days = []
   }
   if (Array.isArray(days)) {
-    for (const [i, raw] of (days as Array<Record<string, unknown>>).entries()) {
+    const rows = days as Array<Record<string, unknown>>
+    // REGRESSION-FREEZE[photo-replace-wrong-1128]: 상품 안 중복(대표·앞 일차와 같은 사진)도 교체 대상 — manifest
+    const seenKeys = new Set<string>(cover && cover.url.trim() ? photoIdentityKeys({ url: cover.url, externalId: cover.externalId, originalLink: cover.originalLink }) : [])
+    for (const [i, raw] of rows.entries()) {
       const url = String(raw?.imageUrl ?? '').trim()
       if (!url) continue
       const day = Math.floor(Number(raw.day)) > 0 ? Math.floor(Number(raw.day)) : i + 1
       const locked = raw.imageManualSelected === true
       measure('day', day, url, locked)
-      if (locked) continue
       const src = raw.imageSource && typeof raw.imageSource === 'object' ? (raw.imageSource as Record<string, unknown>) : {}
       const link = String(src.originalLink ?? raw.imageSourcePageUrl ?? '')
+      const keys = photoIdentityKeys({ url, externalId: String(src.externalId ?? ''), originalLink: link })
+      const dup = keys.some((k) => seenKeys.has(k))
+      for (const k of keys) seenKeys.add(k)
+      if (locked) continue
+      if (dup) push({ kind: 'day', day, reason: 'photo_in_product_duplicate', detail: 'same photo as cover or an earlier day' })
+      if (photoSourceIsAiGenerated({ source: src.source ?? raw.imageSourceType, url, isGenerated: raw.imageIsGenerated })) {
+        push({ kind: 'day', day, reason: 'photo_ai_generated', detail: String(src.source ?? 'generated').slice(0, 60) })
+      }
+      if ([url, link, raw.imageAlt].some((t) => textHasMonochromeMarker(typeof t === 'string' ? t : ''))) {
+        push({ kind: 'day', day, reason: 'photo_monochrome_text', detail: 'monochrome marker in photo text' })
+      }
       const text = textOf(link)
       subject('day', day, text)
       const d = deriveDaySights(
@@ -122,9 +175,15 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
           description: typeof raw.description === 'string' ? raw.description : null,
           imageKeyword: typeof raw.imageKeyword === 'string' ? raw.imageKeyword : null,
           imageKeyword2: typeof raw.imageKeyword2 === 'string' ? raw.imageKeyword2 : null,
+          // REGRESSION-FREEZE[photo-replace-wrong-1128]: 이미 든 사진도 그날 공급사 원문 명소로 판정(다른 일차 명소 키워드 사진은 불일치) — manifest
+          supplierText: scheduleRowSupplierText(raw as never),
+          otherDaysText: scheduleOtherDaysText(rows as never, day),
         },
         input.destinationTerms.join(' '),
       )
+      if (text.length >= 3 && photoSubjectIsTextOrMap(text, d.sights)) {
+        push({ kind: 'day', day, reason: 'photo_text_map', detail: text.slice(0, 80) })
+      }
       if (d.sights.length === 0) continue
       const anchors = [...d.cityTerms, ...input.destinationTerms]
       const profiles = d.sights.map(sightProfile)
@@ -135,17 +194,32 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
         profiles.some((p) => sightsOverlap(p, sightProfile(storedSight)) || foldPhotoText(p.name) === foldPhotoText(storedSight))
       if (evidence) continue
       const textHit = text.length >= 3 && profiles.some((p) => sightMatchInText(p, text, anchors) != null)
-      if (!textHit) push({ kind: 'day', day, reason: 'photo_sight_mismatch', detail: text.length >= 3 ? `no sight in "${text.slice(0, 60)}"` : 'unverified (no title/tags)' })
+      if (!textHit) {
+        push({
+          kind: 'day',
+          day,
+          reason: 'photo_sight_mismatch',
+          detail:
+            storedSight !== ''
+              ? `${STORED_SIGHT_MISMATCH_DETAIL} "${storedSight.slice(0, 40)}" vs ${d.sights.slice(0, 2).join(' / ').slice(0, 60)}`
+              : text.length >= 3
+                ? `no sight in "${text.slice(0, 60)}"`
+                : 'unverified (no title/tags)',
+        })
+      }
     }
   }
   return { ok: blocks.length === 0, blocks }
 }
 
 /** 상품 단위 등록 차단 사유 코드(중복 제거). 해상도·용량은 기존 검사의 사유와 같은 뜻이라 따로 올리지 않는다. */
-export function registrationBlockCodes(blocks: readonly RegistrationPhotoBlock[]): Array<'photo_sight_mismatch' | 'photo_public_duplicate' | 'photo_irrelevant_subject'> {
-  const out = new Set<'photo_sight_mismatch' | 'photo_public_duplicate' | 'photo_irrelevant_subject'>()
+export function registrationBlockCodes(
+  blocks: readonly RegistrationPhotoBlock[],
+): Array<'photo_sight_mismatch' | 'photo_public_duplicate' | 'photo_irrelevant_subject' | 'photo_wrong_kind'> {
+  const out = new Set<'photo_sight_mismatch' | 'photo_public_duplicate' | 'photo_irrelevant_subject' | 'photo_wrong_kind'>()
   for (const b of blocks) {
     if (b.reason === 'photo_sight_mismatch' || b.reason === 'photo_public_duplicate' || b.reason === 'photo_irrelevant_subject') out.add(b.reason)
+    if (b.reason === 'photo_text_map' || b.reason === 'photo_ai_generated' || b.reason === 'photo_monochrome_text' || b.reason === 'photo_in_product_duplicate') out.add('photo_wrong_kind')
   }
   return [...out]
 }

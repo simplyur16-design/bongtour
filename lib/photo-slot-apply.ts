@@ -70,6 +70,8 @@ export function applyDayPhotoReplacement(
           imagePhotographer: photo.photographer,
           imageSourcePageUrl: photo.originalLink,
           imageCandidateOrigin: origin,
+          // 실사진 교체 — AI 생성 표시는 내린다(photo-replace-wrong-1128)
+          ...('imageIsGenerated' in (r as Record<string, unknown>) ? { imageIsGenerated: false } : {}),
         },
   )
   return { schedule: JSON.stringify(next), previous }
@@ -85,7 +87,8 @@ export type CoverPreviousValue = {
 
 /** 대표 사진 칸만 바꾸는 갱신 값(다른 칸 없음) */
 export function coverReplacementData(photo: ReplacementPhoto): Record<string, unknown> {
-  return { bgImageUrl: photo.url, ...resolveProductBgImageFieldsFromPhoto(photo) }
+  // REGRESSION-FREEZE[photo-replace-wrong-1128]: 실사진으로 바꾸면 AI 생성 표시도 내린다(다음 실행 재교체 방지) — manifest
+  return { bgImageUrl: photo.url, ...resolveProductBgImageFieldsFromPhoto(photo), bgImageIsGenerated: false }
 }
 
 export type ReplaceNote = {
