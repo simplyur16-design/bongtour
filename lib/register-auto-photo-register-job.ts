@@ -10,6 +10,7 @@
  * - 공급사 원문 칸은 쓰지 않음. 쓰는 칸: registrationStatus·autoUnpublished*·autoRegisterBlockReason·autoRegisterCheckedAt·needsImageReview.
  * REGRESSION-FREEZE[register-auto-register-gate]: 기본 꺼짐, 통과만 registered, 실패는 사유만 — manifest
  */
+import { isRegisterIngestDomesticKoreaProduct } from '@/lib/register-ingest-reject-domestic-korea'
 import { logAutoPhotoAttempt, providerErrorClass } from '@/lib/auto-photo-attempt-log'
 import { runSiteHealthHourly } from '@/lib/site-health-run'
 import {
@@ -158,7 +159,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     siteHealth: null,
   }
 
-  const ids = await prisma.product.findMany({
+  const idRows = await prisma.product.findMany({
     where: {
       OR: [
         REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE,
@@ -166,10 +167,15 @@ export async function runAutoPhotoRegisterJob(opts?: {
         { registrationStatus: 'pre_photo_blocked' },
       ],
     },
-    select: { id: true, bgImageUrl: true, schedule: true, destination: true },
+    select: { id: true, bgImageUrl: true, schedule: true, destination: true, title: true, countryKey: true },
     orderBy: { updatedAt: 'asc' },
     take: limit,
   })
+  // REGRESSION-FREEZE[domestic-pending-exclude-1127]: 국내여행 대기 상품은 사진 채움·자동 등록 대상이 아니다(사장님 11/27 21:31 '국내 6개는 등록대기에서 빼라') — manifest
+  const domesticPendingIds = new Set(
+    idRows.filter((r) => isRegisterIngestDomesticKoreaProduct(r.title, r.destination, r.countryKey)).map((r) => r.id),
+  )
+  const ids = idRows.map((r) => ({ id: r.id, bgImageUrl: r.bgImageUrl, schedule: r.schedule, destination: r.destination }))
   const publicLimit = Math.max(0, Math.min(50, opts?.publicLimit ?? 10))
   // REGRESSION-FREEZE[site-health-hourly-1122]: 점검이 비운 칸의 상품을 같은 실행 공개 채움 맨 앞에 — manifest
   let healthRefillIds: string[] = []
@@ -192,6 +198,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
   for (const row of queue) {
     const { id, bgImageUrl } = row
     let schedule = row.schedule
+    if (!row.publicRow && domesticPendingIds.has(id)) continue
     if (row.publicRow) result.publicScanned++
     else result.scanned++
     // REGRESSION-FREEZE[register-photo-travel-day-1121]: 사진이 빈 출국·귀국·이동일 키워드만 그날 동선으로 — manifest

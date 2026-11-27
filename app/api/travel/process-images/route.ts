@@ -1303,7 +1303,8 @@ export async function POST(req: Request) {
           photographer: res.photo.photographer,
           originalLink: res.photo.originalLink,
           ...(res.photo.externalId ? { externalId: res.photo.externalId } : {}),
-          cityMatch: 'meta',
+          // REGRESSION-FREEZE[pool-citymatch-1127]: 풀 채택은 cityMatch 'pool', 새로 찾은 사진은 'meta' 로 근거를 남긴다 — manifest
+          cityMatch: res.photo.via === 'pool' ? 'pool' : 'meta',
           sight: res.photo.sight,
           sightMatch: res.photo.matched,
         }

@@ -31401,6 +31401,243 @@
       ]
     },
     {
+      "id": "photo-sight-core-1127",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/27 21:31: 긴 키워드는 고유명 축약 검색어(Karnak Temple Luxor Columns→Karnak Temple)를 더하고, 대조는 고유명 낱말 기준(설명·일반어 필수 제외, 짧은 고유명은 도시 앵커). 풀도 축약 이름으로 조회",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-sight.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-sight-core-1127]",
+            "export function sightCoreQuery(",
+            "export function sightCoreTokens(",
+            "return `core:${core.join('+')}`"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-acquire.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-sight-core-1127]",
+            "const core = sightCoreQuery(sight)"
+          ]
+        },
+        {
+          "file": "lib/photo-search-no-gemini-1127.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-sight-core-1127]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "photo-title-landmark-1127",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "빈·도시만 키워드는 그날 일정 제목 첫 명소(한→영 사전)로 검색만 한다. 일정 DB 키워드는 쓰지 않는다",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-sight.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-title-landmark-1127]",
+            "export function titleFirstLandmarkSight("
+          ]
+        },
+        {
+          "file": "lib/photo-search-no-gemini-1127.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-title-landmark-1127]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "photo-source-order-1127",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "출처 순서 풀 → Pexels → Openverse/Wikimedia CC0·PD → Unsplash → 전부 실패 시만 생성(Gemini 최후 수단)",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-acquire.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-source-order-1127]",
+            "const pexels = await stockRound('pexels')",
+            "const unsplash = await stockRound('unsplash')"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-acquire.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-source-order-1127]"
+          ]
+        },
+        {
+          "file": "lib/photo-search-no-gemini-1127.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-source-order-1127]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "photo-openverse-cc0-1127",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "CC0·PD 단계에 Openverse(cc0·pdm 만) 추가 — Wikimedia CC0 와 함께. CC BY 계열 제외",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-openverse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-openverse-cc0-1127]",
+            "const ALLOWED = new Set(['cc0', 'pdm'])",
+            "u.searchParams.set('license', 'cc0,pdm')"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-live-deps.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-openverse-cc0-1127]",
+            "searchCc0: (query, perPage) => searchNoAttributionCc0(query, perPage),"
+          ]
+        },
+        {
+          "file": "lib/photo-search-no-gemini-1127.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-openverse-cc0-1127]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pool-origin-source-1127",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "풀 채택 사진은 원 출처(Pexels·CC0·Unsplash)로 기록하고, 원 출처를 모르는 풀 행은 후보에서 뺀다 — 'PhotoPool' 출처가 일차 정책 L2-OTHER-SOURCE 로 버려져 14칸이 비던 원인",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-live-deps.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pool-origin-source-1127]",
+            "export function poolRowOriginSource(",
+            "if (!poolRowOriginSource(row.source, row.sourceUrl)) continue",
+            "const origin = c.poolOriginSource ?? 'PhotoPool'"
+          ]
+        },
+        {
+          "file": "lib/photo-search-no-gemini-1127.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pool-origin-source-1127]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pool-citymatch-1127",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "자동 채움 풀 채택은 imageSource.cityMatch 'pool', 새로 찾은 사진은 'meta' 근거",
+      "checks": [
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pool-citymatch-1127]",
+            "cityMatch: res.photo.via === 'pool' ? 'pool' : 'meta',"
+          ]
+        },
+        {
+          "file": "lib/photo-search-no-gemini-1127.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pool-citymatch-1127]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unsplash-share-1127",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Unsplash 한도 몫 분리: 풀 보충(top-up)은 시간당 15까지만, 나머지는 칸 검색 몫",
+      "checks": [
+        {
+          "file": "lib/register-photo-stock-rate-guard.ts",
+          "mustInclude": [
+            "export const UNSPLASH_TOPUP_SHARE_PER_HOUR = 15",
+            "export function sharedUnsplashTopUpShare("
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-live-deps.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[unsplash-share-1127]",
+            "if (tier === 'unsplash' && !sharedUnsplashTopUpShare().tryAcquire()) return []"
+          ]
+        },
+        {
+          "file": "lib/photo-search-no-gemini-1127.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[unsplash-share-1127]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "domestic-pending-exclude-1127",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/27 21:31 '국내 6개는 등록대기에서 빼라': 국내 판별(내나라여행·[KTX]·남도 지명/지명, 독일마을≠독일) — 큐 플래그·셀프힐이 다시 켜지 않고 자동 사진·등록 잡도 건너뜀",
+      "checks": [
+        {
+          "file": "lib/register-ingest-reject-domestic-korea.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[domestic-pending-exclude-1127]",
+            "const DOMESTIC_FALSE_OVERSEAS_RE"
+          ]
+        },
+        {
+          "file": "lib/register-pre-photo-queue-flags.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[domestic-pending-exclude-1127]",
+            "!isRegisterIngestDomesticKoreaProduct(row.title ?? null, row.destination ?? null, row.countryKey ?? null) &&"
+          ]
+        },
+        {
+          "file": "lib/register-pending-pre-photo-self-heal.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[domestic-pending-exclude-1127]"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[domestic-pending-exclude-1127]",
+            "if (!row.publicRow && domesticPendingIds.has(id)) continue"
+          ]
+        },
+        {
+          "file": "lib/photo-search-no-gemini-1127.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[domestic-pending-exclude-1127]"
+          ]
+        }
+      ]
+    },
+    {
       "id": "cleared-slot-newest-first-1122",
       "tier": [
         "prebuild",

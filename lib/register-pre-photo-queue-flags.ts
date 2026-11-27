@@ -6,6 +6,7 @@ import type { Prisma } from '@prisma/client'
 import { isRegisterPendingPhotosReady } from '@/lib/register-pending-photos-ready'
 import { productRowIsLiveRegisterPendingQueue } from '@/lib/register-pre-photo-pending-queue-query'
 import { REGISTER_PRE_PHOTO_BLOCKED_STATUS } from '@/lib/register-pre-photo-pending-queue'
+import { isRegisterIngestDomesticKoreaProduct } from '@/lib/register-ingest-reject-domestic-korea'
 
 export type RegisterPrePhotoQueueFlagSource = {
   listingKind?: string | null
@@ -26,8 +27,10 @@ export function computeRegisterPrePhotoQueueFlags(row: RegisterPrePhotoQueueFlag
   const status = String(row.registrationStatus ?? '').trim()
   const inPendingDb =
     !status || status === 'pending' || status === REGISTER_PRE_PHOTO_BLOCKED_STATUS
+  // REGRESSION-FREEZE[domestic-pending-exclude-1127]: 국내여행은 해외 등록대기 큐에 넣지 않는다(사장님 11/27 21:31) — manifest
   const queueReady =
     inPendingDb &&
+    !isRegisterIngestDomesticKoreaProduct(row.title ?? null, row.destination ?? null, row.countryKey ?? null) &&
     productRowIsLiveRegisterPendingQueue({
       listingKind: row.listingKind ?? null,
       productType: row.productType ?? null,

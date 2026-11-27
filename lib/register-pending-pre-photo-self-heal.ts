@@ -20,6 +20,7 @@
  * REGRESSION-FREEZE[heal-never-write-product-title]: Product.title 힐 미기록 — manifest
  * REGRESSION-FREEZE[heal-write-guard-registered]: registered inferred 필드 skip·audit — manifest
  */
+import { isRegisterIngestDomesticKoreaProduct } from '@/lib/register-ingest-reject-domestic-korea'
 import {
   decideHealFieldWrite,
   logHealFieldAudit,
@@ -895,7 +896,11 @@ export async function healPendingRegisterPrePhoto(
             data.rawMeta = rawMetaOut
           },
         )
-        const nextQueueReady = verify.ok && (data.registrationStatus ?? nextStatus) === 'pending'
+        // REGRESSION-FREEZE[domestic-pending-exclude-1127]: 셀프힐도 국내여행 큐 플래그를 다시 켜지 않는다 — manifest
+        const nextQueueReady =
+          verify.ok &&
+          (data.registrationStatus ?? nextStatus) === 'pending' &&
+          !isRegisterIngestDomesticKoreaProduct(product.title ?? null, product.destination ?? null, product.countryKey ?? null)
         consider(
           'registerPrePhotoQueueReady',
           product.registerPrePhotoQueueReady,

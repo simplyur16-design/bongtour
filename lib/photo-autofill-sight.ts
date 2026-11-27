@@ -5,7 +5,7 @@
  * - 별칭 사전(SIGHT_ALIAS_GROUPS)으로 같은 명소의 다른 표기를 같은 명소로 본다.
  * REGRESSION-FREEZE[photo-autofill-sight]: 명소 추출·도시만 탈락·별칭 일치 — manifest
  */
-import { findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
+import { englishFromScheduleKoreanSegmentWithRegex, findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
 import { PLACE_NAMES } from '@/lib/register-photo-match-gate'
 
 export function foldPhotoText(value: unknown): string {
@@ -81,6 +81,21 @@ const WEAK_ADJ = new Set([
   'upper', 'lower', 'central', 'north', 'south', 'east', 'west', 'new', 'marble', 'main', 'first', 'second', 'sweet',
 ])
 
+/**
+ * 고유명 뒤에 붙는 설명 낱말(사진 설명에 잘 안 나온다). 고유명 낱말 대조·축약 검색어에서 뺀다.
+ * REGRESSION-FREEZE[photo-sight-core-1127]: 고유명 낱말 대조는 설명 낱말을 필수로 두지 않는다 — manifest
+ */
+const DESCRIPTOR_TOKENS = new Set([
+  'columns', 'column', 'pillars', 'ruins', 'interior', 'exterior', 'facade', 'entrance', 'courtyard', 'hall', 'halls', 'statue', 'statues',
+  'zipline', 'jungle', 'hopping', 'snorkeling', 'snorkel', 'diving', 'kayak', 'kayaking', 'rafting', 'trekking', 'hiking', 'trail', 'boat',
+  'cable', 'car', 'ropeway', 'gondola', 'train', 'tram', 'floating', 'sea', 'ocean', 'coast', 'coastline', 'shore', 'reef', 'coral', 'forest',
+  'heaven', 'crater', 'caldera', 'volcano', 'peak', 'summit', 'turquoise', 'water', 'waters', 'hot', 'spring', 'springs', 'show', 'performance',
+  'lights', 'lantern', 'lanterns', 'flowers', 'flower', 'blossom', 'blossoms', 'autumn', 'winter', 'summer', 'spring', 'snow', 'fog', 'mist',
+  'rice', 'terraces', 'terrace', 'tea', 'plantation', 'farm', 'vineyard', 'vineyards', 'ancient', 'historic', 'heritage', 'traditional',
+  'onsen', 'viewpoint', 'observation', 'deck', 'walk', 'walking', 'stroll', 'district', 'quarter', 'alley', 'alleys', 'buildings', 'building',
+])
+const CORE_MIN_SINGLE = 5
+
 const CITY_EXTRA = [
   'switzerland', 'swiss', 'italy', 'france', 'spain', 'croatia', 'czech', 'czechia', 'austria', 'hungary', 'poland', 'germany', 'turkey',
   'turkiye', 'greece', 'egypt', 'japan', 'china', 'vietnam', 'thailand', 'laos', 'cambodia', 'malaysia', 'indonesia', 'philippines',
@@ -116,6 +131,50 @@ export type SightProfile = {
   requiredTokens: string[]
   /** kind=generic 일 때 후보 글에 같이 있어야 하는 도시 낱말 */
   needsCityAnchor: boolean
+  /** 고유명 낱말(일반 명사·설명 낱말·도시 제외). 모두 있으면 일치 — 한 낱말이면 5자 이상만 */
+  coreTokens?: string[]
+}
+
+/** 이름에서 고유명 낱말만(일반 명사·흔한 형용사·설명 낱말·도시·불용어 제외), 앞에서 2개까지 */
+export function sightCoreTokens(nameRaw: string): string[] {
+  const head = sightCoreQuery(nameRaw) || String(nameRaw ?? '')
+  const toks = foldPhotoText(head)
+    .split(' ')
+    .filter((t) => t && !STOP_TOKENS.has(t) && !GENERIC_NOUNS.has(t) && !WEAK_ADJ.has(t) && !DESCRIPTOR_TOKENS.has(t) && !isCityToken(t))
+    .filter((t) => !/^\d+$/.test(t) && !/[가-힣]/.test(t))
+  const core = toks.slice(0, 2)
+  if (core.length === 1 && core[0]!.length < CORE_MIN_SINGLE) return []
+  if (core.length === 2 && core.every((t) => t.length < 3)) return []
+  return core
+}
+
+/**
+ * 고유명 축약 검색어: 설명 낱말·도시를 떼고 고유명 + 바로 뒤 일반 명사 1개(Karnak Temple Luxor Columns → Karnak Temple).
+ * 원래 이름과 같으면 ''.
+ * REGRESSION-FREEZE[photo-sight-core-1127]: 긴 키워드는 고유명 축약 검색어를 더한다 — manifest
+ */
+export function sightCoreQuery(nameRaw: string): string {
+  const words = String(nameRaw ?? '').trim().split(/\s+/).filter(Boolean)
+  const out: string[] = []
+  let strong = 0
+  for (const w of words) {
+    const f = foldPhotoText(w)
+    if (!f) continue
+    if (STOP_TOKENS.has(f) && out.length === 0) continue
+    if (DESCRIPTOR_TOKENS.has(f) || (isCityToken(f) && out.length > 0)) break
+    if (isCityToken(f)) continue
+    const isNoun = GENERIC_NOUNS.has(f)
+    if (isNoun && out.length > 0) {
+      out.push(w)
+      break
+    }
+    if (!isNoun && !WEAK_ADJ.has(f) && !STOP_TOKENS.has(f)) strong++
+    out.push(w)
+    if (out.length >= 3) break
+  }
+  if (strong === 0) return ''
+  const q = out.join(' ').trim()
+  return foldPhotoText(q) === foldPhotoText(nameRaw) ? '' : q
 }
 
 function aliasGroupOf(folded: string): readonly string[] | null {
@@ -151,7 +210,7 @@ export function sightProfile(nameRaw: string): SightProfile {
   if (head.length >= 2) required = head
   else if (head.length === 1) required = head[0]!.length >= 6 && nouns.length === 0 ? head : [...head, ...nouns.slice(0, 1)]
   else required = nonCity.filter((t) => !['old', 'town', 'city', 'national'].includes(t)).slice(0, 2)
-  if (alias) return { name, kind: 'sight', phraseTerms: [...new Set([folded, ...alias])].filter(Boolean), requiredTokens: required.length >= 2 || (required.length === 1 && required[0]!.length >= 4) ? required : [], needsCityAnchor: false }
+  if (alias) return { name, kind: 'sight', phraseTerms: [...new Set([folded, ...alias])].filter(Boolean), requiredTokens: required.length >= 2 || (required.length === 1 && required[0]!.length >= 4) ? required : [], needsCityAnchor: false, coreTokens: sightCoreTokens(name) }
   if (required.length === 0 || (required.length === 1 && required[0]!.length < 4)) return empty
   const phrases = new Set<string>([folded, ...(alias ?? [])])
   const weakOnly = strong.length === 0
@@ -161,6 +220,7 @@ export function sightProfile(nameRaw: string): SightProfile {
     phraseTerms: [...phrases],
     requiredTokens: required,
     needsCityAnchor: weakOnly && !alias,
+    ...(weakOnly ? {} : { coreTokens: sightCoreTokens(name) }),
   }
 }
 
@@ -187,6 +247,12 @@ export function sightMatchInText(profile: SightProfile, textRaw: string, anchorT
     .filter((t) => isCityToken(t))
     .some((t) => text.includes(` ${t} `))
   if (toks.length > 0 && toks.every((t) => text.includes(` ${t} `)) && anchorOk() && (toks.length >= 3 || anchored() || namedCity)) return toks.join('+')
+  // REGRESSION-FREEZE[photo-sight-core-1127]: 고유명 낱말(설명·일반어 제외)이 모두 있으면 일치 — 한 낱말은 5자 이상, 6자 미만은 도시 앵커 필요 — manifest
+  // 다른 장소·인물·흑백·용량·중복은 이 뒤 관문이 그대로 본다.
+  const core = profile.kind === 'sight' ? (profile.coreTokens ?? []) : []
+  if (core.length > 0 && core.every((t) => text.includes(` ${t} `)) && (core.length >= 2 || core[0]!.length >= CORE_MIN_SINGLE)) {
+    if (core.length >= 2 || core[0]!.length >= 6 || anchored() || namedCity) return `core:${core.join('+')}`
+  }
   return null
 }
 
@@ -279,12 +345,40 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
   }
   const cityTerms = [...allowedCities].flatMap((k) => (PLACE_NAMES[k] ?? []).filter((n) => !/[가-힣]/.test(n))).slice(0, 12)
   if (ordered.length > 0) return { sights: ordered, reason: 'ok', cityTerms, rejectedKeywords: rejected }
+  // REGRESSION-FREEZE[photo-title-landmark-1127]: 키워드가 비었거나 도시만이면 그날 일정 제목의 첫 명소(한→영)로 검색만 한다(DB 키워드는 쓰지 않음) — manifest
+  const fromTitle = titleFirstLandmarkSight(day.title, allowedCities)
+  if (fromTitle) return { sights: [fromTitle], reason: 'ok', cityTerms, rejectedKeywords: rejected }
   const reason: DaySightResult['reason'] = rejected.some((r) => r.why === 'other_city' || r.why === 'not_in_route')
     ? 'keyword_conflict'
     : rejected.some((r) => r.why === 'city_only')
       ? 'city_only'
       : 'no_sight'
   return { sights: [], reason, cityTerms, rejectedKeywords: rejected }
+}
+
+const TITLE_NON_SIGHT_RE = /이동|출발|도착|공항|호텔|숙소|자유\s*시간|자유일정|조식|중식|석식|체크인|체크아웃|귀국|인천|휴식|쇼핑|면세/
+
+/** 일정 제목을 구분자로 나눠 첫 명소 조각을 영문 명소 이름으로(사전에 있는 것만). 도시만·다른 도시는 버린다. */
+export function titleFirstLandmarkSight(titleRaw: string | null | undefined, allowedCities: ReadonlySet<string> = new Set()): string | null {
+  const title = String(titleRaw ?? '').trim()
+  if (!title) return null
+  const segs = title.split(/[·•,，、\/|>→\-–—()\[\]{}~+&]+|\s및\s/).map((x) => x.trim()).filter(Boolean)
+  for (const seg of segs) {
+    if (TITLE_NON_SIGHT_RE.test(seg)) continue
+    let en = ''
+    try {
+      en = englishFromScheduleKoreanSegmentWithRegex(seg)
+    } catch {
+      en = ''
+    }
+    if (!en || /[가-힣]/.test(en)) continue
+    const prof = sightProfile(en)
+    if (prof.kind !== 'sight') continue
+    const kwCities = cityKeysIn(foldPhotoText(en), false)
+    if (allowedCities.size > 0 && kwCities.some((c) => !allowedCities.has(c))) continue
+    return en
+  }
+  return null
 }
 
 /**
@@ -314,7 +408,11 @@ export function sightSearchQueries(sight: string, cityTerms: readonly string[]):
   const base = String(sight ?? '').trim().replace(/\s+/g, ' ')
   if (!base) return []
   const out = [base]
-  const city = cityTerms.find((c) => !foldPhotoText(base).includes(foldPhotoText(c)))
-  if (city) out.push(`${base} ${city}`)
-  return out
+  // REGRESSION-FREEZE[photo-sight-core-1127]: 고유명 축약 검색어(설명 낱말 뺀 것)를 도시 덧붙임보다 먼저 — manifest
+  const core = sightCoreQuery(base)
+  if (core && !out.includes(core)) out.push(core)
+  const head = core || base
+  const city = cityTerms.find((c) => !foldPhotoText(head).includes(foldPhotoText(c)))
+  if (city) out.push(`${head} ${city}`)
+  return out.slice(0, 3)
 }
