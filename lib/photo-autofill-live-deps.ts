@@ -11,6 +11,7 @@ import { findPhotoPoolByPlaceName, savePhotoFromUrl, savePhotoToPool } from '@/l
 import { parseImageDimensions, probeImageDimensions } from '@/lib/image-dimension-probe'
 import { searchWikimediaCc0 } from '@/lib/photo-autofill-cc0'
 import { searchNoAttributionCc0 } from '@/lib/photo-autofill-openverse'
+import { isPixabayStopped, searchPixabayCandidates } from '@/lib/pixabay-service'
 import type { AcquireDeps, StockTier } from '@/lib/photo-autofill-acquire'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, type AutofillCandidate } from '@/lib/photo-autofill-gate'
 import { sightMatchInText, sightProfile } from '@/lib/photo-autofill-sight'
@@ -57,6 +58,7 @@ export function poolRowOriginSource(source: string | null | undefined, sourceUrl
   if (s === 'pexels' || (s === 'photopool' && host === 'pexels.com')) return 'Pexels'
   if (s === 'unsplash' || (s === 'photopool' && host === 'unsplash.com')) return 'Unsplash'
   if (s === 'cc0' || (s === 'photopool' && host === 'commons.wikimedia.org')) return 'CC0'
+  if (s === 'pixabay' || (s === 'photopool' && host === 'pixabay.com')) return 'Pixabay'
   return null
 }
 
@@ -72,9 +74,15 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
   const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)))
   const random = opts.random ?? Math.random
   return {
-    search: async (tier: StockTier, query: string) => (await collectChainCandidates(query, tier)).map(chainToAutofillCandidate),
+    // REGRESSION-FREEZE[free-src-1128]: Pixabay 는 단일 관문(searchPixabayCandidates), 키 없으면 pixabay_no_key 로 건너뜀 — manifest
+    search: async (tier: StockTier, query: string, perPage: number) =>
+      tier === 'pixabay'
+        ? searchPixabayCandidates(query, perPage)
+        : (await collectChainCandidates(query, tier)).map(chainToAutofillCandidate),
+    stockOffReason: (tier: StockTier) => (tier === 'pixabay' ? (isPixabayStopped() === 'pixabay_no_key' ? 'pixabay_no_key' : null) : null),
     stockStopped: (tier: StockTier) => {
       if (tier === 'pexels') return sharedPexelsCallGuard().isStopped()
+      if (tier === 'pixabay') return isPixabayStopped() != null
       // Unsplash+·프리미엄·스폰서는 searchUnsplashHeroCandidates 가 후보에서 이미 뺀다
       const b = sharedUnsplashCallBudget()
       return b.isStopped() || b.remaining() <= 0
@@ -184,6 +192,26 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
           bytes: m.bytes,
           width: m.width,
           source: 'CC0',
+          photographer: String(c.photographer ?? ''),
+          originalLink: String(c.originalLink ?? ''),
+          externalId: c.id,
+        }
+      }
+      // REGRESSION-FREEZE[free-src-1128]: Pixabay 는 영구 핫링크 금지(공식 문서) — 우리 사진 풀(저장소)에 받아 올린 주소만 쓴다 — manifest
+      if (c.source === 'Pixabay') {
+        const saved = await savePhotoFromUrl(opts.prisma, c.url, opts.destination || ctx.label, ctx.label, 'Pixabay', {
+          photographer: c.photographer ?? undefined,
+          sourceUrl: c.originalLink ?? undefined,
+          sourcePhotoId: c.id,
+        }, maxBytes)
+        if (!saved?.filePath) return { ok: false, reason: 'pool_save_failed' }
+        const m = await opts.probe(saved.filePath)
+        return {
+          ok: true,
+          url: saved.filePath,
+          bytes: m.bytes,
+          width: m.width,
+          source: 'Pixabay',
           photographer: String(c.photographer ?? ''),
           originalLink: String(c.originalLink ?? ''),
           externalId: c.id,

@@ -27,7 +27,7 @@
 import { inferSourceKeyFromImageUrl } from '@/lib/product-image-source-attribution'
 import { isUnsplashProfileUrl } from '@/lib/unsplash-credit'
 
-export type ImageSourceTier = 'pexels' | 'unsplash' | 'cc0' | 'generated'
+export type ImageSourceTier = 'pexels' | 'unsplash' | 'pixabay' | 'cc0' | 'generated'
 
 /** 자동 선택 우선순위 (낮을수록 먼저) */
 export const IMAGE_SOURCE_TIER_ORDER: readonly ImageSourceTier[] = ['pexels', 'unsplash', 'cc0', 'generated'] as const
@@ -143,7 +143,7 @@ export function isAttributionRequiredLicense(license: string | null | undefined)
   if (!l) return false
   if (/(^|-)cc0($|-)|public-?domain|pdm/.test(l)) return false
   // Pexels·Unsplash 라이선스, "attribution not required"/"no attribution" 류는 표시 의무 없음
-  if (/(^|-)(pexels|unsplash)(-license)?($|-)/.test(l)) return false
+  if (/(^|-)(pexels|unsplash|pixabay)(-content)?(-license)?($|-)/.test(l)) return false
   if (
     /attribution-(is-)?not-(required|necessary|needed)|no-attribution|without-attribution|attribution-optional|not-required-attribution|attribution-free/.test(
       l
@@ -161,6 +161,8 @@ export function resolveImageSourceTier(c: ImageCandidate): ImageSourceTier | 'is
   if (c.isGenerated || /^gemini|^generated$|^gen$/.test(s) || (fromUrl ?? '').startsWith('gemini')) return 'generated'
   if (s === 'pexels' || /pexels\.com/.test(link) || fromUrl === 'pexels') return 'pexels'
   if (s === 'unsplash' || /unsplash\.com/.test(link)) return 'unsplash'
+  // REGRESSION-FREEZE[free-src-1128]: Pixabay Content License — 표기 의무 없음(크레딧 없음, creditRequired=false) — manifest
+  if (s === 'pixabay' || /(^|\/\/|\.)pixabay\.com/.test(link)) return 'pixabay'
   if (s === 'cc0' || /(^|[\s-])cc0($|[\s-])|public\s*domain/.test(lower(c.license))) return 'cc0'
   return null
 }

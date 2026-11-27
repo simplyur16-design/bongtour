@@ -198,8 +198,8 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     const { deps, stats } = makeDeps({ results: () => new Error('boom') })
     const r = await acquireVerifiedPhoto(base({ sights: ['Blue Mosque'] }), deps)
     expect(r.ok).toBe(false)
-    // 검색어 2개 × 출처 2개 × (최초 + 재시도 1회)
-    expect(stats().searchCount).toBe(2 * 2 * 2)
+    // 검색어 2개 × 출처 3개(Pexels·Unsplash·Pixabay, free-src-1128) × (최초 + 재시도 1회)
+    expect(stats().searchCount).toBe(2 * 3 * 2)
     if (!r.ok) expect(r.exception.detail).toContain('pexels_error')
   })
 

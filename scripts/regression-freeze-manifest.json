@@ -34825,6 +34825,87 @@
       "vitestSuites": [
         "lib/hero-keyword-rules-1128.test.ts"
       ]
+    },
+    {
+      "id": "free-src-1128",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/28 08:08·08:10: Pexels 멈춤(잔여 0) 동안 풀 → Unsplash → Pixabay → Openverse/Wikimedia CC0·PD(공공누리는 마지막). 표기 의무 없는 사진만. Unsplash 공용 시간당 900(<1000)+헤더 remaining 0 이면 1시간 정지+24시간 보관, Pixabay 60초 60번(공식 100)+헤더 reset 정지+24시간 보관+저장소 업로드(핫링크 금지)+키 없으면 건너뜀, Openverse 익명 헤더 가드·토큰 있으면 Bearer",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-acquire.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "? ['unsplash', 'pixabay', 'cc0']",
+            ": ['pexels', 'cc0', 'unsplash', 'pixabay']",
+            "const pexelsOff = deps.stockStopped('pexels')"
+          ]
+        },
+        {
+          "file": "lib/pixabay-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "export const PIXABAY_API_KEY_ENV = 'PIXABAY_API_KEY'",
+            "export const PIXABAY_RESULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000",
+            "u.searchParams.set('image_type', 'photo')",
+            "if (String(h?.type ?? '').toLowerCase() !== 'photo') continue",
+            "guard.onQuotaHeaders("
+          ]
+        },
+        {
+          "file": "lib/register-photo-stock-rate-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "export const UNSPLASH_PROD_MAX_CALLS_PER_HOUR = 900",
+            "export const PIXABAY_MAX_CALLS_PER_MINUTE = 60",
+            "new UnsplashCallBudget(realStockGuardClock, UNSPLASH_PROD_MAX_CALLS_PER_HOUR)"
+          ]
+        },
+        {
+          "file": "lib/unsplash-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "budget.onQuotaHeaders(remaining)",
+            "kind: 'unsplash-call'"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-live-deps.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "if (c.source === 'Pixabay') {",
+            "'pixabay_no_key'"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-openverse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "x-ratelimit-available-anon_sustained",
+            "kind: 'openverse-call'"
+          ]
+        },
+        {
+          "file": "lib/product-image-source-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "return 'pixabay'"
+          ]
+        },
+        {
+          "file": "lib/free-src-1128.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "expect(order).not.toContain('pexels')",
+            "expect(UNSPLASH_PROD_MAX_CALLS_PER_HOUR).toBeLessThan(1000)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/free-src-1128.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
