@@ -131,16 +131,34 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     })
   })
 
-  it('Pexels 에 없으면 Unsplash 후보를 채택하고 생성은 부르지 않는다', async () => {
+  // REGRESSION-FREEZE[photo-source-order-1127]: 사장님 11/27 21:31 순서 풀 → Pexels → CC0·PD → Unsplash → 생성 — manifest
+  it('Pexels·CC0 에 없으면 Unsplash 후보를 채택하고 생성은 부르지 않는다(CC0 는 Unsplash 보다 먼저)', async () => {
     const { deps, calls } = makeDeps({
       results: (tier) => (tier === 'unsplash' ? [cand('u1', { source: 'Unsplash', url: 'https://images.unsplash.com/photo-u1', originalLink: 'https://unsplash.com/photos/blue-mosque-u1' })] : []),
-      cc0: () => [cand('c0', { source: 'CC0', altText: 'Blue Mosque in Istanbul' })],
+      cc0: () => [],
       generate: () => cand('g0', { source: 'AI 생성', altText: 'Blue Mosque in Istanbul' }),
     })
     const r = await acquireVerifiedPhoto(base(), deps)
     expect(r.ok).toBe(true)
     if (r.ok) expect(r.photo.source).toBe('Unsplash')
-    expect(calls.some((c) => c.type === 'cc0' || c.type === 'generate')).toBe(false)
+    const firstCc0 = calls.findIndex((c) => c.type === 'cc0')
+    const firstUnsplash = calls.findIndex((c) => c.type === 'search' && c.tier === 'unsplash')
+    expect(firstCc0).toBeGreaterThanOrEqual(0)
+    expect(firstCc0).toBeLessThan(firstUnsplash)
+    expect(calls.some((c) => c.type === 'generate')).toBe(false)
+  })
+
+  it('CC0 후보가 맞으면 Unsplash 를 부르지 않고 CC0 를 채택한다(한도 아낌)', async () => {
+    const { deps, calls } = makeDeps({
+      results: () => [],
+      cc0: () => [cand('c0', { source: 'CC0', url: 'https://upload.wikimedia.org/c0.jpg', originalLink: 'https://commons.wikimedia.org/wiki/File:Blue_Mosque_Istanbul.jpg', altText: 'Blue Mosque in Istanbul' })],
+      generate: () => cand('g0', { source: 'AI 생성', altText: 'Blue Mosque in Istanbul' }),
+    })
+    const r = await acquireVerifiedPhoto(base(), deps)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.photo.source).toBe('CC0')
+    expect(calls.some((c) => c.type === 'search' && c.tier === 'unsplash')).toBe(false)
+    expect(calls.some((c) => c.type === 'generate')).toBe(false)
   })
 
   it('Pexels·Unsplash 가 비면 CC0 를 채택하고 생성은 부르지 않는다', async () => {

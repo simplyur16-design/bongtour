@@ -12,10 +12,14 @@ const OVERSEAS_EVIDENCE_RE =
 const AIRLINE_OR_LOCAL_DEP_NOISE_RE =
   /제주\s*항공|진에어|아시아나(?:항공)?|대한항공|트리니티|티웨이|에어서울|에어부산|부산출발|대구출발|청주출발|김해출발|인천출발|김포출발|\[부산출발\]|\[대구출발\]|\[청주출발\]/gi
 
+/** 해외 낱말이 들어간 국내 지명(남해 독일마을) — 해외 증거 판정 전에 지운다 */
+// REGRESSION-FREEZE[domestic-pending-exclude-1127]: 남해 독일마을은 해외 증거가 아니다 — manifest
+const DOMESTIC_FALSE_OVERSEAS_RE = /독일\s*마을?/g
+
 /** 국내 여행·국내 골프·도서 당일 등 */
 // REGRESSION-FREEZE[register-ingest-reject-domestic-korea]: 화천·충북·백령·대청도 당일 — manifest
 const DOMESTIC_KOREA_RE =
-  /국내\s*여행|국내\s*패키지|국내\s*관광|국내여행|대한민국|(?:강원|충북|충남|전남|전북|경북|경남|경기)\s*[가-힣]{0,6}\s*골프|강원\s*\/|충북\s*\/|거문도|울릉도|백령도|대청도|화천|옥천|보은|법주사|청남대|파로호|평화의\s*댐|충북웰니스|대청호|계족산|화진포|청간정|능파대|온돌민박|KTX\s*#|제주도|(?<![가-힣])제주\s*[1234]일|(?<![가-힣])제주(?![가-힣A-Za-z])\s*(?:로얄|시그니처|프리미엄)|강원\s*고성|고성\s*1일|제천\s*골프|원주\s*골프|홍성\s*골프|아산\s*골프|여수\s*골프|세레니티\s*C\.?C|이븐데일|동강시스타|웰리힐리|서산수\s*골프|경도\s*CC|(?:옥천|청주|보은|대전)\s*\/|(?:옥천|청주|보은)\s*2일|청주\s*\/\s*대전|(?:청주|대전)\s*당일/i
+  /국내\s*여행|국내\s*패키지|국내\s*관광|국내여행|대한민국|(?:강원|충북|충남|전남|전북|경북|경남|경기)\s*[가-힣]{0,6}\s*골프|강원\s*\/|충북\s*\/|거문도|울릉도|백령도|대청도|화천|옥천|보은|법주사|청남대|파로호|평화의\s*댐|충북웰니스|대청호|계족산|화진포|청간정|능파대|온돌민박|KTX\s*#|제주도|(?<![가-힣])제주\s*[1234]일|(?<![가-힣])제주(?![가-힣A-Za-z])\s*(?:로얄|시그니처|프리미엄)|강원\s*고성|고성\s*1일|제천\s*골프|원주\s*골프|홍성\s*골프|아산\s*골프|여수\s*골프|세레니티\s*C\.?C|이븐데일|동강시스타|웰리힐리|서산수\s*골프|경도\s*CC|(?:옥천|청주|보은|대전)\s*\/|(?:옥천|청주|보은)\s*2일|청주\s*\/\s*대전|(?:청주|대전)\s*당일|내나라\s*여행|\[KTX\]|(?:남해|순천|여수|거제|밀양|영주|안동|봉화|산청|영암|진도|해남|목포|완도|강진|정읍|통영|경주|전주|담양|보성|하동|구례)\s*\/\s*(?:남해|순천|여수|거제|밀양|영주|안동|봉화|산청|영암|진도|해남|목포|완도|강진|정읍|통영|경주|전주|담양|보성|하동|구례)|(?:산청|영암|진도|남해|순천|밀양|봉화)\s*(?:당일|[1-4]일)/i
 
 /**
  * 해외 인입 대상이 아닌 국내여행(패키지·당일·국내 골프)이면 true.
@@ -30,7 +34,8 @@ export function isRegisterIngestDomesticKoreaProduct(
   if (String(countryKey ?? '').trim().toLowerCase() === 'korea') return true
   const raw = `${String(titleOrHaystack ?? '')}\n${String(destination ?? '')}`.trim()
   if (!raw) return false
-  if (OVERSEAS_EVIDENCE_RE.test(raw)) return false
+  // REGRESSION-FREEZE[domestic-pending-exclude-1127]: 하나투어 국내(내나라여행·[KTX]·남도 지명/지명) 등록대기 제외 — manifest
+  if (OVERSEAS_EVIDENCE_RE.test(raw.replace(DOMESTIC_FALSE_OVERSEAS_RE, ' '))) return false
   const cleaned = raw.replace(AIRLINE_OR_LOCAL_DEP_NOISE_RE, ' ')
   return DOMESTIC_KOREA_RE.test(cleaned)
 }

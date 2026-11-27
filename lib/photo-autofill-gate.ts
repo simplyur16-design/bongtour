@@ -43,6 +43,8 @@ export type AutofillCandidate = {
   storedBytes?: number | null
   /** 생성 이미지 원본. 관문을 통과한 뒤에만 풀에 올린다. */
   generatedBuffer?: Buffer
+  /** 사진 풀 행의 원 출처(Pexels·CC0·Unsplash). 채택 시 이 이름으로 기록한다. */
+  poolOriginSource?: string | null
 }
 
 export type AutofillRejectReason =

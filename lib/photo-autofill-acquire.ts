@@ -1,6 +1,6 @@
 /**
  * 사진 자동 채움·자가 힐·야간 점검이 같이 쓰는 후보 찾기(외부 호출은 주입).
- * 순서: 사진 풀(같은 방문지, 이미 저장된 URL) → Pexels → Unsplash(무료만, Unsplash+ 는 검색 쪽에서 제외) → CC0/퍼블릭도메인 → 그래도 없으면 생성 이미지 1장.
+ * 순서(사장님 11/27 21:31): 사진 풀(같은 방문지, 이미 저장된 URL) → Pexels → Openverse/Wikimedia CC0·퍼블릭도메인 → Unsplash(무료만, 한도 몫 분리) → 그래도 없으면 생성 이미지 1장.
  * 생성은 마지막이고, 없거나 기준을 못 넘기면 그 칸은 예외 '생성 대상'.
  * 호출 규칙: 동시 호출 없음(순차), 호출마다 간격+지터(pause), 읽기 재시도 최대 1회, 외부 장애·한도는 사유만 남기고 다음으로.
  * 칸당 확인하는 후보는 AUTOFILL_MAX_CANDIDATES_PER_SLOT(5)개까지 — 넘으면 예외 목록으로.
@@ -20,6 +20,7 @@ import {
 } from '@/lib/photo-autofill-gate'
 import {
   deriveDaySights,
+  sightCoreQuery,
   sightProfile,
   sightSearchQueries,
   type DaySightInput,
@@ -80,7 +81,7 @@ export type AcquireInput = {
 
 export type AcquireOk = {
   ok: true
-  photo: AcquireCommitOk & { sight: string; matched: string; query: string }
+  photo: AcquireCommitOk & { sight: string; matched: string; query: string; via: AcquireTried['tier'] }
   tried: AcquireTried[]
 }
 export type AcquireFail = {
@@ -209,12 +210,12 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
         continue
       }
       tried.push({ tier, query, id: p.candidate.id, outcome: 'adopted', reasons: [] })
-      return { ok: true, tried, photo: { ...res, sight: sightLabel, matched: p.matched ?? sightLabel, query } }
+      return { ok: true, tried, photo: { ...res, sight: sightLabel, matched: p.matched ?? sightLabel, query, via: tier } }
     }
     return null
   }
 
-  outer: for (const sight of sights.slice(0, MAX_SIGHTS_PER_SLOT)) {
+  for (const sight of sights.slice(0, MAX_SIGHTS_PER_SLOT)) {
     const profile = sightProfile(sight)
     if (profile.kind !== 'sight' && profile.kind !== 'generic') continue
     lastSight = sight
@@ -222,22 +223,26 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
       let pool: AutofillCandidate[] = []
       try {
         pool = await deps.lookupPool(sight, cityTerms)
+        // REGRESSION-FREEZE[photo-sight-core-1127]: 풀도 고유명 축약 이름으로 한 번 더 찾는다 — manifest
+        const core = sightCoreQuery(sight)
+        if (core) pool = [...pool, ...(await deps.lookupPool(core, cityTerms))]
       } catch {
         limitNotes.add('pool_error')
-        pool = []
       }
       lastQuery = sight
       const pooled = await consider(pool, 'pool', sight, profile, sight)
       if (pooled === 'cap') break
       if (pooled) return pooled
     }
-    for (const query of sightSearchQueries(sight, cityTerms)) {
-      lastQuery = query
-      for (const tier of ['pexels', 'unsplash'] as const) {
+    // REGRESSION-FREEZE[photo-source-order-1127]: 풀 → Pexels → Openverse/Wikimedia CC0·PD → Unsplash → (전부 실패 시만) 생성 — manifest
+    const queries = sightSearchQueries(sight, cityTerms)
+    const stockRound = async (tier: StockTier): Promise<AcquireOk | 'cap' | null> => {
+      for (const query of queries) {
         if (deps.stockStopped(tier)) {
           limitNotes.add(`${tier}_limit`)
-          continue
+          return null
         }
+        lastQuery = query
         await deps.pause()
         let cands: AutofillCandidate[]
         try {
@@ -253,12 +258,16 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
         }
         if (deps.stockStopped(tier)) limitNotes.add(`${tier}_limit`)
         const picked = await consider(cands, tier, query, profile, sight)
-        if (picked === 'cap') break outer
         if (picked) return picked
       }
+      return null
     }
+    const pexels = await stockRound('pexels')
+    if (pexels === 'cap') break
+    if (pexels) return pexels
     if (deps.searchCc0) {
-      for (const query of sightSearchQueries(sight, cityTerms)) {
+      let cc0Hit: AcquireOk | 'cap' | null = null
+      for (const query of queries) {
         lastQuery = query
         await deps.pause()
         let cands: AutofillCandidate[]
@@ -273,11 +282,15 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
             continue
           }
         }
-        const picked = await consider(cands, 'cc0', query, profile, sight)
-        if (picked === 'cap') break outer
-        if (picked) return picked
+        cc0Hit = await consider(cands, 'cc0', query, profile, sight)
+        if (cc0Hit) break
       }
+      if (cc0Hit === 'cap') break
+      if (cc0Hit) return cc0Hit
     }
+    const unsplash = await stockRound('unsplash')
+    if (unsplash === 'cap') break
+    if (unsplash) return unsplash
   }
 
   if (deps.generate && lastSight && input.kind !== 'cover') {

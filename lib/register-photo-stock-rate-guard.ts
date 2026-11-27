@@ -64,10 +64,18 @@ export class UnsplashCallBudget {
   }
 }
 
-const g = globalThis as unknown as { __btPexelsGuard?: PexelsCallGuard; __btUnsplashBudget?: UnsplashCallBudget }
+/** 사진 풀 보충(썸네일 top-up)이 쓸 수 있는 Unsplash 시간당 몫 — 나머지는 칸 검색 몫(사장님 11/27 21:31 한도 몫 분리) */
+export const UNSPLASH_TOPUP_SHARE_PER_HOUR = 15
+
+const g = globalThis as unknown as { __btPexelsGuard?: PexelsCallGuard; __btUnsplashBudget?: UnsplashCallBudget; __btUnsplashTopUpShare?: UnsplashCallBudget }
 export function sharedPexelsCallGuard(): PexelsCallGuard {
   return (g.__btPexelsGuard ??= new PexelsCallGuard())
 }
 export function sharedUnsplashCallBudget(): UnsplashCallBudget {
   return (g.__btUnsplashBudget ??= new UnsplashCallBudget())
+}
+
+/** 풀 보충용 Unsplash 몫(시간당 15). 전체 45 예산은 실제 호출에서 따로 센다. */
+export function sharedUnsplashTopUpShare(): UnsplashCallBudget {
+  return (g.__btUnsplashTopUpShare ??= new UnsplashCallBudget(realStockGuardClock, UNSPLASH_TOPUP_SHARE_PER_HOUR))
 }

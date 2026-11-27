@@ -6,10 +6,11 @@
 import type { PrismaClient } from '@prisma/client'
 import { collectChainCandidates, type ChainCandidate } from '@/lib/register-photo-source-chain'
 import { triggerUnsplashDownload } from '@/lib/unsplash-service'
-import { sharedPexelsCallGuard, sharedUnsplashCallBudget } from '@/lib/register-photo-stock-rate-guard'
+import { sharedPexelsCallGuard, sharedUnsplashCallBudget, sharedUnsplashTopUpShare } from '@/lib/register-photo-stock-rate-guard'
 import { findPhotoPoolByPlaceName, savePhotoFromUrl, savePhotoToPool } from '@/lib/photo-pool'
 import { parseImageDimensions, probeImageDimensions } from '@/lib/image-dimension-probe'
 import { searchWikimediaCc0 } from '@/lib/photo-autofill-cc0'
+import { searchNoAttributionCc0 } from '@/lib/photo-autofill-openverse'
 import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
 import type { AcquireDeps, StockTier } from '@/lib/photo-autofill-acquire'
@@ -43,6 +44,24 @@ export function chainToAutofillCandidate(c: ChainCandidate): AutofillCandidate {
   }
 }
 
+/**
+ * 풀 행의 원 출처. 정책이 아는 이름(Pexels·CC0·Unsplash)으로 돌려준다. 모르면 null(그대로 'PhotoPool' — 정책이 막는다).
+ * 'PhotoPool' 로 저장된 행은 원본 주소 도메인으로 본다(commons.wikimedia.org 는 CC0 단계에서만 저장됨).
+ */
+export function poolRowOriginSource(source: string | null | undefined, sourceUrl: string | null | undefined): string | null {
+  const s = String(source ?? '').trim().toLowerCase()
+  let host = ''
+  try {
+    host = new URL(String(sourceUrl ?? '')).hostname.replace(/^www\./, '')
+  } catch {
+    host = ''
+  }
+  if (s === 'pexels' || (s === 'photopool' && host === 'pexels.com')) return 'Pexels'
+  if (s === 'unsplash' || (s === 'photopool' && host === 'unsplash.com')) return 'Unsplash'
+  if (s === 'cc0' || (s === 'photopool' && host === 'commons.wikimedia.org')) return 'CC0'
+  return null
+}
+
 export type LiveDepsOptions = {
   prisma: PrismaClient
   destination: string
@@ -62,7 +81,8 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
       const b = sharedUnsplashCallBudget()
       return b.isStopped() || b.remaining() <= 0
     },
-    searchCc0: (query, perPage) => searchWikimediaCc0(query, perPage),
+    // REGRESSION-FREEZE[photo-openverse-cc0-1127]: CC0·PD 단계는 Openverse + Wikimedia — manifest
+    searchCc0: (query, perPage) => searchNoAttributionCc0(query, perPage),
     pause: () => sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS)),
     lookupPool: async (sight) => {
       if (typeof opts.prisma?.photoPool?.findMany !== 'function') return []
@@ -72,7 +92,11 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         await topUpThumbnailPlacePool({
           have: rows.length,
           pause: () => sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS)),
-          search: async (tier) => (await collectChainCandidates(sight, tier)).map(chainToAutofillCandidate),
+          // REGRESSION-FREEZE[unsplash-share-1127]: 풀 보충은 Unsplash 시간당 몫(15)만 쓴다 — 칸 검색 몫을 남긴다 — manifest
+          search: async (tier) => {
+            if (tier === 'unsplash' && !sharedUnsplashTopUpShare().tryAcquire()) return []
+            return (await collectChainCandidates(sight, tier)).map(chainToAutofillCandidate)
+          },
           searchCc0: async () => searchWikimediaCc0(sight, 15),
           save: async (c) => {
             if (isSupplierPhotoUrl(c.url) || isSupplierPhotoUrl(c.originalLink)) return false
@@ -103,12 +127,15 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         // REGRESSION-FREEZE[pool-evidence-not-label-1122]: 이름표가 아니라 원본 주소 slug 로 명소를 확인한다. 확인할 수 없는 풀 행은 건너뛰고 새 검색으로 — manifest
         const evidence = poolCandidateEvidence(row)
         if (!evidence) continue
+        // REGRESSION-FREEZE[pool-origin-source-1127]: 원 출처를 모르는 풀 행(생성·수동 등)은 채택해도 일차 정책(L2-OTHER-SOURCE)에서 버려져 칸이 빈다 → 후보에서 빼고 다음 출처로 — manifest
+        if (!poolRowOriginSource(row.source, row.sourceUrl)) continue
         await sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS))
         const dim = await probeImageDimensions(url).catch(() => null)
         const sized = await opts.probe(url)
         out.push({
           id: String(row.sourcePhotoId || row.id),
           source: 'PhotoPool',
+          poolOriginSource: poolRowOriginSource(row.source, row.sourceUrl),
           url,
           width: dim?.width ?? sized.width ?? 0,
           height: dim?.height ?? 0,
@@ -185,8 +212,10 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         }
       }
       if (c.source === 'PhotoPool') {
+        // REGRESSION-FREEZE[pool-origin-source-1127]: 풀 채택 사진은 원 출처(Pexels·CC0·Unsplash)로 기록한다 — 'PhotoPool' 이면 일차 정책이 L2-OTHER-SOURCE 로 버렸다 — manifest
+        const origin = c.poolOriginSource ?? 'PhotoPool'
         if (c.storedBytes != null && c.storedBytes > maxBytes) {
-          const saved = await savePhotoFromUrl(opts.prisma, c.url, opts.destination || ctx.label, ctx.label, 'PhotoPool', {
+          const saved = await savePhotoFromUrl(opts.prisma, c.url, opts.destination || ctx.label, ctx.label, origin, {
             photographer: c.photographer ?? undefined,
             sourceUrl: c.originalLink ?? undefined,
             sourcePhotoId: c.id,
@@ -198,7 +227,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
             url: saved.filePath,
             bytes: m.bytes,
             width: m.width,
-            source: 'PhotoPool',
+            source: origin,
             photographer: String(c.photographer ?? ''),
             originalLink: String(c.originalLink ?? ''),
             externalId: c.id,
@@ -209,7 +238,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
           url: c.url,
           bytes: c.storedBytes ?? null,
           width: c.width || null,
-          source: 'PhotoPool',
+          source: origin,
           photographer: String(c.photographer ?? ''),
           originalLink: String(c.originalLink ?? ''),
           externalId: c.id,
