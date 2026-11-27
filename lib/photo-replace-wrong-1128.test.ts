@@ -323,6 +323,9 @@ describe('photo-replace-wrong-1128: 정적 가드', () => {
     expect(job).toContain('runPublicWrongPhotoReplaceLive')
     expect(job).toContain('createRunBudget(WRONG_PHOTO_REPLACE_MAX_PER_RUN)')
     expect(job).toContain('WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN')
+    // 빈칸 채움 목록(1시간 넘게 걸림)보다 먼저 교체 단계가 돈다
+    expect(job.indexOf('await runPublicWrongPhotoReplaceLive(')).toBeGreaterThan(0)
+    expect(job.indexOf('await runPublicWrongPhotoReplaceLive(')).toBeLessThan(job.indexOf('for (const row of queue)'))
     const runner = src('lib/photo-gate-runner.ts')
     expect(runner).toContain("registrationStatus: 'registered'")
     expect(runner).toContain('publicWrongPhotoBlocks')

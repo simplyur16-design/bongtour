@@ -34724,7 +34724,8 @@
           "file": "lib/register-auto-photo-register-job.ts",
           "mustInclude": [
             "runPublicWrongPhotoReplaceLive",
-            "createRunBudget(WRONG_PHOTO_REPLACE_MAX_PER_RUN)"
+            "createRunBudget(WRONG_PHOTO_REPLACE_MAX_PER_RUN)",
+            "목록이 1시간을 넘겨 교체 단계에 닿지 못하던 01:30 실행 교정"
           ]
         },
         {

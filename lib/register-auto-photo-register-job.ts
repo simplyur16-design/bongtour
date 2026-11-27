@@ -196,6 +196,31 @@ export async function runAutoPhotoRegisterJob(opts?: {
       console.warn('[site-health] skipped', e instanceof Error ? e.name : 'Error')
     }
   }
+  // 공개 상품 잘못 채워진 칸 교체: 사진 칸만, 실사진만, 못 찾으면 기존 유지 + 예외 사유
+  // REGRESSION-FREEZE[photo-replace-wrong-1128]: 빈칸 채움 목록(점검 재채움 수백 개)보다 먼저 돈다 — 목록이 1시간을 넘겨 교체 단계에 닿지 못하던 01:30 실행 교정 — manifest
+  if (sw.fill && publicLimit > 0) {
+    const publicBudget = createRunBudget(WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN)
+    try {
+      const w = await runPublicWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
+        takeRunBudget: () => publicBudget.take() && replaceBudget.take(),
+        now: opts?.now,
+      })
+      result.wrongPhotoReplace = { scanned: w.scanned, targets: w.targets, replaced: w.replaced.length, kept: w.kept.length, deferred: w.deferred }
+      // 칸별 결과 한 줄(상품·일차·사유만, 키 없음) — 교체 결과 확인 근거
+      console.log(JSON.stringify({ kind: 'photo-replace-wrong-done', scanned: w.scanned, targets: w.targets, replaced: w.replaced, kept: w.kept, deferred: w.deferred }))
+      result.photoExceptions += w.kept.length
+    } catch (err) {
+      logAutoPhotoAttempt({
+        productId: 'public-wrong-photo',
+        day: null,
+        gate: 'photo-replace-wrong',
+        providerErrorClass: providerErrorClass(err),
+        attemptAt: new Date().toISOString(),
+        result: 'failed',
+      })
+    }
+  }
+
   const picked =
     sw.fill && publicLimit > 0
       ? await pickPublicMissingDayProducts(publicLimit, opts?.now ?? new Date(), healthRefillIds)
@@ -485,28 +510,6 @@ export async function runAutoPhotoRegisterJob(opts?: {
           autoRegisterCheckedAt: new Date(),
           ...(photoReason ? { needsImageReview: true } : {}),
         },
-      })
-    }
-  }
-
-  // 공개 상품 잘못 채워진 칸 교체: 사진 칸만, 실사진만, 못 찾으면 기존 유지 + 예외 사유
-  if (sw.fill && publicLimit > 0) {
-    const publicBudget = createRunBudget(WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN)
-    try {
-      const w = await runPublicWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
-        takeRunBudget: () => publicBudget.take() && replaceBudget.take(),
-        now: opts?.now,
-      })
-      result.wrongPhotoReplace = { scanned: w.scanned, targets: w.targets, replaced: w.replaced.length, kept: w.kept.length, deferred: w.deferred }
-      result.photoExceptions += w.kept.length
-    } catch (err) {
-      logAutoPhotoAttempt({
-        productId: 'public-wrong-photo',
-        day: null,
-        gate: 'photo-replace-wrong',
-        providerErrorClass: providerErrorClass(err),
-        attemptAt: new Date().toISOString(),
-        result: 'failed',
       })
     }
   }
