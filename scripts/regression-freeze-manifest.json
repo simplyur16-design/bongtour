@@ -31664,7 +31664,7 @@
         "prebuild",
         "ci"
       ],
-      "summary": "PHOTO-RULES 키워드(2026-11-27): 그날 원문 일정 고유명만, 다른 일차 명소 키워드는 자동 채움 검색에 쓰지 않고 그날 명소로 찾는다(런타임만, DB 키워드 쓰기 없음). 사전에 없는 그날 고유명은 유지",
+      "summary": "PHOTO-RULES 키워드(2026-11-27): 그날 원문 일정 고유명만, 다른 일차 명소 키워드는 자동 채움 검색에 쓰지 않고 그날 명소로 찾는다(런타임만, DB 키워드 쓰기 없음). 사전에 없는 그날 고유명은 유지. 103칸 시험 보강: 이동 문장(출발·귀국·고속도로)·이름 없는 머리글·도시 이름만 맞은 사전 규칙(장가계·시즈오카·Kobe)은 근거 아님, Koh 접두어 겹침 무시, 사전 오역(유후인≠유시엔, 황금절벽사원≠왓아룬, 니모섬=꼬창) 고침",
       "checks": [
         {
           "file": "lib/photo-autofill-sight.ts",
@@ -31672,7 +31672,25 @@
             "REGRESSION-FREEZE[photo-keyword-own-day-1127]",
             "export function scheduleOtherDaysText",
             "export function scheduleRowSupplierText",
-            "rejected.push({ keyword: kw, why: 'not_in_route' })"
+            "rejected.push({ keyword: kw, why: 'not_in_route' })",
+            "export function stripTravelOnlySentences",
+            "export function ownDayOverlap",
+            "EXTRA_CITY_ONLY_KEYWORDS_EN",
+            "const ownBlobNoCity = stripStandaloneKoreanCityWords(ownBlob)"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-keyword-own-day-1127]",
+            "export function scheduleSpotRulesMatchingKeyword",
+            "Khao Chi Chan Buddha Mountain Pattaya",
+            "Koh Chuang Sattahip snorkeling Thailand",
+            "{ re: /유시엔|Yuushien/i, en: \"Yuushien Garden Shimane\" }"
+          ],
+          "mustNotInclude": [
+            "{ re: /황금\\s*절벽|왓\\s*카오/i, en: \"Wat Arun Bangkok\" }",
+            "{ re: /유시엔|Yuushien|유후인/i"
           ]
         },
         {

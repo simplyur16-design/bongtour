@@ -13,6 +13,31 @@ import { mapDestination, mapKoreanPoiSegment, normalizeSemanticPoiKey } from '@/
 export type SchedulePoiRegexRule = { re: RegExp; en: string }
 
 export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: string }> = [
+  // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 그날 원문 명소(103칸 점검에서 사전에 없던 것) — 다른 일차·도시 대표 키워드 대신 그날 명소로 — manifest
+  { re: /시라이토\s*(?:노\s*)?타키|白糸の滝|Shiraito\s*Falls/i, en: "Shiraito Falls Fujinomiya" },
+  { re: /미호\s*(?:노\s*)?마츠바라|三保松原|Miho\s*no\s*Matsubara/i, en: "Miho no Matsubara" },
+  { re: /오시노\s*핫카이|忍野八海|Oshino\s*Hakkai/i, en: "Oshino Hakkai" },
+  { re: /상해\s*옛\s*거리|상하이\s*옛\s*거리|방빵로|Fangbang|Shanghai\s*Old\s*Street/i, en: "Shanghai Old Street Fangbang Road" },
+  { re: /장위엔|张园|Zhangyuan/i, en: "Zhangyuan Shikumen Shanghai" },
+  { re: /타이캉\s*로|티엔즈팡|톈쯔팡|田子坊|Tianzifang/i, en: "Tianzifang Shanghai" },
+  { re: /탕롱\s*(?:황성|왕궁)|Thang\s*Long\s*(?:Imperial\s*)?Citadel/i, en: "Imperial Citadel of Thang Long Hanoi" },
+  { re: /센겐\s*(?:타이샤|대사|신사)|浅間大社|Sengen\s*Taisha/i, en: "Sengen Taisha shrine Fujinomiya" },
+  { re: /슈젠지|修善寺|Shuzenji/i, en: "Shuzenji Onsen" },
+  { re: /[차치]쿠린\s*(?:노\s*)?코미치|竹林の小径|Chikurin/i, en: "Chikurin-no-Komichi Shuzenji" },
+  { re: /(?:장가계\s*)?대협곡(?:\s*유리\s*다리)?|Zhangjiajie\s*Grand\s*Canyon/i, en: "Zhangjiajie Grand Canyon Glass Bridge" },
+  { re: /(?:군성\s*)?사석화\s*(?:박물관|전시관|미술관)?|Juncheng\s*Sand/i, en: "Juncheng Sand Painting Museum Zhangjiajie" },
+  { re: /72\s*기루|七十二奇楼|72\s*Qi\s*Lou/i, en: "72 Qilou Zhangjiajie" },
+  { re: /호라이\s*바시|蓬莱橋|Horai\s*(?:bashi|Bridge)/i, en: "Horai Bridge Shimada" },
+  { re: /시모다|下田|Shimoda/i, en: "Shimoda Izu Peninsula" },
+  { re: /후쿠오카\s*타워|Fukuoka\s*Tower/i, en: 'Fukuoka Tower' },
+  { re: /아베노\s*하루카스|Abeno\s*Harukas/i, en: 'Abeno Harukas Osaka' },
+  { re: /부용진|부용고진|Furong\s*(?:Ancient\s*)?Town/i, en: 'Furong Ancient Town' },
+  { re: /구채구|Jiuzhaigou/i, en: 'Jiuzhaigou Valley National Park' },
+  { re: /하노이\s*대성당|St\.?\s*Joseph'?s?\s*Cathedral/i, en: "St. Joseph's Cathedral Hanoi" },
+  { re: /마메다\s*마치|Mameda[\s-]*machi/i, en: 'Mameda-machi Hita' },
+  { re: /아오노\s*도몬|Ao\s*no\s*Domon/i, en: 'Ao no Domon Yabakei' },
+  { re: /고베\s*(?:지진\s*)?메모리얼\s*파크|지진\s*메모리얼\s*파크|Kobe\s*Earthquake\s*Memorial/i, en: 'Port of Kobe Earthquake Memorial Park' },
+  { re: /다낭.{0,40}한강\s*유람선|한강\s*유람선.{0,20}다낭/u, en: 'Da Nang Dragon Bridge night' },
   { re: /내원교/u, en: "Japanese Covered Bridge" },
   { re: /호이안\s*고대\s*도시|호이안\s*올드\s*타운|호이안\s*고성/u, en: "Hoi An Ancient Town" },
   { re: /^호이안$/u, en: "Hoi An Ancient Town" },
@@ -42,7 +67,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /보봉탑|원가계|어필봉|Avatar\s*Hallelujah|아바타/i, en: 'Avatar Hallelujah Mountain' },
   { re: /십리\s*화랑|十里画廊|Ten\s*Mile\s*Gallery|Shili\s*Gallery/i, en: 'Ten Mile Gallery' },
   { re: /보봉호|宝峰湖|Baofeng\s*Lake/i, en: 'Baofeng Lake' },
-  { re: /금편계곡|Golden\s*Whip/i, en: 'Golden Whip Stream' },
+  // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 금편계(곡) 둘 다 — '금편계를 걷습니다' — manifest
+  { re: /금편계(?:곡)?|Golden\s*Whip/i, en: 'Golden Whip Stream' },
   { re: /황룡\s*동굴|Yellow\s*Dragon\s*Cave|黄龙洞/u, en: 'Yellow Dragon Cave' },
   { re: /황石寨|黄石寨|Huangshi\s*Village|黄石/u, en: 'Huangshi Village' },
   { re: /미혼대/i, en: 'Avatar Mountain' },
@@ -86,7 +112,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /나프플리온|Nafplio/i, en: "Nafplio Greece harbor fortress" },
   { re: /팔라미디|Palamidi/i, en: "Palamidi Fortress Nafplio" },
   { re: /차크리|Grand\s*Palace|왕궁.*에메랄드|에메랄드\s*사원/i, en: "Grand Palace Bangkok" },
-  { re: /황금\s*절벽|왓\s*카오/i, en: "Wat Arun Bangkok" },
+  // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 황금절벽사원(왓 카오 치 짠)은 파타야 카오치짠 — 방콕 왓아룬 아님 — manifest
+  { re: /황금\s*절벽|왓\s*카오/i, en: "Khao Chi Chan Buddha Mountain Pattaya" },
   { re: /진리의\s*성전|Sanctuary\s*of\s*Truth/i, en: "Sanctuary of Truth Pattaya" },
   { re: /농눅|Nong\s*Nooch/i, en: "Nong Nooch Tropical Garden Pattaya" },
   { re: /아시아티크|Asiatique/i, en: "Asiatique Bangkok night market" },
@@ -99,9 +126,12 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /딸랏\s*노이|Talad\s*Noi/i, en: "Talad Noi Bangkok alley" },
   // REGRESSION-FREEZE[register-schedule-city-soft-alt-day-route]: Bangkok golf Artitaya soft — manifest
   { re: /아티타야|Artitaya/i, en: "Artitaya Golf Club Bangkok fairway" },
-  { re: /니모섬|Nemo\s*Island/i, en: "Koh Nang Yuan snorkeling Thailand" },
+  // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 파타야 니모섬 = 사타힙(사메산) 꼬쭈앙·꼬짠 일대(꼬따오 낭유안 아님) — manifest
+  { re: /니모섬|Nemo\s*Island/i, en: "Koh Chuang Sattahip snorkeling Thailand" },
+  { re: /낭\s*유안|Koh\s*Nang\s*Yuan|Nang\s*Yuan/i, en: "Koh Nang Yuan Koh Tao" },
   { re: /하쿠토\s*신사|Hakuto/i, en: "Hakuto Shrine Tottori" },
-  { re: /유시엔|Yuushien|유후인/i, en: "Yuushien Garden Shimane" },
+  // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 유후인(오이타)은 유시엔(시마네) 아님 — Yufuin Onsen 규칙으로 — manifest
+  { re: /유시엔|Yuushien/i, en: "Yuushien Garden Shimane" },
   { re: /테살로니키|Thessaloniki/i, en: "White Tower Thessaloniki" },
   { re: /세렝게티|Serengeti/i, en: "Serengeti savanna wildlife" },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: Africa SEQP01 — Victoria Falls≠Victoria BC · safari day evidence — manifest
@@ -1752,13 +1782,28 @@ export function firstMatchingSchedulePoiEn(haystack: string): string | null {
   return firstMatchingScheduleSpotEn(haystack) ?? firstMatchingScheduleCityEn(haystack)
 }
 
+/**
+ * 키워드(영문)가 가리키는 사전 규칙들 — 그 규칙이 그날 원문에 맞는지로 '그날 명소' 여부를 판정한다.
+ * REGRESSION-FREEZE[photo-keyword-own-day-1127]: 키워드 ↔ 사전 규칙 — manifest
+ */
+export function scheduleSpotRulesMatchingKeyword(keyword: string): Array<{ re: RegExp; en: string }> {
+  const k = String(keyword ?? '').trim()
+  if (!k) return []
+  const out: Array<{ re: RegExp; en: string }> = []
+  for (const { re, en } of SCHEDULE_SPOT_KO_REGEX_RULES) {
+    const r = new RegExp(re.source, re.flags.replace('g', ''))
+    if (r.test(k)) out.push({ re: r, en })
+  }
+  return out
+}
+
 /** routeText·본문 — 등장 순 전체 명소 매칭 */
-export function findAllScheduleSpotMatchesInText(text: string): Array<{ index: number; en: string }> {
+export function findAllScheduleSpotMatchesInText(text: string): Array<{ index: number; en: string; text?: string }> {
   const haystack = String(text ?? '')
-  const hits: Array<{ index: number; en: string }> = []
+  const hits: Array<{ index: number; en: string; text?: string }> = []
   for (const { re, en } of SCHEDULE_SPOT_KO_REGEX_RULES) {
     const m = haystack.match(re)
-    if (m && m.index != null) hits.push({ index: m.index, en })
+    if (m && m.index != null) hits.push({ index: m.index, en, text: m[0] })
   }
   hits.sort((a, b) => a.index - b.index)
   return hits

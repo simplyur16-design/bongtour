@@ -5,7 +5,7 @@
  * - 별칭 사전(SIGHT_ALIAS_GROUPS)으로 같은 명소의 다른 표기를 같은 명소로 본다.
  * REGRESSION-FREEZE[photo-autofill-sight]: 명소 추출·도시만 탈락·별칭 일치 — manifest
  */
-import { englishFromScheduleKoreanSegmentWithRegex, findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
+import { englishFromScheduleKoreanSegmentWithRegex, findAllScheduleSpotMatchesInText, scheduleSpotRulesMatchingKeyword } from '@/lib/schedule-poi-regex-ssot'
 import { PLACE_NAMES } from '@/lib/register-photo-match-gate'
 
 export function foldPhotoText(value: unknown): string {
@@ -274,12 +274,63 @@ export type DaySightInput = {
 
 type ScheduleRowLike = { day?: unknown; title?: unknown; routeText?: unknown; description?: unknown; supplierOriginal?: unknown } | null | undefined
 
+const ISLAND_PREFIX_TOKENS = new Set(['koh', 'ko', 'pulau', 'nusa', 'isla', 'ilha'])
+/** 그날 명소 판정용 겹침: 같은 구절이거나, 일반어·묘사어·섬 접두어(koh)를 뺀 낱말이 겹칠 때만 */
+const TRAVEL_ONLY_SENTENCE_RE =
+  /[^.!?\n·]*(?:에서\s*출발(?:해|하여|후)?\s*(?:[^.!?\n·]{0,30}?(?:으로|로|에)\s*)?(?:귀국|도착)|(?:으로|로)\s*귀국)[^.!?\n·]*[.!?]?/gu
+/** 이동만 말하는 문장(출발·귀국·도착)은 그날 방문 근거에서 뺀다 */
+export function stripTravelOnlySentences(text: string): string {
+  return String(text ?? '')
+    .replace(TRAVEL_ONLY_SENTENCE_RE, ' ')
+    .replace(/[가-힣A-Za-z]+(?:\s*[-–]\s*[가-힣A-Za-z]+)*\s*고속도로/gu, ' ')
+}
+
+export function ownDayOverlap(a: SightProfile, b: SightProfile): boolean {
+  if (a.phraseTerms.some((p) => b.phraseTerms.includes(p))) return true
+  const strong = (t: string) => !GENERIC_NOUNS.has(t) && !DESCRIPTOR_TOKENS.has(t) && !ISLAND_PREFIX_TOKENS.has(t)
+  const bs = new Set(b.requiredTokens.filter(strong))
+  return a.requiredTokens.filter(strong).some((t) => bs.has(t))
+}
+
+/** 원문에서 맞은 글자가 도시 이름뿐인지(홍콩·호이안) — 도시 대표 명소 규칙은 '그날 명소' 근거가 아니다 */
+/** 사전 규칙이 명소로 바꾸지만 일정 글에서는 도시·지역 이름으로만 쓰이는 낱말(장가계→국립삼림공원, 시즈오카→후지산) */
+const EXTRA_KOREAN_CITY_WORDS = ['장가계', '시즈오카', '상해', '상하이', '하노이', '다낭', '파타야', '방콕', '싱가포르', '칭다오', '고베', '교토', '나라', '오사카', '후쿠오카']
+/** 사전에서 명소처럼 다루지만 키워드로는 도시 이름뿐인 영문(Kobe·Nara) — 도시만 키워드로 버린다 */
+const EXTRA_CITY_ONLY_KEYWORDS_EN = new Set(['kobe', 'kyoto', 'nara', 'osaka', 'fukuoka', 'shanghai', 'zhangjiajie', 'shizuoka', 'da nang', 'danang', 'pattaya', 'bangkok', 'singapore', 'qingdao', 'hanoi'])
+export function isBareCityMatchText(t: string | null | undefined): boolean {
+  const k = String(t ?? '').replace(/\s+/g, '')
+  if (!k) return false
+  if (EXTRA_KOREAN_CITY_WORDS.includes(k)) return true
+  return Object.values(PLACE_NAMES).some((names) => names.some((n) => n.replace(/\s+/g, '').toLowerCase() === k.toLowerCase()))
+}
+
+const KOREAN_CITY_WORDS: string[] = [...new Set([...Object.values(PLACE_NAMES).flat(), ...EXTRA_KOREAN_CITY_WORDS].filter((n) => /^[가-힣]+$/.test(n)))].sort((a, b) => b.length - a.length)
+/** '마카오와 홍콩을 둘러봅니다' 처럼 홀로 쓴 도시 이름(조사 포함)은 지운다. '오사카성'처럼 이름 일부는 그대로 */
+export function stripStandaloneKoreanCityWords(seg: string): string {
+  let out = ` ${seg} `
+  for (const c of KOREAN_CITY_WORDS) {
+    out = out.replace(new RegExp(`(^|[\\s,.!?·()_\\-])${c}(?:와|과|을|를|은|는|에서|에|의|도|로|으로)?(?=$|[\\s,.!?·()_\\-])`, 'g'), '$1')
+  }
+  for (const c of EXTRA_CITY_ONLY_KEYWORDS_EN) {
+    out = out.replace(new RegExp(`(^|[\\s,.!?·()_\\-])${c}(?=$|[\\s,.!?·()_\\-])`, 'gi'), '$1')
+  }
+  return out.replace(/\s+/g, ' ').trim()
+}
+
 /** 일정 행의 공급사 원문 조각(supplierOriginal.items[].name/text) */
 export function scheduleRowSupplierText(row: ScheduleRowLike): string {
   const so = row && typeof row === 'object' ? (row as { supplierOriginal?: unknown }).supplierOriginal : null
   const items = so && typeof so === 'object' ? (so as { items?: unknown }).items : null
   if (!Array.isArray(items)) return ''
+  // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 이름 없는 짧은 줄('하롱베이 - 하노이', '다자이후 이동')은 지역 머리글·이동 메모라 방문 근거가 아니다 — manifest
   return items
+    .filter((i) => {
+      if (!i || typeof i !== 'object') return false
+      const name = (i as { name?: unknown }).name
+      const text = (i as { text?: unknown }).text
+      const header = !(typeof name === 'string' && name.trim()) && typeof text === 'string' && text.trim().length <= 25 && !/[.!?]/.test(text)
+      return !header
+    })
     .map((i) => (i && typeof i === 'object' ? [(i as { name?: unknown }).name, (i as { text?: unknown }).text] : []))
     .flat()
     .filter((x): x is string => typeof x === 'string')
@@ -328,27 +379,39 @@ export function sightsOverlap(a: SightProfile, b: SightProfile): boolean {
  */
 export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySightResult {
   const routeBlob = [day.routeText, day.title, day.description, day.supplierText].map((x) => String(x ?? '')).join(' ')
-  const ownBlob = routeBlob
+  // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 'X에서 출발해 귀국/도착' 같은 이동 문장은 방문 근거가 아니다(시즈오카 출발 → 후지산 아님) — manifest
+  const ownBlob = stripTravelOnlySentences(routeBlob)
   const otherBlob = String(day.otherDaysText ?? '')
   const slotFolded = foldPhotoText(`${routeBlob} ${destinationText}`)
   const allowedCities = new Set(cityKeysIn(slotFolded, true))
   const rejected: DaySightResult['rejectedKeywords'] = []
 
+  // 도시 이름(장가계·시즈오카)만 지운 글 — 키워드 '그날 명소' 확인용
+  const ownBlobNoCity = stripStandaloneKoreanCityWords(ownBlob)
   const spots: string[] = []
   const seen = new Set<string>()
-  for (const hit of findAllScheduleSpotMatchesInText(routeBlob)) {
+  // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 도시 이름만 맞은 명소(장가계→국립삼림공원)는 그날 고유 명소 뒤 — manifest
+  const ownHits = findAllScheduleSpotMatchesInText(ownBlob)
+  for (const hit of [...ownHits.filter((h) => !isBareCityMatchText(h.text)), ...ownHits.filter((h) => isBareCityMatchText(h.text))]) {
     const k = foldPhotoText(hit.en)
     if (!k || seen.has(k)) continue
     seen.add(k)
     spots.push(hit.en)
   }
   const spotProfiles = spots.map(sightProfile).filter((p) => p.kind === 'sight' || p.kind === 'generic')
+  // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 도시 이름만 맞은 규칙(홍콩→Victoria Harbour)은 키워드 '그날 명소' 판정에서 뺀다 — manifest
+  const ownNamedSpotProfiles = findAllScheduleSpotMatchesInText(ownBlob)
+    .filter((h) => !isBareCityMatchText(h.text))
+    .map((h) => sightProfile(h.en))
+    .filter((p) => p.kind === 'sight' || p.kind === 'generic')
   const segProfiles = (text: string) =>
     text
       .split(/[·•,，、\/|>→\-–—()\[\]{}~+&\n]+/)
       .map((x) => x.trim())
-      .filter((x) => x && /[가-힣]/.test(x))
+      .filter((x) => x && /[가-힣]/.test(x) && !isBareCityMatchText(x))
       .slice(0, 80)
+      .map((seg) => stripStandaloneKoreanCityWords(seg))
+      .filter((seg) => /[가-힣]/.test(seg))
       .map((seg) => {
         try {
           return englishFromScheduleKoreanSegmentWithRegex(seg)
@@ -369,12 +432,13 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
     : []
 
   const keywordSights: string[] = []
+  const lateKeywordSights: string[] = []
   for (const raw of [day.imageKeyword, day.imageKeyword2]) {
     const kw = String(raw ?? '').trim()
     if (!kw || /^day[_ ]?\d+$/i.test(kw)) continue
     const prof = sightProfile(kw)
-    if (prof.kind === 'city' || prof.kind === 'empty') {
-      rejected.push({ keyword: kw, why: prof.kind === 'city' ? 'city_only' : 'weak' })
+    if (prof.kind === 'city' || prof.kind === 'empty' || EXTRA_CITY_ONLY_KEYWORDS_EN.has(foldPhotoText(kw).trim())) {
+      rejected.push({ keyword: kw, why: prof.kind === 'empty' ? 'weak' : 'city_only' })
       continue
     }
     const kwCities = cityKeysIn(foldPhotoText(kw), false)
@@ -382,19 +446,34 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
       rejected.push({ keyword: kw, why: 'other_city' })
       continue
     }
-    // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 키워드는 그날 원문 일정의 고유명만(PHOTO-RULES 키워드). 그날 글에 없는데
-    // 그날 글(한→영 조각 포함)에 없고 다른 일차 글에 있는 명소면 쓰지 않고 그날 명소로 찾는다. 사전에 없는 고유명(금편계)은 그대로 둔다 — manifest
+    // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 키워드는 그날 원문 일정의 고유명만(PHOTO-RULES 키워드).
+    // 그날 글(사전·한→영 조각·원문)로 확인되면 맨 앞. 그날 글에 없는 게 확인되면(다른 일차 글에 있음, 또는 사전 규칙의 한글 이름이 그날 글에 없음 —
+    // 도시 대표 명소 팩) 버린다. 확인도 반박도 안 되는 고유명(사전 밖)은 그날 명소 뒤에 둔다 — manifest
+    // 같은 고유명 규칙만(도시 이름만 겹치는 넓은 규칙 제외): 영문 이름의 핵심 낱말이 키워드 핵심 낱말과 겹칠 때
+    const kwCore = new Set(sightCoreTokens(kw))
+    const kwRules = scheduleSpotRulesMatchingKeyword(kw)
+      .filter((r) => sightCoreTokens(r.en).some((t) => kwCore.has(t)))
+      .map((r) => r.re)
     const onOwnDay =
-      spotProfiles.some((p) => sightsOverlap(prof, p)) || ownSegProfiles.some((p) => sightsOverlap(prof, p)) || Boolean(sightMatchInText(prof, ownBlob))
+      ownNamedSpotProfiles.some((p) => ownDayOverlap(prof, p)) ||
+      ownSegProfiles.some((p) => ownDayOverlap(prof, p)) ||
+      kwRules.some((re) => {
+        const m = ownBlobNoCity.match(re)
+        return Boolean(m && !isBareCityMatchText(m[0]))
+      }) ||
+      Boolean(sightMatchInText(prof, ownBlobNoCity))
     if (!onOwnDay) {
       const onOtherDay =
         otherSpotProfiles.some((p) => sightsOverlap(prof, p)) ||
         otherSegProfiles().some((p) => sightsOverlap(prof, p)) ||
-        Boolean(otherBlob && sightMatchInText(prof, otherBlob))
-      if (onOtherDay) {
+        Boolean(otherBlob && (sightMatchInText(prof, otherBlob) || kwRules.some((re) => re.test(otherBlob))))
+      const koreanNameMissing = kwRules.some((re) => /[가-힣]/.test(re.source))
+      if (onOtherDay || koreanNameMissing) {
         rejected.push({ keyword: kw, why: 'not_in_route' })
         continue
       }
+      lateKeywordSights.push(kw)
+      continue
     }
     // REGRESSION-FREEZE[photo-day-keyword-fill]: 그날 imageKeyword 명소는 대표만 채우고 일차를 비우지 않는다. 다른 도시 키워드만 버린다 — manifest
     keywordSights.push(kw)
@@ -402,7 +481,8 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
 
   const ordered: string[] = []
   const orderedSeen = new Set<string>()
-  for (const s of [...keywordSights, ...spots]) {
+  // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 그날 원문 조각의 한→영 명소(사전 정규식 밖, 예 세나도 광장)도 확인 안 된 키워드보다 앞 — manifest
+  for (const s of [...keywordSights, ...spots, ...ownSegProfiles.map((p) => p.name), ...lateKeywordSights]) {
     const p = sightProfile(s)
     if (p.kind !== 'sight' && p.kind !== 'generic') continue
     const key = p.phraseTerms[0] ?? foldPhotoText(s)

@@ -17,7 +17,8 @@ vi.mock('@/lib/gemini-image-generate', () => ({
 
 import { acquireVerifiedPhoto, NO_REAL_PHOTO_NOTE, type AcquireDeps } from '@/lib/photo-autofill-acquire'
 import { PublicPhotoUsage } from '@/lib/photo-autofill-gate'
-import { deriveDaySights, scheduleOtherDaysText, scheduleRowSupplierText } from '@/lib/photo-autofill-sight'
+import { deriveDaySights, scheduleOtherDaysText, scheduleRowSupplierText, stripTravelOnlySentences } from '@/lib/photo-autofill-sight'
+import { englishFromScheduleKoreanSegmentWithRegex } from '@/lib/schedule-poi-regex-ssot'
 import { generateGeminiFallbackImage } from '@/lib/itinerary-day-hero-image'
 
 const root = process.cwd()
@@ -100,5 +101,64 @@ describe('키워드는 그날 원문 고유명만 (photo-keyword-own-day-1127)',
     expect(scheduleRowSupplierText(rows[1])).toContain('오사카성')
     expect(scheduleOtherDaysText(rows, 2)).toContain('오사카성')
     expect(scheduleOtherDaysText(rows, 3)).not.toContain('오사카성')
+  })
+})
+
+describe('103칸 시험 결과로 고친 키워드 판정 (photo-keyword-own-day-1127)', () => {
+  it("'시즈오카에서 출발해 귀국' 같은 이동 문장·도시 이름은 근거가 아니다 → 후지산 키워드 대신 그날 시모다·호라이바시", () => {
+    expect(stripTravelOnlySentences('시모다와 호라이바시를 둘러봅니다. 시즈오카에서 출발해 귀국합니다.')).not.toContain('시즈오카')
+    const d = deriveDaySights(
+      { title: '시모다 · 호라이바시', routeText: '시모다 - 호라이바시', description: '시모다와 호라이바시를 둘러봅니다. 시즈오카에서 출발해 귀국합니다.', imageKeyword: 'Mount Fuji Shizuoka' },
+      'shizuoka japan',
+    )
+    expect(d.sights.join(' ')).not.toMatch(/Mount Fuji/i)
+    expect(d.sights.join(' ')).toMatch(/Shimoda|Horai/)
+    expect(d.rejectedKeywords.map((r) => r.keyword)).toContain('Mount Fuji Shizuoka')
+  })
+
+  it('장가계(도시 이름)만 맞은 국립삼림공원 키워드는 버리고 그날 대협곡을 쓴다', () => {
+    const d = deriveDaySights(
+      { title: '장가계 · 대협곡B코스', routeText: '장가계 - 대협곡B코스', description: '장가계에 도착합니다. 대협곡B코스를 둘러봅니다.', imageKeyword: 'Zhangjiajie National Forest Park' },
+      'zhangjiajie china',
+    )
+    expect(d.sights[0]).toMatch(/Grand Canyon/)
+  })
+
+  it('도시 이름뿐인 키워드(Kobe)는 버리고 그날 명소(지진 메모리얼 파크)', () => {
+    const d = deriveDaySights(
+      { title: '나라 · 지진 메모리얼 파크', routeText: '나라 - 고베 - 지진 메모리얼 파크', description: '이어서 고베, 지진 메모리얼 파크도 방문합니다.', imageKeyword: 'Kobe' },
+      'osaka japan',
+    )
+    expect(d.rejectedKeywords).toEqual(expect.arrayContaining([{ keyword: 'Kobe', why: 'city_only' }]))
+    expect(d.sights[0]).toMatch(/Earthquake Memorial Park/)
+  })
+
+  it('공급사 원문의 이름 없는 머리글(하롱베이 - 하노이)·고속도로는 방문 근거가 아니다 → 탕롱 황성', () => {
+    const row = {
+      day: 4,
+      title: '하노이 예술거리',
+      routeText: '하노이-하롱베이 고속도로 - 탕롱 황성 (탕롱왕궁) - 하노이 예술거리',
+      description: '하노이-하롱베이 고속도로와 탕롱 황성을 둘러봅니다. 하노이에서 출발해 귀국합니다.',
+      imageKeyword: 'Halong Bay',
+      supplierOriginal: { items: [{ name: null, text: '하롱베이' }, { name: null, text: '하롱베이 - 하노이' }, { name: '탕롱 황성 (탕롱왕궁)', text: '' }] },
+    }
+    expect(scheduleRowSupplierText(row as never)).not.toContain('하롱베이 - 하노이')
+    const d = deriveDaySights({ ...row, supplierText: scheduleRowSupplierText(row as never) }, 'hanoi vietnam')
+    expect(d.sights.join(' ')).not.toMatch(/Halong/i)
+    expect(d.sights[0]).toMatch(/Thang Long/)
+  })
+
+  it('사전 오역 고침: 유후인≠유시엔(시마네), 황금 절벽 사원≠왓아룬(방콕), 파타야 니모섬=꼬창(사타힙)', () => {
+    expect(englishFromScheduleKoreanSegmentWithRegex('유후인')).not.toMatch(/Yuushien|Shimane/)
+    expect(englishFromScheduleKoreanSegmentWithRegex('황금 절벽 사원')).toMatch(/Khao Chi Chan/)
+    expect(englishFromScheduleKoreanSegmentWithRegex('니모섬 스노클링')).toMatch(/Koh Chuang/)
+  })
+
+  it("섬 접두어(Koh)·묘사어(snorkeling)만 겹치면 같은 명소가 아니다 → 니모섬 날 'Koh Nang Yuan' 키워드는 맨 앞에 두지 않는다", () => {
+    const d = deriveDaySights(
+      { title: '니모섬 스노클링', routeText: '니모섬 스노클링', description: '니모섬 스노클링을 즐깁니다.', imageKeyword: 'Koh Nang Yuan Snorkeling' },
+      'pattaya thailand',
+    )
+    expect(d.sights[0]).toMatch(/Koh Chuang/)
   })
 })
