@@ -16,11 +16,22 @@ export function mergeClearedSlotPriorityPicks<T extends { id: string }>(
   clearedIds: readonly string[],
   limit: number,
   rotate: (rest: T[]) => T[],
+  deferIds: ReadonlySet<string> = new Set<string>(),
 ): T[] {
   const runFirst = new Set(runPriorityIds)
-  const clearedSet = new Set(clearedIds)
   const prior = eligible.filter((r) => runFirst.has(r.id))
-  const cleared = eligible.filter((r) => !runFirst.has(r.id) && clearedSet.has(r.id)).slice(0, CLEARED_SLOT_PRIORITY_CAP)
+  // REGRESSION-FREEZE[cleared-cap-newest-1122]: 상한(CAP)을 자르기 전에 비운 순서(최신 먼저)로 세우고,
+  // 오늘 이미 '생성 대상'(스톡 전부 탈락·생성 실패)으로 끝난 상품은 상한 뒤로. id 순으로 잘라 최근 비운 칸이 매번 밀리던 원인(11/22 19:30~22:30) 교정 — manifest
+  const byId = new Map(eligible.map((r) => [r.id, r]))
+  const ordered: T[] = []
+  const seen = new Set<string>()
+  for (const id of clearedIds) {
+    const r = byId.get(id)
+    if (!r || runFirst.has(id) || seen.has(id)) continue
+    seen.add(id)
+    ordered.push(r)
+  }
+  const cleared = [...ordered.filter((r) => !deferIds.has(r.id)), ...ordered.filter((r) => deferIds.has(r.id))].slice(0, CLEARED_SLOT_PRIORITY_CAP)
   const taken = new Set([...prior, ...cleared].map((r) => r.id))
   const rest = eligible.filter((r) => !taken.has(r.id))
   return [...prior, ...cleared, ...rotate(rest).slice(0, limit)]

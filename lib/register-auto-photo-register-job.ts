@@ -40,6 +40,10 @@ import {
   type ProbedImage,
 } from '@/lib/register-auto-register-gate'
 
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000
+const DAY_MS = 24 * 60 * 60 * 1000
+const GENERATE_TARGET_NOTE = '"reason":"생성 대상"'
+
 export const AUTO_PHOTO_FILL_ENV = 'BONGTOUR_AUTO_PHOTO_FILL'
 export const AUTO_REGISTER_FLIP_ENV = 'BONGTOUR_AUTO_REGISTER_FLIP'
 export const AUTO_REGISTER_RECORD_ENV = 'BONGTOUR_AUTO_REGISTER_RECORD'
@@ -531,9 +535,26 @@ async function pickPublicMissingDayProducts(limit: number, now: Date, priorityId
   })
   // REGRESSION-FREEZE[cleared-slot-refill-priority-1122]: 비운 칸 기록 상품을 우선 채움 — manifest
   const cleared = await loadRecentClearedSlotProductIds(now)
-  const picks = mergeClearedSlotPriorityPicks(eligible, priorityIds, cleared, limit, (rest) => rotatePublicMissingDayPicks(rest, limit, now))
+  // REGRESSION-FREEZE[cleared-cap-newest-1122]: 오늘 '생성 대상'으로 끝난 상품은 우선 상한 뒤로 — manifest
+  const deferred = await loadTodayGenerateTargetProductIds(now)
+  const picks = mergeClearedSlotPriorityPicks(eligible, priorityIds, cleared, limit, (rest) => rotatePublicMissingDayPicks(rest, limit, now), deferred)
   // REGRESSION-FREEZE[cleared-slot-newest-first-1122]: 최근 비운 칸 상품을 점검 재채움보다 먼저 — manifest
   return { rows: clearedSlotProductsFirst(picks, cleared), frontIds: new Set<string>([...priorityIds, ...cleared]) }
+}
+
+/** 오늘(KST) 자동 채움이 '생성 대상' 예외로 끝난 상품 — 같은 날 우선 상한을 다시 차지하지 않게 뒤로 보낸다 */
+async function loadTodayGenerateTargetProductIds(now: Date): Promise<Set<string>> {
+  try {
+    const kstMidnightUtc = new Date(Math.floor((now.getTime() + KST_OFFSET_MS) / DAY_MS) * DAY_MS - KST_OFFSET_MS)
+    const rows = await prisma.assetUsageLog.findMany({
+      where: { sourceType: 'autofill', selectionMode: 'photo-exception', usedAt: { gte: kstMidnightUtc }, notes: { contains: GENERATE_TARGET_NOTE } },
+      select: { productId: true },
+      take: 5000,
+    })
+    return new Set(rows.map((r) => r.productId))
+  } catch {
+    return new Set<string>()
+  }
 }
 
 async function loadRecentClearedSlotProductIds(now: Date): Promise<string[]> {
