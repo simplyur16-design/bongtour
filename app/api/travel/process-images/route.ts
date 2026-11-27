@@ -2,7 +2,6 @@ import type { PrismaClient } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { fetchPexelsPhotoObject, isPexelsFallbackUrl, type PexelsPhotoObject } from '@/lib/pexels-service'
 import { extractPexelsPhotoIdFromCdnUrl } from '@/lib/product-pexels-image-rehost'
-import { generateImageWithGemini } from '@/lib/gemini-image-generate'
 import { buildImageCacheFromDb, getCachedPhoto, type CachedPhotoObject } from '@/lib/image-cache'
 import { mapDestination } from '@/lib/pexels-keyword'
 import {
@@ -102,7 +101,7 @@ import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-
 import { acquireVerifiedPhoto } from '@/lib/photo-autofill-acquire'
 import { acquireOrRecordError, dayPolicyDropException } from '@/lib/autofill-silent-record-1122'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, photoIdentityKeys } from '@/lib/photo-autofill-gate'
-import { coverSearchSights, sightProfile } from '@/lib/photo-autofill-sight'
+import { coverSearchSights, scheduleOtherDaysText, scheduleRowSupplierText, sightProfile } from '@/lib/photo-autofill-sight'
 import { isSupplierPhotoSource, isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
 import { createLiveAcquireDeps } from '@/lib/photo-autofill-live-deps'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
@@ -1035,28 +1034,15 @@ export async function POST(req: Request) {
               slot: 'main',
             })
           : null
-        // v2: 재고 사진이 없을 때만 AI 생성(아래 Gemini 분기)으로 간다
+        // v2: 재고 사진이 없으면 실패 사유만 남긴다(AI 생성 없음, 2026-11-27 22:44)
         const pexelsMain = photoChainV2 ? null : await fetchPexelsPhotoObject(mainQuery)
         if (!photoChainV2) newFetchCount++
         if (chainMain) {
           mainPhoto = chainMain
           console.log(`[CHAIN] 메인 ${chainMain.source}`)
         } else if (!pexelsMain || isPexelsFallbackUrl(pexelsMain.url)) {
-          const geminiBuffer = await generateImageWithGemini({ prompt: mainQuery })
-          if (geminiBuffer) {
-            const saved = await savePhotoToPool(prisma, geminiBuffer, destination, mainQuery, 'Gemini', {
-              convertToWebpFirst: true,
-              maxBytes: AUTOFILL_COVER_MAX_BYTES,
-            })
-            const fromPool = photoFromPoolSave(saved)
-            if (!fromPool) {
-              throw new Error('메인 제미나이 이미지를 PhotoPool에 저장하지 못했습니다.')
-            }
-            mainPhoto = fromPool
-            console.log(`[POOL] 메인 제미나이 생성 → 풀 저장`)
-          } else {
-            throw new Error('메인 이미지 생성(Gemini)에 실패했습니다.')
-          }
+          // REGRESSION-FREEZE[no-ai-photo-1127]: PHOTO-RULES 22:44 — 대표사진도 AI·Gemini 생성 금지. 실사진이 없으면 생성하지 않고 실패 사유만 남긴다 — manifest
+          throw new Error('메인 실사진 없음(no_real_photo): 재고 사진 후보가 없어 대표사진을 비워 둡니다(AI 생성 안 함).')
         } else {
           const saved = await savePhotoFromUrl(
             prisma,
@@ -1283,6 +1269,9 @@ export async function POST(req: Request) {
               description: sched?.description ?? null,
               imageKeyword: sched?.imageKeyword ?? null,
               imageKeyword2: sched?.imageKeyword2 ?? null,
+              // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 그날 원문 조각·다른 일차 글을 넘겨 다른 일차 명소 키워드를 거른다 — manifest
+              supplierText: scheduleRowSupplierText(sched as never),
+              otherDaysText: scheduleOtherDaysText(workingSchedule as never, dayNum),
             },
             ...(travelRep ? { sights: travelRep.sights } : {}),
             cityTerms: travelRep ? [...new Set([...strictTerms.cityTerms, travelRep.city])] : strictTerms.cityTerms,
