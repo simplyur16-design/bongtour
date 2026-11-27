@@ -34668,6 +34668,76 @@
         "lib/public-itinerary-route-map-removed.test.ts",
         "lib/purge-itinerary-route-map-remnants.test.ts"
       ]
+    },
+    {
+      "id": "photo-replace-wrong-1128",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "이미 든 잘못된 사진(다른 일차 명소·지도·간판·AI 생성·흑백·상품 안 중복)도 판정해 실사진 경로로만 교체, 못 찾으면 유지+사유, 실행 상한 12(공개 6), 공개는 확실한 사유만",
+      "checks": [
+        {
+          "file": "lib/photo-replace-wrong-1128.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-replace-wrong-1128]",
+            "WRONG_PHOTO_REPLACE_MAX_PER_RUN = 12",
+            "WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN = 6",
+            "if (b.kind === 'cover') return b.reason === 'photo_ai_generated'",
+            "b.detail.startsWith(STORED_SIGHT_MISMATCH_DETAIL)"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-gate.ts",
+          "mustInclude": [
+            "photo-replace-wrong-1128",
+            "export function photoSubjectIsTextOrMap",
+            "reasons.add('text_or_map')"
+          ]
+        },
+        {
+          "file": "lib/register-photo-registration-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-replace-wrong-1128]",
+            "photo_in_product_duplicate",
+            "photo_text_map",
+            "photo_ai_generated",
+            "supplierText: scheduleRowSupplierText(raw as never)"
+          ]
+        },
+        {
+          "file": "lib/photo-slot-apply.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-replace-wrong-1128]",
+            "bgImageIsGenerated: false",
+            "imageIsGenerated: false"
+          ]
+        },
+        {
+          "file": "lib/photo-heal.ts",
+          "mustInclude": [
+            "takeRunBudget",
+            "photo_text_map"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "runPublicWrongPhotoReplaceLive",
+            "createRunBudget(WRONG_PHOTO_REPLACE_MAX_PER_RUN)"
+          ]
+        },
+        {
+          "file": "lib/photo-gate-runner.ts",
+          "mustInclude": [
+            "export async function runPublicWrongPhotoReplaceLive",
+            "publicWrongPhotoBlocks"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-replace-wrong-1128.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

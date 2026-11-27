@@ -31,7 +31,8 @@ import { refreshRegisterPrePhotoQueueFlagsForProductId } from '@/lib/register-pr
 import { loadRegisterPublishFacts } from '@/lib/register-publish-facts'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
 import { rotatePublicMissingDayPicks, scheduleApplyingTravelDayKeywords } from '@/lib/register-day-photo-travel-day'
-import { buildRegistrationPhotoInput, runPhotoHealForProduct, runPublicPhotoNightlyAuditLive } from '@/lib/photo-gate-runner'
+import { buildRegistrationPhotoInput, runPhotoHealForProduct, runPublicPhotoNightlyAuditLive, runPublicWrongPhotoReplaceLive } from '@/lib/photo-gate-runner'
+import { createRunBudget, WRONG_PHOTO_REPLACE_MAX_PER_RUN, WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN } from '@/lib/photo-replace-wrong-1128'
 import { isNightlyAuditWindowKst } from '@/lib/photo-nightly-audit'
 import { summarizePhotoExceptions, type PhotoException } from '@/lib/photo-exception-list'
 import { evaluateRegistrationPhotos, registrationBlockCodes } from '@/lib/register-photo-registration-gate'
@@ -123,6 +124,8 @@ export type AutoPhotoRegisterRunResult = {
   /** 빈 일차 사진만 채운 공개 상품 수(상태·글은 그대로) */
   publicScanned: number
   nightly: { ran: boolean; replaced: number; broken: number; duplicates: number; deferred: number; exceptions: number } | null
+  /** 공개 상품의 잘못 채워진 사진 칸 교체(못 찾으면 기존 유지). 안 돌린 실행은 null */
+  wrongPhotoReplace?: { scanned: number; targets: number; replaced: number; kept: number; deferred: number } | null
   /** 매시 자동 점검(사진·SEO·AEO) 합계. 점검을 안 돌린 실행은 null */
   siteHealth: { found: number; fixed: number; codeIssues: number } | null
 }
@@ -159,7 +162,10 @@ export async function runAutoPhotoRegisterJob(opts?: {
     publicScanned: 0,
     nightly: null,
     siteHealth: null,
+    wrongPhotoReplace: null,
   }
+  // REGRESSION-FREEZE[photo-replace-wrong-1128]: 잘못 채워진 칸 교체 실행 상한(등록대기 힐 + 공개 교체 합계) — manifest
+  const replaceBudget = createRunBudget(WRONG_PHOTO_REPLACE_MAX_PER_RUN)
 
   const idRows = await prisma.product.findMany({
     where: {
@@ -331,7 +337,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     let healExceptions: PhotoException[] = []
     if (sw.fill) {
       try {
-        const healed = await runPhotoHealForProduct(prisma, id, (u) => probeStoredImage(u, f))
+        const healed = await runPhotoHealForProduct(prisma, id, (u) => probeStoredImage(u, f), replaceBudget.take)
         result.healed += healed.heal?.replaced.length ?? 0
         result.photoExceptions += healed.exceptions.length
         healExceptions = healed.exceptions
@@ -483,6 +489,28 @@ export async function runAutoPhotoRegisterJob(opts?: {
     }
   }
 
+  // 공개 상품 잘못 채워진 칸 교체: 사진 칸만, 실사진만, 못 찾으면 기존 유지 + 예외 사유
+  if (sw.fill && publicLimit > 0) {
+    const publicBudget = createRunBudget(WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN)
+    try {
+      const w = await runPublicWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
+        takeRunBudget: () => publicBudget.take() && replaceBudget.take(),
+        now: opts?.now,
+      })
+      result.wrongPhotoReplace = { scanned: w.scanned, targets: w.targets, replaced: w.replaced.length, kept: w.kept.length, deferred: w.deferred }
+      result.photoExceptions += w.kept.length
+    } catch (err) {
+      logAutoPhotoAttempt({
+        productId: 'public-wrong-photo',
+        day: null,
+        gate: 'photo-replace-wrong',
+        providerErrorClass: providerErrorClass(err),
+        attemptAt: new Date().toISOString(),
+        result: 'failed',
+      })
+    }
+  }
+
   // 야간 점검: 기존 스케줄(KST 22시~06시 구간 실행)에 붙는 단계. 공개 상품은 사진 칸만 교체하고, 외부 장애는 건너뛴다.
   // REGRESSION-FREEZE[photo-nightly-audit]: 야간 구간에서만, 실패해도 job 은 계속 — manifest
   if (sw.fill && isNightlyAuditWindowKst(new Date())) {
@@ -522,6 +550,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
       photoExceptions: result.photoExceptions,
       publicScanned: result.publicScanned,
       siteHealth: result.siteHealth,
+      wrongPhotoReplace: result.wrongPhotoReplace,
     }),
   )
   return result
