@@ -11,8 +11,6 @@ import { findPhotoPoolByPlaceName, savePhotoFromUrl, savePhotoToPool } from '@/l
 import { parseImageDimensions, probeImageDimensions } from '@/lib/image-dimension-probe'
 import { searchWikimediaCc0 } from '@/lib/photo-autofill-cc0'
 import { searchNoAttributionCc0 } from '@/lib/photo-autofill-openverse'
-import { generateImageWithGemini } from '@/lib/gemini-image-generate'
-import { buildRegisterDayAiPhotoPrompt } from '@/lib/register-day-ai-photo-prompt'
 import type { AcquireDeps, StockTier } from '@/lib/photo-autofill-acquire'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, type AutofillCandidate } from '@/lib/photo-autofill-gate'
 import { sightMatchInText, sightProfile } from '@/lib/photo-autofill-sight'
@@ -150,27 +148,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
     },
     isMonochrome: async (c) =>
       c.generatedBuffer ? isMonochromeImageBuffer(Buffer.from(c.generatedBuffer)) : /^https?:\/\//i.test(c.url) ? isMonochromePhotoUrl(c.url) : false,
-    generate: async ({ sight, cityTerms }) => {
-      const prompt = buildRegisterDayAiPhotoPrompt({ keyword: sight, destination: cityTerms[0] ?? opts.destination })
-      if (!prompt) return null
-      const buf = await generateImageWithGemini({ prompt, aspectRatio: '16:9', stylePreset: 'single_landmark' })
-      if (!buf) return null
-      const dim = parseImageDimensions(new Uint8Array(buf))
-      return {
-        id: `ai-${sight}`.slice(0, 80),
-        source: 'AI 생성',
-        url: 'ai-generated://pending',
-        width: dim?.width ?? 0,
-        height: dim?.height ?? 0,
-        photographer: 'AI 생성',
-        originalLink: 'ai-generated',
-        altText: `${sight} ${cityTerms.join(' ')}`.trim(),
-        title: sight,
-        description: prompt,
-        storedBytes: buf.length,
-        generatedBuffer: buf,
-      }
-    },
+    // REGRESSION-FREEZE[no-ai-photo-1127]: PHOTO-RULES 22:44 — AI·Gemini 생성은 사진 출처에서 제외. 자동 채움은 generate 를 넘기지 않는다(실패해도 다시 부를 일이 없음) — manifest
     commit: async (c, ctx) => {
       const maxBytes = ctx.kind === 'cover' ? AUTOFILL_COVER_MAX_BYTES : AUTOFILL_DAY_MAX_BYTES
       if (c.source === 'AI 생성') {

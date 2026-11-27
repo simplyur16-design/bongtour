@@ -17,15 +17,9 @@ import {
   searchPexelsHeroCandidates,
   type PexelsHeroCandidateMeta,
 } from '@/lib/pexels-service'
-import { generateImageWithGemini } from '@/lib/gemini-image-generate'
-import {
-  IMAGEN_ITINERARY_DAY_HERO_CONSTRAINTS,
-  ITINERARY_DAY_HERO_REGENERATE_PROMPT_EN,
-} from '@/lib/image-style'
 import { isObjectStorageConfigured } from '@/lib/object-storage'
 import { extractPexelsPhotoIdFromCdnUrl } from '@/lib/product-pexels-image-rehost'
-import { savePhotoFromUrlWithRetry, savePhotoToPool, type PoolPhotoRecord } from '@/lib/photo-pool'
-import { AUTOFILL_DAY_MAX_BYTES } from '@/lib/photo-autofill-gate'
+import { savePhotoFromUrlWithRetry, type PoolPhotoRecord } from '@/lib/photo-pool'
 import { internalizeHeroDisplayUrl, isExternalHttpProductImageUrl } from '@/lib/travel-product-image-internalize'
 import { buildHeroPexelsQuerySet, type PexelsQuerySet } from '@/lib/pexels-hero-query'
 import {
@@ -499,35 +493,17 @@ function buildGeminiHeroPrompt(_input: DayHeroResolveInput, place: DayHeroPlaceC
   return `Photorealistic travel photo of only this one place: ${stem}${where}. One main subject, typical visitor view (facade, gate, or street context).`
 }
 
-export async function generateGeminiFallbackImage(opts: {
+/**
+ * REGRESSION-FREEZE[no-ai-photo-1127]: PHOTO-RULES 2026-11-27 22:44 — 일차 대표 사진도 AI·Gemini 생성 금지.
+ * 예전에는 생성 실패 시 프롬프트를 바꿔 한 번 더 불렀다(재시도). 이제 부르지 않고 null(빈칸 유지) — manifest
+ */
+export async function generateGeminiFallbackImage(_opts: {
   prisma: PrismaClient
   destination: string
   attractionName: string
   promptLine: string
 }): Promise<{ pool: PoolPhotoRecord | null; prompt: string } | null> {
-  const primaryPrompt = `${opts.promptLine} ${IMAGEN_ITINERARY_DAY_HERO_CONSTRAINTS}`.trim()
-  let buf = await generateImageWithGemini({
-    prompt: primaryPrompt,
-    stylePreset: 'single_landmark',
-    aspectRatio: '4:3',
-  })
-  if (!buf) {
-    const retryPrompt =
-      `${ITINERARY_DAY_HERO_REGENERATE_PROMPT_EN} One place only: ${opts.attractionName.trim()}. ` +
-      'A single photo of that place only. No text, no collage, no multi-panel. ' +
-      IMAGEN_ITINERARY_DAY_HERO_CONSTRAINTS
-    buf = await generateImageWithGemini({
-      prompt: retryPrompt,
-      stylePreset: 'single_landmark',
-      aspectRatio: '4:3',
-    })
-  }
-  if (!buf) return null
-  const saved = await savePhotoToPool(opts.prisma, buf, opts.destination, opts.attractionName, 'Gemini', {
-    convertToWebpFirst: true,
-    maxBytes: AUTOFILL_DAY_MAX_BYTES,
-  })
-  return saved ? { pool: saved, prompt: primaryPrompt } : null
+  return null
 }
 
 // --- Orchestration & save ---

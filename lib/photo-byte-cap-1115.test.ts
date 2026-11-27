@@ -119,6 +119,7 @@ describe('photo byte cap 1115', () => {
     expect(unsplash).not.toContain('over_bytes')
     expect(unsplash).not.toContain('bytesFitSlotLimit')
     expect(live).toContain("if (c.storedBytes != null && c.storedBytes > maxBytes)")
-    expect(fs.readFileSync('app/api/travel/process-images/route.ts', 'utf8')).toContain('generateImageWithGemini')
+    // PHOTO-RULES 2026-11-27 22:44: 사진 경로 AI 생성 제외 — 대표사진 경로에 생성 호출이 없어야 한다(no-ai-photo-1127)
+    expect(fs.readFileSync('app/api/travel/process-images/route.ts', 'utf8')).not.toContain('generateImageWithGemini')
   })
 })

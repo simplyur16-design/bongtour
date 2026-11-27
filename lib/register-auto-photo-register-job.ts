@@ -44,6 +44,8 @@ import {
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000
 const DAY_MS = 24 * 60 * 60 * 1000
 const GENERATE_TARGET_NOTE = '"reason":"생성 대상"'
+// REGRESSION-FREEZE[no-ai-photo-1127]: 생성이 빠진 뒤 실사진 없음(no_real_photo)으로 끝난 상품도 같은 날 우선 상한 뒤로 — manifest
+const NO_REAL_PHOTO_NOTE = 'no_real_photo'
 
 export const AUTO_PHOTO_FILL_ENV = 'BONGTOUR_AUTO_PHOTO_FILL'
 export const AUTO_REGISTER_FLIP_ENV = 'BONGTOUR_AUTO_REGISTER_FLIP'
@@ -554,7 +556,7 @@ async function loadTodayGenerateTargetProductIds(now: Date): Promise<Set<string>
   try {
     const kstMidnightUtc = new Date(Math.floor((now.getTime() + KST_OFFSET_MS) / DAY_MS) * DAY_MS - KST_OFFSET_MS)
     const rows = await prisma.assetUsageLog.findMany({
-      where: { sourceType: 'autofill', selectionMode: 'photo-exception', usedAt: { gte: kstMidnightUtc }, notes: { contains: GENERATE_TARGET_NOTE } },
+      where: { sourceType: 'autofill', selectionMode: 'photo-exception', usedAt: { gte: kstMidnightUtc }, OR: [{ notes: { contains: GENERATE_TARGET_NOTE } }, { notes: { contains: NO_REAL_PHOTO_NOTE } }] },
       select: { productId: true },
       take: 5000,
     })

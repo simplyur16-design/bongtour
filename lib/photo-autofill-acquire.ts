@@ -60,6 +60,9 @@ export type AcquireDeps = {
   now?: () => Date
 }
 
+/** 실사진 출처를 모두 돌고도 못 찾은 칸(생성 없음) — 오늘 우선 상한 뒤로 보내는 표시 */
+export const NO_REAL_PHOTO_NOTE = 'no_real_photo'
+
 export type AcquireTried = { tier: StockTier | 'pool' | 'cc0' | 'generate'; query: string; id: string; outcome: 'rejected' | 'commit_failed' | 'stored_rejected' | 'adopted'; reasons: string[] }
 
 export type AcquireInput = {
@@ -307,8 +310,10 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
     }
     limitNotes.add('생성 대상')
   }
+  // REGRESSION-FREEZE[no-ai-photo-1127]: 생성 없이 실사진 출처를 다 돌고도 못 찾으면 빈칸 유지 + 실패 사유(rejects) + no_real_photo 표시 — manifest
+  if (!deps.generate && lastSight && input.kind !== 'cover') limitNotes.add(NO_REAL_PHOTO_NOTE)
 
-  const limit = [...limitNotes].find((n) => n !== 'candidate_cap' && n !== '생성 대상') ?? null
+  const limit = [...limitNotes].find((n) => n !== 'candidate_cap' && n !== '생성 대상' && n !== NO_REAL_PHOTO_NOTE) ?? null
   const reason = limitNotes.has('생성 대상')
     ? '생성 대상'
     : !anyCandidate

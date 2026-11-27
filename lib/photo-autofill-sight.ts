@@ -266,6 +266,33 @@ export type DaySightInput = {
   description?: string | null
   imageKeyword?: string | null
   imageKeyword2?: string | null
+  /** 그날 공급사 원문 일정 조각(supplierOriginal.items) — 고유명 판정에 함께 본다 */
+  supplierText?: string | null
+  /** 다른 일차의 일정 글(제목·경로·설명·원문) — 다른 일차 명소 키워드를 거르는 데만 쓴다 */
+  otherDaysText?: string | null
+}
+
+type ScheduleRowLike = { day?: unknown; title?: unknown; routeText?: unknown; description?: unknown; supplierOriginal?: unknown } | null | undefined
+
+/** 일정 행의 공급사 원문 조각(supplierOriginal.items[].name/text) */
+export function scheduleRowSupplierText(row: ScheduleRowLike): string {
+  const so = row && typeof row === 'object' ? (row as { supplierOriginal?: unknown }).supplierOriginal : null
+  const items = so && typeof so === 'object' ? (so as { items?: unknown }).items : null
+  if (!Array.isArray(items)) return ''
+  return items
+    .map((i) => (i && typeof i === 'object' ? [(i as { name?: unknown }).name, (i as { text?: unknown }).text] : []))
+    .flat()
+    .filter((x): x is string => typeof x === 'string')
+    .join(' ')
+}
+
+/** 이 일차를 뺀 나머지 일차의 일정 글 — 다른 일차 명소 키워드 판정용 */
+export function scheduleOtherDaysText(rows: ReadonlyArray<ScheduleRowLike>, day: number): string {
+  const str = (v: unknown) => (typeof v === 'string' ? v : '')
+  return rows
+    .filter((r) => r && Number((r as { day?: unknown }).day) !== day)
+    .map((r) => [str(r!.title), str(r!.routeText), str(r!.description), scheduleRowSupplierText(r)].join(' '))
+    .join(' ')
 }
 
 export type DaySightResult = {
@@ -300,7 +327,9 @@ export function sightsOverlap(a: SightProfile, b: SightProfile): boolean {
  * 일정에 없는 다른 도시가 들어간 낡은 키워드·도시만 있는 키워드는 버린다.
  */
 export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySightResult {
-  const routeBlob = [day.routeText, day.title, day.description].map((x) => String(x ?? '')).join(' ')
+  const routeBlob = [day.routeText, day.title, day.description, day.supplierText].map((x) => String(x ?? '')).join(' ')
+  const ownBlob = routeBlob
+  const otherBlob = String(day.otherDaysText ?? '')
   const slotFolded = foldPhotoText(`${routeBlob} ${destinationText}`)
   const allowedCities = new Set(cityKeysIn(slotFolded, true))
   const rejected: DaySightResult['rejectedKeywords'] = []
@@ -314,6 +343,30 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
     spots.push(hit.en)
   }
   const spotProfiles = spots.map(sightProfile).filter((p) => p.kind === 'sight' || p.kind === 'generic')
+  const segProfiles = (text: string) =>
+    text
+      .split(/[·•,，、\/|>→\-–—()\[\]{}~+&\n]+/)
+      .map((x) => x.trim())
+      .filter((x) => x && /[가-힣]/.test(x))
+      .slice(0, 80)
+      .map((seg) => {
+        try {
+          return englishFromScheduleKoreanSegmentWithRegex(seg)
+        } catch {
+          return ''
+        }
+      })
+      .filter(Boolean)
+      .map(sightProfile)
+      .filter((p) => p.kind === 'sight' || p.kind === 'generic')
+  const ownSegProfiles = segProfiles(ownBlob)
+  let otherSegCache: SightProfile[] | null = null
+  const otherSegProfiles = () => (otherSegCache ??= otherBlob ? segProfiles(otherBlob).filter((p) => !ownSegProfiles.some((q) => sightsOverlap(p, q))) : [])
+  const otherSpotProfiles = otherBlob
+    ? findAllScheduleSpotMatchesInText(otherBlob)
+        .map((h) => sightProfile(h.en))
+        .filter((p) => (p.kind === 'sight' || p.kind === 'generic') && !spotProfiles.some((q) => sightsOverlap(p, q)))
+    : []
 
   const keywordSights: string[] = []
   for (const raw of [day.imageKeyword, day.imageKeyword2]) {
@@ -328,6 +381,20 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
     if (kwCities.some((c) => !allowedCities.has(c))) {
       rejected.push({ keyword: kw, why: 'other_city' })
       continue
+    }
+    // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 키워드는 그날 원문 일정의 고유명만(PHOTO-RULES 키워드). 그날 글에 없는데
+    // 그날 글(한→영 조각 포함)에 없고 다른 일차 글에 있는 명소면 쓰지 않고 그날 명소로 찾는다. 사전에 없는 고유명(금편계)은 그대로 둔다 — manifest
+    const onOwnDay =
+      spotProfiles.some((p) => sightsOverlap(prof, p)) || ownSegProfiles.some((p) => sightsOverlap(prof, p)) || Boolean(sightMatchInText(prof, ownBlob))
+    if (!onOwnDay) {
+      const onOtherDay =
+        otherSpotProfiles.some((p) => sightsOverlap(prof, p)) ||
+        otherSegProfiles().some((p) => sightsOverlap(prof, p)) ||
+        Boolean(otherBlob && sightMatchInText(prof, otherBlob))
+      if (onOtherDay) {
+        rejected.push({ keyword: kw, why: 'not_in_route' })
+        continue
+      }
     }
     // REGRESSION-FREEZE[photo-day-keyword-fill]: 그날 imageKeyword 명소는 대표만 채우고 일차를 비우지 않는다. 다른 도시 키워드만 버린다 — manifest
     keywordSights.push(kw)
