@@ -34775,6 +34775,56 @@
       "vitestSuites": [
         "lib/pexels-quota-1128.test.ts"
       ]
+    },
+    {
+      "id": "hero-keyword-rules-1128",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/28 07:56 '대표사진 검색어는 Gemini 빼고 일정 원문 규칙으로 만들어': 대표사진 검색어는 그날 장소만 규칙(deriveDaySights·schedule-poi-regex-ssot)으로, Gemini 호출 0, 도시 이름만이면 빈 검색어+사유, 상품마다 hero-keyword 기록, 대표 검색은 규칙 검색어 먼저",
+      "checks": [
+        {
+          "file": "lib/product-hero-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hero-keyword-rules-1128]",
+            "deriveDaySights(",
+            "kind === 'generic'",
+            "itinerary_has_no_named_sight"
+          ],
+          "mustNotInclude": [
+            "gemini-client",
+            "getGenAI",
+            "generateContent"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hero-keyword-rules-1128]",
+            "kind: 'hero-keyword'",
+            "kind: 'hero-keyword-result'",
+            "coverSearchSights([mainQuery], [heroPick.keyword, ...dayKeywords])"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hero-keyword-rules-1128]",
+            "/(?<!만)리장|여강|Lijiang|丽江/i"
+          ]
+        },
+        {
+          "file": "lib/hero-keyword-rules-1128.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[hero-keyword-rules-1128]",
+            "expect(geminiSpy).not.toHaveBeenCalled()"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/hero-keyword-rules-1128.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

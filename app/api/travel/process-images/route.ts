@@ -854,6 +854,17 @@ export async function POST(req: Request) {
       cityEn: mapDestination((product as { primaryDestination?: string | null }).primaryDestination ?? destination),
       cachedHeroPlaceKeyword: (product as { bgImageRehostSearchLabel?: string | null }).bgImageRehostSearchLabel,
     })
+    // REGRESSION-FREEZE[hero-keyword-rules-1128]: 대표사진 검색어는 일정 원문 규칙(Gemini 없음) — 상품마다 한 줄 기록 — manifest
+    console.log(
+      JSON.stringify({
+        kind: 'hero-keyword',
+        productId: String(product.id),
+        keyword: heroPick.keyword,
+        source: heroPick.source,
+        candidates: (heroPick.candidates ?? []).slice(0, 6),
+        ...(heroPick.reasoning ? { reason: heroPick.reasoning } : {}),
+      }),
+    )
     const mainQuery =
       heroPick.keyword ||
       normalizeToPlaceName(
@@ -977,7 +988,8 @@ export async function POST(req: Request) {
         }
       })()
       // REGRESSION-FREEZE[photo-cover-day-sight]: 도시만 있는 대표 검색어는 빼고 일차 명소를 쓴다 — manifest
-      const sights = coverSearchSights([mainQuery, heroPick.keyword], dayKeywords)
+      // 핵심 방문지(규칙 대표 검색어)를 먼저, 그다음 일차 명소 — 도시 이름만인 검색어는 coverSearchSights 가 뺀다
+      const sights = coverSearchSights([mainQuery], [heroPick.keyword, ...dayKeywords])
       const res = await acquireVerifiedPhoto(
         {
           productId: String(product.id),
@@ -1003,7 +1015,9 @@ export async function POST(req: Request) {
         }
         strictAdopt(mainPhoto, 'cover')
         console.log(`[AUTOFILL] 대표 ${res.photo.source} ${res.photo.sight}`)
+        console.log(JSON.stringify({ kind: 'hero-keyword-result', productId: String(product.id), keyword: heroPick.keyword, sights, result: 'filled', source: res.photo.source, sight: res.photo.sight, sourceUrl: res.photo.originalLink || res.photo.url }))
       } else {
+        console.log(JSON.stringify({ kind: 'hero-keyword-result', productId: String(product.id), keyword: heroPick.keyword, sights, result: res.skipped ? 'skipped' : 'empty', reason: res.exception.reason }))
         if (!res.skipped) await strictRecord(res.exception)
         mainPhoto = { url: '', source: '', photographer: '', originalLink: '' }
         preserveHero = true

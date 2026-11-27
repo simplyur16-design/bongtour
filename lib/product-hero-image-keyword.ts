@@ -1,25 +1,33 @@
 /**
- * 상품 대표 이미지(bgImageUrl) Pexels 검색용 — 일정 imageKeyword 중 가장 유명한 관광지 1개.
+ * 상품 대표 이미지(bgImageUrl) 검색어 — 일정 원문 규칙으로 고른 핵심 방문지 1개.
+ *
+ * REGRESSION-FREEZE[hero-keyword-rules-1128]: 사장님 11/28 07:56 '대표사진 검색어는 Gemini 빼고 일정 원문 규칙으로 만들어'.
+ * Gemini·LLM 호출 없음. 각 일차의 imageKeyword(그날 장소만, PR180/181)와 그날 원문(제목·routeText·설명)에서
+ * schedule-poi-regex-ssot 사전으로 찾은 장소만 후보(photo-autofill-sight deriveDaySights 재사용). 도시·나라 이름만인 검색어는 쓰지 않는다(빈 문자열 + 사유). — manifest
  */
 
-import { getGenAI, getModelName, geminiTimeoutOpts } from '@/lib/gemini-client'
 import { pickHighestPriorityLandmark } from '@/lib/famous-landmarks-priority'
-import { mapDestination } from '@/lib/pexels-keyword'
 import { normalizeToPlaceName } from '@/lib/pexels-place-name-keyword'
+import { deriveDaySights, foldPhotoText, scheduleRowSupplierText, sightProfile } from '@/lib/photo-autofill-sight'
 
 export type ProductHeroPlaceKeywordSource =
-  | 'llm'
   | 'priority_map'
+  | 'most_days'
   | 'first_day'
-  | 'city_fallback'
-  | 'country_fallback'
   | 'cache'
+  | 'no_sight'
 
 export type ProductHeroItineraryDayInput = {
   day: number
   imageKeyword: string
   poiNamesRaw?: string
   summaryText?: string
+  /** 그날 원문 — deriveDaySights(그날 장소만) 입력 */
+  title?: string
+  routeText?: string
+  description?: string
+  supplierText?: string
+  imageKeyword2?: string
 }
 
 export type SelectProductHeroPlaceKeywordInput = {
@@ -28,7 +36,7 @@ export type SelectProductHeroPlaceKeywordInput = {
   cityEn?: string
   countryEn?: string
   destinationKr?: string
-  /** `bgImageRehostSearchLabel` 등에 저장된 영문 장소명 — 재계산 생략 */
+  /** `bgImageRehostSearchLabel` 등에 저장된 영문 장소명 — 일정 후보와 같을 때만 쓴다 */
   cachedHeroPlaceKeyword?: string | null
 }
 
@@ -36,111 +44,98 @@ export type SelectProductHeroPlaceKeywordResult = {
   keyword: string
   source: ProductHeroPlaceKeywordSource
   reasoning?: string
+  /** 규칙 후보(일차 순) — 로그 증거용 */
+  candidates?: string[]
 }
 
-const GEMINI_TIMEOUT_MS = 25_000
+type DayCandidate = { day: number; keyword: string; key: string }
 
-function resolveCityCountryEn(input: SelectProductHeroPlaceKeywordInput): {
-  cityEn: string
-  countryEn: string
-} {
-  const cityEn = (input.cityEn ?? mapDestination(input.destinationKr ?? null) ?? '').trim()
-  const countryEn = (input.countryEn ?? '').trim()
-  return { cityEn, countryEn }
+/** 도시·나라·일반명사만인 이름은 대표 검색어가 아니다 */
+function isSightKeyword(kw: string): boolean {
+  if (!kw) return false
+  // 'generic'(예: Great Wall of China — 일반 낱말이라 도시 앵커가 필요한 명소)도 명소. city·empty 만 뺀다
+  const kind = sightProfile(kw).kind
+  return kind === 'sight' || kind === 'generic'
 }
 
-async function selectViaLlm(input: {
-  destinationKr?: string
-  cityEn: string
-  countryEn: string
-  days: Array<{ day: number; keyword: string }>
-}): Promise<{ keyword: string; reasoning?: string } | null> {
-  const apiKey = (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? '').trim()
-  if (!apiKey || input.days.length === 0) return null
-
-  const listJson = JSON.stringify(input.days)
-  const prompt = [
-    '다음은 한 여행상품의 일정별 관광지 영문명 리스트입니다:',
-    listJson,
-    '',
-    `상품: ${input.destinationKr ?? ''} (${input.cityEn}, ${input.countryEn})`,
-    '',
-    '한국인 일반 여행객이 이 상품을 봤을 때 "이거 가고 싶다"고 느끼게 만들',
-    '가장 대표적이고 인지도 높은 관광지 1개의 영문명만 출력하세요.',
-    '- 응답: 단일 영문 관광지명만 (예: Osaka Castle)',
-    '- 부가 설명·따옴표·JSON 금지',
-  ].join('\n')
-
-  try {
-    const genAI = getGenAI()
-    const model = genAI.getGenerativeModel({ model: getModelName() })
-    const result = await model.generateContent(
-      { contents: [{ role: 'user', parts: [{ text: prompt }] }] },
-      geminiTimeoutOpts(GEMINI_TIMEOUT_MS),
-    )
-    const raw = result.response.text().trim()
-    const firstLine = raw.split('\n')[0]?.replace(/^["'`]+|["'`]+$/g, '').trim() ?? ''
-    const kw = normalizeToPlaceName(firstLine)
-    if (!kw) return null
-    return { keyword: kw, reasoning: raw.length > kw.length + 2 ? raw.slice(0, 200) : undefined }
-  } catch (err) {
-    console.warn('[product-hero-image-keyword] LLM selection failed', err)
-    return null
-  }
+function candidateKey(kw: string): string {
+  return foldPhotoText(kw)
 }
 
 /**
- * 상품 대표 이미지 Pexels 검색 키워드 선정.
+ * 일차별 규칙 후보 — PR180/181 '그날 장소만' 규칙(deriveDaySights) 재사용:
+ * 그날 imageKeyword 가 그날 원문에 있는 장소일 때만, 그다음 그날 원문 사전 일치. 다른 일차 장소·도시 이름만은 버린다.
+ */
+export function heroKeywordCandidatesByDay(days: readonly ProductHeroItineraryDayInput[]): DayCandidate[] {
+  const out: DayCandidate[] = []
+  const sorted = [...days].sort((a, b) => a.day - b.day)
+  const textOf = (d: ProductHeroItineraryDayInput) =>
+    [d.title, d.routeText, d.description, d.supplierText, d.poiNamesRaw, d.summaryText].filter(Boolean).join(' ')
+  for (const d of sorted) {
+    const hasRaw = Boolean(d.title || d.routeText || d.description || d.supplierText)
+    const { sights } = deriveDaySights({
+      title: d.title ?? null,
+      routeText: hasRaw ? (d.routeText ?? null) : [d.poiNamesRaw, d.summaryText].filter(Boolean).join(' - ') || null,
+      description: d.description ?? null,
+      supplierText: d.supplierText ?? null,
+      imageKeyword: d.imageKeyword || null,
+      imageKeyword2: d.imageKeyword2 ?? null,
+      otherDaysText: sorted.filter((o) => o.day !== d.day).map(textOf).join(' '),
+    })
+    const seenToday = new Set<string>()
+    for (const raw of sights) {
+      const kw = normalizeToPlaceName(raw) || raw
+      if (!isSightKeyword(kw)) continue
+      const key = candidateKey(kw)
+      if (!key || seenToday.has(key)) continue
+      seenToday.add(key)
+      out.push({ day: d.day, keyword: kw, key })
+    }
+  }
+  return out
+}
+
+/**
+ * 상품 대표 이미지 검색 키워드 선정 — 규칙만(Gemini 없음).
+ * 1) 유명 관광지 점수표 2) 여러 일차에 나온 장소 3) 가장 앞 일차 장소. 없으면 '' (도시명 대체 금지).
  */
 export async function selectProductHeroPlaceKeyword(
   input: SelectProductHeroPlaceKeywordInput,
 ): Promise<SelectProductHeroPlaceKeywordResult> {
+  return selectProductHeroPlaceKeywordSync(input)
+}
+
+export function selectProductHeroPlaceKeywordSync(
+  input: SelectProductHeroPlaceKeywordInput,
+): SelectProductHeroPlaceKeywordResult {
+  const cands = heroKeywordCandidatesByDay(input.itineraryDays)
+  const candidates = [...new Set(cands.map((c) => c.keyword))]
+  if (cands.length === 0) {
+    return { keyword: '', source: 'no_sight', reasoning: 'itinerary_has_no_named_sight', candidates }
+  }
+
   const cached = normalizeToPlaceName(input.cachedHeroPlaceKeyword ?? '')
-  if (cached) {
-    return { keyword: cached, source: 'cache' }
+  if (cached && isSightKeyword(cached)) {
+    const ck = candidateKey(cached)
+    const hit = cands.find((c) => c.key === ck)
+    if (hit) return { keyword: hit.keyword, source: 'cache', candidates }
   }
 
-  const { cityEn, countryEn } = resolveCityCountryEn(input)
-
-  const normalizedDays = input.itineraryDays
-    .map((d) => ({
-      day: d.day,
-      keyword: normalizeToPlaceName(d.imageKeyword),
-    }))
-    .filter((d) => d.keyword.length > 0)
-
-  if (normalizedDays.length === 0) {
-    if (cityEn) return { keyword: normalizeToPlaceName(cityEn) || cityEn, source: 'city_fallback' }
-    if (countryEn) return { keyword: normalizeToPlaceName(countryEn) || countryEn, source: 'country_fallback' }
-    return { keyword: '', source: 'city_fallback' }
+  const priority = pickHighestPriorityLandmark(candidates, (s) => normalizeToPlaceName(s))
+  if (priority?.keyword && isSightKeyword(priority.keyword)) {
+    return { keyword: priority.keyword, source: 'priority_map', candidates }
   }
 
-  const llmPick = await selectViaLlm({
-    destinationKr: input.destinationKr,
-    cityEn,
-    countryEn,
-    days: normalizedDays,
-  })
-  if (llmPick?.keyword) {
-    return { keyword: llmPick.keyword, source: 'llm', reasoning: llmPick.reasoning }
+  const dayCount = new Map<string, { kw: string; days: Set<number>; first: number }>()
+  for (const c of cands) {
+    const e = dayCount.get(c.key) ?? { kw: c.keyword, days: new Set<number>(), first: c.day }
+    e.days.add(c.day)
+    dayCount.set(c.key, e)
   }
+  const multi = [...dayCount.values()].filter((e) => e.days.size >= 2).sort((a, b) => b.days.size - a.days.size || a.first - b.first)
+  if (multi[0]) return { keyword: multi[0].kw, source: 'most_days', candidates }
 
-  const priority = pickHighestPriorityLandmark(
-    normalizedDays.map((d) => d.keyword),
-    (s) => normalizeToPlaceName(s),
-  )
-  if (priority?.keyword) {
-    return { keyword: priority.keyword, source: 'priority_map' }
-  }
-
-  const first = normalizedDays.sort((a, b) => a.day - b.day)[0]
-  if (first?.keyword) {
-    return { keyword: first.keyword, source: 'first_day' }
-  }
-
-  if (cityEn) return { keyword: normalizeToPlaceName(cityEn) || cityEn, source: 'city_fallback' }
-  if (countryEn) return { keyword: normalizeToPlaceName(countryEn) || countryEn, source: 'country_fallback' }
-  return { keyword: '', source: 'city_fallback' }
+  return { keyword: cands[0]!.keyword, source: 'first_day', candidates }
 }
 
 /** schedule JSON + itinerary rows → 선정 입력 */
@@ -160,6 +155,11 @@ export function buildHeroKeywordInputsFromSchedule(
           byDay.set(day, {
             day,
             imageKeyword: String(o.imageKeyword ?? '').trim(),
+            imageKeyword2: typeof o.imageKeyword2 === 'string' ? o.imageKeyword2.trim() : undefined,
+            title: typeof o.title === 'string' ? o.title : undefined,
+            routeText: typeof o.routeText === 'string' ? o.routeText : undefined,
+            description: typeof o.description === 'string' ? o.description : undefined,
+            supplierText: scheduleRowSupplierText(o) || undefined,
           })
         }
       }
@@ -172,6 +172,11 @@ export function buildHeroKeywordInputsFromSchedule(
     byDay.set(row.day, {
       day: row.day,
       imageKeyword: prev?.imageKeyword ?? '',
+      imageKeyword2: prev?.imageKeyword2,
+      title: prev?.title,
+      routeText: prev?.routeText,
+      description: prev?.description,
+      supplierText: prev?.supplierText,
       poiNamesRaw: row.poiNamesRaw ?? undefined,
       summaryText: row.summaryTextRaw ?? undefined,
     })
