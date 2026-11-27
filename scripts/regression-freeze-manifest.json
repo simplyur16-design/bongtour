@@ -31368,6 +31368,39 @@
       ]
     },
     {
+      "id": "cleared-cap-newest-1122",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "비운 칸 우선 상한(30)을 id 순이 아니라 최근 비운 순으로 자르고, 오늘 '생성 대상'으로 끝난 상품은 상한 뒤로 — 19:13 비운 32상품 중 17개가 19:30~22:30 재시도되지 않던 원인 교정",
+      "checks": [
+        {
+          "file": "lib/cleared-slot-refill-priority.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cleared-cap-newest-1122]",
+            "deferIds: ReadonlySet<string> = new Set<string>(),",
+            "for (const id of clearedIds) {",
+            "const cleared = [...ordered.filter((r) => !deferIds.has(r.id)), ...ordered.filter((r) => deferIds.has(r.id))].slice(0, CLEARED_SLOT_PRIORITY_CAP)"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cleared-cap-newest-1122]",
+            "async function loadTodayGenerateTargetProductIds",
+            "(rest) => rotatePublicMissingDayPicks(rest, limit, now), deferred)"
+          ]
+        },
+        {
+          "file": "lib/cleared-cap-newest-1122.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[cleared-cap-newest-1122]"
+          ]
+        }
+      ]
+    },
+    {
       "id": "cleared-slot-newest-first-1122",
       "tier": [
         "prebuild",
