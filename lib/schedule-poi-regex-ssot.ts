@@ -1012,7 +1012,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /납벽해|Napa\s*Lake|纳帕海/i, en: 'Napa Lake Shangri-La Yunnan' },
   { re: /속하\s*고진|Shuhe|束河/i, en: 'Shuhe Ancient Town Lijiang' },
   { re: /흑룡담|Black\s*Dragon\s*Pool|黑龙潭/i, en: 'Black Dragon Pool Lijiang' },
-  { re: /리장|여강|Lijiang|丽江/i, en: 'Lijiang Old Town Yunnan' },
+  // REGRESSION-FREEZE[hero-keyword-rules-1128]: '만리장성' 안의 '리장'은 리장(丽江)이 아니다 — manifest
+  { re: /(?<!만)리장|여강|Lijiang|丽江/i, en: 'Lijiang Old Town Yunnan' },
   { re: /악마의\s*목구멍|Devil'?s?\s*Throat|Garganta\s*del\s*Diablo/i, en: "Iguazu Falls Devil's Throat waterfall" },
   { re: /푸에르토\s*이구아수|Puerto\s*Iguazu|Puerto\s*Iguazú/i, en: 'Puerto Iguazu Argentina waterfall' },
   { re: /상파울루|상\s*파울로|Sao\s*Paulo|São\s*Paulo/i, en: 'Sao Paulo Brazil skyline' },
