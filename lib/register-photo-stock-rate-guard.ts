@@ -36,9 +36,25 @@ export class PexelsCallGuard {
     return !this.isStopped()
   }
   onStatus(status: number): void {
-    if (isStockStopStatus(status)) this.stoppedUntil = this.clock.now() + STOCK_STOP_AFTER_LIMIT_MS
+    if (isStockStopStatus(status)) this.stoppedUntil = Math.max(this.stoppedUntil, this.clock.now() + STOCK_STOP_AFTER_LIMIT_MS)
+  }
+  /**
+   * REGRESSION-FREEZE[pexels-quota-1128]: 응답 헤더 x-ratelimit-remaining 이 0 이면 x-ratelimit-reset 까지 Pexels 를 부르지 않는다
+   * (월 한도 소진 뒤 매시간 다시 부르던 낭비 차단). 멈춤은 늘리기만 한다 — manifest
+   */
+  onQuotaHeaders(remaining: number | null, resetEpochSec: number | null): void {
+    if (remaining == null || !Number.isFinite(remaining) || remaining > 0) return
+    const now = this.clock.now()
+    const resetMs = resetEpochSec != null && Number.isFinite(resetEpochSec) && resetEpochSec * 1000 > now ? resetEpochSec * 1000 : now + STOCK_STOP_AFTER_LIMIT_MS
+    this.stoppedUntil = Math.max(this.stoppedUntil, Math.min(resetMs, now + PEXELS_QUOTA_STOP_MAX_MS))
+  }
+  stoppedUntilMs(): number {
+    return this.stoppedUntil
   }
 }
+
+/** 헤더 reset 이 이상하게 먼 값이어도 이 기간을 넘겨 멈추지 않는다(월 한도 주기 + 여유) */
+export const PEXELS_QUOTA_STOP_MAX_MS = 35 * 24 * 60 * 60 * 1000
 
 export class UnsplashCallBudget {
   private calls: number[] = []

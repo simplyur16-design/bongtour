@@ -34724,7 +34724,8 @@
           "file": "lib/register-auto-photo-register-job.ts",
           "mustInclude": [
             "runPublicWrongPhotoReplaceLive",
-            "createRunBudget(WRONG_PHOTO_REPLACE_MAX_PER_RUN)"
+            "createRunBudget(WRONG_PHOTO_REPLACE_MAX_PER_RUN)",
+            "목록이 1시간을 넘겨 교체 단계에 닿지 못하던 01:30 실행 교정"
           ]
         },
         {
@@ -34737,6 +34738,42 @@
       ],
       "vitestSuites": [
         "lib/photo-replace-wrong-1128.test.ts"
+      ]
+    },
+    {
+      "id": "pexels-quota-1128",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "Pexels 단일 검색 관문: remaining 0 이면 reset 까지 호출 0(다음 출처로), 같은 검색어 24시간 보관, 동시 같은 검색 1번, 호출마다 상태 한 줄 기록(키 없음)",
+      "checks": [
+        {
+          "file": "lib/register-photo-stock-rate-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-quota-1128]",
+            "onQuotaHeaders(remaining: number | null, resetEpochSec: number | null): void",
+            "export const PEXELS_QUOTA_STOP_MAX_MS"
+          ]
+        },
+        {
+          "file": "lib/pexels-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-quota-1128]",
+            "export async function pexelsSearch(",
+            "export const PEXELS_RESULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000",
+            "guard.onQuotaHeaders(remaining, reset)",
+            "if (guard.isStopped()) return { error: 'pexels_stopped' }",
+            "kind: 'pexels-call'"
+          ],
+          "mustNotInclude": [
+            "client.photos.search",
+            "from 'pexels'"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/pexels-quota-1128.test.ts"
       ]
     }
   ],
