@@ -21,16 +21,22 @@ describe('출국·귀국일 도시 키워드 → 도시 대표 명소', () => {
 
   it('귀국일 Budapest 는 도시만이라 검색기가 건너뛰던 키워드다', () => {
     expect(sightProfile('Budapest').kind).toBe('city')
-    expect(missingDayFillAction(budapestTrip[2]!, 9)).toBe('skip')
+    expect(missingDayFillAction(budapestTrip[2]!, 9)).toBe('fill')
   })
 
-  it('귀국일·출국일은 대표 명소로 채우지 않고 빈칸(봉실장 11:18)', () => {
-    expect(travelDayRepresentativeSights(budapestTrip[2]!, budapestTrip, '유럽', 9)).toBeNull()
+  it('귀국일·출국일은 체류지 대표 명소로 채운다(사장님 11/21 23:13)', () => {
+    const ret = travelDayRepresentativeSights(budapestTrip[2]!, budapestTrip, '유럽', 9)
+    expect(ret?.kind).toBe('return')
+    expect(ret?.city).toMatch(/budapest/i)
+    expect((ret?.sights ?? []).length).toBeGreaterThan(0)
     const rows = [
       { day: 1, title: '인천 출발 · 바르셀로나', routeText: '인천 출발 - 바르셀로나', imageKeyword: 'Barcelona', imageUrl: null },
       { day: 2, title: '바르셀로나', routeText: '바르셀로나 - 사그라다 파밀리아', imageKeyword: 'Sagrada Familia', imageUrl: 'https://x/2' },
     ]
-    expect(travelDayRepresentativeSights(rows[0]!, rows, '스페인', 2)).toBeNull()
+    const dep = travelDayRepresentativeSights(rows[0]!, rows, '스페인', 2)
+    expect(dep?.kind).toBe('departure')
+    expect(dep?.city).toMatch(/barcelona/i)
+    expect((dep?.sights ?? []).length).toBeGreaterThan(0)
   })
 
   it('명소 키워드·관광일 도시 키워드는 그대로(대체하지 않음)', () => {
@@ -43,7 +49,7 @@ describe('출국·귀국일 도시 키워드 → 도시 대표 명소', () => {
     expect(travelDayRepresentativeSights(rows[1]!, rows, '스페인', 3)).toBeNull()
   })
 
-  it('route 는 planDayPhotoSave 공통 게이트로 출국·귀국을 빈칸 처리한다', () => {
+  it('route 는 planDayPhotoSave 공통 게이트로 출국·귀국을 처리한다', () => {
     expect(ROUTE).toContain('REGRESSION-FREEZE[photo-wrong-path-1128]')
     expect(ROUTE).toContain('planDayPhotoSave')
     expect(ROUTE).toContain("if (plan.action !== 'search') return keep")

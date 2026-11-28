@@ -31614,7 +31614,7 @@
           "mustInclude": [
             "REGRESSION-FREEZE[no-ai-photo-1127]",
             "export const NO_REAL_PHOTO_NOTE = 'no_real_photo'",
-            "if (!deps.generate && lastSight && input.kind !== 'cover') limitNotes.add(NO_REAL_PHOTO_NOTE)"
+            "if (lastSight && input.kind !== 'cover') limitNotes.add(NO_REAL_PHOTO_NOTE)"
           ]
         },
         {
@@ -33089,7 +33089,7 @@
         {
           "file": "lib/photo-autofill-gate.ts",
           "mustInclude": [
-            "같은 파일을 다른 상품에 재사용 금지"
+            "상품 간 썸네일 같은 사진 허용"
           ]
         }
       ]

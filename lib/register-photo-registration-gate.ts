@@ -2,7 +2,7 @@
  * 등록(상태 전환) 전 사진 게이트 — 기존 자동 등록 검사에 '더하기만' 한다(기존 guard 완화 없음).
  * 막는 사유(칸 단위):
  *  photo_sight_mismatch   그날 방문 명소와 맞지 않거나 맞는지 확인할 근거가 없음
- *  photo_public_duplicate 예전 기록용. 대표가 다른 상품과 같아도 등록을 막지 않는다. 일차 사진도 다른 상품과 같아도 막지 않는다.
+ *  photo_public_duplicate 예전 기록용. 상품 간 썸네일·일차 같은 사진은 막지 않는다(R03-12·봉실장 12:18).
  *  photo_irrelevant_subject 인물 주피사체·회의실/사무실·로고 등 무관 사진(제목·태그 기준)
  *  photo_low_res / photo_over_bytes / photo_not_measured  1200px 미만·용량(대표 200,000B·일차 400,000B) 초과·측정 실패
  * 관리자가 고른 칸(imageManualSelected·수동 대표)은 해상도·내용 판정에서 제외한다(기존과 동일, 용량만 본다).
@@ -130,10 +130,6 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
       push({ kind: 'cover', day: null, reason: 'photo_ai_generated', detail: String(cover.source ?? 'generated').slice(0, 60) })
     }
     if (!locked) {
-      const coverKeys = photoIdentityKeys({ url: cover.url, externalId: cover.externalId, originalLink: cover.originalLink })
-      if (input.usage.conflict(coverKeys, input.productId)) {
-        push({ kind: 'cover', day: null, reason: 'photo_public_duplicate', detail: 'same file used on another product' })
-      }
       const text = textOf(cover.originalLink)
       subject('cover', null, text)
       if (text.length >= 3 && !cover.sightMatch) {
@@ -168,9 +164,7 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
       for (const k of keys) seenKeys.add(k)
       if (locked) continue
       if (dup) push({ kind: 'day', day, reason: 'photo_in_product_duplicate', detail: 'same photo as cover or an earlier day' })
-      if (input.usage.conflict(keys, input.productId)) {
-        push({ kind: 'day', day, reason: 'photo_public_duplicate', detail: 'same file used on another product' })
-      }
+      // 일차 사진은 다른 상품과 같아도 된다(사장님 12:01). 목록 카드 대표만 위에서 막는다.
       if (photoSourceIsAiGenerated({ source: src.source ?? raw.imageSourceType, url, isGenerated: raw.imageIsGenerated })) {
         push({ kind: 'day', day, reason: 'photo_ai_generated', detail: String(src.source ?? 'generated').slice(0, 60) })
       }

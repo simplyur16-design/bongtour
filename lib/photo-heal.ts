@@ -177,6 +177,8 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
     }
 
     const day = block.day as number
+    // 일차의 공개 중복만으로는 바꾸지 않는다(사장님 12:01). 라벨 불일치·다른 일차 키워드 등 틀린 사진만 교체.
+    if (reasons.every((r) => r === 'photo_public_duplicate')) continue
     const row = parseRows(result.schedule).find((r, i) => (Math.floor(Number(r.day)) > 0 ? Math.floor(Number(r.day)) : i + 1) === day)
     if (!row) {
       await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: 'day_not_found', detail: reasonText, origin: 'heal', at })

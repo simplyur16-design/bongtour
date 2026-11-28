@@ -3,7 +3,7 @@
  * 모두 통과해야 채택:
  *  (a) 사진 제목·설명·alt·태그에 그날 명소 이름(또는 별칭)이 있어야 한다. 도시 이름만 맞으면 탈락.
  *  (b) 사람이 주인공인 사진(portrait·woman·man·person·selfie·model 등 태그·제목) 탈락. 풍경 속 작은 사람·간판은 허용.
- *  (c) 대표가 다른 상품과 같다는 이유만으로 탈락시키지 않는다. 고르기는 덜 쓴 사진·상품 id 회전이 한다. 공급사 주소는 탈락. 일차 사진은 다른 상품과 같아도 된다.
+ *  (c) 상품 간 썸네일·일차 사진은 같아도 된다(R03-12 11/21·봉실장 12:18, R03-03). 한 상품 안 일차끼리 겹침은 exclude 로 막는다. 공급사 주소는 탈락.
  *  (d) 가로 1200px 이상·가로형, 저장본은 대표 200,000B(카드)·일차 400,000B 미만(기존 상수 재사용).
  * 기존 관문(photoMatchGate)의 인물·차량·사물·실내·타국 명소 판정을 그대로 더해 쓴다(완화 없음).
  * REGRESSION-FREEZE[photo-autofill-gate]: 명소 이름 일치·인물 탈락·공개 중복 탈락·크기 기준 — manifest
@@ -15,6 +15,7 @@ import { DAY_PHOTO_DETAIL_MAX_BYTES } from '@/lib/register-day-photo-policy'
 import { foldPhotoText, sightMatchInText, type SightProfile } from '@/lib/photo-autofill-sight'
 import { isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
 import { candidateSaysMonochrome } from '@/lib/photo-monochrome-text-1122'
+import { sourcePageEvidenceText } from '@/lib/photo-pool-evidence-1122'
 
 export const AUTOFILL_MAX_CANDIDATES_PER_SLOT = 5
 export const AUTOFILL_MIN_WIDTH = IMAGE_MIN_WIDTH
@@ -106,8 +107,19 @@ export function photoSubjectIsTextOrMap(text: string, sightNames: readonly strin
   return !sightNames.some((n) => ` ${foldPhotoText(n)} `.includes(` ${word} `))
 }
 
+const OUR_STORAGE_RE = /ncloudstorage\.com|objectstorage|\/photo-pool\//i
+
 export function candidateText(c: AutofillCandidate): string {
-  return photoCandidateText([c.altText, c.title, c.description, (c.tags ?? []).join(' '), c.pageUrl ?? c.originalLink])
+  return sourceMetaText(c)
+}
+
+/** 출처 메타(제목·설명·alt·태그·원본 페이지 slug)만. 우리 저장소 파일명·검색어 라벨은 증거로 쓰지 않는다. */
+export function sourceMetaText(c: AutofillCandidate): string {
+  const link = String(c.pageUrl || c.originalLink || '').trim()
+  const linkEvidence = !link || OUR_STORAGE_RE.test(link) ? '' : sourcePageEvidenceText(link)
+  const desc = String(c.description ?? '').trim()
+  const descOk = /content license|pixabay content/i.test(desc) ? '' : desc
+  return photoCandidateText([c.altText, c.title, descOk, (c.tags ?? []).join(' '), linkEvidence])
 }
 
 /** 같은 사진을 가리키는 식별 키(출처 id·주소). 공개 사용 색인과 후보 비교에 같이 쓴다. */
@@ -175,7 +187,7 @@ export class PublicPhotoUsage {
     return owners.size
   }
 
-  /** 목록 카드 대표끼리만 충돌. 다른 상품의 일차 사진과 같은 것은 충돌이 아니다. */
+  /** 목록 카드 대표 충돌 조회(표시·로테이션용). 저장 게이트에서는 상품 간 썸네일 중복을 막지 않는다(R03-12·봉실장 12:18). */
   coverConflict(keys: readonly string[], productId: string): { productId: string; role: 'cover' } | null {
     for (const k of keys) {
       const owners = this.byKey.get(k)
@@ -360,9 +372,8 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
   // REGRESSION-FREEZE[photo-monochrome-text-1122]: 주소 slug·문구·풀 파일 이름에 흑백 표시가 있으면 내려받기 전에 탈락(채도 검사는 그대로) — manifest
   if (candidateSaysMonochrome(c)) reasons.add('monochrome_text')
 
-  // REGRESSION-FREEZE[photo-wrong-path-1128]: 같은 파일을 다른 상품에 재사용 금지 — manifest
-  const keys = photoIdentityKeys({ url: c.url, externalId: c.id, originalLink: c.originalLink })
-  if (input.usage.conflict(keys, input.productId)) reasons.add('public_duplicate')
+  // REGRESSION-FREEZE[photo-wrong-path-1128]: 상품 간 썸네일 같은 사진 허용(R03-12·봉실장 12:18). 일차도 다른 상품과 같아도 된다. 한 상품 안 일차 겹침은 exclude — manifest
+  void input.usage
 
   return { ok: reasons.size === 0, reasons: [...reasons], matched }
 }

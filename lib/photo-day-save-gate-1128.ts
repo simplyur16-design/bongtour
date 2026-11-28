@@ -1,13 +1,13 @@
 /**
  * 사진 저장 전 공통 게이트(봉실장 11:18 / 사장님 08:55–08:57).
- * 1순위: 그날 원문에 나열된 명소. 2순위: 원문에 명소가 없고 머무는 날일 때만 그날 도시 대표명소.
- * 귀국·출국·공항만 있는 날, 도시 사이 이동만 있는 날은 빈칸.
- * 다른 일차 키워드·도시명 단독 검색 금지. 같은 파일을 다른 상품에 재사용 금지.
+ * 1순위: 그날 원문에 나열된 명소. 2순위: 원문에 명소가 없으면 그날 도시 대표명소.
+ * 출국일=첫 목적지 대표명소, 귀국일=마지막 체류지 대표명소, 도착일(인천-다낭-호텔)=도착 도시 대표명소, 이동일=그날 설명의 도시 대표명소(사장님 11/21 23:13).
+ * 공항·기내 사진 금지. 다른 일차 키워드·도시명 단독 검색 금지. 일차 사진은 다른 상품과 같아도 됨(목록 카드 대표만 중복 금지).
  * REGRESSION-FREEZE[photo-wrong-path-1128]: 틀린 사진 경로 차단 — manifest
  */
 import { deriveDaySights, type DaySightInput, type DaySightResult } from '@/lib/photo-autofill-sight'
 import { registerScheduleDayIsCityOnlyPhotoSkip, registerScheduleRouteIsCityOnlyTransit } from '@/lib/register-schedule-city-only-day'
-import { registerTravelDayKind, type TravelDayRow } from '@/lib/register-day-photo-travel-day'
+import { registerTravelDayKind, travelDayRepresentativeSights, type TravelDayRow } from '@/lib/register-day-photo-travel-day'
 
 const FREE_DAY_RE = /추천일정|자유\s*일정|자유\s*시간|자유\s*관광|free\s*(?:day|time)/iu
 const RETURN_RE = /숙박\s*없음|귀국/u
@@ -63,27 +63,27 @@ export function planDayPhotoSave(
   row: DaySaveRow,
   opts: { destinationText?: string | null; maxDay: number; allRows?: ReadonlyArray<DaySaveRow> },
 ): DaySavePlan {
+  const dest = opts.destinationText ?? ''
+  // 1순위는 그날 일정 원문만. 저장된 imageKeyword(다른 일차 잔여)는 쓰지 않는다.
   const derived = deriveDaySights(
     {
       title: row.title,
       routeText: row.routeText,
       description: row.description,
-      imageKeyword: row.imageKeyword,
-      imageKeyword2: row.imageKeyword2,
+      imageKeyword: '',
+      imageKeyword2: '',
       supplierText: row.supplierText,
       otherDaysText: row.otherDaysText,
     },
-    opts.destinationText ?? '',
+    dest,
   )
   if (derived.route === 'own' && derived.sights.length > 0) {
     return { action: 'search', route: 'own', sights: derived.sights, derived }
   }
-  const travel = isTravelAirportOnlyDay(row, opts.maxDay, opts.allRows)
-  const transit = registerScheduleRouteIsCityOnlyTransit(row.routeText) && !FREE_DAY_RE.test(blob(row))
-  const citySkip = registerScheduleDayIsCityOnlyPhotoSkip({ title: row.title, routeText: row.routeText })
-  if (travel || transit || (citySkip && !FREE_DAY_RE.test(blob(row)))) {
-    const reason = travel ? 'travel_airport_only' : 'city_transit_only'
-    return { action: 'empty', reason, derived }
+  const allRows = (opts.allRows ?? [row]).map(asTravelRow)
+  const travelRep = travelDayRepresentativeSights(asTravelRow(row), allRows, dest, opts.maxDay)
+  if (travelRep && travelRep.sights.length > 0) {
+    return { action: 'search', route: 'city_rep', sights: travelRep.sights, derived }
   }
   if (derived.route === 'city_rep' && derived.sights.length > 0) {
     return { action: 'search', route: 'city_rep', sights: derived.sights, derived }

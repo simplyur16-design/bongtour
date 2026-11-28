@@ -113,14 +113,12 @@ describe('photo-heal: 막힌 칸만 다음 후보로 교체', () => {
     expect(r.replaced).toHaveLength(1)
   })
 
-  it('일차의 공개 중복도 다음 후보로 교체한다', async () => {
+  it('일차의 공개 중복만으로는 교체하지 않는다(사장님 12:01)', async () => {
     const h = harness({ acquire: (i, n) => okResult(`n${n}`, i) })
     const r = await healBlockedSlots(baseInput({ blocks: [block(2, 'photo_public_duplicate')] }), h.deps)
-    expect(r.replaced).toHaveLength(1)
+    expect(r.replaced).toHaveLength(0)
     expect(r.exceptions).toHaveLength(0)
-    expect(r.replaced[0]!.day).toBe(2)
-    const rows = JSON.parse(r.schedule!)
-    expect(rows[1].imageUrl).toContain('new-n1')
+    expect(r.schedule).toBe(baseInput({}).schedule ?? scheduleOf(3))
   })
 
   it('후보를 못 찾으면 그 칸은 예외 목록(사유 포함)에 오르고 사진은 그대로', async () => {
