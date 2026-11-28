@@ -31,6 +31,7 @@ import { refreshRegisterPrePhotoQueueFlagsForProductId } from '@/lib/register-pr
 import { loadRegisterPublishFacts } from '@/lib/register-publish-facts'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
 import { rotatePublicMissingDayPicks, scheduleApplyingTravelDayKeywords } from '@/lib/register-day-photo-travel-day'
+import { hydrateSharedPexelsStop } from '@/lib/register-photo-stock-rate-guard'
 import { buildRegistrationPhotoInput, runPendingWrongPhotoReplaceLive, runPhotoHealForProduct, runPublicPhotoNightlyAuditLive, runPublicWrongPhotoReplaceLive } from '@/lib/photo-gate-runner'
 import { WRONG_PHOTO_REPLACE_TIME_BUDGET_MS } from '@/lib/photo-replace-wrong-1128'
 import { isNightlyAuditWindowKst } from '@/lib/photo-nightly-audit'
@@ -144,6 +145,8 @@ export async function runAutoPhotoRegisterJob(opts?: {
   siteHealth?: boolean
 }): Promise<AutoPhotoRegisterRunResult> {
   const env = opts?.env ?? process.env
+  // REGRESSION-FREEZE[pexels-stop-persist-1128]: 재배포·재시작 직후에도 저장된 Pexels 멈춤을 먼저 복원 — 이 실행의 모든 칸이 처음부터 Unsplash→Pixabay→Openverse 순서로 간다(R03-06/17) — manifest
+  if (String(env.PEXELS_API_KEY ?? '').trim()) await hydrateSharedPexelsStop()
   const f = opts?.fetchImpl ?? fetch
   const sw = autoRegisterSwitches(env)
   // 한 번 호출로 현재 등록대기 전체를 본다. 정기 cron 은 50을 넘긴다.

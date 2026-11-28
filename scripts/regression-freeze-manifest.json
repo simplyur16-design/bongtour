@@ -35702,6 +35702,51 @@
       "vitestSuites": [
         "lib/self-heal-pending-1128.test.ts"
       ]
+    },
+    {
+      "id": "pexels-stop-persist-1128",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/28 18:59: Pexels 신규 키·한도 상향 중단 — 현재 키·현재 한도 기준. Pexels 실제 한도(403·429·남은 한도 0) stoppedUntil 을 기존 ScraperSupplierState 행(photo-stock:pexels)에 저장하고 시작·검색 직전 복원해, 재배포·재시작에도 그 시각까지 Pexels 를 건너뛰고 Unsplash→Pixabay→Openverse 로 같은 실행에서 이어간다(R03-06/17, AI 없음). 스키마·env 변경 없음",
+      "checks": [
+        {
+          "file": "lib/stock-stop-persist.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-stop-persist-1128]",
+            "PEXELS_STOP_STATE_KEY",
+            "scraperSupplierState",
+            "export async function hydrateStopFromStore",
+            "export function persistStop"
+          ]
+        },
+        {
+          "file": "lib/register-photo-stock-rate-guard.ts",
+          "mustInclude": [
+            "onStopExtended",
+            "hydrateStoppedUntil",
+            "export async function hydrateSharedPexelsStop"
+          ]
+        },
+        {
+          "file": "lib/pexels-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-stop-persist-1128]",
+            "hydrateSharedPexelsStop"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[pexels-stop-persist-1128]",
+            "await hydrateSharedPexelsStop()"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/pexels-stop-persist-1128.test.ts"
+      ]
     }
   ],
   "vitestSuites": [
