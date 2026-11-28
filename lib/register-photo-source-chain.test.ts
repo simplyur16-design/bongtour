@@ -28,8 +28,9 @@ const us = (id: string, over: Record<string, unknown> = {}) => ({
 })
 
 describe('register-photo-source-chain', () => {
-  it('order is Pexels → Unsplash → CC0', () => {
-    expect([...PHOTO_CHAIN_STOCK_ORDER]).toEqual(['pexels', 'unsplash', 'cc0'])
+  it('order is Pexels → CC0 (Unsplash 제외, R03-26)', () => {
+    expect([...PHOTO_CHAIN_STOCK_ORDER]).toEqual(['pexels', 'cc0'])
+    expect(PHOTO_CHAIN_STOCK_ORDER).not.toContain('unsplash')
   })
   it('uses Pexels first and never calls Unsplash when Pexels passes', async () => {
     const searchUnsplash = vi.fn(async () => [us('x')])
@@ -40,16 +41,16 @@ describe('register-photo-source-chain', () => {
     expect(r.photo?.source).toBe('Pexels')
     expect(searchUnsplash).not.toHaveBeenCalled()
   })
-  it('falls to Unsplash when Pexels has only low-res or used photos, and triggers download', async () => {
+  it('does not fall to Unsplash when Pexels has only low-res or used photos (R03-26)', async () => {
+    const searchUnsplash = vi.fn(async () => [us('abc')])
     const triggerDownload = vi.fn(async () => true)
     const r = await findStockPhotoByChain('Da Nang', {
       accept: (c) => c.externalId !== '2',
-      deps: { searchPexels: async () => [px(1, 800), px(2)], searchUnsplash: async () => [us('abc')], triggerDownload },
+      deps: { searchPexels: async () => [px(1, 800), px(2)], searchUnsplash, triggerDownload },
     })
-    expect(r.photo?.source).toBe('Unsplash')
-    expect(r.photo?.originalLink).toBe('https://unsplash.com/@u')
-    expect(r.photo?.width).toBeGreaterThanOrEqual(1200)
-    expect(triggerDownload).toHaveBeenCalledWith('https://api.unsplash.com/photos/abc/download')
+    expect(r.photo).toBeNull()
+    expect(searchUnsplash).not.toHaveBeenCalled()
+    expect(triggerDownload).not.toHaveBeenCalled()
   })
   it('skips Unsplash photos without credit and reports CC0 as no provider; returns null for AI fallback', async () => {
     const r = await findStockPhotoByChain('Da Nang', {

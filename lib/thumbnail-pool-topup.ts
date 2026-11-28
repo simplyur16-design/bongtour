@@ -1,6 +1,6 @@
 /**
  * 인기 장소 풀을 10~20장까지 채우는 계획. 이미 10장 이상이면 더 받지 않는다.
- * 받는 순서는 Pexels → Unsplash → CC0. 저장 용량은 대표 200KB. 실패하면 그 출처는 SKIP.
+ * 받는 순서는 Pexels → Pixabay → Openverse(cc0·pdm). Unsplash·Wikimedia 검색 없음(R03-25·R03-26). 저장 용량은 대표 200KB. 실패하면 그 출처는 SKIP.
  * REGRESSION-FREEZE[thumbnail-least-used-1121]: 장소 풀 10~20 — manifest
  */
 import { isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
@@ -45,7 +45,7 @@ export function claimThumbnailTopUpSlot(): boolean {
 export async function topUpThumbnailPlacePool(input: {
   have: number
   pause: () => Promise<void>
-  search: (tier: 'pexels' | 'unsplash') => Promise<ThumbnailTopUpCandidate[] | Error>
+  search: (tier: 'pexels' | 'pixabay') => Promise<ThumbnailTopUpCandidate[] | Error>
   searchCc0?: () => Promise<ThumbnailTopUpCandidate[] | Error>
   save: (c: ThumbnailTopUpCandidate) => Promise<boolean>
 }): Promise<ThumbnailTopUpResult> {
@@ -90,7 +90,7 @@ export async function topUpThumbnailPlacePool(input: {
   }
 
   await pull('pexels', () => input.search('pexels'))
-  await pull('unsplash', () => input.search('unsplash'))
+  await pull('pixabay', () => input.search('pixabay'))
   if (input.searchCc0) await pull('cc0', () => input.searchCc0!())
   return { added, skipped }
 }

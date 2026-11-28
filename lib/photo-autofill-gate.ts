@@ -16,6 +16,7 @@ import { foldPhotoText, sightMatchInText, type SightProfile } from '@/lib/photo-
 import { isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
 import { candidateSaysMonochrome } from '@/lib/photo-monochrome-text-1122'
 import { sourcePageEvidenceText } from '@/lib/photo-pool-evidence-1122'
+import { isBlockedAutoFillOrigin } from '@/lib/photo-autofill-blocked-origin'
 
 export const AUTOFILL_MAX_CANDIDATES_PER_SLOT = 5
 export const AUTOFILL_MIN_WIDTH = IMAGE_MIN_WIDTH
@@ -62,6 +63,7 @@ export type AutofillRejectReason =
   | 'supplier_unlicensed'
   | 'monochrome_text'
   | 'text_or_map'
+  | 'blocked_auto_source'
 
 const PERSON_PORTRAIT_RE =
   /\b(portrait|portraits|selfie|selfies|headshot|headshots|model|models|posing|poses|posed|fashion|bride|groom|wedding)\b/
@@ -371,6 +373,20 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
   }
   // REGRESSION-FREEZE[photo-monochrome-text-1122]: 주소 slug·문구·풀 파일 이름에 흑백 표시가 있으면 내려받기 전에 탈락(채도 검사는 그대로) — manifest
   if (candidateSaysMonochrome(c)) reasons.add('monochrome_text')
+
+  // REGRESSION-FREEZE[r03-25-26-source-1128]: 새 저장 후보만 — Unsplash·Wikimedia/Wikipedia·CC BY 는 저장하지 않는다. 기존 칸 재판정은 이 사유를 쓰지 않는다 — manifest
+  if (
+    isBlockedAutoFillOrigin({
+      source: c.source,
+      url: c.url,
+      originalLink: c.originalLink,
+      pageUrl: c.pageUrl,
+      description: c.description,
+      poolOriginSource: c.poolOriginSource,
+    }).blocked
+  ) {
+    reasons.add('blocked_auto_source')
+  }
 
   // REGRESSION-FREEZE[photo-wrong-path-1128]: 상품 간 썸네일 같은 사진 허용(R03-12·봉실장 12:18). 일차도 다른 상품과 같아도 된다. 한 상품 안 일차 겹침은 exclude — manifest
   void input.usage

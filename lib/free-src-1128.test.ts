@@ -1,7 +1,8 @@
 /**
  * REGRESSION-FREEZE[free-src-1128]: 사장님 11/28 08:08 'pexels 못쓰니 unsplash·pixabay·openverse 등 출처 안넣어도 되는 사진으로 준비해봐라.
  * unsplash는 시간당 1000회 한도', 08:10 '지금 봉투어도 사진 못가져오고있잖아'.
- * Pexels 멈춤 동안 풀 → Unsplash → Pixabay → Openverse/Wikimedia CC0·PD, 표기 의무 없는 라이선스만, 각 출처 한도 가드.
+ * Pexels 멈춤 동안 풀 → Pixabay → Openverse(cc0·pdm, wikimedia 제외). 사장님 20:13·20:16(R03-25·R03-26)으로 Unsplash·Wikimedia 는 자동 채움에서 제외.
+ * 표기 의무 없는 라이선스만, 각 출처 한도 가드.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { acquireVerifiedPhoto, type AcquireDeps, type AcquireInput } from '@/lib/photo-autofill-acquire'
@@ -73,22 +74,22 @@ const input = (): AcquireInput => ({
 })
 
 describe('free-src-1128 source order', () => {
-  it('Pexels 멈춤: Pexels 호출 0, Unsplash → Pixabay → CC0 순서', async () => {
+  it('Pexels 멈춤: Pexels·Unsplash 호출 0, Pixabay → CC0 순서 (R03-25·R03-26)', async () => {
     const { d, order } = deps({ pexelsStopped: true, results: () => [] })
     const r = await acquireVerifiedPhoto(input(), d)
     expect(r.ok).toBe(false)
     expect(order).not.toContain('pexels')
+    expect(order).not.toContain('unsplash')
     const firstIdx = (t: string) => order.indexOf(t)
-    expect(firstIdx('unsplash')).toBeGreaterThanOrEqual(0)
-    expect(firstIdx('unsplash')).toBeLessThan(firstIdx('pixabay'))
+    expect(firstIdx('pixabay')).toBeGreaterThanOrEqual(0)
     expect(firstIdx('pixabay')).toBeLessThan(firstIdx('cc0'))
     if (!r.ok) expect(r.exception.detail).toContain('pexels_limit')
   })
-  it('Pexels 멈춤 중 Unsplash 사진을 실제로 채택한다', async () => {
-    const { d } = deps({ pexelsStopped: true, results: (t) => (t === 'unsplash' ? [cand('u1', 'Unsplash')] : []) })
+  it('Pexels 멈춤 중 Unsplash 는 호출·채택하지 않는다(R03-26)', async () => {
+    const { d, order } = deps({ pexelsStopped: true, results: (t) => (t === 'unsplash' ? [cand('u1', 'Unsplash')] : []) })
     const r = await acquireVerifiedPhoto(input(), d)
-    expect(r.ok).toBe(true)
-    if (r.ok) expect(r.photo.source).toBe('Unsplash')
+    expect(order).not.toContain('unsplash')
+    expect(r.ok).toBe(false)
   })
   it('Unsplash 가 비면 Pixabay 를 채택한다', async () => {
     const { d } = deps({ pexelsStopped: true, results: (t) => (t === 'pixabay' ? [cand('pb-1', 'Pixabay')] : []) })
@@ -108,12 +109,12 @@ describe('free-src-1128 source order', () => {
     expect(r.ok).toBe(true)
     if (r.ok) expect(r.photo.source).toBe('CC0')
   })
-  it('Pexels 살아 있으면 R03-06 순서(Pexels → CC0 → Unsplash → Pixabay)', async () => {
+  it('Pexels 살아 있으면 풀 다음 Pexels → Pixabay → CC0 이고 Unsplash 는 부르지 않는다(R03-26)', async () => {
     const { d, order } = deps({ pexelsStopped: false, results: () => [] })
     await acquireVerifiedPhoto(input(), d)
-    expect(order.indexOf('pexels')).toBeLessThan(order.indexOf('cc0'))
-    expect(order.indexOf('cc0')).toBeLessThan(order.indexOf('unsplash'))
-    expect(order.indexOf('unsplash')).toBeLessThan(order.indexOf('pixabay'))
+    expect(order.indexOf('pexels')).toBeLessThan(order.indexOf('pixabay'))
+    expect(order.indexOf('pixabay')).toBeLessThan(order.indexOf('cc0'))
+    expect(order).not.toContain('unsplash')
   })
 })
 

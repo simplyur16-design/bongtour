@@ -67,7 +67,8 @@ describe('사진 경로 이미지 생성 호출 0 (no-ai-photo-1127)', () => {
     if (r.ok) return
     expect(r.exception.reason).not.toBe('생성 대상')
     expect(r.exception.detail).toContain(NO_REAL_PHOTO_NOTE)
-    expect(order).toEqual(expect.arrayContaining(['pool', 'pexels', 'cc0', 'unsplash']))
+    expect(order).toEqual(expect.arrayContaining(['pool', 'pexels', 'pixabay', 'cc0']))
+    expect(order).not.toContain('unsplash')
     expect(geminiCalls.n).toBe(0)
   })
 })

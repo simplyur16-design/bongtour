@@ -37,7 +37,7 @@ describe('thumbnail-pool-topup', () => {
     expect(pexels).toBe(2)
     expect(saved).toEqual(['1'])
     expect(r.added).toBe(1)
-    expect(r.skipped).toContain('unsplash')
+    expect(r.skipped).toContain('pixabay')
     expect(r.skipped).toContain('cc0')
   })
 })

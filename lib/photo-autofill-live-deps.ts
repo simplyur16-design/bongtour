@@ -1,16 +1,16 @@
 /**
- * photo-autofill-acquire 의 실제 외부 연결(Pexels·Unsplash 검색, NCLOUD 사진 풀 업로드, 저장본 측정).
- * Pexels 는 호출 사이 3.5초·403/429 멈춤(sharedPexelsCallGuard), Unsplash 는 시간당 예산·멈춤(sharedUnsplashCallBudget)을 그대로 쓴다.
+ * photo-autofill-acquire 의 실제 외부 연결(Pexels·Pixabay·Openverse 검색, NCLOUD 사진 풀 업로드, 저장본 측정).
+ * Pexels 는 호출 사이 3.5초·403/429 멈춤(sharedPexelsCallGuard). Unsplash 검색은 자동 경로에서 호출하지 않는다(R03-26).
  * 공급사별 설정이 아니라 사진 재고 출처 전용이다. 키·응답 본문은 기록하지 않는다.
  */
 import type { PrismaClient } from '@prisma/client'
 import { collectChainCandidates, type ChainCandidate } from '@/lib/register-photo-source-chain'
 import { triggerUnsplashDownload } from '@/lib/unsplash-service'
-import { sharedPexelsCallGuard, sharedUnsplashCallBudget, sharedUnsplashTopUpShare } from '@/lib/register-photo-stock-rate-guard'
+import { sharedPexelsCallGuard, sharedUnsplashCallBudget } from '@/lib/register-photo-stock-rate-guard'
 import { findPhotoPoolByPlaceName, savePhotoFromUrl, savePhotoToPool } from '@/lib/photo-pool'
 import { parseImageDimensions, probeImageDimensions } from '@/lib/image-dimension-probe'
-import { searchWikimediaCc0 } from '@/lib/photo-autofill-cc0'
 import { searchNoAttributionCc0 } from '@/lib/photo-autofill-openverse'
+import { isBlockedAutoFillOrigin } from '@/lib/photo-autofill-blocked-origin'
 import { isPixabayStopped, searchPixabayCandidates } from '@/lib/pixabay-service'
 import type { AcquireDeps, StockTier } from '@/lib/photo-autofill-acquire'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, type AutofillCandidate } from '@/lib/photo-autofill-gate'
@@ -75,10 +75,13 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
   const random = opts.random ?? Math.random
   return {
     // REGRESSION-FREEZE[free-src-1128]: Pixabay 는 단일 관문(searchPixabayCandidates), 키 없으면 pixabay_no_key 로 건너뜀 — manifest
-    search: async (tier: StockTier, query: string, perPage: number) =>
-      tier === 'pixabay'
+    search: async (tier: StockTier, query: string, perPage: number) => {
+      // REGRESSION-FREEZE[r03-25-26-source-1128]: Unsplash 검색은 자동 채움에서 호출하지 않는다(R03-26) — manifest
+      if (tier === 'unsplash') return []
+      return tier === 'pixabay'
         ? searchPixabayCandidates(query, perPage)
-        : (await collectChainCandidates(query, tier)).map(chainToAutofillCandidate),
+        : (await collectChainCandidates(query, 'pexels')).map(chainToAutofillCandidate)
+    },
     stockOffReason: (tier: StockTier) => (tier === 'pixabay' ? (isPixabayStopped() === 'pixabay_no_key' ? 'pixabay_no_key' : null) : null),
     stockStopped: (tier: StockTier) => {
       if (tier === 'pexels') return sharedPexelsCallGuard().isStopped()
@@ -87,7 +90,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
       const b = sharedUnsplashCallBudget()
       return b.isStopped() || b.remaining() <= 0
     },
-    // REGRESSION-FREEZE[photo-openverse-cc0-1127]: CC0·PD 단계는 Openverse + Wikimedia — manifest
+    // REGRESSION-FREEZE[photo-openverse-cc0-1127]: CC0·PD 단계는 Openverse(cc0·pdm, wikimedia 제외). Wikimedia 검색 없음(R03-25) — manifest
     searchCc0: (query, perPage) => searchNoAttributionCc0(query, perPage),
     pause: () => sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS)),
     lookupPool: async (sight) => {
@@ -99,13 +102,14 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         await topUpThumbnailPlacePool({
           have: rows.length,
           pause: () => sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS)),
-          // REGRESSION-FREEZE[unsplash-share-1127]: 풀 보충은 Unsplash 시간당 몫(15)만 쓴다 — 칸 검색 몫을 남긴다 — manifest
+          // REGRESSION-FREEZE[unsplash-share-1127]: 사장님 20:16 R03-26 — 풀 보충도 Unsplash 를 호출하지 않는다(가드 함수·한도 상수는 유지, 호출만 끊음) — manifest
           search: async (tier) => {
-            if (tier === 'unsplash' && !sharedUnsplashTopUpShare().tryAcquire()) return []
-            return (await collectChainCandidates(sight, tier)).map(chainToAutofillCandidate)
+            if (tier === 'pixabay') return searchPixabayCandidates(sight, 15)
+            return (await collectChainCandidates(sight, 'pexels')).map(chainToAutofillCandidate)
           },
-          searchCc0: async () => searchWikimediaCc0(sight, 15),
+          searchCc0: async () => searchNoAttributionCc0(sight, 15),
           save: async (c) => {
+            if (isBlockedAutoFillOrigin(c).blocked) return false
             if (isSupplierPhotoUrl(c.url) || isSupplierPhotoUrl(c.originalLink)) return false
             // REGRESSION-FREEZE[pool-evidence-not-label-1122]: 보충 저장도 검색 결과 자체 설명이 그 명소일 때만 이 명소 이름표로 저장 — manifest
             if (!sightMatchInText(sightProfile(sight), sourcePageEvidenceText(c.originalLink))) return false
@@ -136,6 +140,17 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
         if (!evidence) continue
         // REGRESSION-FREEZE[pool-origin-source-1127]: 원 출처를 모르는 풀 행(생성·수동 등)은 채택해도 일차 정책(L2-OTHER-SOURCE)에서 버려져 칸이 빈다 → 후보에서 빼고 다음 출처로 — manifest
         if (!poolRowOriginSource(row.source, row.sourceUrl)) continue
+        // REGRESSION-FREEZE[r03-25-26-source-1128]: 풀 재사용도 Unsplash·Wikimedia·CC BY 원 출처는 후보에서 뺀다 — manifest
+        if (
+          isBlockedAutoFillOrigin({
+            source: row.source,
+            url,
+            originalLink: row.sourceUrl,
+            poolOriginSource: poolRowOriginSource(row.source, row.sourceUrl),
+          }).blocked
+        ) {
+          continue
+        }
         await sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS))
         const dim = await probeImageDimensions(url).catch(() => null)
         const sized = await opts.probe(url)
@@ -160,6 +175,8 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
     // REGRESSION-FREEZE[no-ai-photo-1127]: PHOTO-RULES 22:44 — AI·Gemini 생성은 사진 출처에서 제외. 자동 채움은 generate 를 넘기지 않는다(실패해도 다시 부를 일이 없음) — manifest
     commit: async (c, ctx) => {
       const maxBytes = ctx.kind === 'cover' ? AUTOFILL_COVER_MAX_BYTES : AUTOFILL_DAY_MAX_BYTES
+      // REGRESSION-FREEZE[r03-25-26-source-1128]: 저장 직전 방어 — Unsplash·Wikimedia·CC BY 새 후보는 거부. 기존 칸 UPDATE/DELETE 없음 — manifest
+      if (isBlockedAutoFillOrigin(c).blocked) return { ok: false, reason: 'blocked_auto_source' }
       if (c.source === 'AI 생성') {
         if (!c.generatedBuffer) return { ok: false, reason: 'generate_no_buffer' }
         const saved = await savePhotoToPool(opts.prisma, c.generatedBuffer, opts.destination || ctx.label, ctx.label, 'AI 생성', {

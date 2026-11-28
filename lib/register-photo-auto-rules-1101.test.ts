@@ -48,21 +48,21 @@ const env = { UNSPLASH_ACCESS_KEY: 'test-key-not-real' }
 const okJson = (body: unknown, status = 200) =>
   ({ ok: status >= 200 && status < 300, status, json: async () => body }) as unknown as Response
 
-describe('사진 출처 순서 (Pexels → Unsplash)', () => {
+describe('사진 출처 순서 (Pexels, Unsplash 제외 R03-26)', () => {
   it('Pexels 가 먼저, Pexels 통과면 Unsplash 는 부르지 않는다', async () => {
-    expect([...PHOTO_CHAIN_STOCK_ORDER].slice(0, 2)).toEqual(['pexels', 'unsplash'])
+    expect([...PHOTO_CHAIN_STOCK_ORDER]).toEqual(['pexels', 'cc0'])
     const searchUnsplash = vi.fn(async () => [us('x')])
     const r = await findStockPhotoByChain('Wat Pho', { accept: () => true, deps: { searchPexels: async () => [px(1)], searchUnsplash } })
     expect(r.photo?.source).toBe('Pexels')
     expect(searchUnsplash).not.toHaveBeenCalled()
   })
-  it('Unsplash 사진을 쓰면 download_location 을 부르고, 못 부르면 그 사진을 쓰지 않는다', async () => {
+  it('Pexels 가 비어도 Unsplash 를 호출·채택하지 않는다(R03-26)', async () => {
+    const searchUnsplash = vi.fn(async () => [us('a')])
     const ok = vi.fn(async () => true)
-    const r1 = await findStockPhotoByChain('Wat Pho', { accept: () => true, deps: { searchPexels: async () => [], searchUnsplash: async () => [us('a')], triggerDownload: ok } })
-    expect(r1.photo?.source).toBe('Unsplash')
-    expect(ok).toHaveBeenCalledWith('https://api.unsplash.com/photos/a/download')
-    const r2 = await findStockPhotoByChain('Wat Pho', { accept: () => true, deps: { searchPexels: async () => [], searchUnsplash: async () => [us('b')], triggerDownload: async () => false } })
-    expect(r2.photo).toBeNull()
+    const r1 = await findStockPhotoByChain('Wat Pho', { accept: () => true, deps: { searchPexels: async () => [], searchUnsplash, triggerDownload: ok } })
+    expect(r1.photo).toBeNull()
+    expect(searchUnsplash).not.toHaveBeenCalled()
+    expect(ok).not.toHaveBeenCalled()
   })
 })
 

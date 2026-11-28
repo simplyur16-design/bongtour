@@ -16,7 +16,8 @@ import {
 import { IMAGE_MIN_WIDTH } from '@/lib/product-image-source-policy'
 import { altSaysMonochrome, isMonochromePhotoUrl } from '@/lib/register-photo-monochrome'
 
-export const PHOTO_CHAIN_STOCK_ORDER = ['pexels', 'unsplash', 'cc0'] as const
+// REGRESSION-FREEZE[r03-25-26-source-1128]: 사장님 20:16 R03-26 — v2 체인에서도 Unsplash 를 호출하지 않는다. Wikimedia 없음 — manifest
+export const PHOTO_CHAIN_STOCK_ORDER = ['pexels', 'cc0'] as const
 export type PhotoChainStockTier = (typeof PHOTO_CHAIN_STOCK_ORDER)[number]
 
 /** Unsplash 핫링크 가로폭 — 1200px 이상을 지키면서 상세 400,000B 안쪽을 노린다 */
@@ -145,9 +146,8 @@ export async function collectChainCandidates(
     // 장소 일치 관문(register-photo-match-gate)이 엄격해져 한 번에 받을 수 있는 최대(15장)를 본다
     return (await search(q, PHOTO_CHAIN_PEXELS_PER_QUERY, q)).map(fromPexels)
   }
-  const search =
-    deps.searchUnsplash ?? ((k: string, n: number, used: string) => searchUnsplashHeroCandidates(k, n, used, { env: deps.env, cache: true }))
-  return (await search(q, 10, q)).map(fromUnsplash).filter((x): x is ChainCandidate => x != null)
+  // R03-26: Unsplash 등 그 외 티어는 자동 경로에서 호출하지 않는다
+  return []
 }
 
 export type ChainPick = (cands: ChainCandidate[]) => ChainCandidate | null
@@ -158,8 +158,8 @@ export const pickFirstCandidate: ChainPick = (cands) => cands[0] ?? null
 export type ChainResult = { photo: ChainCandidate | null; tried: string[] }
 
 /**
- * v2 스톡 검색. Pexels 다음 Unsplash 무료. 한 출처에서 통과하면 다음 출처는 보지 않는다.
- * 풀 재사용·Wikimedia CC0·생성은 여기 없고, 획득 경로 순서(풀 → Pexels → Unsplash 무료 → CC0 → 생성)는 photo-autofill-acquire 다.
+ * v2 스톡 검색. Pexels 만(다음 단계는 acquire 의 Pixabay·Openverse). 한 출처에서 통과하면 다음 출처는 보지 않는다.
+ * 풀 재사용·생성은 여기 없고, 획득 경로 순서(풀 → Pexels → Pixabay → Openverse)는 photo-autofill-acquire 다. Unsplash·Wikimedia 호출 없음(R03-25·R03-26).
  * 통과 조건: 가로 1200px 이상 + accept(같은 상품 안 중복 아님 등).
  * 아무것도 없으면 photo=null — v2 호출부가 생성(표시 필수) 또는 '사진 필요'로 둔다.
  */

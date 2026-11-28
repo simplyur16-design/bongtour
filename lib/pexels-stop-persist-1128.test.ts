@@ -1,6 +1,6 @@
 /**
  * REGRESSION-FREEZE[pexels-stop-persist-1128]: Pexels 실제 한도(429·남은 한도 0) → stoppedUntil 영구 저장 →
- * 재시작(새 프로세스)에서도 Pexels 를 건너뛰고 Unsplash 로 교체 완료 → 만료 뒤 Pexels 복귀. 가짜 시계(Date)만 쓴다.
+ * 재시작(새 프로세스)에서도 Pexels 를 건너뛰고 Pixabay 로 교체 완료 → 만료 뒤 Pexels 복귀. 가짜 시계(Date)만 쓴다.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -78,7 +78,7 @@ function liveLikeDeps() {
     pause: async () => {},
     search: async (tier) => {
       order.push(tier)
-      return tier === 'unsplash' || tier === 'pexels' ? [cand(`${tier}-${++k}`, tier === 'pexels' ? 'Pexels' : 'Unsplash')] : []
+      return tier === 'pixabay' || tier === 'pexels' ? [cand(`${tier}-${++k}`, tier === 'pexels' ? 'Pexels' : 'Pixabay')] : []
     },
     searchCc0: async () => (order.push('cc0'), []),
     commit: async (c) => ({ ok: true, url: c.url, bytes: 150_000, width: c.width, source: c.source, photographer: String(c.photographer), originalLink: String(c.originalLink), externalId: c.id }),
@@ -125,7 +125,7 @@ describe('pexels-stop-persist-1128: 저장·복원', () => {
     expect(await store.load()).toBe(T0 + 5 * HOUR)
   })
 
-  it('새 프로세스: 429 로 저장 → 재시작 → 저장값을 복원해 Pexels 를 부르지 않고 Unsplash 로 채택한다', async () => {
+  it('새 프로세스: 429 로 저장 → 재시작 → 저장값을 복원해 Pexels 를 부르지 않고 Pixabay 로 채택한다(R03-26)', async () => {
     const fetch1 = vi.fn(async () => resp(429)) as unknown as typeof fetch
     await pexelsSearch({ query: 'blue mosque', per_page: 15 }, { apiKey: 'k', fetchImpl: fetch1, now: () => Date.now() })
     await vi.waitFor(() => expect(rows.get(PEXELS_STOP_STATE_KEY)).toBeDefined())
@@ -145,9 +145,10 @@ describe('pexels-stop-persist-1128: 저장·복원', () => {
     const { d, order } = liveLikeDeps()
     const r = await acquireVerifiedPhoto(input(), d)
     expect(r.ok).toBe(true)
-    if (r.ok) expect(r.photo.source).toBe('Unsplash')
+    if (r.ok) expect(r.photo.source).toBe('Pixabay')
     expect(order).not.toContain('pexels')
-    expect(order[0]).toBe('unsplash')
+    expect(order).not.toContain('unsplash')
+    expect(order[0]).toBe('pixabay')
   })
 
   it('만료 뒤 Pexels 복귀: 저장된 시각이 지나면 다시 Pexels 부터 부른다', async () => {
@@ -187,7 +188,7 @@ describe('pexels-stop-persist-1128: 자가힐이 멈추지 않는다', () => {
     })),
   )
 
-  it('Pexels 저장된 멈춤(재시작 뒤) 상태에서 틀린 칸 3개가 같은 실행에서 Unsplash 로 모두 교체되고 비운 칸은 0', async () => {
+  it('Pexels 저장된 멈춤(재시작 뒤) 상태에서 틀린 칸 3개가 같은 실행에서 Pixabay 로 모두 교체되고 비운 칸은 0(R03-26)', async () => {
     rows.set(PEXELS_STOP_STATE_KEY, { supplierKey: PEXELS_STOP_STATE_KEY, lastStartedAt: new Date(T0), lastFinishedAt: new Date(T0 + HOUR) })
     vi.setSystemTime(T0 + 5 * 60 * 1000)
     restartProcess()
@@ -212,8 +213,28 @@ describe('pexels-stop-persist-1128: 자가힐이 멈추지 않는다', () => {
       deps,
     )
     expect(order).not.toContain('pexels')
+    expect(order).not.toContain('unsplash')
     expect(res.replaced).toHaveLength(3)
     const finalRows = JSON.parse(res.schedule!) as Array<{ imageUrl: string; imageSource: { source: string } }>
-    expect(finalRows.every((r) => r.imageUrl.trim() !== '' && r.imageSource.source === 'Unsplash')).toBe(true)
+    expect(finalRows.every((r) => r.imageUrl.trim() !== '' && r.imageSource.source === 'Pixabay')).toBe(true)
+  })
+
+  it('저장된 stoppedUntil 이 2026-12-21(사장님 20:29 해제 전제)이면 Pexels 네트워크 호출 0이고 Pixabay 로 이어진다', async () => {
+    const until = new Date('2026-12-21T00:00:00+09:00')
+    rows.set(PEXELS_STOP_STATE_KEY, { supplierKey: PEXELS_STOP_STATE_KEY, lastStartedAt: new Date(T0), lastFinishedAt: until })
+    vi.setSystemTime(new Date('2026-11-28T20:30:00+09:00'))
+    restartProcess()
+    await hydrateSharedPexelsStop()
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ photos: [] }), { status: 200 })) as unknown as typeof fetch
+    const { pexelsSearch } = await import('@/lib/pexels-service')
+    expect(await pexelsSearch({ query: 'blue mosque', per_page: 15 }, { apiKey: 'k', fetchImpl, now: () => Date.now() })).toEqual({ error: 'pexels_stopped' })
+    expect(fetchImpl).not.toHaveBeenCalled()
+    const { d, order } = liveLikeDeps()
+    const r = await acquireVerifiedPhoto(input(), d)
+    expect(r.ok).toBe(true)
+    if (r.ok) expect(r.photo.source).toBe('Pixabay')
+    expect(order).not.toContain('pexels')
+    expect(order).not.toContain('unsplash')
+    expect(order[0]).toBe('pixabay')
   })
 })
