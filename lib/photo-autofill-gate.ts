@@ -360,6 +360,10 @@ export function evaluateAutofillCandidate(input: AutofillGateInput): AutofillGat
   // REGRESSION-FREEZE[photo-monochrome-text-1122]: 주소 slug·문구·풀 파일 이름에 흑백 표시가 있으면 내려받기 전에 탈락(채도 검사는 그대로) — manifest
   if (candidateSaysMonochrome(c)) reasons.add('monochrome_text')
 
+  // REGRESSION-FREEZE[photo-wrong-path-1128]: 같은 파일을 다른 상품에 재사용 금지 — manifest
+  const keys = photoIdentityKeys({ url: c.url, externalId: c.id, originalLink: c.originalLink })
+  if (input.usage.conflict(keys, input.productId)) reasons.add('public_duplicate')
+
   return { ok: reasons.size === 0, reasons: [...reasons], matched }
 }
 

@@ -1200,6 +1200,11 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /동\s*루이스\s*(?:1세\s*)?다리|Dom\s*Lu[ií]s\s*(?:I\s*)?Bridge|Ponte\s*(?:de\s*)?Dom\s*Lu[ií]s/i, en: "Dom Luis I Bridge" },
   // REGRESSION-FREEZE[place-dict-1128]: 포트스테판 사막 = 스톡턴 비치 모래언덕(Worimi Conservation Lands, test10 pkg-vg-0056 3일차) — manifest
   { re: /포트\s*스테판\s*(?:사막|모래\s*언덕|샌드\s*듄)|Stockton\s*(?:Beach\s*)?Sand\s*Dunes/i, en: "Stockton Bight Sand Dunes" },
+  // REGRESSION-FREEZE[photo-wrong-path-1128]: 사하라 사막·히낙다난 동굴·라우 파 삿(10:30 원문 미추출) — manifest
+  { re: /사하라\s*사막|Sahara\s*Desert/i, en: "Sahara Desert" },
+  { re: /히낙다난\s*(?:동굴)?|Hinagdanan(?:\s*Cave)?/i, en: "Hinagdanan Cave" },
+  { re: /라우\s*파\s*삿|Lau\s*Pa\s*Sat/i, en: "Lau Pa Sat" },
+  { re: /페트르진|페트린|Pet[rř][ií]n(?:\s*Lookout(?:\s*Tower)?)?/i, en: "Petrin Lookout Tower" },
   { re: /상\s*벤투|Sao\s*Bento/i, en: "Sao Bento Station Porto" },
   { re: /몰리세이루|Moliceiro/i, en: "Moliceiro boats Aveiro" },
   { re: /오비두스|Obidos/i, en: "Obidos medieval town Portugal" },

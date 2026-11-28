@@ -9,7 +9,8 @@ import type { AcquireInput, AcquireResult } from '@/lib/photo-autofill-acquire'
 import { photoIdentityKeys, type PublicPhotoUsage } from '@/lib/photo-autofill-gate'
 import type { RegistrationPhotoBlock, RegistrationPhotoReason } from '@/lib/register-photo-registration-gate'
 import { scheduleOtherDaysText, scheduleRowSupplierText } from '@/lib/photo-autofill-sight'
-import { applyDayPhotoReplacement, coverReplacementData, replaceNote, type ReplacementPhoto } from '@/lib/photo-slot-apply'
+import { applyDayPhotoClear, applyDayPhotoReplacement, coverReplacementData, replaceNote, type ReplacementPhoto } from '@/lib/photo-slot-apply'
+import { planDayPhotoSave } from '@/lib/photo-day-save-gate-1128'
 import type { PhotoException } from '@/lib/photo-exception-list'
 
 export const HEAL_MAX_SLOTS_PER_PRODUCT = 8
@@ -25,6 +26,7 @@ const HEALABLE: ReadonlySet<RegistrationPhotoReason> = new Set([
   'photo_ai_generated',
   'photo_monochrome_text',
   'photo_in_product_duplicate',
+  'photo_travel_day_empty',
 ])
 
 export type HealDeps = {
@@ -101,7 +103,7 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
   const byKey = new Map<string, { block: RegistrationPhotoBlock; reasons: string[] }>()
   for (const b of input.blocks) {
     if (!HEALABLE.has(b.reason)) continue
-    if (b.kind === 'day' && b.reason === 'photo_public_duplicate') continue
+    // REGRESSION-FREEZE[photo-wrong-path-1128]: 다른 상품과 같은 파일도 교체·비움 대상 — manifest
     const k = slotKey(b)
     const cur = byKey.get(k)
     if (cur) cur.reasons.push(b.reason)
@@ -181,6 +183,44 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
       continue
     }
     if (row.imageManualSelected === true) continue
+    const rowsNow = parseRows(result.schedule)
+    const maxDay = Math.max(1, ...rowsNow.map((r, i) => (Math.floor(Number(r.day)) > 0 ? Math.floor(Number(r.day)) : i + 1)))
+    const plan = planDayPhotoSave(
+      {
+        day,
+        title: typeof row.title === 'string' ? row.title : null,
+        routeText: typeof row.routeText === 'string' ? row.routeText : null,
+        description: typeof row.description === 'string' ? row.description : null,
+        hotelText: typeof row.hotelText === 'string' ? row.hotelText : null,
+        imageKeyword: typeof row.imageKeyword === 'string' ? row.imageKeyword : null,
+        imageKeyword2: typeof row.imageKeyword2 === 'string' ? row.imageKeyword2 : null,
+        supplierText: scheduleRowSupplierText(row as never),
+        otherDaysText: scheduleOtherDaysText(rowsNow as never, day),
+      },
+      { destinationText: dest, maxDay, allRows: rowsNow as never },
+    )
+    if (plan.action === 'empty' || reasons.includes('photo_travel_day_empty')) {
+      const applied = applyDayPhotoClear(result.schedule, day)
+      if ('error' in applied) {
+        await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: `apply_${applied.error}`, detail: reasonText, origin: 'heal', at })
+        continue
+      }
+      const wrote = await deps.writeSchedule(input.productId, result.schedule, applied.schedule)
+      if (!wrote) {
+        await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: 'write_conflict', detail: reasonText, origin: 'heal', at })
+        continue
+      }
+      result.schedule = applied.schedule
+      await deps.recordReplace({
+        productId: input.productId,
+        day,
+        assetPath: '',
+        sourceType: 'heal-clear',
+        notes: replaceNote({ reason: reasonText, slot: 'day', origin: 'heal', prev: applied.previous }),
+      })
+      result.replaced.push({ kind: 'day', day, reason: reasonText })
+      continue
+    }
     const exclude = keysOfSchedule(result.schedule, day)
     const curSrc = row.imageSource && typeof row.imageSource === 'object' ? (row.imageSource as Record<string, unknown>) : {}
     for (const k of photoIdentityKeys({ url: String(row.imageUrl ?? ''), externalId: String(curSrc.externalId ?? ''), originalLink: String(curSrc.originalLink ?? '') })) exclude.add(k)

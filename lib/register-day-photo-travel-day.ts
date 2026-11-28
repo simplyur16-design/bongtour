@@ -10,8 +10,6 @@
 import { destinationEnKeysInKoreanText, koreanCityNameFromEnglish, mapDestination } from '@/lib/pexels-keyword'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
-import { collectRegisterScheduleCitySoftAltKeywords } from '@/lib/register-schedule-city-soft-alts'
-import { sightProfile, sightsOverlap } from '@/lib/photo-autofill-sight'
 
 export type TravelDayRow = {
   day: number
@@ -142,7 +140,10 @@ export function travelDayPhotoKeyword(
 
 /** 사진 채움 대상인 출국·귀국·이동일(키워드가 있어야 검색) */
 export function registerTravelDayPhotoEligible(row: TravelDayRow, maxDay: number): boolean {
-  return registerTravelDayKind(row, maxDay) !== null && String(row.imageKeyword ?? '').trim() !== ''
+  // REGRESSION-FREEZE[photo-wrong-path-1128]: 출국·귀국·공항만 있는 날은 채우지 않는다 — manifest
+  void row
+  void maxDay
+  return false
 }
 
 /**
@@ -194,45 +195,16 @@ export function scheduleApplyingTravelDayKeywords(
  * REGRESSION-FREEZE[travel-day-city-representative-1122]: 출국·귀국일 도시 키워드 → 그 도시 대표 명소로 검색 — manifest
  */
 export function travelDayRepresentativeSights(
-  row: TravelDayRow,
-  rows: ReadonlyArray<TravelDayRow>,
-  destination: string | null | undefined,
-  maxDay: number,
+  _row: TravelDayRow,
+  _rows: ReadonlyArray<TravelDayRow>,
+  _destination: string | null | undefined,
+  _maxDay: number,
 ): { kind: TravelDayKind; city: string; sights: string[] } | null {
-  const kw = String(row.imageKeyword ?? '').trim()
-  if (!kw || sightProfile(kw).kind !== 'city') return null
-  const day = Number(row.day)
-  const kind = registerTravelDayKind(row, maxDay) ?? (day === 1 ? 'departure' : null)
-  if (!kind) return null
-  const planned =
-    kind === 'departure'
-      ? firstDestinationCityEn(rows, destination)
-      : kind === 'return'
-        ? lastStayCityEn(rows, day, destination)
-        : ''
-  const cities = [...new Set([planned, kw].map((c) => String(c ?? '').trim()).filter(Boolean))]
-  const otherDayProfiles = sortedDays(rows)
-    .filter((r) => Number(r.day) !== day)
-    .map((r) => sightProfile(String(r.imageKeyword ?? '')))
-    .filter((p) => p.kind === 'sight' || p.kind === 'generic')
-  for (const city of cities) {
-    const allAlts = collectRegisterScheduleCitySoftAltKeywords(city).filter((a) => {
-      const k = sightProfile(a).kind
-      return k === 'sight' || k === 'generic'
-    })
-    // REGRESSION-FREEZE[travel-day-rep-city-named-1122]: 여러 도시가 섞인 묶음(하노이·시엠립)은 이 도시 이름이 든 명소만 — 하노이 귀국일에 앙코르와트 금지 — manifest
-    const cityKey = city.toLowerCase().replace(/[^a-z0-9가-힣]+/g, ' ').trim()
-    const named = cityKey ? allAlts.filter((a) => ` ${a.toLowerCase().replace(/[^a-z0-9가-힣]+/g, ' ')} `.includes(` ${cityKey} `)) : []
-    const alts = named.length > 0 ? named : allAlts
-    if (alts.length === 0) continue
-    const fresh = alts.filter((a) => !otherDayProfiles.some((p) => sightsOverlap(sightProfile(a), p)))
-    const used = alts.filter((a) => !fresh.includes(a))
-    return { kind, city, sights: [...fresh, ...used].slice(0, 3) }
-  }
+  // REGRESSION-FREEZE[travel-day-rep-city-named-1122]: 출국·귀국일 대표 묶음은 그 도시 이름이 든 명소만(여러 도시 혼입 금지). 봉실장 11:18 이후 이 날은 빈칸이라 함수는 null을 돌려준다 — manifest
+  // REGRESSION-FREEZE[photo-wrong-path-1128]: 출국·귀국·공항만 있는 날은 빈칸(봉실장 11:18, 11/21 도시 대표 채움 대체) — manifest
   return null
 }
 
-/** 공개 상품 빈 일차 채움 순서: 실패하는 상품이 앞을 막지 않게 시각마다 시작 위치를 돌린다 */
 export function rotatePublicMissingDayPicks<T>(rows: T[], limit: number, now: Date): T[] {
   if (rows.length <= limit) return rows
   const hourIndex = Math.floor(now.getTime() / 3_600_000)

@@ -23,8 +23,10 @@ import {
   sightCoreQuery,
   sightProfile,
   sightSearchQueries,
+  sightsOverlap,
   type DaySightInput,
 } from '@/lib/photo-autofill-sight'
+import { planDayPhotoSave } from '@/lib/photo-day-save-gate-1128'
 import type { PhotoException, PhotoExceptionOrigin } from '@/lib/photo-exception-list'
 import { orderThumbnailCandidates } from '@/lib/thumbnail-pick'
 
@@ -78,6 +80,8 @@ export type AcquireInput = {
   cityTerms?: readonly string[]
   destinationText: string
   usage: PublicPhotoUsage
+  /** 일정 마지막 일차(출국·귀국 판정). 없으면 day */
+  maxDay?: number
   /** 이미 쓰고 있거나(같은 상품) 방금 막힌 사진의 식별 키 */
   exclude?: ReadonlySet<string>
   maxCandidates?: number
@@ -121,7 +125,20 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
   let sights: string[] = [...(input.sights ?? [])]
   let cityTerms: string[] = [...(input.cityTerms ?? [])]
   const derived = input.dayFacts ? deriveDaySights(input.dayFacts, input.destinationText) : null
-  if (sights.length === 0 && derived) {
+  if (input.kind === 'day' && input.dayFacts) {
+    const plan = planDayPhotoSave(
+      { ...input.dayFacts, day: input.day },
+      { destinationText: input.destinationText, maxDay: input.maxDay ?? (Number(input.day) || 1) },
+    )
+    if (plan.action === 'empty') return fail(plan.reason, 'travel/airport-only day must stay empty', null, null, true)
+    if (plan.action === 'search') {
+      if (sights.length === 0) sights = plan.sights
+      else {
+        const kept = sights.filter((s) => plan.sights.some((a) => sightsOverlap(sightProfile(s), sightProfile(a))))
+        sights = kept.length > 0 ? kept : plan.sights
+      }
+    } else if (sights.length === 0) return fail(`no_sight:${plan.reason}`, 'no visited sight in itinerary text', null, null, true)
+  } else if (sights.length === 0 && derived) {
     sights = derived.sights
     if (sights.length === 0) return fail(`no_sight:${derived.reason}`, 'no visited sight in itinerary text', null, null, true)
   }

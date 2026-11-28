@@ -31117,26 +31117,23 @@
     },
     {
       "id": "travel-day-city-representative-1122",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "사장님 11/22 11:09(봉실장 전달) 25칸 자동 채움 3차 원인: 출국·귀국일 키워드가 도시 이름뿐(Budapest·Madrid·Barcelona·Sydney)이면 자동 채움 검색기가 도시만 키워드를 명소로 보지 않아 기록 없이 건너뜀. 출국=첫 목적지·귀국=마지막 체류지의 대표 명소(soft-alt 사전)로 검색(공항·기내 금지, 같은 상품 다른 날 명소는 뒤로)",
+      "tier": ["prebuild", "ci"],
+      "summary": "봉실장 11:18: 출국·귀국·공항만 있는 날은 빈칸. 11/21·11/22 도시 대표 채움 규칙을 대체. travelDayRepresentativeSights 는 항상 null, process-images 는 planDayPhotoSave 게이트를 쓴다.",
       "checks": [
         {
           "file": "lib/register-day-photo-travel-day.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[travel-day-city-representative-1122]",
+            "REGRESSION-FREEZE[photo-wrong-path-1128]",
             "export function travelDayRepresentativeSights",
-            "collectRegisterScheduleCitySoftAltKeywords(city)"
+            "return null"
           ]
         },
         {
           "file": "app/api/travel/process-images/route.ts",
           "mustInclude": [
-            "REGRESSION-FREEZE[travel-day-city-representative-1122]",
-            "travelDayRepresentativeSights(sched, workingSchedule, destination, scheduleMaxDay)",
-            "...(travelRep ? { sights: travelRep.sights } : {}),"
+            "REGRESSION-FREEZE[photo-wrong-path-1128]",
+            "planDayPhotoSave"
           ]
         },
         {
@@ -33034,11 +33031,8 @@
     },
     {
       "id": "photo-day-keyword-fill",
-      "tier": [
-        "prebuild",
-        "ci"
-      ],
-      "summary": "자동 채움은 대표만 채우지 않는다. 그날 imageKeyword가 명소면 일차 사진을 검색하고, 다른 도시 키워드만 버린다.",
+      "tier": ["prebuild", "ci"],
+      "summary": "자동 채움은 대표만 채우지 않는다. 그날 imageKeyword가 명소면 일차 사진을 검색하고, 다른 도시 키워드만 버린다. 봉실장 11:18: 저장된 키워드도 planDayPhotoSave 게이트를 통과해야 한다.",
       "checks": [
         {
           "file": "lib/photo-autofill-sight.ts",
@@ -33051,7 +33045,51 @@
           "file": "app/api/travel/process-images/route.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[photo-day-keyword-fill]",
-            "dayKeywordIsSight"
+            "REGRESSION-FREEZE[photo-wrong-path-1128]",
+            "planDayPhotoSave"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "photo-wrong-path-1128",
+      "tier": ["prebuild", "ci"],
+      "summary": "봉실장 11:18: 저장된 키워드·풀 재사용·도시 키워드 경로도 PR185와 같은 게이트. 원문 명소 1순위, 명소 없을 때만 도시 대표, 출국·귀국·공항만은 빈칸, 같은 파일 다른 상품 재사용 금지, 다른 일차 키워드 금지. 영문 명소 구간·사하라 사막 사전. 틀린 칸은 wrongPhotoReplace가 교체하거나 비움.",
+      "checks": [
+        {
+          "file": "lib/photo-day-save-gate-1128.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-wrong-path-1128]",
+            "planDayPhotoSave",
+            "travel_airport_only"
+          ]
+        },
+        {
+          "file": "lib/photo-wrong-path-1128.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-wrong-path-1128]",
+            "Hinagdanan Cave",
+            "Lau Pa Sat"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "Sahara Desert",
+            "Hinagdanan Cave",
+            "Lau Pa Sat"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-day-summary-finalize.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-wrong-path-1128]"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-gate.ts",
+          "mustInclude": [
+            "같은 파일을 다른 상품에 재사용 금지"
           ]
         }
       ]

@@ -236,12 +236,12 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     expect(r.ok).toBe(false)
   })
 
-  it('일차 사진은 다른 상품과 같아도 채택한다', async () => {
+  it('일차 사진은 다른 상품이 쓰는 파일을 건너뛰고 다음 후보를 채택한다', async () => {
     const usage = buildPublicPhotoUsage([{ productId: 'p-public', bgImageUrl: null, schedule: JSON.stringify([{ day: 1, imageUrl: cand('1').url, imageSource: { externalId: '1' } }]) }])
     const { deps } = makeDeps({ results: (tier) => (tier === 'pexels' ? [cand('1'), cand('2')] : []) })
     const r = await acquireVerifiedPhoto(base({ usage }), deps)
     expect(r.ok).toBe(true)
-    if (r.ok) expect(r.photo.externalId).toBe('1')
+    if (r.ok) expect(r.photo.externalId).toBe('2')
   })
 
   it('대표는 다른 상품 대표와 같으면 건너뛰고 다음 후보를 채택', async () => {

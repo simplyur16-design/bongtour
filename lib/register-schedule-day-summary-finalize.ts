@@ -233,7 +233,8 @@ function dayRouteParts(routeText: string): DayRoute {
       continue
     }
     if (isRegisterScheduleRoutePlaceNoise(seg)) continue
-    if (!/[가-힣]/u.test(seg)) continue
+    // REGRESSION-FREEZE[photo-wrong-path-1128]: 영문 명소 구간(Petřín Lookout Tower 등)도 장소로 남긴다 — manifest
+    if (!/[가-힣]/u.test(seg) && !/[A-Za-zÀ-ɏ]/u.test(seg)) continue
     if (!places.includes(seg)) places.push(seg)
   }
   return { places, moves }

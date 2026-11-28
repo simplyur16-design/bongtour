@@ -168,7 +168,7 @@ describe('photo-replace-wrong-1128: 이미 든 사진 판정', () => {
       { kind: 'day', day: 9, reason: 'photo_in_product_duplicate', detail: '' },
       { kind: 'day', day: 10, reason: 'photo_ai_generated', detail: 'Gemini' },
     ]
-    expect(publicWrongPhotoBlocks(blocks).map((b) => b.day)).toEqual([6, 7, 8, 9, 10])
+    expect(publicWrongPhotoBlocks(blocks).map((b) => b.day)).toEqual([5, 6, 7, 8, 9, 10])
   })
 })
 

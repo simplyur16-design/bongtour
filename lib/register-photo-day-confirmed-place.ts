@@ -17,7 +17,7 @@ import { registerScheduleRouteHasNamedSight } from '@/lib/register-schedule-city
 const FRAME_RE =
   /짐바브웨|잠비아|보츠와나|아디스아바바|아디스|상파울루|인천|부산|계림|치앙마이|파리|프랑스|스위스|이탈리아|호텔|공항|기내|조식|중식|석식|출발|도착|투숙|휴식|자유일정|자유여행|픽업|미팅|국경|셔틀/g
 
-const SIGHT_RE = /관광|유람|사파리|폭포|폴스|공원|궁전|시장|크루즈|보트|뗏목|케이블|도보/
+const SIGHT_RE = /관광|유람|사파리|폭포|폴스|공원|궁전|시장|크루즈|보트|뗏목|케이블|도보|사막|동굴|온천|성당|전망대/
 const HOME_PLACE_RE = /^(인천|김포|김해|부산|서울|한국)$/
 const CRUISE_RE = /크루즈|유람선|페리|\bcruise\b|\bferry\b/i
 const TRAIN_RE = /기차|열차|KTX|ITX|\btrain\b|\brailway\b/i

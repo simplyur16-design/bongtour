@@ -28,6 +28,7 @@ import {
   sightsOverlap,
 } from '@/lib/photo-autofill-sight'
 import { textHasMonochromeMarker } from '@/lib/photo-monochrome-text-1122'
+import { planDayPhotoSave } from '@/lib/photo-day-save-gate-1128'
 import { photoCandidateText } from '@/lib/register-photo-subject-filter'
 
 export type RegistrationPhotoReason =
@@ -41,6 +42,7 @@ export type RegistrationPhotoReason =
   | 'photo_ai_generated'
   | 'photo_monochrome_text'
   | 'photo_in_product_duplicate'
+  | 'photo_travel_day_empty'
 
 /** 이미 들어 있는 사진 중 실사진으로 바꿀 칸 사유(지도·간판, AI 생성, 흑백 표시, 상품 안 중복, 그날 명소와 다른 사진) */
 export const WRONG_PHOTO_REPLACE_REASONS: ReadonlySet<RegistrationPhotoReason> = new Set([
@@ -50,6 +52,8 @@ export const WRONG_PHOTO_REPLACE_REASONS: ReadonlySet<RegistrationPhotoReason> =
   'photo_ai_generated',
   'photo_monochrome_text',
   'photo_in_product_duplicate',
+  'photo_travel_day_empty',
+  'photo_public_duplicate',
 ])
 
 /** '저장된 명소가 그날 원문 명소에 없음' — 근거가 확실한 불일치(공개 상품 교체는 이것만) */
@@ -126,6 +130,10 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
       push({ kind: 'cover', day: null, reason: 'photo_ai_generated', detail: String(cover.source ?? 'generated').slice(0, 60) })
     }
     if (!locked) {
+      const coverKeys = photoIdentityKeys({ url: cover.url, externalId: cover.externalId, originalLink: cover.originalLink })
+      if (input.usage.conflict(coverKeys, input.productId)) {
+        push({ kind: 'cover', day: null, reason: 'photo_public_duplicate', detail: 'same file used on another product' })
+      }
       const text = textOf(cover.originalLink)
       subject('cover', null, text)
       if (text.length >= 3 && !cover.sightMatch) {
@@ -160,6 +168,9 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
       for (const k of keys) seenKeys.add(k)
       if (locked) continue
       if (dup) push({ kind: 'day', day, reason: 'photo_in_product_duplicate', detail: 'same photo as cover or an earlier day' })
+      if (input.usage.conflict(keys, input.productId)) {
+        push({ kind: 'day', day, reason: 'photo_public_duplicate', detail: 'same file used on another product' })
+      }
       if (photoSourceIsAiGenerated({ source: src.source ?? raw.imageSourceType, url, isGenerated: raw.imageIsGenerated })) {
         push({ kind: 'day', day, reason: 'photo_ai_generated', detail: String(src.source ?? 'generated').slice(0, 60) })
       }
@@ -181,6 +192,25 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
         },
         input.destinationTerms.join(' '),
       )
+      const maxDay = Math.max(1, ...rows.map((r, i) => (Math.floor(Number(r.day)) > 0 ? Math.floor(Number(r.day)) : i + 1)))
+      const plan = planDayPhotoSave(
+        {
+          day,
+          title: typeof raw.title === 'string' ? raw.title : null,
+          routeText: typeof raw.routeText === 'string' ? raw.routeText : null,
+          description: typeof raw.description === 'string' ? raw.description : null,
+          hotelText: typeof raw.hotelText === 'string' ? raw.hotelText : null,
+          imageKeyword: typeof raw.imageKeyword === 'string' ? raw.imageKeyword : null,
+          imageKeyword2: typeof raw.imageKeyword2 === 'string' ? raw.imageKeyword2 : null,
+          supplierText: scheduleRowSupplierText(raw as never),
+          otherDaysText: scheduleOtherDaysText(rows as never, day),
+        },
+        { destinationText: input.destinationTerms.join(' '), maxDay, allRows: rows as never },
+      )
+      if (plan.action === 'empty') {
+        push({ kind: 'day', day, reason: 'photo_travel_day_empty', detail: plan.reason })
+        continue
+      }
       if (text.length >= 3 && photoSubjectIsTextOrMap(text, d.sights)) {
         push({ kind: 'day', day, reason: 'photo_text_map', detail: text.slice(0, 80) })
       }
@@ -218,7 +248,9 @@ export function registrationBlockCodes(
 ): Array<'photo_sight_mismatch' | 'photo_public_duplicate' | 'photo_irrelevant_subject' | 'photo_wrong_kind'> {
   const out = new Set<'photo_sight_mismatch' | 'photo_public_duplicate' | 'photo_irrelevant_subject' | 'photo_wrong_kind'>()
   for (const b of blocks) {
-    if (b.reason === 'photo_sight_mismatch' || b.reason === 'photo_public_duplicate' || b.reason === 'photo_irrelevant_subject') out.add(b.reason)
+    if (b.reason === 'photo_sight_mismatch' || b.reason === 'photo_public_duplicate' || b.reason === 'photo_irrelevant_subject' || b.reason === 'photo_travel_day_empty') {
+      out.add(b.reason === 'photo_travel_day_empty' ? 'photo_sight_mismatch' : b.reason)
+    }
     if (b.reason === 'photo_text_map' || b.reason === 'photo_ai_generated' || b.reason === 'photo_monochrome_text' || b.reason === 'photo_in_product_duplicate') out.add('photo_wrong_kind')
   }
   return [...out]
