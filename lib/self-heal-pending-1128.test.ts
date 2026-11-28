@@ -139,6 +139,9 @@ const okPhoto = (id: string): AcquireResult => ({
   photo: { ok: true, url: `https://cdn.example.com/new-${id}.webp`, bytes: 100_000, width: 1800, source: 'Unsplash', photographer: 'B', originalLink: `https://unsplash.com/photos/${id}`, externalId: id, sight: 'x', matched: 'x', query: 'x' },
 })
 
+/** CI 샤드(coverage 계측) 안에서도 35상품 판정·교체를 끝낼 여유(기본 5초는 느린 러너에서 부족) */
+const HEAVY_TEST_TIMEOUT_MS = 120_000
+
 describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·가드 재개·비우기 0', () => {
   const fakePrisma = (products: unknown[]) => ({ product: { findMany: async () => products } }) as unknown as PrismaClient
 
@@ -197,7 +200,7 @@ describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·�
       const rows = JSON.parse(p.schedule!) as Array<{ imageUrl: string; imageSource: { source: string } }>
       expect(rows.every((x) => x.imageUrl.includes('/new-') && x.imageSource.source !== 'Gemini')).toBe(true)
     }
-  })
+  }, HEAVY_TEST_TIMEOUT_MS)
 
   it('가드(Unsplash 한도)에 막히면 기존 사진을 유지한 채 같은 실행에서 기다린 뒤 이어서 모두 교체한다', async () => {
     const store = fakePendingStore()
@@ -228,7 +231,7 @@ describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·�
       replacedSlots += rows.filter((x) => x.imageUrl.includes('/new-')).length
     }
     expect(replacedSlots).toBe(103)
-  })
+  }, HEAVY_TEST_TIMEOUT_MS)
 
   it('기다림이 시간 한도를 넘으면 못 한 상품 번호를 돌려주고 기존 사진은 그대로다(비우기 0)', async () => {
     const store = fakePendingStore()
@@ -243,7 +246,7 @@ describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·�
     expect(r.replaced).toBe(0)
     expect(h.writes).toEqual([])
     for (const p of store) expect((JSON.parse(p.schedule!) as Array<{ imageUrl: string }>).every((x) => x.imageUrl.includes('/old-'))).toBe(true)
-  })
+  }, HEAVY_TEST_TIMEOUT_MS)
 
   it('국내여행 등록대기는 건드리지 않고, 틀린 칸이 없는 상품은 대상이 아니다', async () => {
     const store = fakePendingStore()
@@ -257,7 +260,7 @@ describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·�
     expect(seen).not.toContain('pkg-0')
     expect(seen).not.toContain('pkg-1')
     expect(r.targetProducts).toBe(33)
-  })
+  }, HEAVY_TEST_TIMEOUT_MS)
 })
 
 describe('self-heal-no-cap-1128: 등록대기 단계 정적 가드', () => {
