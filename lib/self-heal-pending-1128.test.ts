@@ -3,10 +3,13 @@
  * 가드 막힘은 같은 실행에서 기다렸다 재개 · 비우기 0 · 철자(띄어쓰기·하이픈) 차이 오탐 정규화
  */
 import { readFileSync } from 'node:fs'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/prisma', () => ({ prisma: {} }))
 vi.mock('@/lib/register-pre-photo-pending-queue-query', () => ({ REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE: { registrationStatus: null } }))
+// 캐시 무효화(Next 캐시·DB)는 이 단위 테스트의 대상이 아니다(교체 뒤 부수 효과) — 동적 import 비용도 뺀다
+vi.mock('@/lib/revalidate-product-detail-caches', () => ({ revalidateProductDetailCaches: async () => {} }))
+vi.mock('@/lib/revalidate-product-listing-caches', () => ({ revalidateProductListingCaches: () => {} }))
 vi.mock('@/lib/photo-autofill-public-usage', async (orig) => {
   const m = await orig<typeof import('@/lib/photo-autofill-public-usage')>()
   const { PublicPhotoUsage } = await import('@/lib/photo-autofill-gate')
@@ -127,6 +130,21 @@ function fakePendingStore() {
   return products
 }
 
+/**
+ * 게이트 판정은 사전 정규식 때문에 상품당 ~25ms 의 순수 CPU 다(대기·지터 아님 — 측정함). 같은 일정 글(같은 저장 상태)이면 결과가 같으므로
+ * 테스트 안에서 한 번만 계산한다. 운영 코드 경로(실행 단계의 전 상품 판정)는 매번 실제로 판정한다.
+ */
+const gateMemo = new Map<string, ReturnType<typeof evaluateRegistrationPhotos>>()
+function gateOnce(p: { id: string; schedule: string | null; destination: string | null; primaryDestination: string | null }) {
+  const key = `${p.id}\u0000${p.schedule}`
+  let v = gateMemo.get(key)
+  if (!v) {
+    v = evaluateRegistrationPhotos(buildRegistrationPhotoInput(p as never, new PublicPhotoUsage(), {}))
+    gateMemo.set(key, v)
+  }
+  return v
+}
+
 const failQuota = (i: AcquireInput): AcquireResult => ({
   ok: false,
   skipped: false,
@@ -139,10 +157,12 @@ const okPhoto = (id: string): AcquireResult => ({
   photo: { ok: true, url: `https://cdn.example.com/new-${id}.webp`, bytes: 100_000, width: 1800, source: 'Unsplash', photographer: 'B', originalLink: `https://unsplash.com/photos/${id}`, externalId: id, sight: 'x', matched: 'x', query: 'x' },
 })
 
-/** CI 샤드(coverage 계측) 안에서도 35상품 판정·교체를 끝낼 여유(기본 5초는 느린 러너에서 부족) */
-const HEAVY_TEST_TIMEOUT_MS = 120_000
-
 describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·가드 재개·비우기 0', () => {
+  // 사전 정규식 첫 호출 비용(JIT)·35상품 판정을 테스트 본문 밖에서 한 번만 치른다
+  beforeAll(() => {
+    for (const p of fakePendingStore()) gateOnce(p)
+  })
+
   const fakePrisma = (products: unknown[]) => ({ product: { findMany: async () => products } }) as unknown as PrismaClient
 
   /** 실제 healBlockedSlots + 메모리 저장소 + 가짜 획득(가드 상태 주입). 비우기는 allowClear:false 로 막는다. */
@@ -152,7 +172,7 @@ describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·�
     let calls = 0
     const healOne = async (id: string) => {
       const p = store.find((x) => x.id === id)!
-      const evald = evaluateRegistrationPhotos(buildRegistrationPhotoInput(p, new PublicPhotoUsage(), {}))
+      const evald = gateOnce(p)
       const deps: HealDeps = {
         acquire: async (i) => (calls++, acquire(i)),
         writeSchedule: async (pid, _expected, next) => {
@@ -200,7 +220,7 @@ describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·�
       const rows = JSON.parse(p.schedule!) as Array<{ imageUrl: string; imageSource: { source: string } }>
       expect(rows.every((x) => x.imageUrl.includes('/new-') && x.imageSource.source !== 'Gemini')).toBe(true)
     }
-  }, HEAVY_TEST_TIMEOUT_MS)
+  })
 
   it('가드(Unsplash 한도)에 막히면 기존 사진을 유지한 채 같은 실행에서 기다린 뒤 이어서 모두 교체한다', async () => {
     const store = fakePendingStore()
@@ -231,7 +251,7 @@ describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·�
       replacedSlots += rows.filter((x) => x.imageUrl.includes('/new-')).length
     }
     expect(replacedSlots).toBe(103)
-  }, HEAVY_TEST_TIMEOUT_MS)
+  })
 
   it('기다림이 시간 한도를 넘으면 못 한 상품 번호를 돌려주고 기존 사진은 그대로다(비우기 0)', async () => {
     const store = fakePendingStore()
@@ -246,7 +266,7 @@ describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·�
     expect(r.replaced).toBe(0)
     expect(h.writes).toEqual([])
     for (const p of store) expect((JSON.parse(p.schedule!) as Array<{ imageUrl: string }>).every((x) => x.imageUrl.includes('/old-'))).toBe(true)
-  }, HEAVY_TEST_TIMEOUT_MS)
+  })
 
   it('국내여행 등록대기는 건드리지 않고, 틀린 칸이 없는 상품은 대상이 아니다', async () => {
     const store = fakePendingStore()
@@ -260,7 +280,7 @@ describe('self-heal-no-cap-1128: 등록대기 103칸 규모 한 실행 처리·�
     expect(seen).not.toContain('pkg-0')
     expect(seen).not.toContain('pkg-1')
     expect(r.targetProducts).toBe(33)
-  }, HEAVY_TEST_TIMEOUT_MS)
+  })
 })
 
 describe('self-heal-no-cap-1128: 등록대기 단계 정적 가드', () => {
