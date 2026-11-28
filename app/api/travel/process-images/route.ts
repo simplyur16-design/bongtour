@@ -28,7 +28,6 @@ import {
   keptDayImagesWhenConfirmedPlaceSkipped,
   photoContextSearchQuery,
   pickDayStockCandidate,
-  dayPhotoContextFromFacts,
   selectScheduleDayPhoto,
   type DayPhotoPick,
   routeDaySlotHero,
@@ -38,7 +37,8 @@ import { preserveScheduleRouteText } from '@/lib/register-schedule-route-text-pr
 import { parseStoredScheduleRows, preserveStoredScheduleDayEvidence } from '@/lib/schedule-stored-day-evidence-preserve'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
-import { registerTravelDayPhotoEligible, travelDayRepresentativeSights } from '@/lib/register-day-photo-travel-day'
+import { registerTravelDayPhotoEligible } from '@/lib/register-day-photo-travel-day'
+import { planDayPhotoSave } from '@/lib/photo-day-save-gate-1128'
 import { logAutoPhotoAttempt } from '@/lib/auto-photo-attempt-log'
 import {
   countNewlyFilledPhotoSlots,
@@ -132,6 +132,7 @@ type ScheduleEntry = {
   title?: string | null
   description?: string | null
   routeText?: string | null
+  hotelText?: string | null
   supplierOriginal?: { items?: Array<{ name?: string | null; text?: string | null }> } | null
   imageKeyword?: string
   imageKeyword2?: string
@@ -1257,12 +1258,26 @@ export async function POST(req: Request) {
           generateInvoked: false,
           }
         }
-        // REGRESSION-FREEZE[travel-day-city-representative-1122]: 출국·귀국일 도시 키워드는 그 도시 대표 명소로 찾는다(도시만 키워드라 조용히 건너뛰던 칸) — manifest
-        const travelRep = sched ? travelDayRepresentativeSights(sched, workingSchedule, destination, scheduleMaxDay) : null
-        const dayKeywordKind = sightProfile(String(sched?.imageKeyword ?? '')).kind
-        const dayKeywordIsSight = dayKeywordKind === 'sight' || dayKeywordKind === 'generic'
-        // REGRESSION-FREEZE[photo-day-keyword-fill]: 일차 키워드가 명소면 문맥이 없어도 그 키워드로 채운다 — manifest
-        if (!travelRep && dayPhotoContextFromFacts(dayFacts).kind === 'none' && !dayKeywordIsSight) return keep('no_confirmed_sightseeing')
+        // REGRESSION-FREEZE[photo-day-keyword-fill]: 그날 원문으로 확인된 키워드만 쓰고, 다른 날 키워드는 버린다 — manifest
+        // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 다른 일차 키워드는 쓰지 않고 그날 원문 명소만 — manifest
+        // REGRESSION-FREEZE[photo-wrong-path-1128]: 원문 명소 1순위·도시 대표는 머무는 날만·출국/귀국/공항만은 빈칸. 저장된 키워드·travelRep 우회 금지 — manifest
+        const dayFactsForPlan = {
+          day: dayNum,
+          title: sched?.title ?? null,
+          routeText: sched?.routeText ?? null,
+          description: sched?.description ?? null,
+          hotelText: sched?.hotelText ?? null,
+          imageKeyword: sched?.imageKeyword ?? null,
+          imageKeyword2: sched?.imageKeyword2 ?? null,
+          supplierText: scheduleRowSupplierText(sched as never),
+          otherDaysText: scheduleOtherDaysText(workingSchedule as never, dayNum),
+        }
+        const plan = planDayPhotoSave(dayFactsForPlan, {
+          destinationText: [destination, itRow?.city ?? ''].join(' '),
+          maxDay: scheduleMaxDay,
+          allRows: workingSchedule as never,
+        })
+        if (plan.action !== 'search') return keep(plan.action === 'empty' ? plan.reason : plan.reason)
         const exclude = new Set(strictOwnKeys)
         // REGRESSION-FREEZE[autofill-silent-record-1122]: 찾기 중 예외는 상품 전체 500(무기록) 대신 이 칸 예외로 남긴다 — manifest
         const res = await acquireOrRecordError(() => acquireVerifiedPhoto(
@@ -1270,25 +1285,17 @@ export async function POST(req: Request) {
             productId: String(product.id),
             kind: 'day',
             day: dayNum,
-            dayFacts: {
-              title: sched?.title ?? null,
-              routeText: sched?.routeText ?? null,
-              description: sched?.description ?? null,
-              imageKeyword: sched?.imageKeyword ?? null,
-              imageKeyword2: sched?.imageKeyword2 ?? null,
-              // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 그날 원문 조각·다른 일차 글을 넘겨 다른 일차 명소 키워드를 거른다 — manifest
-              supplierText: scheduleRowSupplierText(sched as never),
-              otherDaysText: scheduleOtherDaysText(workingSchedule as never, dayNum),
-            },
-            ...(travelRep ? { sights: travelRep.sights } : {}),
-            cityTerms: travelRep ? [...new Set([...strictTerms.cityTerms, travelRep.city])] : strictTerms.cityTerms,
-            destinationText: [...strictTerms.terms, itRow?.city ?? '', travelRep?.city ?? ''].join(' ').trim(),
+            dayFacts: dayFactsForPlan,
+            sights: plan.sights,
+            maxDay: scheduleMaxDay,
+            cityTerms: strictTerms.cityTerms,
+            destinationText: [...strictTerms.terms, itRow?.city ?? ''].join(' ').trim(),
             usage: strictPublicUsage!,
             exclude,
             origin: 'autofill',
           },
           strictDeps!,
-        ), { productId: String(product.id), day: dayNum, kind: 'day', sight: sched?.imageKeyword?.trim() || null, origin: 'autofill' })
+        ), { productId: String(product.id), day: dayNum, kind: 'day', sight: plan.sights[0] ?? (sched?.imageKeyword?.trim() || null), origin: 'autofill' })
         if (!res.ok) {
           if (!res.skipped) await strictRecord(res.exception)
           return keep(res.exception.reason.slice(0, 120))

@@ -6,12 +6,14 @@
  * - 이동일: 관광 장소가 없는 중간 날 → 설명과 비슷한 곳. 기차·국내선·크루즈는 그 느낌의 사진.
  * 일정 글(제목·동선·설명)은 읽기만 하고 고치지 않는다. 바꾸는 것은 사진이 빈 일차의 imageKeyword 뿐이다.
  * REGRESSION-FREEZE[register-photo-travel-day-1121]: 출국=첫 목적지 대표, 귀국=마지막 체류지 대표, 이동=교통수단 느낌 — manifest
+ * REGRESSION-FREEZE[photo-wrong-path-1128]: 출국·귀국·이동일은 빈칸이 아니라 체류지 대표명소로 채운다. 다른 일차 키워드는 쓰지 않는다 — manifest
  */
 import { destinationEnKeysInKoreanText, koreanCityNameFromEnglish, mapDestination } from '@/lib/pexels-keyword'
 import { isRegisterScheduleNoPlacePhotoDay } from '@/lib/register-schedule-day-summary-finalize'
 import { registerScheduleDayIsCityOnlyPhotoSkip } from '@/lib/register-schedule-city-only-day'
 import { collectRegisterScheduleCitySoftAltKeywords } from '@/lib/register-schedule-city-soft-alts'
 import { sightProfile, sightsOverlap } from '@/lib/photo-autofill-sight'
+import { PLACE_NAMES } from '@/lib/register-photo-match-gate'
 
 export type TravelDayRow = {
   day: number
@@ -51,12 +53,29 @@ export function foreignCitiesEnInText(text: string): string[] {
   const t = String(text ?? '')
   if (!t.trim()) return []
   const found: Array<{ en: string; idx: number }> = []
+  const add = (en: string, idx: number) => {
+    if (!en || KOREA_HUB_EN_RE.test(en.replace(/\s+/g, ''))) return
+    const label = titleCase(en)
+    found.push({ en: label, idx: idx >= 0 ? idx : Number.MAX_SAFE_INTEGER })
+  }
   for (const key of destinationEnKeysInKoreanText(t)) {
-    if (KOREA_HUB_EN_RE.test(key.replace(/\s+/g, ''))) continue
     const en = titleCase(key)
     const ko = koreanCityNameFromEnglish(en) || koreanCityNameFromEnglish(key)
-    const idx = ko ? t.indexOf(ko) : -1
-    found.push({ en, idx: idx >= 0 ? idx : Number.MAX_SAFE_INTEGER })
+    add(en, ko ? t.indexOf(ko) : -1)
+  }
+  // DESTINATION_MAP 에 없는 도시(피렌체·베네치아 등)는 장소 사전 이름으로 같은 순서 보강.
+  // 나라 항목이 도시 한글명(헝가리→부다페스트)을 같이 들고 있으면 나라 이름은 넣지 않는다.
+  const COUNTRY_EN_RE = /^(hungary|italy|spain|france|poland|germany|austria|portugal|greece|turkey|vietnam|thailand|japan|china|korea|europe|england|uk|indonesia|malaysia|philippines|taiwan|mongolia|morocco|egypt|india|mexico|brazil|canada|australia|switzerland|netherlands|belgium|sweden|norway|denmark|finland|ireland|iceland)$/i
+  const lower = t.toLowerCase()
+  for (const names of Object.values(PLACE_NAMES)) {
+    const en = names.find((n) => !/[가-힣]/.test(n))
+    if (!en || COUNTRY_EN_RE.test(en.replace(/\s+/g, ''))) continue
+    let idx = -1
+    for (const n of names) {
+      const i = /[가-힣]/.test(n) ? t.indexOf(n) : lower.indexOf(n.toLowerCase())
+      if (i >= 0 && (idx < 0 || i < idx)) idx = i
+    }
+    if (idx >= 0) add(en, idx)
   }
   const out: string[] = []
   for (const f of found.sort((a, b) => a.idx - b.idx)) if (!out.includes(f.en)) out.push(f.en)
@@ -199,18 +218,27 @@ export function travelDayRepresentativeSights(
   destination: string | null | undefined,
   maxDay: number,
 ): { kind: TravelDayKind; city: string; sights: string[] } | null {
-  const kw = String(row.imageKeyword ?? '').trim()
-  if (!kw || sightProfile(kw).kind !== 'city') return null
   const day = Number(row.day)
-  const kind = registerTravelDayKind(row, maxDay) ?? (day === 1 ? 'departure' : null)
+  const kw = String(row.imageKeyword ?? '').trim()
+  const text = `${blob(row)} ${row.hotelText ?? ''}`
+  let kind = registerTravelDayKind(row, maxDay)
+  if (!kind && day === 1 && kw && sightProfile(kw).kind === 'city') kind = 'departure'
+  // 원문 명소가 없는 도착·이동·귀국(인천-다낭-호텔, 피렌체→베네치아 이동)은 체류지 대표명소로 채운다
+  if (!kind) {
+    if (day === 1 && /공항|airport|출발|도착|호텔|인천|김포|김해/u.test(text)) kind = 'departure'
+    else if (day === maxDay && /숙박\s*없음|귀국|공항|airport/u.test(text)) kind = 'return'
+    else if (/이동/u.test(text)) kind = 'transit'
+  }
   if (!kind) return null
   const planned =
     kind === 'departure'
       ? firstDestinationCityEn(rows, destination)
       : kind === 'return'
         ? lastStayCityEn(rows, day, destination)
-        : ''
-  const cities = [...new Set([planned, kw].map((c) => String(c ?? '').trim()).filter(Boolean))]
+        : ((): string => { const own = foreignCitiesEnInText(blob(row)); return own.length ? own[own.length - 1]! : destinationEn(destination) })()
+  // 다른 일차 명소 키워드는 쓰지 않는다. 도시 이름 키워드만 보조.
+  const kwCity = kw && sightProfile(kw).kind === 'city' ? kw : ''
+  const cities = [...new Set([planned, kwCity].map((c) => String(c ?? '').trim()).filter(Boolean))]
   const otherDayProfiles = sortedDays(rows)
     .filter((r) => Number(r.day) !== day)
     .map((r) => sightProfile(String(r.imageKeyword ?? '')))

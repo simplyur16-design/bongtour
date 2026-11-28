@@ -108,7 +108,7 @@ describe('free-src-1128 source order', () => {
     expect(r.ok).toBe(true)
     if (r.ok) expect(r.photo.source).toBe('CC0')
   })
-  it('Pexels 살아 있으면 기존 순서(Pexels → CC0 → Unsplash → Pixabay)', async () => {
+  it('Pexels 살아 있으면 R03-06 순서(Pexels → CC0 → Unsplash → Pixabay)', async () => {
     const { d, order } = deps({ pexelsStopped: false, results: () => [] })
     await acquireVerifiedPhoto(input(), d)
     expect(order.indexOf('pexels')).toBeLessThan(order.indexOf('cc0'))

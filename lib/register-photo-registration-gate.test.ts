@@ -60,7 +60,7 @@ describe('register-photo-registration-gate: 등록 전 자동 차단 사유', ()
     expect(reasons(r)).not.toContain('photo_sight_mismatch')
   })
 
-  it('대표가 다른 공개 상품 대표와 같아도 막지 않고, 일차가 같아도 막지 않는다', () => {
+  it('대표가 다른 상품 대표와 같아도 photo_public_duplicate 로 막지 않는다(R03-12)', () => {
     const usage = buildPublicPhotoUsage([
       { productId: 'p-public', bgImageUrl: 'https://cdn.example.com/photo-pool/cover.webp', bgImageExternalId: '555', schedule: JSON.stringify([{ day: 1, imageUrl: 'x', imageSource: { externalId: '111' } }]) },
     ])
@@ -74,7 +74,7 @@ describe('register-photo-registration-gate: 등록 전 자동 차단 사유', ()
     expect(r.blocks.some((b) => b.reason === 'photo_public_duplicate')).toBe(false)
   })
 
-  it('대표가 다른 상품의 일차 사진과만 같으면 중복으로 막지 않는다', () => {
+  it('대표가 다른 상품의 일차 사진과만 같으면 중복으로 막지 않는다(사장님 12:01)', () => {
     const usage = buildPublicPhotoUsage([
       { productId: 'p-public', bgImageUrl: null, schedule: JSON.stringify([{ day: 1, imageUrl: 'https://images.pexels.com/photos/777/a.jpeg', imageSource: { externalId: '777' } }]) },
     ])

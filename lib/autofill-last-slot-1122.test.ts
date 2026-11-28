@@ -119,24 +119,20 @@ describe('여러 도시 묶음의 귀국일 대표 명소는 그 도시 것만',
     { day: 4, title: '하노이', description: '하노이에서 일정을 마무리한 뒤 귀국 이동으로 이어갑니다.', routeText: '하노이', imageKeyword: 'Hanoi', imageUrl: null },
   ]
 
-  it('하노이 귀국일: 앙코르·시엠립 명소 없음, 하노이 명소만', () => {
-    const rep = travelDayRepresentativeSights(rows[3]!, rows, '하노이', 4)
-    expect(rep?.city).toBe('Hanoi')
-    expect(rep!.sights.length).toBeGreaterThan(0)
-    for (const s of rep!.sights) {
-      expect(s).not.toMatch(/angkor|siem reap|ta prohm|bayon|cambodia/i)
-      expect(s).toMatch(/hanoi/i)
-    }
-  })
-
-  it('도시 이름이 든 명소가 없는 묶음은 전과 같이 묶음 전체를 쓴다', () => {
+  it('하노이 귀국일은 하노이 대표명소(앙코르 금지), 출국일은 첫 목적지 대표명소(R03-05)', () => {
+    const ret = travelDayRepresentativeSights(rows[3]!, rows, '하노이', 4)
+    expect(ret?.kind).toBe('return')
+    expect(ret?.city).toMatch(/hanoi/i)
+    expect((ret?.sights ?? []).join(' ')).toMatch(/Hoan Kiem|One Pillar|Hanoi/i)
+    expect((ret?.sights ?? []).join(' ')).not.toMatch(/Angkor|Siem Reap/i)
     const r = [
       { day: 1, title: '인천 출발 · 바르셀로나', routeText: '인천 출발 - 바르셀로나', imageKeyword: 'Barcelona', imageUrl: null },
       { day: 2, title: '바르셀로나', routeText: '바르셀로나 - 사그라다 파밀리아', imageKeyword: 'Sagrada Familia', imageUrl: 'https://x/2' },
     ]
-    const rep = travelDayRepresentativeSights(r[0]!, r, '스페인', 2)
-    expect(rep?.city).toBe('Barcelona')
-    expect(rep!.sights.length).toBeGreaterThan(0)
+    const dep = travelDayRepresentativeSights(r[0]!, r, '스페인', 2)
+    expect(dep?.kind).toBe('departure')
+    expect(dep?.city).toMatch(/barcelona/i)
+    expect((dep?.sights ?? []).length).toBeGreaterThan(0)
   })
 })
 

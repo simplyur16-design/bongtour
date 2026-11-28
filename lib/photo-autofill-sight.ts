@@ -391,6 +391,7 @@ export const CITY_REPRESENTATIVE_SIGHTS: ReadonlyArray<{ names: readonly string[
   { names: ['프라하', 'prague'], sights: ['Charles Bridge', 'Old Town Square Astronomical Clock'] },
   { names: ['장가계', 'zhangjiajie'], sights: ['Tianmen Mountain', 'Wulingyuan'] },
   { names: ['다낭', 'da nang'], sights: ['Dragon Bridge', 'Marble Mountains'] },
+  { names: ['하노이', 'hanoi'], sights: ['Hoan Kiem Lake', 'One Pillar Pagoda'] },
   { names: ['샌프란시스코', 'san francisco'], sights: ['Golden Gate Bridge', 'Alcatraz Island'] },
   { names: ['파리', 'paris'], sights: ['Eiffel Tower', 'Arc de Triomphe'] },
   { names: ['로마', 'rome'], sights: ['Colosseum', 'Trevi Fountain'] },

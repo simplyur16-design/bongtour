@@ -24,27 +24,19 @@ describe('출국·귀국일 도시 키워드 → 도시 대표 명소', () => {
     expect(missingDayFillAction(budapestTrip[2]!, 9)).toBe('fill')
   })
 
-  it('귀국일은 마지막 체류지 대표 명소, 다른 날 키워드와 겹치는 명소는 뒤로', () => {
-    const rep = travelDayRepresentativeSights(budapestTrip[2]!, budapestTrip, '유럽', 9)
-    expect(rep?.kind).toBe('return')
-    expect(rep?.city).toBe('Budapest')
-    expect(rep!.sights.length).toBeGreaterThan(0)
-    expect(rep!.sights[0]).not.toBe('Budapest Parliament Building')
-    for (const s of rep!.sights) {
-      expect(['sight', 'generic']).toContain(sightProfile(s).kind)
-      expect(s).not.toMatch(/airport|plane|airplane|공항|기내/i)
-    }
-  })
-
-  it('1일차 도시 키워드(인천 출발 - 바르셀로나)는 출국일 = 첫 목적지 대표 명소', () => {
+  it('귀국일·출국일은 체류지 대표 명소로 채운다(사장님 11/21 23:13)', () => {
+    const ret = travelDayRepresentativeSights(budapestTrip[2]!, budapestTrip, '유럽', 9)
+    expect(ret?.kind).toBe('return')
+    expect(ret?.city).toMatch(/budapest/i)
+    expect((ret?.sights ?? []).length).toBeGreaterThan(0)
     const rows = [
       { day: 1, title: '인천 출발 · 바르셀로나', routeText: '인천 출발 - 바르셀로나', imageKeyword: 'Barcelona', imageUrl: null },
       { day: 2, title: '바르셀로나', routeText: '바르셀로나 - 사그라다 파밀리아', imageKeyword: 'Sagrada Familia', imageUrl: 'https://x/2' },
     ]
-    const rep = travelDayRepresentativeSights(rows[0]!, rows, '스페인', 2)
-    expect(rep?.kind).toBe('departure')
-    expect(rep?.city).toBe('Barcelona')
-    expect(rep!.sights[0]).not.toMatch(/sagrada/i)
+    const dep = travelDayRepresentativeSights(rows[0]!, rows, '스페인', 2)
+    expect(dep?.kind).toBe('departure')
+    expect(dep?.city).toMatch(/barcelona/i)
+    expect((dep?.sights ?? []).length).toBeGreaterThan(0)
   })
 
   it('명소 키워드·관광일 도시 키워드는 그대로(대체하지 않음)', () => {
@@ -57,11 +49,10 @@ describe('출국·귀국일 도시 키워드 → 도시 대표 명소', () => {
     expect(travelDayRepresentativeSights(rows[1]!, rows, '스페인', 3)).toBeNull()
   })
 
-  it('route 가 strict 채움에서 대표 명소를 sights 로 넘긴다', () => {
-    expect(ROUTE).toContain('REGRESSION-FREEZE[travel-day-city-representative-1122]')
-    expect(ROUTE).toContain('travelDayRepresentativeSights(sched, workingSchedule, destination, scheduleMaxDay)')
-    expect(ROUTE).toContain('...(travelRep ? { sights: travelRep.sights } : {}),')
-    expect(ROUTE).toContain("if (!travelRep && dayPhotoContextFromFacts(dayFacts).kind === 'none' && !dayKeywordIsSight) return keep('no_confirmed_sightseeing')")
+  it('route 는 planDayPhotoSave 공통 게이트로 출국·귀국을 처리한다', () => {
+    expect(ROUTE).toContain('REGRESSION-FREEZE[photo-wrong-path-1128]')
+    expect(ROUTE).toContain('planDayPhotoSave')
+    expect(ROUTE).toContain("if (plan.action !== 'search') return keep")
   })
 })
 

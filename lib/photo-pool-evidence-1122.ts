@@ -41,6 +41,16 @@ export function sourcePageEvidenceText(sourceUrl: string | null | undefined): st
     const m = /\/wiki\/File:(.+?)(\.[a-z0-9]{3,4})?$/i.exec(path)
     return m ? words(m[1]!) : ''
   }
+  // REGRESSION-FREEZE[photo-wrong-path-1128]: Pixabay 페이지 slug도 원 출처 설명이다. id-1234 만 있는 주소는 설명 없음 — manifest
+  if (host === 'pixabay.com' || /(^|\.)pixabay\.com$/.test(host)) {
+    const pop = path.split('/').filter(Boolean).pop() ?? ''
+    if (!pop || /^id-\d+$/i.test(pop)) return ''
+    return words(pop.replace(/-\d+$/, ''))
+  }
+  if (host === 'openverse.org' || host.endsWith('.openverse.org')) {
+    const pop = path.split('/').filter(Boolean).pop() ?? ''
+    return pop ? words(pop.replace(/-\d+$/, '')) : ''
+  }
   return ''
 }
 

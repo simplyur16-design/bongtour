@@ -77,6 +77,48 @@ export function applyDayPhotoReplacement(
   return { schedule: JSON.stringify(next), previous }
 }
 
+
+/** 출국·귀국·공항만 칸의 사진을 비운다(행 삭제는 하지 않음). 수동 칸은 그대로. */
+export function applyDayPhotoClear(
+  scheduleJson: string | null,
+  day: number,
+): { schedule: string; previous: PreviousSlotValue } | { error: 'no_schedule' | 'day_not_found' | 'manual_locked' } {
+  if (!scheduleJson) return { error: 'no_schedule' }
+  let rows: unknown
+  try {
+    rows = JSON.parse(scheduleJson)
+  } catch {
+    return { error: 'no_schedule' }
+  }
+  if (!Array.isArray(rows)) return { error: 'no_schedule' }
+  const idx = rows.findIndex((r, i) => Math.floor(Number((r as Record<string, unknown>)?.day)) === day || (!Number.isFinite(Number((r as Record<string, unknown>)?.day)) && i + 1 === day))
+  if (idx < 0) return { error: 'day_not_found' }
+  const row = rows[idx] as Record<string, unknown>
+  if (row.imageManualSelected === true) return { error: 'manual_locked' }
+  const prevSource = row.imageSource && typeof row.imageSource === 'object' ? (row.imageSource as Record<string, unknown>) : null
+  const previous: PreviousSlotValue = {
+    imageUrl: typeof row.imageUrl === 'string' ? row.imageUrl : null,
+    imageSource: prevSource,
+    imagePhotographer: typeof row.imagePhotographer === 'string' ? row.imagePhotographer : null,
+    imageSourcePageUrl: typeof row.imageSourcePageUrl === 'string' ? row.imageSourcePageUrl : null,
+    imageCandidateOrigin: typeof row.imageCandidateOrigin === 'string' ? row.imageCandidateOrigin : null,
+  }
+  const next = rows.map((r, i) =>
+    i !== idx
+      ? r
+      : {
+          ...(r as Record<string, unknown>),
+          imageUrl: '',
+          imageSource: null,
+          imagePhotographer: null,
+          imageSourcePageUrl: null,
+          imageCandidateOrigin: 'heal-clear',
+          ...('imageIsGenerated' in (r as Record<string, unknown>) ? { imageIsGenerated: false } : {}),
+        },
+  )
+  return { schedule: JSON.stringify(next), previous }
+}
+
 export type CoverPreviousValue = {
   bgImageUrl: string | null
   bgImageExternalId: string | null

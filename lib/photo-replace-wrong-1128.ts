@@ -46,6 +46,8 @@ export function publicWrongPhotoBlocks(blocks: readonly RegistrationPhotoBlock[]
     if (!WRONG_PHOTO_REPLACE_REASONS.has(b.reason)) return false
     // 인물·무관 사진 판정은 제목 글 기준이라 공개 상품에서는 오탐(풍경 속 사람)이 많아 교체하지 않는다(등록대기 힐은 기존대로)
     if (b.reason === 'photo_irrelevant_subject') return false
+    // 일차 공개 중복은 틀린 사진이 아니다(사장님 12:01). 목록 카드 대표 중복만 대상이나, 공개 상품 대표는 AI만 교체.
+    if (b.reason === 'photo_public_duplicate') return false
     if (b.kind === 'cover') return b.reason === 'photo_ai_generated'
     if (b.reason === 'photo_sight_mismatch') return b.detail.startsWith(STORED_SIGHT_MISMATCH_DETAIL)
     return true

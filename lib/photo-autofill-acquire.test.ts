@@ -131,7 +131,7 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     })
   })
 
-  // REGRESSION-FREEZE[photo-source-order-1127]: 사장님 11/27 21:31 순서 풀 → Pexels → CC0·PD → Unsplash → 생성 — manifest
+  // REGRESSION-FREEZE[photo-source-order-1127]: R03-06 풀 → Pexels → CC0·PD → Unsplash. AI 생성 금지 — manifest
   it('Pexels·CC0 에 없으면 Unsplash 후보를 채택하고 생성은 부르지 않는다(CC0 는 Unsplash 보다 먼저)', async () => {
     const { deps, calls } = makeDeps({
       results: (tier) => (tier === 'unsplash' ? [cand('u1', { source: 'Unsplash', url: 'https://images.unsplash.com/photo-u1', originalLink: 'https://unsplash.com/photos/blue-mosque-u1' })] : []),
@@ -175,23 +175,15 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     expect(searchIdx.indexOf('search')).toBeLessThan(searchIdx.indexOf('cc0'))
   })
 
-  it('재고가 없고 생성도 실패하면 예외 사유는 생성 대상', async () => {
-    const { deps, calls } = makeDeps({ results: () => [], cc0: () => [], generate: () => null })
+  it('실사진 출처를 다 돌고도 못 찾으면 빈칸(no_real_photo)이고 생성은 부르지 않는다', async () => {
+    const { deps, calls } = makeDeps({ results: () => [], cc0: () => [], generate: () => cand('g1', { source: 'AI 생성', altText: 'Blue Mosque in Istanbul' }) })
     const r = await acquireVerifiedPhoto(base({ sights: ['Blue Mosque'] }), deps)
     expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.exception.reason).toBe('생성 대상')
-    expect(calls.filter((c) => c.type === 'generate')).toHaveLength(1)
-  })
-
-  it('생성 이미지는 앞 단계가 모두 빈 뒤에만 채택하고 출처는 AI 생성', async () => {
-    const { deps } = makeDeps({
-      results: () => [],
-      cc0: () => [],
-      generate: () => cand('g1', { source: 'AI 생성', url: 'ai-generated://pending', originalLink: 'ai-generated', altText: 'Blue Mosque in Istanbul', width: 1600, height: 1000, storedBytes: 80_000 }),
-    })
-    const r = await acquireVerifiedPhoto(base({ sights: ['Blue Mosque'] }), deps)
-    expect(r.ok).toBe(true)
-    if (r.ok) expect(r.photo.source).toBe('AI 생성')
+    if (!r.ok) {
+      expect(r.exception.reason).not.toBe('생성 대상')
+      expect(String(r.exception.detail ?? '') + String(r.exception.reason ?? '')).toMatch(/no_real_photo|no_candidates/)
+    }
+    expect(calls.some((c) => c.type === 'generate')).toBe(false)
   })
 
   it('읽기는 한 번만 재시도하고, 계속 실패하면 그 출처는 _error 로 남긴다', async () => {
@@ -236,7 +228,7 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     expect(r.ok).toBe(false)
   })
 
-  it('일차 사진은 다른 상품과 같아도 채택한다', async () => {
+  it('일차 사진은 다른 상품이 쓰는 같은 파일이어도 채택한다', async () => {
     const usage = buildPublicPhotoUsage([{ productId: 'p-public', bgImageUrl: null, schedule: JSON.stringify([{ day: 1, imageUrl: cand('1').url, imageSource: { externalId: '1' } }]) }])
     const { deps } = makeDeps({ results: (tier) => (tier === 'pexels' ? [cand('1'), cand('2')] : []) })
     const r = await acquireVerifiedPhoto(base({ usage }), deps)
@@ -244,12 +236,16 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     if (r.ok) expect(r.photo.externalId).toBe('1')
   })
 
-  it('대표는 다른 상품 대표와 같으면 건너뛰고 다음 후보를 채택', async () => {
+  it('대표는 다른 상품이 쓰는 사진을 되도록 피하지만, 그 후보뿐이면 채택한다(R03-12)', async () => {
     const usage = buildPublicPhotoUsage([{ productId: 'p-public', bgImageUrl: cand('1').url, bgImageExternalId: '1', bgImageSourceUrl: cand('1').originalLink }])
-    const { deps } = makeDeps({ results: (tier) => (tier === 'pexels' ? [cand('1'), cand('2')] : []) })
-    const r = await acquireVerifiedPhoto(base({ kind: 'cover', day: null, sights: ['Blue Mosque'], usage }), deps)
+    const both = makeDeps({ results: (tier) => (tier === 'pexels' ? [cand('1'), cand('2')] : []) })
+    const prefer = await acquireVerifiedPhoto(base({ kind: 'cover', day: null, sights: ['Blue Mosque'], usage }), both.deps)
+    expect(prefer.ok).toBe(true)
+    if (prefer.ok) expect(prefer.photo.externalId).toBe('2')
+    const only = makeDeps({ results: (tier) => (tier === 'pexels' ? [cand('1')] : []) })
+    const r = await acquireVerifiedPhoto(base({ kind: 'cover', day: null, sights: ['Blue Mosque'], usage }), only.deps)
     expect(r.ok).toBe(true)
-    if (r.ok) expect(r.photo.externalId).toBe('2')
+    if (r.ok) expect(r.photo.externalId).toBe('1')
   })
 
   it('사진 풀에 같은 방문지가 있으면 그 URL을 쓰고 검색하지 않는다', async () => {
@@ -289,15 +285,20 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     if (r.ok) expect(r.photo.externalId).toBe('2')
   })
 
-  it('방문지가 없는 날은 검색하지 않고 skipped(예외 목록 대상 아님)', async () => {
+  it('출국일(인천 출발-방콕 도착)은 첫 목적지 대표명소로 검색하고 빈칸 건너뛰지 않는다', async () => {
     const { deps, stats } = makeDeps({ results: () => [cand('1')] })
     const r = await acquireVerifiedPhoto(
-      base({ dayFacts: { title: '인천 출발', routeText: '인천 출발 - 방콕 도착', description: null, imageKeyword: null, imageKeyword2: null } }),
+      base({
+        day: 1,
+        dayFacts: { title: '인천 출발', routeText: '인천 출발 - 방콕 도착', description: null, imageKeyword: null, imageKeyword2: null },
+        destinationText: '방콕 bangkok',
+        cityTerms: ['bangkok'],
+      }),
       deps,
     )
-    expect(r.ok).toBe(false)
-    if (!r.ok) expect(r.skipped).toBe(true)
-    expect(stats().searchCount).toBe(0)
+    expect(r.skipped).not.toBe(true)
+    expect(stats().searchCount).toBeGreaterThan(0)
+    void r
   })
 
   it('후보가 모두 이름 불일치면 탈락 사유가 예외에 남는다', async () => {

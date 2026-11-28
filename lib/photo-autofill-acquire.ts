@@ -1,12 +1,11 @@
 /**
  * 사진 자동 채움·자가 힐·야간 점검이 같이 쓰는 후보 찾기(외부 호출은 주입).
- * 순서(사장님 11/27 21:31): 사진 풀(같은 방문지, 이미 저장된 URL) → Pexels → Openverse/Wikimedia CC0·퍼블릭도메인 → Unsplash(무료만, 한도 몫 분리) → 그래도 없으면 생성 이미지 1장.
- * 생성은 마지막이고, 없거나 기준을 못 넘기면 그 칸은 예외 '생성 대상'.
+ * 순서(R03-06·R03-17): 풀 → Pexels → 출처불필요 CC0·PD → Unsplash → (Pixabay는 Pexels 멈춤 때 R03-17). iStock 신규 연동 없음(기존 구매분만). 공공누리 연동 없음. Gemini·AI 금지, 못 찾으면 비움.
  * 호출 규칙: 동시 호출 없음(순차), 호출마다 간격+지터(pause), 읽기 재시도 최대 1회, 외부 장애·한도는 사유만 남기고 다음으로.
  * 칸당 확인하는 후보는 AUTOFILL_MAX_CANDIDATES_PER_SLOT(5)개까지 — 넘으면 예외 목록으로.
  * 흑백 사진은 대표·일차 모두 저장 전에 버린다(deps.isMonochrome, 사장님 11/22).
  * REGRESSION-FREEZE[photo-monochrome-all-slots-1122]: 자동 채움 후보는 대표·일차 모두 흑백 판정 후 저장 — manifest
- * REGRESSION-FREEZE[photo-autofill-acquire]: 순차·재시도 1회·후보 5개 상한·생성은 마지막(생성 대상) — manifest
+ * REGRESSION-FREEZE[photo-autofill-acquire]: 순차·재시도 1회·후보 5개 상한·생성 금지(못 찾으면 비움) — manifest
  */
 import {
   AUTOFILL_MAX_CANDIDATES_PER_SLOT,
@@ -23,8 +22,10 @@ import {
   sightCoreQuery,
   sightProfile,
   sightSearchQueries,
+  sightsOverlap,
   type DaySightInput,
 } from '@/lib/photo-autofill-sight'
+import { planDayPhotoSave } from '@/lib/photo-day-save-gate-1128'
 import type { PhotoException, PhotoExceptionOrigin } from '@/lib/photo-exception-list'
 import { orderThumbnailCandidates } from '@/lib/thumbnail-pick'
 
@@ -78,6 +79,8 @@ export type AcquireInput = {
   cityTerms?: readonly string[]
   destinationText: string
   usage: PublicPhotoUsage
+  /** 일정 마지막 일차(출국·귀국 판정). 없으면 day */
+  maxDay?: number
   /** 이미 쓰고 있거나(같은 상품) 방금 막힌 사진의 식별 키 */
   exclude?: ReadonlySet<string>
   maxCandidates?: number
@@ -121,7 +124,20 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
   let sights: string[] = [...(input.sights ?? [])]
   let cityTerms: string[] = [...(input.cityTerms ?? [])]
   const derived = input.dayFacts ? deriveDaySights(input.dayFacts, input.destinationText) : null
-  if (sights.length === 0 && derived) {
+  if (input.kind === 'day' && input.dayFacts) {
+    const plan = planDayPhotoSave(
+      { ...input.dayFacts, day: input.day },
+      { destinationText: input.destinationText, maxDay: input.maxDay ?? (Number(input.day) || 1) },
+    )
+    if (plan.action === 'empty') return fail(plan.reason, 'travel/airport-only day must stay empty', null, null, true)
+    if (plan.action === 'search') {
+      if (sights.length === 0) sights = plan.sights
+      else {
+        const kept = sights.filter((s) => plan.sights.some((a) => sightsOverlap(sightProfile(s), sightProfile(a))))
+        sights = kept.length > 0 ? kept : plan.sights
+      }
+    } else if (sights.length === 0) return fail(`no_sight:${plan.reason}`, 'no visited sight in itinerary text', null, null, true)
+  } else if (sights.length === 0 && derived) {
     sights = derived.sights
     if (sights.length === 0) return fail(`no_sight:${derived.reason}`, 'no visited sight in itinerary text', null, null, true)
   }
@@ -239,7 +255,7 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
       if (pooled === 'cap') break
       if (pooled) return pooled
     }
-    // REGRESSION-FREEZE[photo-source-order-1127]: 풀 → Pexels → Openverse/Wikimedia CC0·PD → Unsplash(→ Pixabay) — Pexels 멈춤 중엔 아래 free-src-1128 순서. 생성 없음 — manifest
+    // REGRESSION-FREEZE[photo-source-order-1127]: 풀 → Pexels → Openverse/Wikimedia CC0·PD → Unsplash(→ Pixabay). Pexels 멈춤 중엔 free-src-1128(R03-17). AI 생성 없음 — manifest
     const queries = sightSearchQueries(sight)
     const stockRound = async (tier: StockTier): Promise<AcquireOk | 'cap' | null> => {
       const off = deps.stockOffReason?.(tier) ?? null
@@ -296,7 +312,7 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
       return cc0Hit
     }
     // REGRESSION-FREEZE[free-src-1128]: 사장님 11/28 08:08·08:10 — Pexels 가 멈춘 동안(잔여 0) 풀 → Unsplash → Pixabay → Openverse/Wikimedia CC0·PD.
-    // Pexels 가 살아 있으면 풀 → Pexels → CC0·PD → Unsplash → Pixabay. 공공누리는 이 단계 밖(마지막) — manifest
+    // Pexels 가 살아 있으면 풀 → Pexels → CC0·PD → Unsplash → Pixabay (R03-06). 멈춤 중엔 풀 → Unsplash → Pixabay → Openverse (R03-17). iStock·공공누리 연동 없음. AI 없음 — manifest
     const pexelsOff = deps.stockStopped('pexels')
     if (pexelsOff) limitNotes.add('pexels_limit')
     const order: Array<'pexels' | 'unsplash' | 'pixabay' | 'cc0'> = pexelsOff
@@ -325,22 +341,8 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
     if (capped) break
   }
 
-  if (deps.generate && lastSight && input.kind !== 'cover') {
-    await deps.pause()
-    let gen: AutofillCandidate | null = null
-    try {
-      gen = await deps.generate({ sight: lastSight, cityTerms })
-    } catch {
-      gen = null
-    }
-    if (gen) {
-      const picked = await consider([gen], 'generate', lastSight, sightProfile(lastSight), lastSight)
-      if (picked && picked !== 'cap') return picked
-    }
-    limitNotes.add('생성 대상')
-  }
-  // REGRESSION-FREEZE[no-ai-photo-1127]: 생성 없이 실사진 출처를 다 돌고도 못 찾으면 빈칸 유지 + 실패 사유(rejects) + no_real_photo 표시 — manifest
-  if (!deps.generate && lastSight && input.kind !== 'cover') limitNotes.add(NO_REAL_PHOTO_NOTE)
+  // REGRESSION-FREEZE[no-ai-photo-1127] / PHOTO-RULES 5: Gemini·AI 생성 금지. 실사진을 다 돌고도 못 찾으면 빈칸(no_real_photo) — manifest
+  if (lastSight && input.kind !== 'cover') limitNotes.add(NO_REAL_PHOTO_NOTE)
 
   const limit = [...limitNotes].find((n) => n !== 'candidate_cap' && n !== '생성 대상' && n !== NO_REAL_PHOTO_NOTE) ?? null
   const reason = limitNotes.has('생성 대상')
