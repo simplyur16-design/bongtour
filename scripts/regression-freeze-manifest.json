@@ -35347,14 +35347,15 @@
         "prebuild",
         "ci"
       ],
-      "summary": "사장님 11/28 17:16: 자가치유 교체 칸 수 상한(12·6)·판정 상품 수 상한(60)·상품당 8칸 상한 없음. 외부 쿼터(Unsplash·Pixabay)에 막히면 창이 풀릴 때까지 같은 실행에서 기다려 이어서 처리, 시간 한도 초과분은 같은 작업 끝에서 이어서 처리",
+      "summary": "사장님 11/28 17:16: 자가치유 교체 칸 수 상한(12·6)·판정 상품 수 상한(60)·상품당 8칸 상한 없음. 외부 쿼터(Unsplash·Pixabay)에 막히면 창이 풀릴 때까지 같은 실행에서 기다려 이어서 처리, 시간 한도 초과분은 같은 작업 끝에서 이어서 처리. 등록대기(pending·pre_photo_blocked)도 같은 원칙: 50상품 창·교체 예산 없이 틀린 칸 상품을 채움 반복문보다 먼저 처리(비우기 0, auto_unpublished·국내 제외)",
       "checks": [
         {
           "file": "lib/photo-replace-wrong-1128.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[self-heal-no-cap-1128]",
             "export async function runWrongPhotoRounds",
-            "WRONG_PHOTO_REPLACE_TIME_BUDGET_MS"
+            "WRONG_PHOTO_REPLACE_TIME_BUDGET_MS",
+            "export function pendingWrongPhotoBlocks"
           ]
         },
         {
@@ -35362,13 +35363,16 @@
           "mustInclude": [
             "REGRESSION-FREEZE[self-heal-no-cap-1128]",
             "maxSlotsPerProduct: Number.POSITIVE_INFINITY",
-            "exceptionsHitStockQuota"
+            "exceptionsHitStockQuota",
+            "export async function runPendingWrongPhotoReplaceLive",
+            "allowClear: false"
           ]
         },
         {
           "file": "lib/photo-heal.ts",
           "mustInclude": [
-            "maxSlotsPerProduct"
+            "maxSlotsPerProduct",
+            "allowClear"
           ]
         },
         {
@@ -35383,12 +35387,15 @@
           "file": "lib/register-auto-photo-register-job.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[self-heal-no-cap-1128]",
-            "photo-replace-wrong-continued"
+            "photo-replace-wrong-continued",
+            "runPendingWrongPhotoReplaceLive",
+            "photo-replace-wrong-pending-continued"
           ]
         }
       ],
       "vitestSuites": [
-        "lib/photo-replace-wrong-1128.test.ts"
+        "lib/photo-replace-wrong-1128.test.ts",
+        "lib/self-heal-pending-1128.test.ts"
       ]
     },
     {
@@ -35673,6 +35680,27 @@
       ],
       "vitestSuites": [
         "lib/photo-wrong-slot-reinspect-1128.test.ts"
+      ]
+    },
+    {
+      "id": "sight-compact-spelling-1128",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/28 17:55: 띄어쓰기·하이픈 차이(Nong Nooch/nongnooch)로 맞는 사진을 틀림 판정하지 않는다. 이웃한 낱말을 붙인 글자가 이름 낱말과 정확히 같을 때만 같은 낱말로 보고, 다른 판정 기준은 그대로",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-sight.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[sight-compact-spelling-1128]",
+            "function compactTokenWindows",
+            "coverAll"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/self-heal-pending-1128.test.ts"
       ]
     }
   ],

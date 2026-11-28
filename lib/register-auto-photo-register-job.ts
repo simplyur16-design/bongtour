@@ -31,7 +31,7 @@ import { refreshRegisterPrePhotoQueueFlagsForProductId } from '@/lib/register-pr
 import { loadRegisterPublishFacts } from '@/lib/register-publish-facts'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
 import { rotatePublicMissingDayPicks, scheduleApplyingTravelDayKeywords } from '@/lib/register-day-photo-travel-day'
-import { buildRegistrationPhotoInput, runPhotoHealForProduct, runPublicPhotoNightlyAuditLive, runPublicWrongPhotoReplaceLive } from '@/lib/photo-gate-runner'
+import { buildRegistrationPhotoInput, runPendingWrongPhotoReplaceLive, runPhotoHealForProduct, runPublicPhotoNightlyAuditLive, runPublicWrongPhotoReplaceLive } from '@/lib/photo-gate-runner'
 import { WRONG_PHOTO_REPLACE_TIME_BUDGET_MS } from '@/lib/photo-replace-wrong-1128'
 import { isNightlyAuditWindowKst } from '@/lib/photo-nightly-audit'
 import { summarizePhotoExceptions, type PhotoException } from '@/lib/photo-exception-list'
@@ -125,6 +125,7 @@ export type AutoPhotoRegisterRunResult = {
   publicScanned: number
   nightly: { ran: boolean; replaced: number; broken: number; duplicates: number; deferred: number; exceptions: number } | null
   /** 공개 상품의 잘못 채워진 사진 칸 교체(못 찾으면 기존 유지). 안 돌린 실행은 null */
+  pendingWrongPhotoReplace?: { scanned: number; targetProducts: number; targets: number; replaced: number; kept: number; deferred: number; rounds: number; waitedMs: number; stopReason: string; continued?: { replaced: number; deferred: number } } | null
   wrongPhotoReplace?: { scanned: number; targets: number; replaced: number; kept: number; deferred: number; rounds: number; waitedMs: number; stopReason: string; continued?: { replaced: number; deferred: number } } | null
   /** 매시 자동 점검(사진·SEO·AEO) 합계. 점검을 안 돌린 실행은 null */
   siteHealth: { found: number; fixed: number; codeIssues: number } | null
@@ -163,6 +164,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     nightly: null,
     siteHealth: null,
     wrongPhotoReplace: null,
+    pendingWrongPhotoReplace: null,
   }
   // REGRESSION-FREEZE[self-heal-no-cap-1128]: 틀린 칸 교체 칸 수 상한 없음(등록대기 힐·공개 교체 모두) — manifest
 
@@ -198,11 +200,14 @@ export async function runAutoPhotoRegisterJob(opts?: {
   // 공개 상품 잘못 채워진 칸 교체: 사진 칸만, 실사진만, 못 찾으면 기존 유지 + 예외 사유
   // REGRESSION-FREEZE[photo-replace-wrong-1128]: 빈칸 채움 목록(점검 재채움 수백 개)보다 먼저 돈다 — 목록이 1시간을 넘겨 교체 단계에 닿지 못하던 01:30 실행 교정 — manifest
   let wrongRemainingIds: string[] = []
+  let pendingRemainingIds: string[] = []
+  // 공개·등록대기 틀린 칸 단계가 함께 쓰는 시간 한도(남은 건 작업 끝에서 새 한도로 이어서)
+  const wrongDeadlineAtMs = Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS
   if (sw.fill && publicLimit > 0) {
     try {
       const w = await runPublicWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
         now: opts?.now,
-        deadlineAtMs: Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+        deadlineAtMs: wrongDeadlineAtMs,
       })
       wrongRemainingIds = w.remainingProductIds
       result.wrongPhotoReplace = { scanned: w.scanned, targets: w.targets, replaced: w.replaced.length, kept: w.kept.length, deferred: w.deferred, rounds: w.rounds, waitedMs: w.waitedMs, stopReason: w.stopReason }
@@ -214,6 +219,27 @@ export async function runAutoPhotoRegisterJob(opts?: {
         productId: 'public-wrong-photo',
         day: null,
         gate: 'photo-replace-wrong',
+        providerErrorClass: providerErrorClass(err),
+        attemptAt: new Date().toISOString(),
+        result: 'failed',
+      })
+    }
+  }
+
+  // 등록대기(pending) 틀린 칸 교체 — 공개 경로와 같은 원칙: 50상품 창·교체 예산 없이, 틀린 칸 가진 상품 먼저, 가드에 막히면 대기 후 재개. auto_unpublished 는 범위 밖.
+  // REGRESSION-FREEZE[self-heal-no-cap-1128]: 등록대기도 상한 없이 틀린 칸 상품 우선 — 빈칸 채움 반복문보다 먼저 돈다 — manifest
+  if (sw.fill) {
+    try {
+      const pw = await runPendingWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), { now: opts?.now, deadlineAtMs: wrongDeadlineAtMs })
+      pendingRemainingIds = pw.remainingProductIds
+      result.pendingWrongPhotoReplace = { scanned: pw.scanned, targetProducts: pw.targetProducts, targets: pw.targets, replaced: pw.replaced, kept: pw.kept, deferred: pw.deferred, rounds: pw.rounds, waitedMs: pw.waitedMs, stopReason: pw.stopReason }
+      console.log(JSON.stringify({ kind: 'photo-replace-wrong-pending-done', ...result.pendingWrongPhotoReplace }))
+      result.photoExceptions += pw.kept
+    } catch (err) {
+      logAutoPhotoAttempt({
+        productId: 'pending-wrong-photo',
+        day: null,
+        gate: 'photo-replace-wrong-pending',
         providerErrorClass: providerErrorClass(err),
         attemptAt: new Date().toISOString(),
         result: 'failed',
@@ -567,6 +593,33 @@ export async function runAutoPhotoRegisterJob(opts?: {
       })
     }
   }
+  if (pendingRemainingIds.length > 0 && sw.fill) {
+    try {
+      const c = await runPendingWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
+        now: opts?.now,
+        onlyProductIds: pendingRemainingIds,
+        deadlineAtMs: Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+      })
+      if (result.pendingWrongPhotoReplace) {
+        result.pendingWrongPhotoReplace.continued = { replaced: c.replaced, deferred: c.deferred }
+        result.pendingWrongPhotoReplace.replaced += c.replaced
+        result.pendingWrongPhotoReplace.kept += c.kept
+        result.pendingWrongPhotoReplace.deferred = c.deferred
+        result.pendingWrongPhotoReplace.stopReason = c.stopReason
+      }
+      console.log(JSON.stringify({ kind: 'photo-replace-wrong-pending-continued', replaced: c.replaced, kept: c.kept, deferred: c.deferred, rounds: c.rounds, waitedMs: c.waitedMs, stopReason: c.stopReason }))
+      result.photoExceptions += c.kept
+    } catch (err) {
+      logAutoPhotoAttempt({
+        productId: 'pending-wrong-photo',
+        day: null,
+        gate: 'photo-replace-wrong-pending-continue',
+        providerErrorClass: providerErrorClass(err),
+        attemptAt: new Date().toISOString(),
+        result: 'failed',
+      })
+    }
+  }
   // 시도 한 줄(auto-photo-attempt)과 같이 stdout 에 남긴다. HTTP 202 ACK 는 이 요약보다 먼저 돌아간다.
   console.log(
     JSON.stringify({
@@ -582,6 +635,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
       publicScanned: result.publicScanned,
       siteHealth: result.siteHealth,
       wrongPhotoReplace: result.wrongPhotoReplace,
+      pendingWrongPhotoReplace: result.pendingWrongPhotoReplace,
     }),
   )
   return result

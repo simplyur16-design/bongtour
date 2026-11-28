@@ -43,6 +43,8 @@ export type HealDeps = {
   takeRunBudget?: () => boolean
   /** 한 상품에서 한 번에 고치는 칸 수 상한(기본 8). 공개 상품 자가치유는 틀린 칸을 모두 고치려고 무제한으로 넘긴다. */
   maxSlotsPerProduct?: number
+  /** false 면 칸을 비우는 처리(이동·공항만의 날)를 하지 않고 건너뛴다(틀린 칸 교체 단계는 비우기 0). 기본 true. */
+  allowClear?: boolean
 }
 
 export type HealCover = {
@@ -204,6 +206,10 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
       { destinationText: dest, maxDay, allRows: rowsNow as never },
     )
     if (plan.action === 'empty' || reasons.includes('photo_travel_day_empty')) {
+      if (deps.allowClear === false) {
+        await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: 'clear_skipped', detail: `${reasonText}; clear not allowed in wrong-photo replace stage`, origin: 'heal', at })
+        continue
+      }
       const applied = applyDayPhotoClear(result.schedule, day)
       if ('error' in applied) {
         await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: `apply_${applied.error}`, detail: reasonText, origin: 'heal', at })

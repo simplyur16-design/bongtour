@@ -135,3 +135,18 @@ export function rotateForHour<T>(rows: readonly T[], now: Date, take: number): T
   for (let i = 0; i < Math.min(take, rows.length); i++) out.push(rows[(start + i) % rows.length]!)
   return out
 }
+
+/**
+ * 등록대기(pending) 상품에서 교체할 칸만 남긴다(17:16 지시 — 공개 경로와 같은 원칙).
+ * 등록대기는 아직 공개 전이라 판정이 넓다(근거 없음·글 없음도 게이트가 막는 대로). 단 비우기 대상(이동일 빈칸)과
+ * 일차 공개 중복(틀린 사진이 아님, 사장님 12:01)은 이 단계에서 다루지 않는다.
+ * REGRESSION-FREEZE[self-heal-no-cap-1128]: 등록대기도 상한 없이 틀린 칸 상품을 먼저 처리 — manifest
+ */
+export function pendingWrongPhotoBlocks(blocks: readonly RegistrationPhotoBlock[]): RegistrationPhotoBlock[] {
+  return blocks.filter((b) => {
+    if (!WRONG_PHOTO_REPLACE_REASONS.has(b.reason)) return false
+    if (b.reason === 'photo_travel_day_empty') return false
+    if (b.reason === 'photo_public_duplicate') return false
+    return true
+  })
+}

@@ -230,6 +230,20 @@ export function sightProfile(nameRaw: string): SightProfile {
   }
 }
 
+/** 본문 낱말 1~3개를 이어 붙인 글자 모음(공백·하이픈 차이 비교용). text 는 앞뒤 공백이 있는 folded 문자열. */
+function compactTokenWindows(text: string): Set<string> {
+  const toks = text.split(' ').filter(Boolean)
+  const out = new Set<string>()
+  for (let i = 0; i < toks.length; i++) {
+    let acc = ''
+    for (let n = 0; n < 3 && i + n < toks.length; n++) {
+      acc += toks[i + n]
+      if (n > 0) out.add(acc)
+    }
+  }
+  return out
+}
+
 export function sightMatchInText(profile: SightProfile, textRaw: string, anchorTermsRaw: readonly string[] = []): string | null {
   if (profile.kind === 'empty' || profile.kind === 'city') return null
   const text = ` ${foldPhotoText(textRaw)} `
@@ -245,6 +259,31 @@ export function sightMatchInText(profile: SightProfile, textRaw: string, anchorT
     const distinctive = p.split(' ').some((w) => w && !STOP_TOKENS.has(w) && !GENERIC_NOUNS.has(w) && !WEAK_ADJ.has(w) && !isCityToken(w))
     if (anchorOk() && (distinctive || anchored())) return p
   }
+  // REGRESSION-FREEZE[sight-compact-spelling-1128]: 띄어쓰기·하이픈 차이(Nong Nooch / nongnooch)로 맞는 사진을 틀림 판정하지 않는다.
+  // 본문에서 이웃한 낱말 1~3개를 붙인 글자(공백·하이픈 제거)가 이름 낱말과 정확히 같을 때만 같은 낱말로 본다. 다른 기준은 그대로 — manifest
+  const windows = compactTokenWindows(text)
+  const textTokens = new Set(text.split(' ').filter(Boolean))
+  const present = (t: string) => text.includes(` ${t} `) || windows.has(t)
+  // 이름 낱말을 순서대로 보며, 본문에 그 낱말이 있거나 이웃한 이름 낱말 2~3개를 붙인 글자가 본문 낱말과 같으면 덮은 것으로 센다
+  const coverAll = (names: readonly string[]): boolean => {
+    let i = 0
+    while (i < names.length) {
+      if (present(names[i]!)) {
+        i++
+        continue
+      }
+      let merged = false
+      for (let n = 2; n <= 3 && i + n <= names.length; n++) {
+        if (textTokens.has(names.slice(i, i + n).join(''))) {
+          i += n
+          merged = true
+          break
+        }
+      }
+      if (!merged) return false
+    }
+    return names.length > 0
+  }
   const toks = profile.requiredTokens
   // 낱말만 맞는 일치(구절 아님)는 두 낱말 이하면 도시 낱말이 같이 있어야 한다(aurora village 같은 흔한 이름).
   // 명소 이름에 들어 있는 도시(오타루 오르골, 가와구치코)는 상품 대표 도시(하코다테·시즈오카)와 달라도 앵커가 된다.
@@ -252,11 +291,11 @@ export function sightMatchInText(profile: SightProfile, textRaw: string, anchorT
     .split(' ')
     .filter((t) => isCityToken(t))
     .some((t) => text.includes(` ${t} `))
-  if (toks.length > 0 && toks.every((t) => text.includes(` ${t} `)) && anchorOk() && (toks.length >= 3 || anchored() || namedCity)) return toks.join('+')
+  if (toks.length > 0 && coverAll(toks) && anchorOk() && (toks.length >= 3 || anchored() || namedCity)) return toks.join('+')
   // REGRESSION-FREEZE[photo-sight-core-1127]: 고유명 낱말(설명·일반어 제외)이 모두 있으면 일치 — 한 낱말은 5자 이상, 6자 미만은 도시 앵커 필요 — manifest
   // 다른 장소·인물·흑백·용량·중복은 이 뒤 관문이 그대로 본다.
   const core = profile.kind === 'sight' ? (profile.coreTokens ?? []) : []
-  if (core.length > 0 && core.every((t) => text.includes(` ${t} `)) && (core.length >= 2 || core[0]!.length >= CORE_MIN_SINGLE)) {
+  if (core.length > 0 && coverAll(core) && (core.length >= 2 || core[0]!.length >= CORE_MIN_SINGLE)) {
     if (core.length >= 2 || core[0]!.length >= 6 || anchored() || namedCity) return `core:${core.join('+')}`
   }
   return null
