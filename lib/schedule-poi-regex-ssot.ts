@@ -1204,6 +1204,11 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /사하라\s*사막|Sahara\s*Desert/i, en: "Sahara Desert" },
   { re: /히낙다난\s*(?:동굴)?|Hinagdanan(?:\s*Cave)?/i, en: "Hinagdanan Cave" },
   { re: /라우\s*파\s*삿|Lau\s*Pa\s*Sat/i, en: "Lau Pa Sat" },
+  // REGRESSION-FREEZE[photo-wrong-slot-reinspect-1128]: 원문→공식 고유명(R03-23). 수크 와키프=Souq Waqif(Qatar Tourism). 나고야성=Nagoya Castle(名古屋城 공식영문). 코끼리코 언덕=Xiangbi Shan(象鼻山, 광서민정청·Wikidata Q5359378). 츠노시마 대교=Tsunoshima Bridge(角島大橋). 하매민속촌은 공식명 미확인이라 직역하지 않음 — manifest
+  { re: /수크\s*와키프|Souq\s*Waqif|سوق\s*واقف/i, en: "Souq Waqif" },
+  { re: /츠노시마\s*(?:대교)?|角島大橋|Tsunoshima(?:\s*Bridge)?/i, en: "Tsunoshima Bridge" },
+  { re: /코끼리코\s*(?:언덕)?|상비산|象鼻山|Xiangbi\s*Shan|Elephant\s*Trunk(?:\s*Hill)?/i, en: "Xiangbi Shan" },
+  { re: /나고야성|名古屋城|Nagoya\s*Castle/i, en: "Nagoya Castle" },
   { re: /페트르진|페트린|Pet[rř][ií]n(?:\s*Lookout(?:\s*Tower)?)?/i, en: "Petrin Lookout Tower" },
   { re: /상\s*벤투|Sao\s*Bento/i, en: "Sao Bento Station Porto" },
   { re: /몰리세이루|Moliceiro/i, en: "Moliceiro boats Aveiro" },

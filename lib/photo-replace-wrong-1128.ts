@@ -10,6 +10,7 @@
  * REGRESSION-FREEZE[photo-replace-wrong-1128]: 기존 사진 판정·교체, 못 찾으면 유지, 실행 상한 — manifest
  */
 import {
+  SOURCE_META_MISMATCH_DETAIL,
   STORED_SIGHT_MISMATCH_DETAIL,
   WRONG_PHOTO_REPLACE_REASONS,
   type RegistrationPhotoBlock,
@@ -37,19 +38,23 @@ export function createRunBudget(max: number): { take: () => boolean; used: () =>
 
 /**
  * 공개 상품에서 교체할 칸만 남긴다.
- * - 그날 명소 불일치는 '저장된 명소가 그날 원문 명소에 없음'(확실한 근거)만. 근거 없음(unverified)·글 없음은 건드리지 않는다.
+ * - 그날 명소 불일치는 '저장된 명소가 그날 원문 명소에 없음' 또는 '출처 메타가 정답 명소와 다름'(이름-내용). 근거 없음(unverified)·글 없음은 건드리지 않는다.
  * - 대표 사진은 AI 생성만(목록 카드 보호). 인물·무관(제목 글 판정)은 공개 상품에서 제외.
  * - 용량·해상도·측정은 기존 야간·매시 점검 몫이라 여기서 다루지 않는다.
  */
 export function publicWrongPhotoBlocks(blocks: readonly RegistrationPhotoBlock[]): RegistrationPhotoBlock[] {
   return blocks.filter((b) => {
     if (!WRONG_PHOTO_REPLACE_REASONS.has(b.reason)) return false
-    // 인물·무관 사진 판정은 제목 글 기준이라 공개 상품에서는 오탐(풍경 속 사람)이 많아 교체하지 않는다(등록대기 힐은 기존대로)
-    if (b.reason === 'photo_irrelevant_subject') return false
+    // 인물·무관(제목 글)은 공개 상품에서 오탐이 많아 교체하지 않는다. 출처 메타의 동물·실내·점포는 이름-내용이 다른 틀린 사진이라 교체한다.
+    if (b.reason === 'photo_irrelevant_subject') {
+      return /^(animal_not_in_itinerary|interior_not_place|unrelated_object):/.test(b.detail)
+    }
     // 일차 공개 중복은 틀린 사진이 아니다(사장님 12:01). 목록 카드 대표 중복만 대상이나, 공개 상품 대표는 AI만 교체.
     if (b.reason === 'photo_public_duplicate') return false
     if (b.kind === 'cover') return b.reason === 'photo_ai_generated'
-    if (b.reason === 'photo_sight_mismatch') return b.detail.startsWith(STORED_SIGHT_MISMATCH_DETAIL)
+    if (b.reason === 'photo_sight_mismatch') {
+      return b.detail.startsWith(STORED_SIGHT_MISMATCH_DETAIL) || b.detail.startsWith(SOURCE_META_MISMATCH_DETAIL)
+    }
     return true
   })
 }

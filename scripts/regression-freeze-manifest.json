@@ -363,7 +363,10 @@
   "staticGuards": [
     {
       "id": "curation-events-tab-copy",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "이벤트 후보 탭 안내가 통합 전 예정 문구로 남아 있지 않음",
       "checks": [
         {
@@ -383,7 +386,10 @@
     },
     {
       "id": "package-supplier-fact-schedule-rebuild",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "대기열 힐은 지어낸 귀국 문장이 있으면 공급사 팩트로 일정요약·설명을 다시 만든다. 7사. 원문 보기 유지.",
       "checks": [
         {
@@ -2861,7 +2867,7 @@
         "lib/bongsim/notifications/esim-qr-lms.test.ts"
       ]
     },
-        {
+    {
       "id": "bongsim-esim-purchase-notify-usimsa-cs",
       "tier": [
         "prebuild",
@@ -2957,7 +2963,7 @@
         "lib/bongsim/esim-customer-cs-links.test.ts"
       ]
     },
-        {
+    {
       "id": "bongsim-esim-web-install-usimsa-cs",
       "tier": [
         "prebuild",
@@ -7032,7 +7038,10 @@
     },
     {
       "id": "hanjin-daily-ingest-1121",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "한진관광은 worker 정기 수집에 따로 들어간다. KST 10:30, 기존 7곳에 없는 지역만, 간격·재시도는 한진 모듈, 하루 20건까지 등록대기.",
       "checks": [
         {
@@ -7051,7 +7060,10 @@
     },
     {
       "id": "esim-help-chat-1121",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "eSIM 상담은 설치 안내·FAQ·여행자 인증 문장만 읽고, 화면의 연결 버튼은 고객센터 연결링크다.",
       "checks": [
         {
@@ -7080,35 +7092,103 @@
     },
     {
       "id": "esim-help-chat-categories-1122",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "eSIM 상담 대화창은 처음에 인사 한 줄과 중분류 버튼 6개만 보이고, 분류를 누르면 그 안 질문 3~5개, 질문을 누르면 짧은 답과 더 보기가 나온다. 뒤로 가기가 있고 관리자 톡톡 FAQ도 종류 탭 → 중분류 → 질문 순서다(사장님 11/22 03:02).",
       "checks": [
-        { "file": "lib/esim-help-chat.ts", "mustInclude": ["REGRESSION-FREEZE[esim-help-chat-categories-1122]", "ESIM_HELP_CATEGORIES", "splitHelpAnswer"] },
-        { "file": "components/bongsim/esim/EsimHelpChat.tsx", "mustInclude": ["data-esim-help-categories", "더 보기", "‹ 처음으로"] },
-        { "file": "lib/talktalk-draft/faq.ts", "mustInclude": ["REGRESSION-FREEZE[esim-help-chat-categories-1122]", "상담원 연결"] },
-        { "file": "app/admin/talktalk-draft/TalktalkDraftClient.tsx", "mustInclude": ["data-talktalk-faq-subgroups"] }
+        {
+          "file": "lib/esim-help-chat.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-help-chat-categories-1122]",
+            "ESIM_HELP_CATEGORIES",
+            "splitHelpAnswer"
+          ]
+        },
+        {
+          "file": "components/bongsim/esim/EsimHelpChat.tsx",
+          "mustInclude": [
+            "data-esim-help-categories",
+            "더 보기",
+            "‹ 처음으로"
+          ]
+        },
+        {
+          "file": "lib/talktalk-draft/faq.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-help-chat-categories-1122]",
+            "상담원 연결"
+          ]
+        },
+        {
+          "file": "app/admin/talktalk-draft/TalktalkDraftClient.tsx",
+          "mustInclude": [
+            "data-talktalk-faq-subgroups"
+          ]
+        }
       ],
-      "vitestSuites": ["lib/esim-help-chat.test.ts"]
+      "vitestSuites": [
+        "lib/esim-help-chat.test.ts"
+      ]
     },
     {
       "id": "esim-help-chat-visible-1122",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "eSIM 상담 입구는 오른쪽 아래 작은 동그란 봉실장 얼굴 아이콘(이름 'eSIM 도움이 필요하세요?')이고 누르면 대화창이 열리며, eSIM 메인·설치 안내·상품 상세·주문 완료·내 eSIM 주문 화면에 붙어 있다.",
       "checks": [
         {
           "file": "components/bongsim/esim/EsimHelpChat.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[esim-help-chat-visible-1122]", "eSIM 도움이 필요하세요?", "data-esim-help-entry", "h-14 w-14", "rounded-full", "aria-expanded={open}"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[esim-help-chat-visible-1122]",
+            "eSIM 도움이 필요하세요?",
+            "data-esim-help-entry",
+            "h-14 w-14",
+            "rounded-full",
+            "aria-expanded={open}"
+          ]
         },
-        { "file": "app/travel/esim/page.tsx", "mustInclude": ["<EsimHelpChat />"] },
-        { "file": "app/travel/esim/guide/install/page.tsx", "mustInclude": ["<EsimHelpChat />"] },
-        { "file": "app/travel/esim/product/[optionApiId]/page.tsx", "mustInclude": ["<EsimHelpChat />"] },
-        { "file": "app/travel/esim/order/[orderId]/complete/page.tsx", "mustInclude": ["<EsimHelpChat />"] },
-        { "file": "app/mypage/esim/MyEsimOrdersClient.tsx", "mustInclude": ["<EsimHelpChat />"] }
+        {
+          "file": "app/travel/esim/page.tsx",
+          "mustInclude": [
+            "<EsimHelpChat />"
+          ]
+        },
+        {
+          "file": "app/travel/esim/guide/install/page.tsx",
+          "mustInclude": [
+            "<EsimHelpChat />"
+          ]
+        },
+        {
+          "file": "app/travel/esim/product/[optionApiId]/page.tsx",
+          "mustInclude": [
+            "<EsimHelpChat />"
+          ]
+        },
+        {
+          "file": "app/travel/esim/order/[orderId]/complete/page.tsx",
+          "mustInclude": [
+            "<EsimHelpChat />"
+          ]
+        },
+        {
+          "file": "app/mypage/esim/MyEsimOrdersClient.tsx",
+          "mustInclude": [
+            "<EsimHelpChat />"
+          ]
+        }
       ]
     },
     {
       "id": "hanjin-ingest-stop-reason",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "한진 화면 수집은 403·429·타임아웃이면 그 자리에서 멈추고 사유만 남긴다. 지역 색인 읽기 실패는 1회만 다시 한다. 호출 간격은 그대로다.",
       "checks": [
         {
@@ -8635,7 +8715,10 @@
     },
     {
       "id": "urgent-expired-departure-link",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "오늘(KST)보다 이전인 저장된 긴급모객 출발일은 카드 링크와 긴급 표시에 쓰지 않는다.",
       "checks": [
         {
@@ -8668,7 +8751,10 @@
     },
     {
       "id": "ybtour-url-departure-floor",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "노랑풍선 상세는 공개 예약 하한 이후의 유효 ?departure= 회차만 고르고, 상담 originCode는 상품 식별자로 둔다.",
       "checks": [
         {
@@ -21679,7 +21765,10 @@
     },
     {
       "id": "products-browse-empty-query-key",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "쿼리 없는 /products 목록은 빈 키로 예외를 내지 않고 기본 browse API를 부른다.",
       "checks": [
         {
@@ -22178,7 +22267,10 @@
     },
     {
       "id": "public-jsonld-script-escape",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "홈·상품 JSON-LD 스크립트는 </script>를 탈출한다",
       "checks": [
         {
@@ -22196,11 +22288,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/seo/product-json-ld.test.ts"]
+      "vitestSuites": [
+        "lib/seo/product-json-ld.test.ts"
+      ]
     },
     {
       "id": "public-card-from-price-shared",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "해외 목록 카드의 동일한 최저가 표기만 한 함수로 둔다",
       "checks": [
         {
@@ -22211,11 +22308,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/public-card-from-price.test.ts"]
+      "vitestSuites": [
+        "lib/public-card-from-price.test.ts"
+      ]
     },
     {
       "id": "optional-tour-money-no-assumed-krw",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "선택관광 금액은 저장된 통화만. 없으면 원·₩로 추정하지 않음",
       "checks": [
         {
@@ -22235,66 +22337,129 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/optional-tours-stored-money.test.ts"]
+      "vitestSuites": [
+        "lib/optional-tours-stored-money.test.ts"
+      ]
     },
     {
       "id": "public-brand-token-exact-hex",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "공개 상세·홈의 기존 브랜드 hex는 같은 값의 토큰 클래스를 쓴다",
       "checks": [
         {
           "file": "app/components/detail/ProductLiveQuoteCard.tsx",
-          "mustInclude": ["bg-bt-text-navy"],
-          "mustNotInclude": ["#1F1B2D", "#2f8fc7"]
+          "mustInclude": [
+            "bg-bt-text-navy"
+          ],
+          "mustNotInclude": [
+            "#1F1B2D",
+            "#2f8fc7"
+          ]
         },
         {
           "file": "app/components/detail/SimilarItineraryDetailShelf.tsx",
-          "mustInclude": ["border-bt-brand-blue-strong", "같은 일정, 공급사별 사실 비교"]
+          "mustInclude": [
+            "border-bt-brand-blue-strong",
+            "같은 일정, 공급사별 사실 비교"
+          ]
         },
         {
           "file": "app/components/home/PersonaTabsClient.tsx",
-          "mustInclude": ["ring-bt-brand-gold-strong"],
-          "mustNotInclude": ["#d9a81e"]
+          "mustInclude": [
+            "ring-bt-brand-gold-strong"
+          ],
+          "mustNotInclude": [
+            "#d9a81e"
+          ]
         }
       ],
-      "vitestSuites": ["lib/public-brand-token-swap.test.ts"]
+      "vitestSuites": [
+        "lib/public-brand-token-swap.test.ts"
+      ]
     },
     {
       "id": "talktalk-faq-specific-topics-1122",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "톡톡 FAQ는 잔여석·출발확정·포함/불포함·유류·팁·쇼핑·1인실·아동·상담원 문의를 좁은 주제로 먼저 고른다",
       "checks": [
         {
           "file": "lib/talktalk-draft/faq.ts",
-          "mustInclude": ["REGRESSION-FREEZE[talktalk-faq-specific-topics-1122]", "rankFaqByTopics", "faq-seat-left", "faq-fuel-surcharge", "faq-guide-tip", "faq-agent-connect"],
-          "mustNotInclude": ["[브랜드명]", "유심사"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[talktalk-faq-specific-topics-1122]",
+            "rankFaqByTopics",
+            "faq-seat-left",
+            "faq-fuel-surcharge",
+            "faq-guide-tip",
+            "faq-agent-connect"
+          ],
+          "mustNotInclude": [
+            "[브랜드명]",
+            "유심사"
+          ]
         },
         {
           "file": "lib/talktalk-autoreply/reply.ts",
-          "mustInclude": ["talktalkSpecificTopicsForText", "rankFaqByTopics"]
+          "mustInclude": [
+            "talktalkSpecificTopicsForText",
+            "rankFaqByTopics"
+          ]
         }
       ],
-      "vitestSuites": ["lib/talktalk-autoreply/faq-coverage-1122.test.ts"]
+      "vitestSuites": [
+        "lib/talktalk-autoreply/faq-coverage-1122.test.ts"
+      ]
     },
     {
       "id": "talktalk-draft-no-send-no-price-invent",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "톡톡 답변 초안은 관리자 표시만 하고 발송·가격 생성을 하지 않는다",
       "checks": [
         {
           "file": "app/api/admin/talktalk-draft/route.ts",
-          "mustInclude": ["requireAdmin", "buildTalktalkDraft", "pickTalktalkCompareCandidates", "sent: false"],
-          "mustNotInclude": ["sendStaffInquiryReply", "naver-talktalk", "openai", "solapi"]
+          "mustInclude": [
+            "requireAdmin",
+            "buildTalktalkDraft",
+            "pickTalktalkCompareCandidates",
+            "sent: false"
+          ],
+          "mustNotInclude": [
+            "sendStaffInquiryReply",
+            "naver-talktalk",
+            "openai",
+            "solapi"
+          ]
         },
         {
           "file": "lib/talktalk-draft/draft.ts",
-          "mustInclude": ["REGRESSION-FREEZE[talktalk-draft-no-send-no-price-invent]", "문의"],
-          "mustNotInclude": ["sendStaffInquiryReply", "openai"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[talktalk-draft-no-send-no-price-invent]",
+            "문의"
+          ],
+          "mustNotInclude": [
+            "sendStaffInquiryReply",
+            "openai"
+          ]
         },
         {
           "file": "lib/talktalk-draft/esim-agent-chat.ts",
-          "mustInclude": ["https://usimsa.channel.io/home", "고객센터 연결링크"],
-          "mustNotInclude": ["유심사", "USIMSA", "sendStaffInquiryReply"]
+          "mustInclude": [
+            "https://usimsa.channel.io/home",
+            "고객센터 연결링크"
+          ],
+          "mustNotInclude": [
+            "유심사",
+            "USIMSA",
+            "sendStaffInquiryReply"
+          ]
         }
       ],
       "vitestSuites": [
@@ -26757,7 +26922,10 @@
     },
     {
       "id": "calendar-add-days-one-impl",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "출발일 수집 창과 등록 하한은 같은 그레고리력 일수 가산을 쓴다. UTC 자정 저장 시각의 표시와 KST 시각 표시는 합치지 않는다.",
       "checks": [
         {
@@ -30173,7 +30341,10 @@
     },
     {
       "id": "register-city-tag-visit-guard",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "등록 도시 태그는 일차 제목·장소 근거만 추가. 비유·거리명·관저·경유·안내문은 추가하지 않음. 정상 다도시·클러스터 대표 노드는 유지",
       "checks": [
         {
@@ -30217,11 +30388,16 @@
           ]
         }
       ],
-      "vitestSuites": ["lib/register-city-tag-guard.test.ts"]
+      "vitestSuites": [
+        "lib/register-city-tag-guard.test.ts"
+      ]
     },
     {
       "id": "menu-city-no-sibling-expand",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "메가메뉴 도시는 그 도시 키만. 클러스터 형제 도시로 펼치지 않음. 클러스터 노드 슬러그는 구성 도시 유지",
       "checks": [
         {
@@ -31117,7 +31293,10 @@
     },
     {
       "id": "travel-day-city-representative-1122",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "봉실장 11:18: 출국·귀국·공항만 있는 날은 빈칸. 11/21·11/22 도시 대표 채움 규칙을 대체. travelDayRepresentativeSights 는 항상 null, process-images 는 planDayPhotoSave 게이트를 쓴다.",
       "checks": [
         {
@@ -32927,7 +33106,10 @@
     },
     {
       "id": "photo-fill-route-sight-1114",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "일정 요약에 명소가 있으면 확인된 관광 없음으로 건너뛰지 않는다. 채움 응답은 실제 채운 칸 수이고 0칸은 성공이 아니다. 키워드가 겹친 풀 일괄 배정은 빈 상품만 덮는다.",
       "checks": [
         {
@@ -33031,7 +33213,10 @@
     },
     {
       "id": "photo-day-keyword-fill",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "자동 채움은 대표만 채우지 않는다. 그날 imageKeyword가 명소면 일차 사진을 검색하고, 다른 도시 키워드만 버린다. 봉실장 11:18: 저장된 키워드도 planDayPhotoSave 게이트를 통과해야 한다.",
       "checks": [
         {
@@ -33053,7 +33238,10 @@
     },
     {
       "id": "photo-wrong-path-1128",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "봉실장 11:18: 저장된 키워드·풀 재사용·도시 키워드 경로도 PR185와 같은 게이트. 원문 명소 1순위, 명소 없을 때만 도시 대표, 출국·귀국·공항만은 빈칸, 같은 파일 다른 상품 재사용 금지, 다른 일차 키워드 금지. 영문 명소 구간·사하라 사막 사전. 틀린 칸은 wrongPhotoReplace가 교체하거나 비움.",
       "checks": [
         {
@@ -33123,7 +33311,10 @@
     },
     {
       "id": "thumbnail-least-used-1121",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "썸네일은 일정 특색 장소를 도시보다 먼저 고르고, 장소 풀은 10~20장, 덜 쓴 사진부터 상품 id로 돌린다. 공급사 사진은 쓰지 않는다. 모자랄 때만 다시 쓴다.",
       "checks": [
         {
@@ -33163,7 +33354,10 @@
     },
     {
       "id": "photo-skip-no-place-day",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "이동·귀국처럼 장소가 없는 날은 사진 필수가 아니고, 그 날의 숙소 키워드는 사진 전 차단 사유가 아니다",
       "checks": [
         {
@@ -33184,7 +33378,10 @@
     },
     {
       "id": "photo-lodging-keyword-place",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "숙소·비장소 일차 키워드는 그날 원문의 명소나 도시로 바꿔 사진을 찾는다. 설명 문장은 그대로 둔다",
       "checks": [
         {
@@ -33229,7 +33426,10 @@
     },
     {
       "id": "photo-byte-cap-1115",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "고른 상품 사진은 대표 200,000B·일차 400,000B 이하로 줄여 저장한다. 폭 1200·품질 55 다음에도 더 줄이고, 그래도 안 되면 원본을 올리지 않는다. 사진 선택은 바꾸지 않는다.",
       "checks": [
         {
@@ -33548,7 +33748,10 @@
     },
     {
       "id": "esim-qr-notify-hold-dry-run",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "오래된 EsimQrNotify는 삭제·종결 없이 보류하고 양보 카운트에서 빼며, dry-run은 Solapi 없이 미처리로 남긴다. 무상 재클릭은 같은 주문을 반환한다.",
       "checks": [
         {
@@ -33598,7 +33801,10 @@
     },
     {
       "id": "esim-callback-auth-amount-gate",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "웰컴페이 콜백은 빈 authSignature·없는 금액·주문 합계와 다른 금액을 승인하지 않는다.",
       "checks": [
         {
@@ -33656,7 +33862,10 @@
     },
     {
       "id": "esim-sandbox-no-live-issue-sms",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "웰컴페이 테스트·USIMSA 비운영·체크아웃 테스트 모드에서는 유심사 실발급과 고객 Solapi 문자를 호출하지 않는다.",
       "checks": [
         {
@@ -33766,7 +33975,10 @@
     },
     {
       "id": "register-photo-day-confirmed-place",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "일차 풀·hero 사진은 그날 장소 관문을 통과해야 한다. 자유·추천은 추천 장소, 출국은 예정지, 귀국은 마지막 체류지, 일정 없는 크루즈·기차는 그 구간 사진만 허용한다. 방향이 없으면 도시를 만들지 않고, 고르지 못한 기존 사진은 지우지 않는다. 예시 생성은 수동 승인만 되며 자동 호출하지 않는다. 다른 활동의 이미 쓴 URL은 다시 고르지 않는다.",
       "checks": [
         {
@@ -33810,7 +34022,10 @@
     },
     {
       "id": "speed-home-responsive-images",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "같은 파일명의 mobile 형제는 동일 원본 증거가 있을 때만 고른다. 증거가 없으면 기존 URL을 유지하고 training srcset에 다른 그림을 섞지 않는다. 로딩 헤더 로고는 high priority 아님. Pexels srcset은 작성 w 이하. Ncloud URL은 그대로.",
       "checks": [
         {
@@ -33833,22 +34048,33 @@
         },
         {
           "file": "components/route-loading/HomePageLoading.tsx",
-          "mustInclude": ["logoPriority={false}"]
+          "mustInclude": [
+            "logoPriority={false}"
+          ]
         },
         {
           "file": "components/route-loading/ProductsBrowseLoading.tsx",
-          "mustInclude": ["logoPriority={false}"]
+          "mustInclude": [
+            "logoPriority={false}"
+          ]
         },
         {
           "file": "app/components/SafeImage.tsx",
-          "mustInclude": ["nativeSrcSet"]
+          "mustInclude": [
+            "nativeSrcSet"
+          ]
         }
       ],
-      "vitestSuites": ["lib/responsive-home-image.test.ts"]
+      "vitestSuites": [
+        "lib/responsive-home-image.test.ts"
+      ]
     },
     {
       "id": "seo-design-public-fixes",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "정적 sitemap URL은 lastmod를 비우고, 상품·연수 행만 updatedAt을 쓴다. 메가메뉴는 입력 종류를 가른다.",
       "checks": [
         {
@@ -33858,7 +34084,10 @@
             "/travel/esim/help/setup-guide",
             "정적 URL에는 lastModified를 넣지 않는다"
           ],
-          "mustNotInclude": ["latestContentUpdatedAt", "contentUpdatedAt"]
+          "mustNotInclude": [
+            "latestContentUpdatedAt",
+            "contentUpdatedAt"
+          ]
         },
         {
           "file": "app/components/seo/ProductJsonLd.tsx",
@@ -33866,11 +34095,17 @@
             "buildTouristTripJsonLd",
             "productData && itinerary"
           ],
-          "mustNotInclude": ["offers: buildOffersNode"]
+          "mustNotInclude": [
+            "offers: buildOffersNode"
+          ]
         },
         {
           "file": "components/top-nav/OverseasMegaMenuHoverTrigger.tsx",
-          "mustInclude": ["aria-expanded", "min-h-11", "onDecide"]
+          "mustInclude": [
+            "aria-expanded",
+            "min-h-11",
+            "onDecide"
+          ]
         },
         {
           "file": "lib/mega-menu-interaction.ts",
@@ -33882,484 +34117,809 @@
         },
         {
           "file": "lib/kakao-consult-href.ts",
-          "mustInclude": ["productCode", "productTitle"]
+          "mustInclude": [
+            "productCode",
+            "productTitle"
+          ]
         },
         {
           "file": "components/bongtour/KakaoChannelConsultLink.tsx",
-          "mustInclude": ["kakaoConsultHref", "min-h-11"]
+          "mustInclude": [
+            "kakaoConsultHref",
+            "min-h-11"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo-design-fixes.test.ts", "lib/mega-menu-interaction.test.ts"]
+      "vitestSuites": [
+        "lib/seo-design-fixes.test.ts",
+        "lib/mega-menu-interaction.test.ts"
+      ]
     },
     {
       "id": "departure-legacy-ymd-slot-reconcile",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "출발일 동기화: 날짜키(YYYY-MM-DD) 레거시 행과 회차코드 행이 같은 날 중복 생성되지 않게, 단일 회차면 기존 행을 재사용한다. 회차가 여럿이면 건드리지 않는다.",
       "checks": [
         {
           "file": "lib/departure-legacy-slot-reconcile.ts",
-          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "planLegacyYmdSlotReconcile", "skippedAmbiguousYmd"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]",
+            "planLegacyYmdSlotReconcile",
+            "skippedAmbiguousYmd"
+          ]
         },
         {
           "file": "lib/upsert-product-departures-modetour.ts",
-          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]",
+            "reconcileLegacyYmdDepartureSlots("
+          ]
         },
         {
           "file": "lib/upsert-product-departures-ybtour.ts",
-          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]",
+            "reconcileLegacyYmdDepartureSlots("
+          ]
         },
         {
           "file": "lib/upsert-product-departures-hanatour.ts",
-          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]",
+            "reconcileLegacyYmdDepartureSlots("
+          ]
         },
         {
           "file": "lib/upsert-product-departures-verygoodtour.ts",
-          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]",
+            "reconcileLegacyYmdDepartureSlots("
+          ]
         },
         {
           "file": "lib/upsert-product-departures-kyowontour.ts",
-          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]",
+            "reconcileLegacyYmdDepartureSlots("
+          ]
         },
         {
           "file": "lib/upsert-product-departures-naeiltour.ts",
-          "mustInclude": ["REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]", "reconcileLegacyYmdDepartureSlots("]
+          "mustInclude": [
+            "REGRESSION-FREEZE[departure-legacy-ymd-slot-reconcile]",
+            "reconcileLegacyYmdDepartureSlots("
+          ]
         }
       ],
-      "vitestSuites": ["lib/departure-legacy-slot-reconcile.test.ts"]
+      "vitestSuites": [
+        "lib/departure-legacy-slot-reconcile.test.ts"
+      ]
     },
     {
       "id": "hanatour-itnr-cms-over-photo-alt",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "하나투어 일정 카드: cms 장소명이 있으면 사진 alt 캡션(타 지역 열차 사진 등)을 장소로 쓰지 않는다.",
       "checks": [
         {
           "file": "lib/hanatour-register-api-detail.ts",
-          "mustInclude": ["REGRESSION-FREEZE[hanatour-itnr-cms-over-photo-alt]", "if (out.length > 0) return out"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[hanatour-itnr-cms-over-photo-alt]",
+            "if (out.length > 0) return out"
+          ]
         }
       ],
-      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+      "vitestSuites": [
+        "lib/process7-schedule-parser-fixtures.test.ts"
+      ]
     },
     {
       "id": "ybtour-tm-notice-section-not-route",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "ybtour TM 일정: 기타사항·준비물 등 안내 구획부터는 장소·경로로 쓰지 않고, 자유 식사 문구도 장소에서 뺀다.",
       "checks": [
         {
           "file": "lib/ybtour-register-api-schedule.ts",
-          "mustInclude": ["REGRESSION-FREEZE[ybtour-tm-notice-section-not-route]", "isYbtourTmNoticeSectionHead(trimmed)", "YBTOUR_TM_FREE_MEAL_RE"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[ybtour-tm-notice-section-not-route]",
+            "isYbtourTmNoticeSectionHead(trimmed)",
+            "YBTOUR_TM_FREE_MEAL_RE"
+          ]
         }
       ],
-      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+      "vitestSuites": [
+        "lib/process7-schedule-parser-fixtures.test.ts"
+      ]
     },
     {
       "id": "verygoodtour-schedule-notice-accordion-not-route",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "verygoodtour 일정: 필독·유의사항·동반 출국 등 안내 아코디언 제목은 관광지·설명·경로에 넣지 않는다.",
       "checks": [
         {
           "file": "lib/verygoodtour-register-schedule-item-parse.ts",
-          "mustInclude": ["REGRESSION-FREEZE[verygoodtour-schedule-notice-accordion-not-route]", "isVerygoodScheduleNoticeHead"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[verygoodtour-schedule-notice-accordion-not-route]",
+            "isVerygoodScheduleNoticeHead"
+          ]
         }
       ],
-      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+      "vitestSuites": [
+        "lib/process7-schedule-parser-fixtures.test.ts"
+      ]
     },
     {
       "id": "schedule-photo-step-keeps-supplier-original",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "사진 단계(process-images)가 schedule 을 다시 쓸 때 등록 때 저장된 supplierOriginal·숙소·식사를 지우지 않는다.",
       "checks": [
         {
           "file": "lib/schedule-stored-day-evidence-preserve.ts",
-          "mustInclude": ["REGRESSION-FREEZE[schedule-photo-step-keeps-supplier-original]", "'supplierOriginal'"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-photo-step-keeps-supplier-original]",
+            "'supplierOriginal'"
+          ]
         },
         {
           "file": "app/api/travel/process-images/route.ts",
-          "mustInclude": ["REGRESSION-FREEZE[schedule-photo-step-keeps-supplier-original]", "parseStoredScheduleRows(product.schedule)", "preserveStoredScheduleDayEvidence(preserveScheduleRouteText("]
+          "mustInclude": [
+            "REGRESSION-FREEZE[schedule-photo-step-keeps-supplier-original]",
+            "parseStoredScheduleRows(product.schedule)",
+            "preserveStoredScheduleDayEvidence(preserveScheduleRouteText("
+          ]
         }
       ],
-      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+      "vitestSuites": [
+        "lib/process7-schedule-parser-fixtures.test.ts"
+      ]
     },
     {
       "id": "register-route-raw-from-fact-flights",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "API 등록 경로: routeRaw 가 비어 있으면 공급사 구조화 항공 구간(편명·출발·도착 도시)으로 원문 근거를 채운다. 기존 값은 덮지 않는다.",
       "checks": [
         {
           "file": "lib/register-facts/route-raw-from-fact-flights.ts",
-          "mustInclude": ["REGRESSION-FREEZE[register-route-raw-from-fact-flights]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[register-route-raw-from-fact-flights]"
+          ]
         },
         {
           "file": "lib/hanatour-register-api-parse.ts",
-          "mustInclude": ["applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"]
+          "mustInclude": [
+            "applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"
+          ]
         },
         {
           "file": "lib/ybtour-register-api-parse.ts",
-          "mustInclude": ["applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"]
+          "mustInclude": [
+            "applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"
+          ]
         },
         {
           "file": "lib/modetour-register-api-parse.ts",
-          "mustInclude": ["applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"]
+          "mustInclude": [
+            "applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"
+          ]
         },
         {
           "file": "lib/verygoodtour-register-api-parse.ts",
-          "mustInclude": ["applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"]
+          "mustInclude": [
+            "applyRegisterRouteRawFromFactFlights(parsed, bundle.flights)"
+          ]
         }
       ],
-      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+      "vitestSuites": [
+        "lib/process7-schedule-parser-fixtures.test.ts"
+      ]
     },
     {
       "id": "itinerary-day-city-only",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "ItineraryDay.city 에는 공급사 도시 칸(cityText)만 저장한다. 일차 제목·경로 문자열로 채우지 않는다.",
       "checks": [
         {
           "file": "lib/itinerary-day-city.ts",
-          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-day-city-only]"
+          ]
         },
         {
           "file": "lib/upsert-itinerary-days-hanatour.ts",
-          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]", "city: trimNull(s.cityText)"],
-          "mustNotInclude": ["city: title || routeText"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-day-city-only]",
+            "city: trimNull(s.cityText)"
+          ],
+          "mustNotInclude": [
+            "city: title || routeText"
+          ]
         },
         {
           "file": "lib/upsert-itinerary-days-modetour.ts",
-          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]"],
-          "mustNotInclude": ["city: routeText || null"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-day-city-only]"
+          ],
+          "mustNotInclude": [
+            "city: routeText || null"
+          ]
         },
         {
           "file": "lib/upsert-itinerary-days-verygoodtour.ts",
-          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]"],
-          "mustNotInclude": ["city: trimNull(title)"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-day-city-only]"
+          ],
+          "mustNotInclude": [
+            "city: trimNull(title)"
+          ]
         },
         {
           "file": "lib/upsert-itinerary-days-ybtour.ts",
-          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]", "const city = trimNull(s.cityText)"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-day-city-only]",
+            "const city = trimNull(s.cityText)"
+          ]
         },
         {
           "file": "lib/verygoodtour-itinerary-collector.ts",
-          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]", "row.cityText"],
-          "mustNotInclude": ["city: row.title"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-day-city-only]",
+            "row.cityText"
+          ],
+          "mustNotInclude": [
+            "city: row.title"
+          ]
         },
         {
           "file": "lib/ybtour-register-api-detail.ts",
-          "mustInclude": ["REGRESSION-FREEZE[itinerary-day-city-only]", "ybtourTmRowsCityText(tmRows)"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[itinerary-day-city-only]",
+            "ybtourTmRowsCityText(tmRows)"
+          ]
         }
       ],
-      "vitestSuites": ["lib/process7-schedule-parser-fixtures.test.ts"]
+      "vitestSuites": [
+        "lib/process7-schedule-parser-fixtures.test.ts"
+      ]
     },
     {
       "id": "bookable-derived-departure-seoul-date",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "예약 가능 집계(트리거 함수·매일 일괄 동기화)는 departureDate 를 UTC instant 로 읽어 서울 날짜로 비교한다. AT TIME ZONE 'Asia/Seoul' 단독 비교(하루 앞당김) 금지. 마이그레이션은 GRANT·RLS 불변.",
       "checks": [
         {
           "file": "lib/product-bookable-derived-sync.ts",
-          "mustInclude": ["REGRESSION-FREEZE[bookable-derived-departure-seoul-date]", "AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Seoul')::date", "${BOOKABLE_DEPARTURE_SEOUL_DATE_SQL} >= bm.d"],
-          "mustNotInclude": ["(pd.\"departureDate\" AT TIME ZONE 'Asia/Seoul')::date"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[bookable-derived-departure-seoul-date]",
+            "AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Seoul')::date",
+            "${BOOKABLE_DEPARTURE_SEOUL_DATE_SQL} >= bm.d"
+          ],
+          "mustNotInclude": [
+            "(pd.\"departureDate\" AT TIME ZONE 'Asia/Seoul')::date"
+          ]
         },
         {
           "file": "supabase/migrations/20261114120000_fix_bookable_derived_departure_seoul_date.sql",
-          "mustInclude": ["REGRESSION-FREEZE[bookable-derived-departure-seoul-date]", "((pd.\"departureDate\" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Seoul')::date >= v_min_date", "GRANT EXECUTE ON FUNCTION public.fn_sync_product_bookable_derived(TEXT) TO PUBLIC;", "GRANT: 변경 없음", "RLS: 변경 없음"],
-          "mustNotInclude": ["(pd.\"departureDate\" AT TIME ZONE 'Asia/Seoul')::date"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[bookable-derived-departure-seoul-date]",
+            "((pd.\"departureDate\" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Seoul')::date >= v_min_date",
+            "GRANT EXECUTE ON FUNCTION public.fn_sync_product_bookable_derived(TEXT) TO PUBLIC;",
+            "GRANT: 변경 없음",
+            "RLS: 변경 없음"
+          ],
+          "mustNotInclude": [
+            "(pd.\"departureDate\" AT TIME ZONE 'Asia/Seoul')::date"
+          ]
         }
       ],
-      "vitestSuites": ["lib/product-bookable-derived-sync.test.ts"]
+      "vitestSuites": [
+        "lib/product-bookable-derived-sync.test.ts"
+      ]
     },
     {
       "id": "seo-business-programs-cta",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "/business/programs 실제 업무 범위 문구 + 문의 버튼 2개",
       "checks": [
         {
           "file": "components/training/TrainingProgramsCatalog.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-business-programs-cta]", "/inquiry?type=training", "/inquiry?type=institution"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-business-programs-cta]",
+            "/inquiry?type=training",
+            "/inquiry?type=institution"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-fix-1114",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "검색노출 수정 1114 vitest",
       "checks": [
         {
           "file": "lib/seo/seo-fix-1114.test.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-fix-1114]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-fix-1114]"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-home-image-alt",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "홈·목록 상품/도시 사진 alt 비우지 않음",
       "checks": [
         {
           "file": "app/components/home/HomeMobileHub.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-home-image-alt]"
+          ]
         },
         {
           "file": "app/components/home/HomeReviewsGridClient.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-home-image-alt]"
+          ]
         },
         {
           "file": "app/components/home/PersonaTabsClient.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-home-image-alt]"
+          ]
         },
         {
           "file": "app/components/home/SeasonCurationCarouselClient.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-home-image-alt]"
+          ]
         },
         {
           "file": "app/components/home/ServiceInfoCards.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-home-image-alt]"
+          ]
         },
         {
           "file": "components/products/ProductResultsList.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-home-image-alt]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-home-image-alt]"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-html-limited-bots-googlebot",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "Googlebot·bingbot 등 검색 크롤러는 metadata(canonical 등)를 <head> 에 받는다 — Next 15 스트리밍 메타 시 body 로 밀려 서치 콘솔 \"사용자 선택 표준 없음 중복\" 원인",
       "checks": [
         {
           "file": "lib/seo/html-limited-bots.js",
-          "mustInclude": ["REGRESSION-FREEZE[seo-html-limited-bots-googlebot]", "Googlebot", "bingbot", "Yeti"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-html-limited-bots-googlebot]",
+            "Googlebot",
+            "bingbot",
+            "Yeti"
+          ]
         },
         {
           "file": "next.config.js",
-          "mustInclude": ["REGRESSION-FREEZE[seo-html-limited-bots-googlebot]", "htmlLimitedBots: SEO_HTML_LIMITED_BOTS"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-html-limited-bots-googlebot]",
+            "htmlLimitedBots: SEO_HTML_LIMITED_BOTS"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-image-sitemap-valid-xml",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "이미지 사이트맵 XML 유효(제어문자 제거·절대 https·중복 제거)·국외연수 정식 주소",
       "checks": [
         {
           "file": "app/sitemap-images.xml/route.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-image-sitemap-valid-xml]", "buildImageSitemapXml", "trainingProgramPublicPath"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-image-sitemap-valid-xml]",
+            "buildImageSitemapXml",
+            "trainingProgramPublicPath"
+          ]
         },
         {
           "file": "lib/seo/image-sitemap.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-image-sitemap-valid-xml]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-image-sitemap-valid-xml]"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-indexnow-skip-on-failure",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "상품 등록·수정·삭제 → 사이트맵 무효화 + IndexNow(키 없으면 SKIP, 실패 SKIP, 재시도 최대 1회, 비차단). Google Indexing API 금지",
       "checks": [
         {
           "file": "app/api/admin/products/[id]/route.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"
+          ]
         },
         {
           "file": "app/api/admin/products/route.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"
+          ]
         },
         {
           "file": "app/indexnow-key.txt/route.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"
+          ]
         },
         {
           "file": "lib/register-auto-photo-register-job.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"
+          ]
         },
         {
           "file": "lib/seo/indexnow.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]", "INDEXNOW_KEY", "retryDelayMs"],
-          "mustNotInclude": ["indexing.googleapis.com"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-indexnow-skip-on-failure]",
+            "INDEXNOW_KEY",
+            "retryDelayMs"
+          ],
+          "mustNotInclude": [
+            "indexing.googleapis.com"
+          ]
         },
         {
           "file": "lib/seo/product-index-events.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"],
-          "mustNotInclude": ["indexing.googleapis.com"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-indexnow-skip-on-failure]"
+          ],
+          "mustNotInclude": [
+            "indexing.googleapis.com"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-inquiry-og-image",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "/inquiry og·twitter 이미지 비어 있음 금지",
       "checks": [
         {
           "file": "app/inquiry/page.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-inquiry-og-image]", "DEFAULT_OG_IMAGE_PATH"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-inquiry-og-image]",
+            "DEFAULT_OG_IMAGE_PATH"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-list-ssr-index",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "목록 페이지 JS 없는 HTML 에 h1 + 공개 상품 링크",
       "checks": [
         {
           "file": "app/components/travel/overseas/OverseasBrowseSlot.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-list-ssr-index]"
+          ]
         },
         {
           "file": "app/components/travel/overseas/OverseasHubCatalogRoot.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-list-ssr-index]"
+          ]
         },
         {
           "file": "app/products/page.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-list-ssr-index]"
+          ]
         },
         {
           "file": "app/travel/overseas/page.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-list-ssr-index]"
+          ]
         },
         {
           "file": "components/seo/PublicProductSsrIndex.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-list-ssr-index]"
+          ]
         },
         {
           "file": "lib/public-product-ssr-index.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-list-ssr-index]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-list-ssr-index]"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-product-detail-single-h1",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "상품 상세 문서 h1 1개 (sticky 카드 제목은 p)",
       "checks": [
         {
           "file": "app/components/detail/product-detail-visual.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-product-detail-single-h1]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-product-detail-single-h1]"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-root-layout-no-og-url-robots",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "루트 layout 에 og:url=/ 기본값·robots 기본값 금지 (하위 페이지 og:url=홈, 404 noindex 충돌)",
       "checks": [
         {
           "file": "app/layout.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-root-layout-no-og-url-robots]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-root-layout-no-og-url-robots]"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-search-copy-esim-travel",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "검색 노출 문구(title·description·og·JSON-LD)는 eSIM(여행용)·고객센터 — 공급사(유심사/USIMSA) 이름 금지",
       "checks": [
         {
           "file": "app/travel/esim/product/[optionApiId]/page.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-search-copy-esim-travel]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-search-copy-esim-travel]"
+          ]
         },
         {
           "file": "lib/home-page-metadata.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-search-copy-esim-travel]", "eSIM(여행용)", "국외연수"],
-          "mustNotInclude": ["USIMSA", "유심사 eSIM"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-search-copy-esim-travel]",
+            "eSIM(여행용)",
+            "국외연수"
+          ],
+          "mustNotInclude": [
+            "USIMSA",
+            "유심사 eSIM"
+          ]
         },
         {
           "file": "lib/seo/esim-search-metadata.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-search-copy-esim-travel]", "'eSIM(여행용)'", "'고객센터'"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-search-copy-esim-travel]",
+            "'eSIM(여행용)'",
+            "'고객센터'"
+          ]
         },
         {
           "file": "lib/seo/site-json-ld.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-search-copy-esim-travel]"],
-          "mustNotInclude": ["USIMSA", "유심사 eSIM"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-search-copy-esim-travel]"
+          ],
+          "mustNotInclude": [
+            "USIMSA",
+            "유심사 eSIM"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-sitemap-db-public-only",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "사이트맵은 DB 공개 상품만(lastmod=updatedAt), 삭제·비공개 제외",
       "checks": [
         {
           "file": "app/sitemap.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-sitemap-db-public-only]", "sitemapPublicProductWhere"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-sitemap-db-public-only]",
+            "sitemapPublicProductWhere"
+          ]
         },
         {
           "file": "lib/revalidate-product-listing-caches.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-sitemap-db-public-only]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-sitemap-db-public-only]"
+          ]
         },
         {
           "file": "lib/sitemap-product-where.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-sitemap-db-public-only]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-sitemap-db-public-only]"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-training-og-jsonld",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "/business·/business/programs·상세 페이지별 og·BreadcrumbList·ItemList/TouristTrip JSON-LD",
       "checks": [
         {
           "file": "app/business/page.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-og-jsonld]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-og-jsonld]"
+          ]
         },
         {
           "file": "app/business/programs/[slug]/page.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-og-jsonld]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-og-jsonld]"
+          ]
         },
         {
           "file": "app/business/programs/page.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-og-jsonld]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-og-jsonld]"
+          ]
         },
         {
           "file": "lib/seo/training-json-ld.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-og-jsonld]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-og-jsonld]"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "seo-training-products-301",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "국외연수 /products/otr-bt-* → /business/programs/* 301 (같은 프로그램 정식 주소)",
       "checks": [
         {
           "file": "app/api/public/product-path-status/route.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-products-301]"
+          ]
         },
         {
           "file": "app/products/[idOrSlug]/page.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-products-301]"
+          ]
         },
         {
           "file": "app/products/[idOrSlug]/product-detail-page-content.tsx",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-products-301]"
+          ]
         },
         {
           "file": "lib/product-path-status-from-lookup.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-products-301]"
+          ]
         },
         {
           "file": "lib/product-path-status.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-products-301]"
+          ]
         },
         {
           "file": "lib/resolve-product-by-path-segment.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-products-301]"
+          ]
         },
         {
           "file": "middleware.ts",
-          "mustInclude": ["REGRESSION-FREEZE[seo-training-products-301]", "status?.kind === 'redirect_path'"]
+          "mustInclude": [
+            "REGRESSION-FREEZE[seo-training-products-301]",
+            "status?.kind === 'redirect_path'"
+          ]
         }
       ],
-      "vitestSuites": ["lib/seo/seo-fix-1114.test.ts"]
+      "vitestSuites": [
+        "lib/seo/seo-fix-1114.test.ts"
+      ]
     },
     {
       "id": "departure-cache-from-rows",
@@ -34593,7 +35153,10 @@
     },
     {
       "id": "airline-compare-canonical-1120",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "항공사 비교 표시는 공급사 원문만 쓰고, 코드와 띄어쓴 이름은 고정 테이블의 한글명으로 한 줄. 가는 편만 보고 오는 편 항공사를 바꾸지 않는다. 목록 필터는 카탈로그 밖 항공사를 기타로 뭉개지 않는다. 390px 다른 항공사 목록은 이름을 자르지 않는다.",
       "checks": [
         {
@@ -34634,7 +35197,10 @@
     },
     {
       "id": "public-itinerary-route-map-removed",
-      "tier": ["prebuild", "ci"],
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
       "summary": "공개 상세에서 일정 동선 지도 칸을 그리지 않고, 이미지 처리·등록 확인·등록 전환에서 그 지도를 자동 생성하지 않는다. 저장본과 생성 모듈 파일은 남긴다.",
       "checks": [
         {
@@ -35020,6 +35586,46 @@
       ],
       "vitestSuites": [
         "lib/free-src-1128.test.ts"
+      ]
+    },
+    {
+      "id": "photo-wrong-slot-reinspect-1128",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "기존 저장 틀린 칸을 원문 명소·출처 메타로 재검사해 틀린 칸만 교체(비우지 않음). 도시명 단독·일반명사 검색 차단. 검색어는 한국어 재영작이 아니라 공식 고유명(R03-23: Xiangbi Shan, Souq Waqif, Nagoya Castle).",
+      "checks": [
+        {
+          "file": "lib/photo-wrong-slot-reinspect-1128.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-wrong-slot-reinspect-1128]",
+            "Xiangbi Shan",
+            "Souq Waqif",
+            "Nagoya Castle",
+            "SOURCE_META_MISMATCH_DETAIL"
+          ]
+        },
+        {
+          "file": "lib/register-schedule-city-soft-alts.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-wrong-slot-reinspect-1128]",
+            "Atsuta Shrine",
+            "Souq Waqif"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-wrong-slot-reinspect-1128]",
+            "Xiangbi Shan",
+            "Souq Waqif",
+            "Nagoya Castle"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-wrong-slot-reinspect-1128.test.ts"
       ]
     }
   ],

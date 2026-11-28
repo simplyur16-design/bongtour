@@ -23,13 +23,14 @@ import {
   foldPhotoText,
   scheduleOtherDaysText,
   scheduleRowSupplierText,
+  isCityOnlySight,
   sightMatchInText,
   sightProfile,
   sightsOverlap,
 } from '@/lib/photo-autofill-sight'
 import { textHasMonochromeMarker } from '@/lib/photo-monochrome-text-1122'
 import { planDayPhotoSave } from '@/lib/photo-day-save-gate-1128'
-import { photoCandidateText } from '@/lib/register-photo-subject-filter'
+import { photoCandidateText, photoSubjectBlockReason } from '@/lib/register-photo-subject-filter'
 
 export type RegistrationPhotoReason =
   | 'photo_sight_mismatch'
@@ -56,8 +57,10 @@ export const WRONG_PHOTO_REPLACE_REASONS: ReadonlySet<RegistrationPhotoReason> =
   'photo_public_duplicate',
 ])
 
-/** '저장된 명소가 그날 원문 명소에 없음' — 근거가 확실한 불일치(공개 상품 교체는 이것만) */
+/** '저장된 명소가 그날 원문 명소에 없음' — 근거가 확실한 불일치(공개 상품 교체 대상) */
 export const STORED_SIGHT_MISMATCH_DETAIL = 'stored sight not in day:'
+/** '출처 메타(원본 페이지·제목·alt)가 그날 정답 명소와 다름' — 이름-내용 불일치(공개 상품 교체 대상) */
+export const SOURCE_META_MISMATCH_DETAIL = 'source_meta_not_sight:'
 
 // REGRESSION-FREEZE[photo-replace-wrong-1128]: AI(Gemini) 생성 사진 표시(출처 이름·주소) — manifest
 const AI_SOURCE_RE = /gemini|imagen|ai[_ -]?gen|generated/i
@@ -98,6 +101,28 @@ function coverLocked(source: string | null | undefined): boolean {
 
 function textOf(link: string | null | undefined): string {
   return foldPhotoText(photoCandidateText([link]).replace(/\b(pexels|unsplash|photo|photos|free|stock|image|com|www|https?)\b/gi, ' '))
+}
+
+const OUR_STORAGE_RE = /ncloudstorage\.com|objectstorage|\/photo-pool\//i
+const STOCK_NOISE_RE = /\b(pexels|unsplash|pixabay|openverse|photo|photos|free|stock|image|images|com|www|https?|wiki|file|commons|wikipedia|upload)\b/gi
+
+/** 저장 칸의 출처 메타만(원본 페이지·alt·title·tags). 우리 저장소 파일명은 증거로 쓰지 않는다. */
+export function storedSourceEvidenceText(src: Record<string, unknown>, raw: Record<string, unknown>): string {
+  const link = String(src.originalLink ?? raw.imageSourcePageUrl ?? '')
+  const linkOk = link && !OUR_STORAGE_RE.test(link) ? link : ''
+  const alt = typeof raw.imageAlt === 'string' ? raw.imageAlt : ''
+  const title = typeof src.title === 'string' ? src.title : typeof src.alt === 'string' ? src.alt : ''
+  const tags = Array.isArray(src.tags) ? src.tags.filter((x): x is string => typeof x === 'string').join(' ') : typeof src.tags === 'string' ? src.tags : ''
+  return foldPhotoText(photoCandidateText([alt, title, tags, linkOk]).replace(STOCK_NOISE_RE, ' '))
+}
+
+function evidenceHasEnoughTokens(text: string): boolean {
+  return text.split(' ').filter((t) => t.length >= 3 && !/^\d+$/.test(t)).length >= 2
+}
+
+function sourceMetaConflictsWithSights(evidence: string, sights: readonly string[], anchors: readonly string[]): boolean {
+  if (!evidenceHasEnoughTokens(evidence)) return false
+  return !sights.some((s) => sightMatchInText(sightProfile(s), evidence, anchors) != null)
 }
 
 export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok: boolean; blocks: RegistrationPhotoBlock[] } {
@@ -205,32 +230,66 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
         push({ kind: 'day', day, reason: 'photo_travel_day_empty', detail: plan.reason })
         continue
       }
-      if (text.length >= 3 && photoSubjectIsTextOrMap(text, d.sights)) {
+      const expectedSights = (plan.action === 'search' ? plan.sights : []).filter((s) => !isCityOnlySight(s) && sightProfile(s).kind !== 'city')
+      if (text.length >= 3 && photoSubjectIsTextOrMap(text, expectedSights.length ? expectedSights : d.sights)) {
         push({ kind: 'day', day, reason: 'photo_text_map', detail: text.slice(0, 80) })
       }
-      if (d.sights.length === 0) continue
-      const anchors = [...d.cityTerms, ...input.destinationTerms]
-      const profiles = d.sights.map(sightProfile)
+      // 정답 명소는 plan(원문 1순위·출국/귀국/이동일 대표명소). 잔여 imageKeyword 가 들어간 derive 만으로는 통과시키지 않는다.
+      if (expectedSights.length === 0) continue
+      const anchors = [...plan.derived.cityTerms, ...input.destinationTerms]
       const storedSight = String(src.sight ?? '').trim()
-      const evidence =
-        String(src.sightMatch ?? '').trim() !== '' &&
+      const evidenceText = storedSourceEvidenceText(src, raw)
+      const slotText = [raw.title, raw.routeText, raw.description].map((x) => (typeof x === 'string' ? x : '')).join(' ')
+      const subjectBlock = photoSubjectBlockReason(evidenceText || text, {
+        query: expectedSights[0] ?? null,
+        destination: input.destinationTerms.join(' '),
+        productText: slotText,
+      })
+      if (subjectBlock === 'interior_not_place' || subjectBlock === 'animal_not_in_itinerary' || subjectBlock === 'unrelated_object') {
+        push({ kind: 'day', day, reason: 'photo_irrelevant_subject', detail: `${subjectBlock}: ${(evidenceText || text).slice(0, 60)}` })
+        continue
+      }
+      const labelFits =
         storedSight !== '' &&
-        profiles.some((p) => sightsOverlap(p, sightProfile(storedSight)) || foldPhotoText(p.name) === foldPhotoText(storedSight))
-      if (evidence) continue
-      const textHit = text.length >= 3 && profiles.some((p) => sightMatchInText(p, text, anchors) != null)
-      if (!textHit) {
+        !isCityOnlySight(storedSight) &&
+        expectedSights.some((s) => {
+          const p = sightProfile(s)
+          return sightsOverlap(p, sightProfile(storedSight)) || foldPhotoText(p.name) === foldPhotoText(storedSight)
+        })
+      const metaConflicts = sourceMetaConflictsWithSights(evidenceText, expectedSights, anchors)
+      // 저장 라벨이 그날 정답 명소가 아니면 그 사유를 우선(다른 날 키워드). 라벨은 맞는데 출처 메타가 다르면 이름-내용.
+      if (!labelFits && storedSight !== '') {
         push({
           kind: 'day',
           day,
           reason: 'photo_sight_mismatch',
-          detail:
-            storedSight !== ''
-              ? `${STORED_SIGHT_MISMATCH_DETAIL} "${storedSight.slice(0, 40)}" vs ${d.sights.slice(0, 2).join(' / ').slice(0, 60)}`
-              : text.length >= 3
-                ? `no sight in "${text.slice(0, 60)}"`
-                : 'unverified (no title/tags)',
+          detail: `${STORED_SIGHT_MISMATCH_DETAIL} "${storedSight.slice(0, 40)}" vs ${expectedSights.slice(0, 2).join(' / ').slice(0, 60)}`,
         })
+        continue
       }
+      if (metaConflicts) {
+        push({
+          kind: 'day',
+          day,
+          reason: 'photo_sight_mismatch',
+          detail: `${SOURCE_META_MISMATCH_DETAIL} "${evidenceText.slice(0, 60)}" vs ${expectedSights.slice(0, 2).join(' / ').slice(0, 60)}`,
+        })
+        continue
+      }
+      if (labelFits) continue
+      const textHit = evidenceText.length >= 3 && expectedSights.some((s) => sightMatchInText(sightProfile(s), evidenceText, anchors) != null)
+      if (textHit) continue
+      push({
+        kind: 'day',
+        day,
+        reason: 'photo_sight_mismatch',
+        detail:
+          storedSight !== ''
+            ? `${STORED_SIGHT_MISMATCH_DETAIL} "${storedSight.slice(0, 40)}" vs ${expectedSights.slice(0, 2).join(' / ').slice(0, 60)}`
+            : evidenceText.length >= 3
+              ? `no sight in "${evidenceText.slice(0, 60)}"`
+              : 'unverified (no title/tags)',
+      })
     }
   }
   return { ok: blocks.length === 0, blocks }

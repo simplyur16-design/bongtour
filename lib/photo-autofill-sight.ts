@@ -62,6 +62,8 @@ export const SIGHT_ALIAS_GROUPS: ReadonlyArray<readonly string[]> = [
   ['cours mirabeau', 'aix en provence cours mirabeau'],
   ['valensole', 'valensole lavender', 'valensole plateau'],
   ['gordes', 'village of gordes'],
+  // R03-23: 현지 공식명 상비산(象鼻山, Xiangbi Shan). 공식 영문 Elephant Trunk Hill(Wikidata Q5359378)은 별칭만 — 검색어는 재영작하지 않음
+  ['xiangbi shan', 'xiangbishan', '象鼻山', 'elephant trunk hill', 'elephant trunk', 'elephant hill', '코끼리코 언덕', '코끼리코언덕'],
 ]
 
 const GENERIC_NOUNS = new Set([
@@ -301,9 +303,9 @@ export function ownDayOverlap(a: SightProfile, b: SightProfile): boolean {
 const EXTRA_KOREAN_CITY_WORDS = ['장가계', '시즈오카', '상해', '상하이', '하노이', '다낭', '파타야', '방콕', '싱가포르', '칭다오', '고베', '교토', '나라', '오사카', '후쿠오카',
   // REGRESSION-FREEZE[place-dict-1128]: 도시 이름만 맞은 사전 규칙(잘츠부르크→호엔잘츠부르크 요새)은 그날 명소 근거가 아니다 — manifest
   '서안', '시안', '항주', '항저우', '잘츠부르크', '리마', '델리', '뉴델리', '크라이스트처치', '오클랜드', '로토루아', '가오슝', '오슬로', '포르투',
-  '상파울루', '아디스아바바', '베이커스필드', '하와이', '오아후', '아부다비', '바라나시', '아그라', '푸켓', '샌프란시스코']
+  '상파울루', '아디스아바바', '베이커스필드', '하와이', '오아후', '아부다비', '바라나시', '아그라', '푸켓', '샌프란시스코', '나고야', '도하', '보홀']
 /** 사전에서 명소처럼 다루지만 키워드로는 도시 이름뿐인 영문(Kobe·Nara) — 도시만 키워드로 버린다 */
-const EXTRA_CITY_ONLY_KEYWORDS_EN = new Set(['kobe', 'kyoto', 'nara', 'osaka', 'fukuoka', 'shanghai', 'zhangjiajie', 'shizuoka', 'da nang', 'danang', 'pattaya', 'bangkok', 'singapore', 'qingdao', 'hanoi'])
+const EXTRA_CITY_ONLY_KEYWORDS_EN = new Set(['kobe', 'kyoto', 'nara', 'osaka', 'fukuoka', 'shanghai', 'zhangjiajie', 'shizuoka', 'da nang', 'danang', 'pattaya', 'bangkok', 'singapore', 'qingdao', 'hanoi', 'nagoya', 'doha', 'bohol'])
 export function isBareCityMatchText(t: string | null | undefined): boolean {
   const k = String(t ?? '').replace(/\s+/g, '')
   if (!k) return false
@@ -396,6 +398,9 @@ export const CITY_REPRESENTATIVE_SIGHTS: ReadonlyArray<{ names: readonly string[
   { names: ['파리', 'paris'], sights: ['Eiffel Tower', 'Arc de Triomphe'] },
   { names: ['로마', 'rome'], sights: ['Colosseum', 'Trevi Fountain'] },
   { names: ['북경', '베이징', 'beijing'], sights: ['Forbidden City', 'Temple of Heaven'] },
+  { names: ['나고야', 'nagoya'], sights: ['Atsuta Shrine'] },
+  { names: ['도하', 'doha'], sights: ['Souq Waqif'] },
+  { names: ['계림', '구이린', 'guilin'], sights: ['Xiangbi Shan', 'Reed Flute Cave'] },
 ]
 
 function citySightsFromRepresentativeDict(raw: string): string[] {
@@ -581,7 +586,7 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
   if (fromTitle) return { sights: [fromTitle], reason: 'ok', route: 'own', cityTerms, dayCityTerms, rejectedKeywords: rejected }
   // REGRESSION-FREEZE[place-dict-1128] route-city-rep: 2순위 — 원문에 명소가 하나도 없을 때만 그날 도시의 대표 명소(사전). 도시 이름 자체로는 검색하지 않는다 — manifest
   const rep: string[] = []
-  for (const s of [...citySightsFromRepresentativeDict(ownBlob), ...bareCityHitEns]) {
+  for (const s of [...citySightsFromRepresentativeDict(`${ownBlob} ${destinationText}`), ...bareCityHitEns]) {
     const p = sightProfile(s)
     if (p.kind !== 'sight' && p.kind !== 'generic') continue
     if (rep.some((o) => sightsOverlap(sightProfile(o), p))) continue
@@ -676,6 +681,7 @@ export const OFFICIAL_NAMES_WITH_CITY_WORD: readonly string[] = [
   'Dubai Frame',
   'Fukuoka Tower',
   'Sapporo TV Tower',
+  'Nagoya Castle',
 ]
 
 function officialNameWithCityWord(sight: string): string | null {
@@ -684,8 +690,47 @@ function officialNameWithCityWord(sight: string): string | null {
   return null
 }
 
+/**
+ * 한국어 재영작 대신 검색에 쓰는 공식 고유명(R03-23).
+ * 여기 없는 별칭 그룹은 기존처럼 입력 표기로 검색한다(블루모스크 등 동작 유지).
+ */
+const OFFICIAL_SEARCH_CANONICAL: ReadonlyArray<{ aliases: readonly string[]; search: string }> = [
+  { aliases: ['xiangbi shan', 'xiangbishan', '象鼻山', 'elephant trunk hill', 'elephant trunk', 'elephant hill', '코끼리코 언덕', '코끼리코언덕'], search: 'Xiangbi Shan' },
+]
+
+export function officialSearchName(sight: string): string | null {
+  const raw = String(sight ?? '').trim()
+  if (!raw) return null
+  const f = foldPhotoText(raw)
+  const compactKo = raw.normalize('NFC').replace(/\s+/g, '')
+  for (const e of OFFICIAL_SEARCH_CANONICAL) {
+    if (f && e.aliases.map(foldPhotoText).filter(Boolean).includes(f)) return e.search
+    if (/[가-힣]/.test(compactKo) && e.aliases.some((a) => a.normalize('NFC').replace(/\s+/g, '') === compactKo)) return e.search
+  }
+  // 한글 명칭은 사전(공식 출처)의 고유 영문명·현지명을 쓰고, 재영작하지 않는다(R03-23).
+  if (/[가-힣]/.test(raw)) {
+    const en = firstMatchingScheduleSpotEn(raw)
+    if (en && !isCityOnlySight(en)) {
+      const kind = sightProfile(en).kind
+      if (kind === 'sight' || kind === 'generic') return officialSearchName(en) ?? en
+    }
+  }
+  return null
+}
+
 export function sightSearchQueries(sight: string): string[] {
   // REGRESSION-FREEZE[place-dict-1128] no-city-in-query: 도시명 단독·명소명에 도시를 덧붙인 검색어 금지(사전 표기 'West Lake Hangzhou' 도 'West Lake' 로). 공식명 허용 목록만 예외 — manifest
+  const preferred = officialSearchName(String(sight ?? ''))
+  if (preferred) {
+    const officialCity = officialNameWithCityWord(preferred)
+    if (officialCity) return [officialCity]
+    const base = stripCityWordsFromQuery(preferred.replace(/\s+/g, ' '))
+    if (!base) return []
+    const prof = sightProfile(base)
+    if (prof.kind === 'city' || prof.kind === 'empty') return []
+    if (prof.kind === 'generic' && base.split(' ').length < 2) return []
+    return [base]
+  }
   const official = officialNameWithCityWord(String(sight ?? ''))
   if (official) return [official]
   const base = stripCityWordsFromQuery(String(sight ?? '').replace(/\s+/g, ' '))

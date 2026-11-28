@@ -176,6 +176,8 @@ export const PLACE_NAMES: Record<string, string[]> = {
   'phu quoc': ['phu quoc', '푸꾸옥', '푸국'], 'nha trang': ['nha trang', '나트랑', '나짱'], zhangjiajie: ['zhangjiajie', '장가계'], cappadocia: ['cappadocia', '카파도키아'],
   yangshuo: ['yangshuo', '양삭', '양숴'], malacca: ['malacca', 'melaka', '말라카'], melaka: ['melaka', 'malacca', '말라카'], penang: ['penang', '페낭'], 'ba na hills': ['ba na hills', '바나힐', '바나산'], hokkaido: ['hokkaido', '홋카이도'], cebu: ['cebu', '세부'], bali: ['bali', '발리'],
   guam: ['guam', '괌'], saipan: ['saipan', '사이판'], cairo: ['cairo', '카이로'], giza: ['giza', '기자'], athens: ['athens', '아테네'], seville: ['seville', 'sevilla', '세비야'], zurich: ['zurich', '취리히'], 'chiang mai': ['chiang mai', '치앙마이'],
+  nagoya: ['nagoya', '나고야'], doha: ['doha', '도하'],
+  bohol: ['bohol', '보홀'],
 }
 /** 설명에 도시명이 나오면 그 도시가 슬롯 허용 범위에 있어야 함 */
 const CITY_KEYS_FOR_MISMATCH = [
