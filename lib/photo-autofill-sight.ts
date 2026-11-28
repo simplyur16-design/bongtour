@@ -657,8 +657,36 @@ export function stripCityWordsFromQuery(q: string): string {
     .join(' ')
 }
 
+/**
+ * 도시 낱말이 명소 공식 고유명의 일부인 이름(봉실장 09:16 — 사장님 08:56 '관광명소이름 넣으라고' 해석). 이 목록에 있는 공식명만 그대로 검색한다.
+ * 근거: 각 명소의 공식 영문 명칭(운영 기관·유네스코·관광청 표기). 명소명 뒤에 도시를 덧붙인 사전 표기('West Lake Hangzhou')는 해당 없음.
+ * REGRESSION-FREEZE[place-dict-1128] official-city-names — manifest
+ */
+export const OFFICIAL_NAMES_WITH_CITY_WORD: readonly string[] = [
+  'Prague Castle',
+  'Sydney Opera House',
+  'Sydney Harbour Bridge',
+  'Tokyo Tower',
+  'Tokyo Skytree',
+  'Osaka Castle',
+  'Taipei 101',
+  'Shanghai Tower',
+  'Singapore Flyer',
+  'Dubai Frame',
+  'Fukuoka Tower',
+  'Sapporo TV Tower',
+]
+
+function officialNameWithCityWord(sight: string): string | null {
+  const f = ` ${foldPhotoText(sight)} `
+  for (const n of OFFICIAL_NAMES_WITH_CITY_WORD) if (f.startsWith(` ${foldPhotoText(n)} `)) return n
+  return null
+}
+
 export function sightSearchQueries(sight: string): string[] {
-  // REGRESSION-FREEZE[place-dict-1128] no-city-in-query: 검색어에 도시명은 어떤 형태로도 넣지 않는다(사전 표기 'West Lake Hangzhou' 도 'West Lake' 로) — manifest
+  // REGRESSION-FREEZE[place-dict-1128] no-city-in-query: 도시명 단독·명소명에 도시를 덧붙인 검색어 금지(사전 표기 'West Lake Hangzhou' 도 'West Lake' 로). 공식명 허용 목록만 예외 — manifest
+  const official = officialNameWithCityWord(String(sight ?? ''))
+  if (official) return [official]
   const base = stripCityWordsFromQuery(String(sight ?? '').replace(/\s+/g, ' '))
   if (!base) return []
   const prof = sightProfile(base)

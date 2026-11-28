@@ -34844,6 +34844,8 @@
             "REGRESSION-FREEZE[place-dict-1128] route-own-first",
             "REGRESSION-FREEZE[place-dict-1128] route-city-rep",
             "REGRESSION-FREEZE[place-dict-1128] city-rep-dict",
+            "REGRESSION-FREEZE[place-dict-1128] official-city-names",
+            "const official = officialNameWithCityWord(String(sight ?? ''))",
             "export function sightSearchQueries(sight: string): string[] {",
             "const base = stripCityWordsFromQuery(String(sight ?? '').replace(/\\s+/g, ' '))",
             "{ names: ['서안', '시안', 'xian'], sights: ['Giant Wild Goose Pagoda', 'Terracotta Army'] }",
@@ -34891,6 +34893,8 @@
             "expect(queries[0]).toBe('West Lake')",
             "for (const q of qs) for (const w of q.split(' ')) expect(isCityToken(foldPhotoText(w)), `${q}`).toBe(false)",
             "expect(r.route).toBe('city_rep')",
+            "expect(sightSearchQueries('Prague Castle')).toEqual(['Prague Castle'])",
+            "expect(sightSearchQueries('West Lake Hangzhou')).toEqual(['West Lake'])",
             "expect(landmarkHomeInProduct('Eiffel Tower', '마카오 파리지앵 에펠탑')).toBe(false)"
           ]
         }

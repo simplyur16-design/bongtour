@@ -3,7 +3,7 @@
  * 도시만은 명소 아님, 빠진 명소 사전, 그날 원문 도시로 검색, 그날 원문에 없는 키워드 제외, 문맥 없는 사전 오매핑 차단.
  */
 import { describe, expect, it } from 'vitest'
-import { CITY_REPRESENTATIVE_SIGHTS, deriveDaySights, foldPhotoText, isCityToken, landmarkHomeInProduct, sightMatchInText, sightProfile, sightSearchQueries } from '@/lib/photo-autofill-sight'
+import { CITY_REPRESENTATIVE_SIGHTS, OFFICIAL_NAMES_WITH_CITY_WORD, deriveDaySights, foldPhotoText, isCityToken, landmarkHomeInProduct, sightMatchInText, sightProfile, sightSearchQueries } from '@/lib/photo-autofill-sight'
 import { englishFromScheduleKoreanSegmentWithRegex, findAllScheduleSpotMatchesInText } from '@/lib/schedule-poi-regex-ssot'
 import { acquireVerifiedPhoto, type AcquireDeps } from '@/lib/photo-autofill-acquire'
 import { PublicPhotoUsage } from '@/lib/photo-autofill-gate'
@@ -114,8 +114,21 @@ describe('place-dict-1128 queries are sight names only (사장님 08:55)', () =>
     expect(qs.length).toBeGreaterThan(0)
     for (const q of qs) for (const w of q.split(' ')) expect(isCityToken(foldPhotoText(w)), `${q}`).toBe(false)
   })
-  it.each(['Xian', 'Prague Castle', 'Hangzhou', 'Salzburg'])('%s → no query (city or city+generic noun)', (s) => {
+  it.each(['Xian', 'Hangzhou', 'Salzburg', 'Prague'])('%s → no query (city alone / city + generic noun not an official name)', (s) => {
     expect(sightSearchQueries(s)).toEqual([])
+  })
+  // 봉실장 09:16: 공식 고유명 안의 도시 낱말은 허용(허용 목록만), 덧붙임은 금지
+  it('official names keep their city word: Prague Castle, Victoria Peak, Sydney Opera House', () => {
+    expect(sightSearchQueries('Prague Castle')).toEqual(['Prague Castle'])
+    expect(sightSearchQueries('Victoria Peak Hong Kong')[0]).toBe('Victoria Peak') // victoria 는 도시 낱말 아님 → 그대로, 덧붙인 Hong Kong 만 뺀다
+    expect(sightSearchQueries('Sydney Opera House')).toEqual(['Sydney Opera House'])
+  })
+  it('appended city is still stripped: West Lake Hangzhou → West Lake, Xian alone → none', () => {
+    expect(sightSearchQueries('West Lake Hangzhou')).toEqual(['West Lake'])
+    expect(sightSearchQueries('Xian')).toEqual([])
+  })
+  it('every allow-list entry contains a city word (otherwise it does not belong on the list)', () => {
+    for (const n of OFFICIAL_NAMES_WITH_CITY_WORD) expect(n.split(' ').some((w) => isCityToken(foldPhotoText(w))), n).toBe(true)
   })
   it('photo match never passes on a city word alone', () => {
     expect(sightMatchInText(sightProfile('Giant Wild Goose Pagoda'), 'Xian city wall at night', ['xian'])).toBeNull()
