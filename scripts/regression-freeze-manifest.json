@@ -35400,6 +35400,86 @@
       ]
     },
     {
+      "id": "photo-run-budget-judge-1129",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "2026-11-28 22:30 회차 교정: (1) 공개·등록대기 틀린 칸 단계가 한도를 공유하다 공개가 다 써서 등록대기 43칸 0건 -> 등록대기 전용 한도, 등록대기 이어서 처리를 빈칸 채움 반복문 앞으로(겹침 보호 그대로) (2) 교체 검색이 게이트와 다른 계획(maxDay·일정 전체 없음)으로 명소를 골라 나중에 불일치 판정 -> 같은 계획 + 이름표가 그날 계획 명소에 없으면 쓰지 않음(sight_not_in_day_plan), 퍼센트 인코딩 출처 주소 해독 (3) 회차 ID·시작/종료·단계별 stopReason 을 기존 ScraperSupplierState 행(photo-autofill:*)에 기록(스키마 변경 없음) (4) 사장님 2026-11-29 00:14: 기존 Wikimedia·Wikipedia·Commons 사진(대표·일차·관리자 선택 칸 포함)과 확정 명소 불일치(저장 명소가 그날 계획에 없음·확정 오답 목록)는 공개 교체 단계가 Pixabay·Openverse(CC0·PDM, Wikimedia 제외)·풀로 교체하고, 맞는 사진이 없으면 비운다(되돌림 기록). 등록대기 단계는 교체만",
+      "checks": [
+        {
+          "file": "lib/photo-replace-wrong-1128.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-run-budget-judge-1129]",
+            "export const PENDING_WRONG_PHOTO_REPLACE_TIME_BUDGET_MS",
+            "export function pendingWrongPhotoDeadlineAtMs"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-run-budget-judge-1129]",
+            "REGRESSION-FREEZE[photo-run-budget-judge-1129]",
+            "pendingWrongPhotoDeadlineAtMs(pendingStartedAtMs)",
+            "publicWrongPhotoDeadlineAtMs(publicStartedAtMs)",
+            "await runRec.finish()"
+          ],
+          "mustNotInclude": [
+            "wrongDeadlineAtMs"
+          ]
+        },
+        {
+          "file": "lib/photo-heal.ts",
+          "mustInclude": [
+            "allRows: rowsNow",
+            "sight_not_in_day_plan"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-acquire.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-run-budget-judge-1129]",
+            "allRows?: ReadonlyArray<Record<string, unknown>>"
+          ]
+        },
+        {
+          "file": "lib/photo-banned-source-1129.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-run-budget-judge-1129]",
+            "export function photoIsBannedSource",
+            "export const CONFIRMED_WRONG_PHOTOS_1129"
+          ]
+        },
+        {
+          "file": "lib/register-photo-registration-gate.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-run-budget-judge-1129]",
+            "'photo_banned_source'",
+            "photoIsBannedSource("
+          ]
+        },
+        {
+          "file": "lib/photo-gate-runner.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-run-budget-judge-1129]",
+            "clearUnreplaceable: shouldClearWhenUnreplaceable"
+          ]
+        },
+        {
+          "file": "lib/photo-run-state-1129.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[photo-run-budget-judge-1129]",
+            "export const PHOTO_RUN_STATE_KEY = 'photo-autofill:run'",
+            "export function createPhotoRunRecorder"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-run-budget-judge-1129.test.ts",
+        "lib/photo-banned-source-1129.test.ts"
+      ]
+    },
+    {
       "id": "pexels-quota-1128",
       "tier": [
         "prebuild",

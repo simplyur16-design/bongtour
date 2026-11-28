@@ -82,6 +82,11 @@ export type AcquireInput = {
   usage: PublicPhotoUsage
   /** 일정 마지막 일차(출국·귀국 판정). 없으면 day */
   maxDay?: number
+  /**
+   * 일정 전체 행(출국·귀국·이동일 대표 명소 판정에 쓴다). 등록 게이트(evaluateRegistrationPhotos)와 같은 계획을 세우려면 maxDay 와 함께 넘긴다.
+   * REGRESSION-FREEZE[photo-run-budget-judge-1129]: 게이트와 다른 계획으로 고른 사진이 나중에 불일치로 판정되던 것(2026-11-28 22:30 회차 발리·홍콩·파리) 교정 — manifest
+   */
+  allRows?: ReadonlyArray<Record<string, unknown>>
   /** 이미 쓰고 있거나(같은 상품) 방금 막힌 사진의 식별 키 */
   exclude?: ReadonlySet<string>
   maxCandidates?: number
@@ -128,7 +133,7 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
   if (input.kind === 'day' && input.dayFacts) {
     const plan = planDayPhotoSave(
       { ...input.dayFacts, day: input.day },
-      { destinationText: input.destinationText, maxDay: input.maxDay ?? (Number(input.day) || 1) },
+      { destinationText: input.destinationText, maxDay: input.maxDay ?? (Number(input.day) || 1), ...(input.allRows ? { allRows: input.allRows as never } : {}) },
     )
     if (plan.action === 'empty') return fail(plan.reason, 'travel/airport-only day must stay empty', null, null, true)
     if (plan.action === 'search') {

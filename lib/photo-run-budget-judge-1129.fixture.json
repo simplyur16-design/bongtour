@@ -1,0 +1,561 @@
+{
+ "pkg-nl-0029": {
+  "destination": "발리",
+  "primaryDestination": "발리",
+  "schedule": [
+   {
+    "day": 1,
+    "title": "발리",
+    "routeText": "발리",
+    "description": "인천에서 출발해 발리에서 도착합니다. 발리에서 첫날 일정을 이어갑니다. 첫날 리듬을 맞추며 일정을 이어갑니다.",
+    "hotelText": "개별",
+    "breakfastText": null,
+    "lunchText": null,
+    "dinnerText": null,
+    "mealSummaryText": null,
+    "imageKeyword": "Bali",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EA%BE%B8%EB%94%B0%EB%B9%84%EC%B9%98%ED%98%B8%ED%85%94_3%EB%B0%95_%EB%B0%9C%EB%A6%AC_pexels__muyvbdzx.webp",
+    "imageSource": {
+     "source": "pexels",
+     "photographer": "Tom Fisk",
+     "originalLink": "https://www.pexels.com/photo/lush-green-rice-terraces-in-bali-indonesia-35428411/",
+     "externalId": "35428411",
+     "sourceImageUrl": "https://images.pexels.com/photos/35428411/pexels-photo-35428411.jpeg?auto=compress&cs=tinysrgb&h=350",
+     "sourceType": "pexels"
+    },
+    "imageManualSelected": true
+   },
+   {
+    "day": 2,
+    "title": "발리",
+    "routeText": "발리",
+    "description": "발리를 둘러봅니다. 발리에서 주변을 이어서 둘러봅니다.",
+    "hotelText": "호텔",
+    "breakfastText": "가이드 미팅 후 투어 출발 &quot;고객님 만을 위한 프라이빗 가이드와 전용차량이 준비되어 있습니다&qu",
+    "lunchText": null,
+    "dinnerText": null,
+    "mealSummaryText": "조식 - 가이드 미팅 후 투어 출발 &quot;고객님 만을 위한 프라이빗 가이드와 전용차량이 준비되어 있습니다&qu",
+    "imageKeyword": "Padang Padang Beach",
+    "imageKeyword2": "Bali Uluwatu Temple Cliff",
+    "imageUrl": "https://images.pexels.com/photos/12470912/pexels-photo-12470912.jpeg?auto=compress&cs=tinysrgb&h=350",
+    "imageSource": {
+     "source": "pexels",
+     "photographer": "Nick Wehrli",
+     "originalLink": "https://www.pexels.com/photo/surfing-on-ocean-12470912/",
+     "externalId": "12470912",
+     "sourceImageUrl": "https://images.pexels.com/photos/12470912/pexels-photo-12470912.jpeg?auto=compress&cs=tinysrgb&h=350"
+    },
+    "imageManualSelected": true
+   },
+   {
+    "day": 3,
+    "title": "발리",
+    "routeText": "발리",
+    "description": "발리를 둘러봅니다. 발리에서 주변을 이어서 둘러봅니다.",
+    "hotelText": "호텔",
+    "breakfastText": "후 자유일정 ★내일투어 추천 자유일정★ 워터붐파크 워터붐파크 발리의 캐리비안 베이라 불리는 워터파크로 총",
+    "lunchText": null,
+    "dinnerText": null,
+    "mealSummaryText": "조식 - 후 자유일정 ★내일투어 추천 자유일정★ 워터붐파크 워터붐파크 발리의 캐리비안 베이라 불리는 워터파크로 총",
+    "imageKeyword": "Seminyak Beach Club",
+    "imageKeyword2": "Padang Padang Beach Bali",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EA%BE%B8%EB%94%B0%EB%B9%84%EC%B9%98%ED%98%B8%ED%85%94_3%EB%B0%95_%EB%B0%9C%EB%A6%AC_pexels__muyvd0zp.webp",
+    "imageSource": {
+     "source": "pexels",
+     "photographer": "Brayden  Shaw",
+     "originalLink": "https://www.pexels.com/photo/person-surfing-on-the-sea-waves-12818213/",
+     "externalId": "12818213",
+     "sourceImageUrl": "https://images.pexels.com/photos/12818213/pexels-photo-12818213.jpeg?auto=compress&cs=tinysrgb&h=350",
+     "sourceType": "pexels"
+    },
+    "imageManualSelected": true
+   },
+   {
+    "day": 4,
+    "title": "발리",
+    "routeText": "발리",
+    "description": "발리를 둘러봅니다. 발리에서 주변을 이어서 둘러봅니다.",
+    "hotelText": null,
+    "breakfastText": "후 호텔 체크아웃 가이드 미팅 후 우붓 투어 출발 몽키 포레스트 우붓의 가장 번화한 거리인 몽키 포레스트",
+    "lunchText": null,
+    "dinnerText": null,
+    "mealSummaryText": "조식 - 후 호텔 체크아웃 가이드 미팅 후 우붓 투어 출발 몽키 포레스트 우붓의 가장 번화한 거리인 몽키 포레스트",
+    "imageKeyword": "Tanah Lot Temple",
+    "imageKeyword2": "Seminyak Beach Club Bali",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EB%B0%9C%EB%A6%AC_Bali_Padang_Padang_Beach_Pexels__mwqziwry.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Irfan Hussain",
+     "originalLink": "https://www.pexels.com/photo/sunny-day-at-padang-padang-beach-bali-indonesia-33628177/",
+     "externalId": "33628177",
+     "cityMatch": "meta",
+     "sight": "Padang Padang Beach Bali",
+     "sightMatch": "padang padang beach bali"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/sunny-day-at-padang-padang-beach-bali-indonesia-33628177/"
+   },
+   {
+    "day": 5,
+    "title": "발리",
+    "routeText": "발리",
+    "description": "발리에서 일정을 마무리한 뒤 귀국 이동으로 이어갑니다.",
+    "hotelText": "숙박 없음(귀국)",
+    "breakfastText": null,
+    "lunchText": null,
+    "dinnerText": null,
+    "mealSummaryText": null,
+    "imageKeyword": "Bali",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EB%B0%9C%EB%A6%AC_Bali_Padang_Padang_Beach_Bali_Pixabay__mx0gt0gn.webp",
+    "imageSource": {
+     "source": "Pixabay",
+     "photographer": "rohitink",
+     "originalLink": "https://pixabay.com/photos/beach-sunny-sky-bali-2632765/",
+     "externalId": "pb-2632765",
+     "cityMatch": "meta",
+     "sight": "Padang Padang Beach Bali",
+     "sightMatch": "padang+padang"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://pixabay.com/photos/beach-sunny-sky-bali-2632765/"
+   }
+  ]
+ },
+ "pkg-nl-0012": {
+  "destination": "독일",
+  "primaryDestination": "독일",
+  "schedule": [
+   {
+    "day": 1,
+    "title": "프랑크푸르트 · 마인츠",
+    "routeText": "프랑크푸르트 - 마인츠",
+    "description": "인천에서 출발해 프랑크푸르트에서 도착합니다. 마인츠를 둘러보며 첫날 일정을 이어갑니다. 첫날 리듬을 맞추며 일정을 이어갑니다.",
+    "imageKeyword": "Romerberg Square",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EB%AF%B8%EC%A7%80%EC%A0%95_Romerberg_Square_Frankfurt_Pexels__mws5l6xq.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Konpasu.de Blog",
+     "originalLink": "https://www.pexels.com/photo/tenements-at-romerberg-in-frankfurt-19542668/",
+     "externalId": "19542668",
+     "cityMatch": "meta",
+     "sight": "Romerberg Square Frankfurt",
+     "sightMatch": "core:romerberg"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/tenements-at-romerberg-in-frankfurt-19542668/"
+   },
+   {
+    "day": 2,
+    "title": "마인츠 · 룩셈부르크",
+    "routeText": "마인츠 - 코헴 - 트리어 - 룩셈부르크",
+    "description": "마인츠와 코헴을 둘러봅니다. 트리어와 룩셈부르크를 이어서 방문합니다.",
+    "imageKeyword": "Cochem Castle Moselle",
+    "imageKeyword2": "Trier Porta Nigra",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EB%8F%85%EC%9D%BC_Cochem_Castle_Moselle_Pexels__mw0qo6oa.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Jenske",
+     "originalLink": "https://www.pexels.com/photo/cochem-castle-overlooking-moselle-river-germany-39428494/",
+     "externalId": "39428494",
+     "cityMatch": "meta",
+     "sight": "Cochem Castle Moselle",
+     "sightMatch": "core:cochem"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/cochem-castle-overlooking-moselle-river-germany-39428494/"
+   },
+   {
+    "day": 3,
+    "title": "룩셈부르크 · 브뤼셀",
+    "routeText": "룩셈부르크 - 브뤼셀",
+    "description": "룩셈부르크와 브뤼셀을 둘러봅니다. 브뤼셀에서 주변을 이어서 둘러봅니다.",
+    "imageKeyword": "Luxembourg Old Town Fortifications",
+    "imageKeyword2": "Grand Place Brussels",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EB%8F%85%EC%9D%BC_Luxembourg_Old_Town_Fortifications_Pexels__mw0qokyc.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Mohammad Ayaz Alam",
+     "originalLink": "https://www.pexels.com/photo/historic-building-view-in-luxembourg-city-33170351/",
+     "externalId": "33170351",
+     "cityMatch": "meta",
+     "sight": "Luxembourg old town fortifications",
+     "sightMatch": "core:luxembourg"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/historic-building-view-in-luxembourg-city-33170351/"
+   },
+   {
+    "day": 4,
+    "title": "브뤼셀 · 암스테르담",
+    "routeText": "브뤼셀 - 브뤼헤 - 앤트워프 - 암스테르담",
+    "description": "브뤼셀과 브뤼헤를 둘러봅니다. 앤트워프와 암스테르담을 이어서 방문합니다.",
+    "imageKeyword": "Bruges Canals",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EB%8F%85%EC%9D%BC_Grand_Place_Brussels_Pexels__mwxr8et1.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Magda Ehlers",
+     "originalLink": "https://www.pexels.com/photo/ornate-facades-of-townhouses-at-grand-place-in-brussels-12822731/",
+     "externalId": "12822731",
+     "cityMatch": "meta",
+     "sight": "Grand Place Brussels",
+     "sightMatch": "core:place+brussels"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/ornate-facades-of-townhouses-at-grand-place-in-brussels-12822731/"
+   },
+   {
+    "day": 5,
+    "title": "암스테르담 · 잔세스칸스",
+    "routeText": "암스테르담 - 잔세스칸스",
+    "description": "암스테르담과 잔세스칸스를 둘러봅니다. 잔세스칸스에서 주변을 이어서 둘러봅니다.",
+    "imageKeyword": "Zaanse Schans Netherlands",
+    "imageKeyword2": "Amsterdam",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EB%8F%85%EC%9D%BC_Zaanse_Schans_Netherlands_Pexels__mwybm0sa.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Ali  Alcántara",
+     "originalLink": "https://www.pexels.com/photo/farmhouse-by-the-pond-in-de-zaanse-schans-netherlands-15000307/",
+     "externalId": "15000307",
+     "cityMatch": "meta",
+     "sight": "Zaanse Schans Netherlands",
+     "sightMatch": "zaanse schans netherlands"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/farmhouse-by-the-pond-in-de-zaanse-schans-netherlands-15000307/"
+   },
+   {
+    "day": 6,
+    "title": "암스테르담 · 코블렌츠",
+    "routeText": "암스테르담 - 마스메켈렌 - 쾰른 - 코블렌츠",
+    "description": "암스테르담과 마스메켈렌을 둘러봅니다. 쾰른과 코블렌츠를 이어서 방문합니다.",
+    "imageKeyword": "Cologne Cathedral",
+    "imageKeyword2": "Deutsches Eck Koblenz",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EB%8F%85%EC%9D%BC_%EB%8F%85%EC%9D%BC_6_Pexels__mw0qpmp1.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "TEBESSÜM PROVALARI",
+     "originalLink": "https://www.pexels.com/photo/stunning-view-of-cologne-cathedral-spires-38920135/",
+     "externalId": "38920135",
+     "cityMatch": "meta"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/stunning-view-of-cologne-cathedral-spires-38920135/"
+   },
+   {
+    "day": 7,
+    "title": "뤼데스하임 · 하이델베르크",
+    "routeText": "뤼데스하임 - 하이델베르크",
+    "description": "뤼데스하임과 하이델베르크를 둘러봅니다. 하이델베르크에서 주변을 이어서 둘러봅니다.",
+    "imageKeyword": "Rudesheim Rhine Cable Car",
+    "imageKeyword2": "Heidelberg Castle Old Bridge Germany",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EB%8F%85%EC%9D%BC_Rudesheim_Rhine_cable_car_Pixabay__mx0h7box.webp",
+    "imageSource": {
+     "source": "Pixabay",
+     "photographer": "Jonny_Joka",
+     "originalLink": "https://pixabay.com/photos/r%C3%BCdesheim-town-river-panorama-6368588/",
+     "externalId": "pb-6368588",
+     "cityMatch": "meta",
+     "sight": "Rudesheim Rhine cable car",
+     "sightMatch": "core:rudesheim+rhine"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://pixabay.com/photos/r%C3%BCdesheim-town-river-panorama-6368588/"
+   },
+   {
+    "day": 8,
+    "title": "하이델베르크 · 프랑크푸르트",
+    "routeText": "하이델베르크 - 프랑크푸르트",
+    "description": "하이델베르크와 프랑크푸르트를 둘러봅니다. 프랑크푸르트에서 주변을 이어서 둘러봅니다.",
+    "imageKeyword": "Heidelberg Old Town Neckar",
+    "imageKeyword2": "Heidelberg Old Town Neckar river",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EB%8F%85%EC%9D%BC_Heidelberg_Castle_old_bridge_Germany_Pexels__mwsajobz.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Vish Pix",
+     "originalLink": "https://www.pexels.com/photo/heidelberg-old-bridge-and-castle-in-heidelberg-germany-17151652/",
+     "externalId": "17151652",
+     "cityMatch": "meta",
+     "sight": "Heidelberg Castle old bridge Germany",
+     "sightMatch": "heidelberg+castle"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/heidelberg-old-bridge-and-castle-in-heidelberg-germany-17151652/"
+   },
+   {
+    "day": 9,
+    "title": "귀국",
+    "routeText": "Busan Gamcheon village",
+    "description": "Busan Gamcheon village에서 일정을 마무리한 뒤 귀국 이동으로 이어갑니다.",
+    "imageKeyword": "Busan Gamcheon Village",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/pkg-nl-0012_batch_D9_pexels-33097931.webp",
+    "imageManualSelected": false,
+    "imageSourcePageUrl": null
+   }
+  ]
+ },
+ "pkg-nl-0036": {
+  "destination": "유럽풍 가톨릭 성당 미",
+  "primaryDestination": "유럽풍 가톨릭 성당 미",
+  "schedule": [
+   {
+    "day": 1,
+    "title": "청도 · 5.4광장",
+    "routeText": "청도 - 5.4광장",
+    "description": "인천에서 출발해 청도에 도착합니다. 칭다오 최고층 전망대인 81해천전망대와 칭다오 대표 야경 명소인 5.4광장을 둘러봅니다.",
+    "imageKeyword": "May Fourth Square",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EC%9C%A0%EB%9F%BD%ED%92%8D_%EA%B0%80%ED%86%A8%EB%A6%AD_%EC%84%B1%EB%8B%B9_%EB%AF%B8_May_Fourth_Square_Pexels__mw6rc377.webp",
+    "imageSource": {
+     "source": "PhotoPool",
+     "photographer": "Bingqian Li",
+     "originalLink": "https://www.pexels.com/photo/urban-scene-in-guangzhou-with-traditional-gate-35272173/",
+     "externalId": "35272173",
+     "cityMatch": "meta",
+     "sight": "May Fourth Square",
+     "sightMatch": "may fourth square"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/urban-scene-in-guangzhou-with-traditional-gate-35272173/"
+   },
+   {
+    "day": 2,
+    "title": "청도",
+    "routeText": "청도",
+    "description": "청도에서 일정을 보냅니다.",
+    "imageKeyword": "Qingdao",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EC%9C%A0%EB%9F%BD%ED%92%8D_%EA%B0%80%ED%86%A8%EB%A6%AD_%EC%84%B1%EB%8B%B9_%EB%AF%B8_%EC%9C%A0%EB%9F%BD%ED%92%8D_%EA%B0%80%ED%86%A8%EB%A6%AD_%EC%84%B1%EB%8B%B9_%EB%AF%B8_1_Pexels__mw6rc8dq.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "externalId": "35557560",
+     "originalLink": "https://www.pexels.com/photo/vibrant-night-skyline-of-qingdao-with-illuminated-sculpture-35557560/",
+     "photographer": "Siyuan Zhao",
+     "isGenerated": false
+    },
+    "imageManualSelected": true,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/vibrant-night-skyline-of-qingdao-with-illuminated-sculpture-35557560/"
+   },
+   {
+    "day": 3,
+    "title": "청도",
+    "routeText": "청도",
+    "description": "청도에서 출발해 귀국합니다.",
+    "imageKeyword": "Penglai Pavilion Yantai",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EC%B9%AD%EB%8B%A4%EC%98%A4_%EB%A7%A5%EC%A3%BC_%EB%B0%95%EB%AC%BC%EA%B4%80_Tsingtao_Beer_Museum_Qingdao_pexels__ms42c8eb.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "externalId": "37666620",
+     "originalLink": "https://www.pexels.com/photo/historic-european-style-building-with-modern-skyline-37666620/",
+     "photographer": "tis O",
+     "isGenerated": false
+    },
+    "imageManualSelected": true,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/historic-european-style-building-with-modern-skyline-37666620/"
+   }
+  ]
+ },
+ "pkg-xx-0001": {
+  "destination": "프랑스",
+  "primaryDestination": "프랑스",
+  "schedule": [
+   {
+    "day": 1,
+    "title": null,
+    "routeText": "Paris",
+    "description": "인천에서 출발해 Paris에서 도착합니다. Paris에서 첫날 일정을 이어갑니다. 첫날 리듬을 맞추며 일정을 이어갑니다.",
+    "imageKeyword": "Paris",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%ED%94%84%EB%9E%91%EC%8A%A4_Eiffel_Tower_Paris_Pexels__mwwpmd28.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Toan Nguyen",
+     "originalLink": "https://www.pexels.com/photo/eiffel-tower-in-paris-24973465/",
+     "externalId": "24973465",
+     "cityMatch": "meta",
+     "sight": "Eiffel Tower Paris",
+     "sightMatch": "eiffel tower"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/eiffel-tower-in-paris-24973465/"
+   },
+   {
+    "day": 2,
+    "title": "추천일정 1day · 루브르 박물관·샹젤리제 거리",
+    "routeText": "파리",
+    "description": "저라면 아침에 루브르 박물관에서 고대 유물과 미술품을 감상하며 하루를 시작합니다. 박물관 앞 튈르리 정원을 산책하며 콩코르드 광장까지 걸어보세요. 탁 트인 샹젤리제 거리를 따라 개선문 방향으로 걸으며 파리의 활기를 느껴보시면 좋아요. 명소들이 가까이 모여 있어 동선이 단순해서 편해요.",
+    "imageKeyword": "Champs Elysees",
+    "imageKeyword2": "Arc de Triomphe",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/pkg-xx-0001_D2_pexels-25053918_fd1101.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "detait",
+     "originalLink": "https://www.pexels.com/photo/the-louvre-museum-in-paris-france-25053918/",
+     "externalId": "25053918",
+     "isGenerated": false
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/the-louvre-museum-in-paris-france-25053918/"
+   },
+   {
+    "day": 3,
+    "title": "추천일정 1day · 오르세 미술관·앵발리드",
+    "routeText": "파리",
+    "description": "저라면 오르세 미술관에서 교과서에서 보던 인상주의 작품들을 감상하며 오전 시간을 보냅니다. 근처 로댕 미술관 정원에서 조각 작품들을 보며 한적하게 산책해 보세요. 황금빛 돔이 멋진 앵발리드까지 걸으며 파리 좌안의 고즈넉한 분위기를 즐기시면 좋아요. 동선이 짧아 여유롭게 예술을 즐기기에 적당해요.",
+    "imageKeyword": "Musée D'orsay",
+    "imageKeyword2": "Eiffel Tower",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/pkg-xx-0001_D3_pexels-36704828_fd1101.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Audrey Bory",
+     "originalLink": "https://www.pexels.com/photo/illuminated-musee-d-orsay-at-night-paris-36704828/",
+     "externalId": "36704828",
+     "isGenerated": false
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/illuminated-musee-d-orsay-at-night-paris-36704828/"
+   },
+   {
+    "day": 4,
+    "title": "파리 · 인터라켄",
+    "routeText": "파리 - 인터라켄",
+    "description": "파리와 인터라켄을 둘러봅니다. 인터라켄에서 주변을 이어서 둘러봅니다.",
+    "imageKeyword": "Interlaken Swiss Alps",
+    "imageKeyword2": "Jungfraujoch Swiss Alps",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/pkg-xx-0001_D4_pexels-33315428_fd1101.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Reza Erfani",
+     "originalLink": "https://www.pexels.com/photo/aerial-view-of-interlaken-switzerland-cityscape-33315428/",
+     "externalId": "33315428",
+     "isGenerated": false
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/aerial-view-of-interlaken-switzerland-cityscape-33315428/"
+   },
+   {
+    "day": 5,
+    "title": "추천일정 1day · 융프라우요흐·그린델발트",
+    "routeText": "인터라켄",
+    "description": "인터라켄을 둘러봅니다. 인터라켄에서 주변을 이어서 둘러봅니다.",
+    "imageKeyword": "Jungfraujoch",
+    "imageKeyword2": "Grindelwald",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%EC%8A%A4%EC%9C%84%EC%8A%A4_Interlaken_PhotoPool__mwsn69r5.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Paintalia",
+     "originalLink": "https://www.pexels.com/photo/view-of-interlaken-from-the-harder-kulm-mountain-in-switzerland-13818274/",
+     "externalId": "13818274",
+     "cityMatch": "meta",
+     "sight": "Interlaken Swiss Alps / lake view / wide angle",
+     "sightMatch": "core:interlaken"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/view-of-interlaken-from-the-harder-kulm-mountain-in-switzerland-13818274/"
+   },
+   {
+    "day": 6,
+    "title": "인터라켄 · 베니스",
+    "routeText": "인터라켄 - 베니스",
+    "description": "인터라켄과 베니스를 둘러봅니다. 베니스에서 주변을 이어서 둘러봅니다.",
+    "imageKeyword": "Rialto Bridge",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%ED%94%84%EB%9E%91%EC%8A%A4_Interlaken_Swiss_Alps_Pexels__mwrscjfz.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Baublewave",
+     "originalLink": "https://www.pexels.com/photo/aerial-view-of-interlaken-with-swiss-alps-37995173/",
+     "externalId": "37995173",
+     "cityMatch": "meta",
+     "sight": "Interlaken Swiss Alps / lake view / wide angle",
+     "sightMatch": "interlaken+alps"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/aerial-view-of-interlaken-with-swiss-alps-37995173/"
+   },
+   {
+    "day": 7,
+    "title": "베니스 · 로마",
+    "routeText": "베니스 - 로마",
+    "description": "베니스와 로마를 둘러봅니다. 로마에서 주변을 이어서 둘러봅니다.",
+    "imageKeyword": "Colosseum Rome Amphitheater",
+    "imageKeyword2": "Venice Grand",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%ED%94%84%EB%9E%91%EC%8A%A4_Colosseum_Rome_Amphitheater_Pixabay__mx0gku85.webp",
+    "imageSource": {
+     "source": "Pixabay",
+     "photographer": "user32212",
+     "originalLink": "https://pixabay.com/photos/rome-monument-colosseum-italy-2093608/",
+     "externalId": "pb-2093608",
+     "cityMatch": "meta",
+     "sight": "Colosseum Rome Amphitheater",
+     "sightMatch": "core:colosseum"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://pixabay.com/photos/rome-monument-colosseum-italy-2093608/"
+   },
+   {
+    "day": 8,
+    "title": "추천일정 1day · 바티칸 박물관·산탄젤로 성",
+    "routeText": "로마",
+    "description": "저라면 귀한 예술품이 가득한 바티칸 박물관에서 경이로운 벽화들을 먼저 봅니다. 바로 옆 성 베드로 대성당의 웅장한 내부를 둘러보며 경건한 분위기를 느껴보세요. 테베레 강변을 따라 걸어 산탄젤로 성까지 이동하며 로마의 고풍스러운 풍경을 감상하시면 좋아요. 바티칸 주변 지역을 집중적으로 둘러보는 일정이라 이동이 수월해요.",
+    "imageKeyword": "Vatican Museums",
+    "imageKeyword2": "Vatican Museums Spiral Staircase",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/pkg-xx-0001_D8_pexels-32491177_b01.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Omar Ramírez Vallejo",
+     "originalLink": "https://www.pexels.com/photo/st-peter-s-basilica-in-rome-under-a-clear-blue-sky-32491177/",
+     "externalId": "32491177",
+     "cityMatch": "gate-day-summary"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/st-peter-s-basilica-in-rome-under-a-clear-blue-sky-32491177/"
+   },
+   {
+    "day": 9,
+    "title": "로마",
+    "routeText": "로마",
+    "description": "로마를 둘러봅니다. 로마에서 주변을 이어서 둘러봅니다.",
+    "imageKeyword": "Pantheon",
+    "imageKeyword2": "Spanish Steps",
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%ED%94%84%EB%9E%91%EC%8A%A4_Colosseum_Rome_Amphitheater_Pixabay__mx0gkre0.webp",
+    "imageSource": {
+     "source": "Pixabay",
+     "photographer": "TreptowerAlex",
+     "originalLink": "https://pixabay.com/photos/colosseum-rome-italy-romans-1014310/",
+     "externalId": "pb-1014310",
+     "cityMatch": "meta",
+     "sight": "Colosseum Rome Amphitheater",
+     "sightMatch": "core:colosseum"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://pixabay.com/photos/colosseum-rome-italy-romans-1014310/"
+   },
+   {
+    "day": 10,
+    "title": "인천 도착",
+    "routeText": "Paris",
+    "description": "Paris에서 일정을 마무리한 뒤 귀국 이동으로 이어갑니다.",
+    "imageKeyword": "Eiffel Tower Paris",
+    "imageKeyword2": null,
+    "imageUrl": "https://kr.object.ncloudstorage.com/bongtour/photo-pool/%ED%94%84%EB%9E%91%EC%8A%A4_Eiffel_Tower_Paris_Pexels__mwwpm36x.webp",
+    "imageSource": {
+     "source": "Pexels",
+     "photographer": "Stephen Leonardi",
+     "originalLink": "https://www.pexels.com/photo/eiffel-tower-in-paris-under-a-clear-sky-29667766/",
+     "externalId": "29667766",
+     "cityMatch": "meta",
+     "sight": "Eiffel Tower",
+     "sightMatch": "eiffel tower"
+    },
+    "imageManualSelected": false,
+    "imageSourcePageUrl": "https://www.pexels.com/photo/eiffel-tower-in-paris-under-a-clear-sky-29667766/"
+   }
+  ]
+ }
+}

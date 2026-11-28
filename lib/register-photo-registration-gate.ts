@@ -31,6 +31,7 @@ import {
 import { textHasMonochromeMarker } from '@/lib/photo-monochrome-text-1122'
 import { planDayPhotoSave } from '@/lib/photo-day-save-gate-1128'
 import { photoCandidateText, photoSubjectBlockReason } from '@/lib/register-photo-subject-filter'
+import { photoIsBannedSource } from '@/lib/photo-banned-source-1129'
 
 export type RegistrationPhotoReason =
   | 'photo_sight_mismatch'
@@ -44,6 +45,7 @@ export type RegistrationPhotoReason =
   | 'photo_monochrome_text'
   | 'photo_in_product_duplicate'
   | 'photo_travel_day_empty'
+  | 'photo_banned_source'
 
 /** 이미 들어 있는 사진 중 실사진으로 바꿀 칸 사유(지도·간판, AI 생성, 흑백 표시, 상품 안 중복, 그날 명소와 다른 사진) */
 export const WRONG_PHOTO_REPLACE_REASONS: ReadonlySet<RegistrationPhotoReason> = new Set([
@@ -55,6 +57,7 @@ export const WRONG_PHOTO_REPLACE_REASONS: ReadonlySet<RegistrationPhotoReason> =
   'photo_in_product_duplicate',
   'photo_travel_day_empty',
   'photo_public_duplicate',
+  'photo_banned_source',
 ])
 
 /** '저장된 명소가 그날 원문 명소에 없음' — 근거가 확실한 불일치(공개 상품 교체 대상) */
@@ -150,6 +153,10 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
   const cover = input.cover
   if (cover && cover.url.trim()) {
     const locked = coverLocked(cover.source)
+    // REGRESSION-FREEZE[photo-run-budget-judge-1129]: Wikimedia·Wikipedia·Commons 사진은 관리자가 고른 칸이어도 교체 대상(R03-25, 사장님 2026-11-29 00:14) — manifest
+    if (photoIsBannedSource({ url: cover.url, source: cover.source, originalLink: cover.originalLink })) {
+      push({ kind: 'cover', day: null, reason: 'photo_banned_source', detail: `banned source: ${String(cover.source ?? cover.originalLink ?? cover.url).slice(0, 60)}` })
+    }
     measure('cover', null, cover.url, locked)
     if (!locked && photoSourceIsAiGenerated({ source: cover.source, url: cover.url, isGenerated: cover.isGenerated })) {
       push({ kind: 'cover', day: null, reason: 'photo_ai_generated', detail: String(cover.source ?? 'generated').slice(0, 60) })
@@ -187,6 +194,9 @@ export function evaluateRegistrationPhotos(input: RegistrationPhotoInput): { ok:
       const keys = photoIdentityKeys({ url, externalId: String(src.externalId ?? ''), originalLink: link })
       const dup = keys.some((k) => seenKeys.has(k))
       for (const k of keys) seenKeys.add(k)
+      if (photoIsBannedSource({ url, source: src.source ?? raw.imageSourceType, originalLink: link })) {
+        push({ kind: 'day', day, reason: 'photo_banned_source', detail: `banned source: ${String(src.source ?? link ?? url).slice(0, 60)}` })
+      }
       if (locked) continue
       if (dup) push({ kind: 'day', day, reason: 'photo_in_product_duplicate', detail: 'same photo as cover or an earlier day' })
       // 일차 사진은 다른 상품과 같아도 된다(사장님 12:01). 목록 카드 대표만 위에서 막는다.
@@ -304,7 +314,7 @@ export function registrationBlockCodes(
     if (b.reason === 'photo_sight_mismatch' || b.reason === 'photo_public_duplicate' || b.reason === 'photo_irrelevant_subject' || b.reason === 'photo_travel_day_empty') {
       out.add(b.reason === 'photo_travel_day_empty' ? 'photo_sight_mismatch' : b.reason)
     }
-    if (b.reason === 'photo_text_map' || b.reason === 'photo_ai_generated' || b.reason === 'photo_monochrome_text' || b.reason === 'photo_in_product_duplicate') out.add('photo_wrong_kind')
+    if (b.reason === 'photo_text_map' || b.reason === 'photo_ai_generated' || b.reason === 'photo_monochrome_text' || b.reason === 'photo_in_product_duplicate' || b.reason === 'photo_banned_source') out.add('photo_wrong_kind')
   }
   return [...out]
 }

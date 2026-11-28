@@ -254,7 +254,7 @@ export async function runPublicWrongPhotoReplaceLive(
   probe: PhotoProbe,
   opts: { now?: Date; deadlineAtMs?: number; onlyProductIds?: readonly string[]; sleep?: (ms: number) => Promise<void> } = {},
 ): Promise<PublicWrongPhotoReplaceResult> {
-  const { publicWrongPhotoBlocks, rotateForHour, runWrongPhotoRounds, WRONG_PHOTO_REPLACE_TIME_BUDGET_MS } = await import('@/lib/photo-replace-wrong-1128')
+  const { publicWrongPhotoBlocks, rotateForHour, runWrongPhotoRounds, shouldClearWhenUnreplaceable, WRONG_PHOTO_REPLACE_TIME_BUDGET_MS } = await import('@/lib/photo-replace-wrong-1128')
   const { stockQuotaResumeAtMs } = await import('@/lib/register-photo-stock-rate-guard')
   const out: PublicWrongPhotoReplaceResult = {
     scanned: 0,
@@ -322,6 +322,8 @@ export async function runPublicWrongPhotoReplaceLive(
         usage,
         // 칸 수 상한 없음: 한 상품의 틀린 칸도 모두 고친다
         maxSlotsPerProduct: Number.POSITIVE_INFINITY,
+        // REGRESSION-FREEZE[photo-run-budget-judge-1129]: 공개 상품은 맞는 사진이 없으면 Wikimedia·확정 불일치 칸을 비운다(틀린 사진 유지 금지) — manifest
+        clearUnreplaceable: shouldClearWhenUnreplaceable,
       },
     )
     for (const r of heal.replaced) out.replaced.push({ productId: p.id, ...r })
