@@ -5,8 +5,8 @@
  * - 별칭 사전(SIGHT_ALIAS_GROUPS)으로 같은 명소의 다른 표기를 같은 명소로 본다.
  * REGRESSION-FREEZE[photo-autofill-sight]: 명소 추출·도시만 탈락·별칭 일치 — manifest
  */
-import { englishFromScheduleKoreanSegmentWithRegex, findAllScheduleSpotMatchesInText, scheduleSpotRulesMatchingKeyword } from '@/lib/schedule-poi-regex-ssot'
-import { PLACE_NAMES } from '@/lib/register-photo-match-gate'
+import { englishFromScheduleKoreanSegmentWithRegex, findAllScheduleSpotMatchesInText, firstMatchingScheduleSpotEn, scheduleSpotRulesMatchingKeyword } from '@/lib/schedule-poi-regex-ssot'
+import { LANDMARK_HOME, PLACE_NAMES } from '@/lib/register-photo-match-gate'
 
 export function foldPhotoText(value: unknown): string {
   return String(value ?? '')
@@ -103,6 +103,10 @@ const CITY_EXTRA = [
   'tuscany', 'europe', 'africa', 'asia', 'america', 'usa', 'canada', 'mexico', 'peru', 'brazil', 'australia', 'korea', 'taiwan',
   'india', 'nepal', 'qingdao', 'copenhagen', 'reykjavik', 'lyon', 'marseille', 'zagreb', 'zadar', 'dubrovnik',
   'ulaanbaatar', 'almaty', 'tashkent', 'astana', 'nairobi', 'johannesburg',
+  // REGRESSION-FREEZE[place-dict-1128]: 08:30 로그·10칸 테스트에서 명소로 잘못 통과한 도시·지역 이름(Xian·Lima·Delhi 등) — 도시만은 명소가 아니다 — manifest
+  'xian', 'lima', 'delhi', 'christchurch', 'auckland', 'rotorua', 'kaohsiung', 'oslo', 'weihai', 'bakersfield', 'california',
+  'addis', 'ababa', 'ethiopia', 'paulo', 'washington', 'hawaii', 'oahu', 'dhabi', 'varanasi', 'agra', 'salzburg', 'porto',
+  'phuket', 'saga',
 ]
 const CITY_TOKENS: Set<string> = (() => {
   const out = new Set<string>()
@@ -116,7 +120,7 @@ const CITY_TOKENS: Set<string> = (() => {
   return out
 })()
 
-function isCityToken(t: string): boolean {
+export function isCityToken(t: string): boolean {
   return CITY_TOKENS.has(t)
 }
 
@@ -294,7 +298,10 @@ export function ownDayOverlap(a: SightProfile, b: SightProfile): boolean {
 
 /** 원문에서 맞은 글자가 도시 이름뿐인지(홍콩·호이안) — 도시 대표 명소 규칙은 '그날 명소' 근거가 아니다 */
 /** 사전 규칙이 명소로 바꾸지만 일정 글에서는 도시·지역 이름으로만 쓰이는 낱말(장가계→국립삼림공원, 시즈오카→후지산) */
-const EXTRA_KOREAN_CITY_WORDS = ['장가계', '시즈오카', '상해', '상하이', '하노이', '다낭', '파타야', '방콕', '싱가포르', '칭다오', '고베', '교토', '나라', '오사카', '후쿠오카']
+const EXTRA_KOREAN_CITY_WORDS = ['장가계', '시즈오카', '상해', '상하이', '하노이', '다낭', '파타야', '방콕', '싱가포르', '칭다오', '고베', '교토', '나라', '오사카', '후쿠오카',
+  // REGRESSION-FREEZE[place-dict-1128]: 도시 이름만 맞은 사전 규칙(잘츠부르크→호엔잘츠부르크 요새)은 그날 명소 근거가 아니다 — manifest
+  '서안', '시안', '항주', '항저우', '잘츠부르크', '리마', '델리', '뉴델리', '크라이스트처치', '오클랜드', '로토루아', '가오슝', '오슬로', '포르투',
+  '상파울루', '아디스아바바', '베이커스필드', '하와이', '오아후', '아부다비', '바라나시', '아그라', '푸켓', '샌프란시스코']
 /** 사전에서 명소처럼 다루지만 키워드로는 도시 이름뿐인 영문(Kobe·Nara) — 도시만 키워드로 버린다 */
 const EXTRA_CITY_ONLY_KEYWORDS_EN = new Set(['kobe', 'kyoto', 'nara', 'osaka', 'fukuoka', 'shanghai', 'zhangjiajie', 'shizuoka', 'da nang', 'danang', 'pattaya', 'bangkok', 'singapore', 'qingdao', 'hanoi'])
 export function isBareCityMatchText(t: string | null | undefined): boolean {
@@ -351,20 +358,84 @@ export type DaySightResult = {
   reason: 'ok' | 'no_sight' | 'city_only' | 'keyword_conflict'
   /** 일정에서 찾은 도시(영문) — 검색어 보강·도시 앵커용 */
   cityTerms: string[]
+  /** 그날 일정 원문에만 나온 도시(영문, 상품 목적지 제외) — 검색어에 붙이는 도시 */
+  dayCityTerms?: string[]
+  /** own = 1순위(그날 원문 명소), city_rep = 2순위(원문에 명소 없음 → 그날 도시 대표 명소 사전) */
+  route?: 'own' | 'city_rep'
   rejectedKeywords: Array<{ keyword: string; why: 'city_only' | 'other_city' | 'not_in_route' | 'weak' }>
 }
 
-function cityKeysIn(textFolded: string, includeKorean: boolean): string[] {
+function cityKeysIn(textFolded: string, includeKorean: boolean, rawText = ''): string[] {
   const out: string[] = []
   const padded = ` ${textFolded} `
+  // REGRESSION-FREEZE[place-dict-1128] day-city: foldPhotoText(NFD)는 한글을 지운다 — 한글 도시 이름은 원문(NFC)에서 찾는다(서호·항주 → hangzhou) — manifest
+  const rawCompact = String(rawText ?? '').normalize('NFC').replace(/\s+/g, '')
   for (const [key, names] of Object.entries(PLACE_NAMES)) {
     const hit = names.some((n) => {
-      if (/[가-힣]/.test(n)) return includeKorean && padded.replace(/\s+/g, '').includes(n.replace(/\s+/g, ''))
+      if (/[가-힣]/.test(n)) return includeKorean && rawCompact.includes(n.replace(/\s+/g, ''))
       return padded.includes(` ${foldPhotoText(n)} `)
     })
     if (hit) out.push(key)
   }
   return out
+}
+
+/**
+ * 도시 → 대표 명소(2순위, 원문에 명소가 하나도 없을 때만). 도시 이름이 없는 명소 고유 영문명만, 근거 있는 것(유네스코·각 도시 관광청 대표 명소)만.
+ * REGRESSION-FREEZE[place-dict-1128] city-rep-dict — manifest
+ */
+export const CITY_REPRESENTATIVE_SIGHTS: ReadonlyArray<{ names: readonly string[]; sights: readonly string[] }> = [
+  { names: ['서안', '시안', 'xian'], sights: ['Giant Wild Goose Pagoda', 'Terracotta Army'] },
+  { names: ['항주', '항저우', 'hangzhou'], sights: ['West Lake', 'Leifeng Pagoda'] },
+  { names: ['잘츠부르크', 'salzburg'], sights: ['Hohensalzburg Fortress', 'Mirabell Palace'] },
+  { names: ['프라하', 'prague'], sights: ['Charles Bridge', 'Old Town Square Astronomical Clock'] },
+  { names: ['장가계', 'zhangjiajie'], sights: ['Tianmen Mountain', 'Wulingyuan'] },
+  { names: ['다낭', 'da nang'], sights: ['Dragon Bridge', 'Marble Mountains'] },
+  { names: ['샌프란시스코', 'san francisco'], sights: ['Golden Gate Bridge', 'Alcatraz Island'] },
+  { names: ['파리', 'paris'], sights: ['Eiffel Tower', 'Arc de Triomphe'] },
+  { names: ['로마', 'rome'], sights: ['Colosseum', 'Trevi Fountain'] },
+  { names: ['북경', '베이징', 'beijing'], sights: ['Forbidden City', 'Temple of Heaven'] },
+]
+
+function citySightsFromRepresentativeDict(raw: string): string[] {
+  const nfc = String(raw ?? '').normalize('NFC')
+  const compact = nfc.replace(/\s+/g, '')
+  const folded = ` ${foldPhotoText(nfc)} `
+  const out: string[] = []
+  for (const e of CITY_REPRESENTATIVE_SIGHTS) {
+    const hit = e.names.some((n) =>
+      /[가-힣]/.test(n) ? new RegExp(`(?<![가-힣])${n}(?![가-힣]{2,})`).test(compact.length ? nfc : '') : folded.includes(` ${foldPhotoText(n)} `),
+    )
+    if (hit) out.push(...e.sights)
+  }
+  return out
+}
+
+/** LANDMARK_HOME 밖 — 이름에 도시가 없는 지역 명소(레드우드 → 로토루아) */
+const EXTRA_LANDMARK_HOME: ReadonlyArray<[RegExp, readonly string[]]> = [[/\bwhakarewarewa\b/, ['로토루아', 'rotorua', '뉴질랜드', 'new zealand']]]
+
+/**
+ * 소속 도시가 정해진 명소(에펠탑→파리, 금문교→샌프란시스코)는 상품 일정 어디에도 그 도시가 없으면 버린다(마카오 파리지앵 에펠탑·미서부 레드우드).
+ * 이름에 다른 도시가 이미 들어 있으면(Oslo Opera House) 보지 않는다.
+ * REGRESSION-FREEZE[place-dict-1128]: 명소 소속 도시 확인 — manifest
+ */
+export function landmarkHomeInProduct(en: string, productRaw: string): boolean {
+  const f = ` ${foldPhotoText(en)} `
+  // 상호·호텔 이름 속 도시(파리지앵 마카오, 베네시안)는 그 도시 방문이 아니다
+  const raw = String(productRaw ?? '').normalize('NFC').replace(/파리지[앵엥]|parisian|베네시안|venetian/gi, ' ')
+  const rawCompact = raw.replace(/\s+/g, '')
+  const rawFolded = ` ${foldPhotoText(raw)} `
+  const has = (names: readonly string[]) =>
+    names.some((n) => (/[가-힣]/.test(n) ? rawCompact.includes(n.replace(/\s+/g, '')) : rawFolded.includes(` ${foldPhotoText(n)} `)))
+  for (const [re, key] of LANDMARK_HOME) {
+    if (!re.test(f)) continue
+    const names = PLACE_NAMES[key] ?? [key]
+    const homeTokens = new Set(names.filter((n) => !/[가-힣]/.test(n)).flatMap((n) => foldPhotoText(n).split(' ')))
+    if (f.trim().split(' ').some((t) => isCityToken(t) && !homeTokens.has(t))) continue
+    if (!has(names)) return false
+  }
+  for (const [re, names] of EXTRA_LANDMARK_HOME) if (re.test(f) && !has(names)) return false
+  return true
 }
 
 export function sightsOverlap(a: SightProfile, b: SightProfile): boolean {
@@ -383,7 +454,8 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
   const ownBlob = stripTravelOnlySentences(routeBlob)
   const otherBlob = String(day.otherDaysText ?? '')
   const slotFolded = foldPhotoText(`${routeBlob} ${destinationText}`)
-  const allowedCities = new Set(cityKeysIn(slotFolded, true))
+  const allowedCities = new Set(cityKeysIn(slotFolded, true, `${routeBlob} ${destinationText}`))
+  const dayCities = cityKeysIn(foldPhotoText(routeBlob), true, routeBlob)
   const rejected: DaySightResult['rejectedKeywords'] = []
 
   // 도시 이름(장가계·시즈오카)만 지운 글 — 키워드 '그날 명소' 확인용
@@ -392,7 +464,11 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
   const seen = new Set<string>()
   // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 도시 이름만 맞은 명소(장가계→국립삼림공원)는 그날 고유 명소 뒤 — manifest
   const ownHits = findAllScheduleSpotMatchesInText(ownBlob)
-  for (const hit of [...ownHits.filter((h) => !isBareCityMatchText(h.text)), ...ownHits.filter((h) => isBareCityMatchText(h.text))]) {
+  // REGRESSION-FREEZE[place-dict-1128] keyword-own-day-only: 그날 원문에 고유 명소가 있으면 도시 이름만 맞은 대표 명소(잘츠부르크→호엔잘츠부르크 요새)는 쓰지 않는다 — manifest
+  const ownNamedHits = ownHits.filter((h) => !isBareCityMatchText(h.text))
+  // 2순위(그날 원문에 명소가 하나도 없을 때만): 도시 이름만 맞은 사전 규칙의 대표 명소
+  const bareCityHitEns = ownHits.filter((h) => isBareCityMatchText(h.text)).map((h) => h.en)
+  for (const hit of ownNamedHits) {
     const k = foldPhotoText(hit.en)
     if (!k || seen.has(k)) continue
     seen.add(k)
@@ -414,7 +490,10 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
       .filter((seg) => /[가-힣]/.test(seg))
       .map((seg) => {
         try {
-          return englishFromScheduleKoreanSegmentWithRegex(seg)
+          const en = englishFromScheduleKoreanSegmentWithRegex(seg)
+          // REGRESSION-FREEZE[place-dict-1128]: 사전 정규식 밖 낱말 번역(보타닉 가든→Singapore)은 그날·상품 도시와 다른 도시 이름이면 버린다 — manifest
+          if (en && !firstMatchingScheduleSpotEn(seg) && cityKeysIn(foldPhotoText(en), false).some((c) => !allowedCities.has(c))) return ''
+          return en
         } catch {
           return ''
         }
@@ -468,11 +547,10 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
         otherSegProfiles().some((p) => sightsOverlap(prof, p)) ||
         Boolean(otherBlob && (sightMatchInText(prof, otherBlob) || kwRules.some((re) => re.test(otherBlob))))
       const koreanNameMissing = kwRules.some((re) => /[가-힣]/.test(re.source))
-      if (onOtherDay || koreanNameMissing) {
-        rejected.push({ keyword: kw, why: 'not_in_route' })
-        continue
-      }
-      lateKeywordSights.push(kw)
+      // REGRESSION-FREEZE[place-dict-1128] keyword-own-day-only: 그날 원문으로 확인 안 된 키워드는 쓰지 않는다(사장님 08:40 테스트 — 요새·Saga·옥룡설산 오매핑) — manifest
+      void onOtherDay
+      void koreanNameMissing
+      rejected.push({ keyword: kw, why: 'not_in_route' })
       continue
     }
     // REGRESSION-FREEZE[photo-day-keyword-fill]: 그날 imageKeyword 명소는 대표만 채우고 일차를 비우지 않는다. 다른 도시 키워드만 버린다 — manifest
@@ -482,7 +560,8 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
   const ordered: string[] = []
   const orderedSeen = new Set<string>()
   // REGRESSION-FREEZE[photo-keyword-own-day-1127]: 그날 원문 조각의 한→영 명소(사전 정규식 밖, 예 세나도 광장)도 확인 안 된 키워드보다 앞 — manifest
-  for (const s of [...keywordSights, ...spots, ...ownSegProfiles.map((p) => p.name), ...lateKeywordSights]) {
+  // REGRESSION-FREEZE[place-dict-1128] route-own-first: 1순위 = 그날 원문에 나열된 명소(나열 순서), 원문으로 확인된 키워드는 그 뒤 — manifest
+  for (const s of [...spots, ...ownSegProfiles.map((p) => p.name), ...keywordSights, ...lateKeywordSights]) {
     const p = sightProfile(s)
     if (p.kind !== 'sight' && p.kind !== 'generic') continue
     const key = p.phraseTerms[0] ?? foldPhotoText(s)
@@ -490,17 +569,32 @@ export function deriveDaySights(day: DaySightInput, destinationText = ''): DaySi
     orderedSeen.add(key)
     ordered.push(s)
   }
+  const productRaw = `${routeBlob} ${otherBlob} ${destinationText}`
+  for (let i = ordered.length - 1; i >= 0; i--) if (!landmarkHomeInProduct(ordered[i]!, productRaw)) ordered.splice(i, 1)
   const cityTerms = [...allowedCities].flatMap((k) => (PLACE_NAMES[k] ?? []).filter((n) => !/[가-힣]/.test(n))).slice(0, 12)
-  if (ordered.length > 0) return { sights: ordered, reason: 'ok', cityTerms, rejectedKeywords: rejected }
+  const dayCityTerms = dayCities.map((k) => (PLACE_NAMES[k] ?? []).find((n) => !/[가-힣]/.test(n)) ?? '').filter(Boolean)
+  if (ordered.length > 0) return { sights: ordered, reason: 'ok', route: 'own', cityTerms, dayCityTerms, rejectedKeywords: rejected }
   // REGRESSION-FREEZE[photo-title-landmark-1127]: 키워드가 비었거나 도시만이면 그날 일정 제목의 첫 명소(한→영)로 검색만 한다(DB 키워드는 쓰지 않음) — manifest
-  const fromTitle = titleFirstLandmarkSight(day.title, allowedCities)
-  if (fromTitle) return { sights: [fromTitle], reason: 'ok', cityTerms, rejectedKeywords: rejected }
+  const fromTitleRaw = titleFirstLandmarkSight(day.title, allowedCities)
+  const fromTitle = fromTitleRaw && landmarkHomeInProduct(fromTitleRaw, productRaw) ? fromTitleRaw : null
+  if (fromTitle) return { sights: [fromTitle], reason: 'ok', route: 'own', cityTerms, dayCityTerms, rejectedKeywords: rejected }
+  // REGRESSION-FREEZE[place-dict-1128] route-city-rep: 2순위 — 원문에 명소가 하나도 없을 때만 그날 도시의 대표 명소(사전). 도시 이름 자체로는 검색하지 않는다 — manifest
+  const rep: string[] = []
+  for (const s of [...citySightsFromRepresentativeDict(ownBlob), ...bareCityHitEns]) {
+    const p = sightProfile(s)
+    if (p.kind !== 'sight' && p.kind !== 'generic') continue
+    if (rep.some((o) => sightsOverlap(sightProfile(o), p))) continue
+    if (!landmarkHomeInProduct(s, productRaw)) continue
+    if (sightSearchQueries(s).length === 0) continue
+    rep.push(s)
+  }
+  if (rep.length > 0) return { sights: rep, reason: 'ok', route: 'city_rep', cityTerms, dayCityTerms, rejectedKeywords: rejected }
   const reason: DaySightResult['reason'] = rejected.some((r) => r.why === 'other_city' || r.why === 'not_in_route')
     ? 'keyword_conflict'
     : rejected.some((r) => r.why === 'city_only')
       ? 'city_only'
       : 'no_sight'
-  return { sights: [], reason, cityTerms, rejectedKeywords: rejected }
+  return { sights: [], reason, cityTerms, dayCityTerms, rejectedKeywords: rejected }
 }
 
 const TITLE_NON_SIGHT_RE = /이동|출발|도착|공항|호텔|숙소|자유\s*시간|자유일정|조식|중식|석식|체크인|체크아웃|귀국|인천|휴식|쇼핑|면세/
@@ -551,15 +645,58 @@ export function coverSearchSights(heroKeywords: readonly string[], dayKeywords: 
 }
 
 /** 검색어: 명소 이름 그대로 → 도시를 덧붙인 것(같은 이름 다른 곳 구분). 최대 2개. */
-export function sightSearchQueries(sight: string, cityTerms: readonly string[]): string[] {
-  const base = String(sight ?? '').trim().replace(/\s+/g, ' ')
+/** 검색어에서 도시 낱말을 모두 뺀다(사장님 08:56 '관광명소이름 넣으라고' — 단독·접두·접미 전부 금지) */
+export function stripCityWordsFromQuery(q: string): string {
+  return String(q ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter((w) => {
+      const f = foldPhotoText(w)
+      return f && !f.split(' ').every((t) => isCityToken(t))
+    })
+    .join(' ')
+}
+
+/**
+ * 도시 낱말이 명소 공식 고유명의 일부인 이름(봉실장 09:16 — 사장님 08:56 '관광명소이름 넣으라고' 해석). 이 목록에 있는 공식명만 그대로 검색한다.
+ * 근거: 각 명소의 공식 영문 명칭(운영 기관·유네스코·관광청 표기). 명소명 뒤에 도시를 덧붙인 사전 표기('West Lake Hangzhou')는 해당 없음.
+ * REGRESSION-FREEZE[place-dict-1128] official-city-names — manifest
+ */
+export const OFFICIAL_NAMES_WITH_CITY_WORD: readonly string[] = [
+  'Prague Castle',
+  'Sydney Opera House',
+  'Sydney Harbour Bridge',
+  'Tokyo Tower',
+  'Tokyo Skytree',
+  'Osaka Castle',
+  'Taipei 101',
+  'Shanghai Tower',
+  'Singapore Flyer',
+  'Dubai Frame',
+  'Fukuoka Tower',
+  'Sapporo TV Tower',
+]
+
+function officialNameWithCityWord(sight: string): string | null {
+  const f = ` ${foldPhotoText(sight)} `
+  for (const n of OFFICIAL_NAMES_WITH_CITY_WORD) if (f.startsWith(` ${foldPhotoText(n)} `)) return n
+  return null
+}
+
+export function sightSearchQueries(sight: string): string[] {
+  // REGRESSION-FREEZE[place-dict-1128] no-city-in-query: 도시명 단독·명소명에 도시를 덧붙인 검색어 금지(사전 표기 'West Lake Hangzhou' 도 'West Lake' 로). 공식명 허용 목록만 예외 — manifest
+  const official = officialNameWithCityWord(String(sight ?? ''))
+  if (official) return [official]
+  const base = stripCityWordsFromQuery(String(sight ?? '').replace(/\s+/g, ' '))
   if (!base) return []
+  const prof = sightProfile(base)
+  // 도시를 뺀 나머지가 일반 낱말 하나(Castle·Peak)뿐이면 명소 이름이 아니다 — 검색하지 않는다
+  if (prof.kind === 'city' || prof.kind === 'empty') return []
+  if (prof.kind === 'generic' && base.split(' ').length < 2) return []
   const out = [base]
-  // REGRESSION-FREEZE[photo-sight-core-1127]: 고유명 축약 검색어(설명 낱말 뺀 것)를 도시 덧붙임보다 먼저 — manifest
+  // REGRESSION-FREEZE[photo-sight-core-1127]: 고유명 축약 검색어(설명 낱말 뺀 것) — manifest
   const core = sightCoreQuery(base)
   if (core && !out.includes(core)) out.push(core)
-  const head = core || base
-  const city = cityTerms.find((c) => !foldPhotoText(head).includes(foldPhotoText(c)))
-  if (city) out.push(`${head} ${city}`)
-  return out.slice(0, 3)
+  // REGRESSION-FREEZE[place-dict-1128] no-city-in-query: 축약 검색어도 도시 낱말 없이 — manifest
+  return out.slice(0, 2)
 }

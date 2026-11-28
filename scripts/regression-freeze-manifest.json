@@ -34825,6 +34825,164 @@
       "vitestSuites": [
         "lib/hero-keyword-rules-1128.test.ts"
       ]
+    },
+    {
+      "id": "place-dict-1128",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 08:40 '테스트해서 되면 적용'(봉실장 08:49): 도시 이름(Xian 등)은 명소 아님, 대안탑·왕푸징·게트라이데 사전 추가, 검색어에 도시명 어떤 형태로도 금지(사장님 08:55·08:56·08:57): 1순위 그날 원문 명소(나열 순서), 원문에 명소 없을 때만 2순위 도시 대표 명소 사전, 대표사진도 같은 규칙, 판정은 도시명만으로 통과 금지, 그날 원문에 없는 키워드 제외(요새), 문맥 없는 사전 오매핑 차단(기라델리≠Delhi, 을 위해≠Weihai, Mud Bath≠Bath, 카이유칸 고래상어≠Oslob, 미서부 레드우드≠Whakarewarewa, 마카오 에펠탑≠파리), 일반 설명 사진 조건부 허용 안 함(틀린 사진보다 빈칸)",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-sight.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[place-dict-1128]",
+            "REGRESSION-FREEZE[place-dict-1128] day-city",
+            "REGRESSION-FREEZE[place-dict-1128] keyword-own-day-only",
+            "REGRESSION-FREEZE[place-dict-1128] no-city-in-query",
+            "REGRESSION-FREEZE[place-dict-1128] route-own-first",
+            "REGRESSION-FREEZE[place-dict-1128] route-city-rep",
+            "REGRESSION-FREEZE[place-dict-1128] city-rep-dict",
+            "REGRESSION-FREEZE[place-dict-1128] official-city-names",
+            "const official = officialNameWithCityWord(String(sight ?? ''))",
+            "export function sightSearchQueries(sight: string): string[] {",
+            "const base = stripCityWordsFromQuery(String(sight ?? '').replace(/\\s+/g, ' '))",
+            "{ names: ['서안', '시안', 'xian'], sights: ['Giant Wild Goose Pagoda', 'Terracotta Army'] }",
+            "'xian', 'lima', 'delhi'",
+            "export function landmarkHomeInProduct(en: string, productRaw: string): boolean {",
+            "const ownNamedHits = ownHits.filter((h) => !isBareCityMatchText(h.text))",
+            "rejected.push({ keyword: kw, why: 'not_in_route' })",
+            "const allowedCities = new Set(cityKeysIn(slotFolded, true, `${routeBlob} ${destinationText}`))"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-acquire.ts",
+          "mustInclude": [
+            "const queries = sightSearchQueries(sight)"
+          ]
+        },
+        {
+          "file": "lib/product-hero-image-keyword.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[place-dict-1128] hero-route",
+            "return own.length > 0 ? own : out"
+          ]
+        },
+        {
+          "file": "app/api/travel/process-images/route.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[place-dict-1128] cover-own-text",
+            "const dayKeywords = heroPick.candidates ?? []"
+          ]
+        },
+        {
+          "file": "lib/schedule-poi-regex-ssot.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[place-dict-1128]",
+            "{ re: /대안탑|대자은사|Giant\\s*Wild\\s*Goose\\s*Pagoda/i, en: 'Giant Wild Goose Pagoda' }",
+            "(?<!mud\\s)\\bBath\\b",
+            "(?<![가-힣])델리(?!만쥬|카트|샌드)",
+            "(?<![을를]\\s?)(?<![가-힣])위해(?![가-힣])"
+          ]
+        },
+        {
+          "file": "lib/place-dict-1128.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[place-dict-1128]",
+            "expect(queries[0]).toBe('West Lake')",
+            "for (const q of qs) for (const w of q.split(' ')) expect(isCityToken(foldPhotoText(w)), `${q}`).toBe(false)",
+            "expect(r.route).toBe('city_rep')",
+            "expect(sightSearchQueries('Prague Castle')).toEqual(['Prague Castle'])",
+            "expect(sightSearchQueries('West Lake Hangzhou')).toEqual(['West Lake'])",
+            "expect(landmarkHomeInProduct('Eiffel Tower', '마카오 파리지앵 에펠탑')).toBe(false)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/place-dict-1128.test.ts"
+      ]
+    },
+    {
+      "id": "free-src-1128",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/28 08:08·08:10: Pexels 멈춤(잔여 0) 동안 풀 → Unsplash → Pixabay → Openverse/Wikimedia CC0·PD(공공누리는 마지막). 표기 의무 없는 사진만. Unsplash 공용 시간당 900(<1000)+헤더 remaining 0 이면 1시간 정지+24시간 보관, Pixabay 60초 60번(공식 100)+헤더 reset 정지+24시간 보관+저장소 업로드(핫링크 금지)+키 없으면 건너뜀, Openverse 익명 헤더 가드·토큰 있으면 Bearer",
+      "checks": [
+        {
+          "file": "lib/photo-autofill-acquire.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "? ['unsplash', 'pixabay', 'cc0']",
+            ": ['pexels', 'cc0', 'unsplash', 'pixabay']",
+            "const pexelsOff = deps.stockStopped('pexels')"
+          ]
+        },
+        {
+          "file": "lib/pixabay-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "export const PIXABAY_API_KEY_ENV = 'PIXABAY_API_KEY'",
+            "export const PIXABAY_RESULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000",
+            "u.searchParams.set('image_type', 'photo')",
+            "if (String(h?.type ?? '').toLowerCase() !== 'photo') continue",
+            "guard.onQuotaHeaders("
+          ]
+        },
+        {
+          "file": "lib/register-photo-stock-rate-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "export const UNSPLASH_PROD_MAX_CALLS_PER_HOUR = 900",
+            "export const PIXABAY_MAX_CALLS_PER_MINUTE = 60",
+            "new UnsplashCallBudget(realStockGuardClock, UNSPLASH_PROD_MAX_CALLS_PER_HOUR)"
+          ]
+        },
+        {
+          "file": "lib/unsplash-service.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "budget.onQuotaHeaders(remaining)",
+            "kind: 'unsplash-call'"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-live-deps.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "if (c.source === 'Pixabay') {",
+            "'pixabay_no_key'"
+          ]
+        },
+        {
+          "file": "lib/photo-autofill-openverse.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "x-ratelimit-available-anon_sustained",
+            "kind: 'openverse-call'"
+          ]
+        },
+        {
+          "file": "lib/product-image-source-policy.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "return 'pixabay'"
+          ]
+        },
+        {
+          "file": "lib/free-src-1128.test.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[free-src-1128]",
+            "expect(order).not.toContain('pexels')",
+            "expect(UNSPLASH_PROD_MAX_CALLS_PER_HOUR).toBeLessThan(1000)"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/free-src-1128.test.ts"
+      ]
     }
   ],
   "vitestSuites": [

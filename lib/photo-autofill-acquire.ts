@@ -28,7 +28,7 @@ import {
 import type { PhotoException, PhotoExceptionOrigin } from '@/lib/photo-exception-list'
 import { orderThumbnailCandidates } from '@/lib/thumbnail-pick'
 
-export type StockTier = 'pexels' | 'unsplash'
+export type StockTier = 'pexels' | 'unsplash' | 'pixabay'
 
 export type AcquireCommitOk = {
   ok: true
@@ -45,6 +45,8 @@ export type AcquireCommitResult = AcquireCommitOk | { ok: false; reason: string 
 export type AcquireDeps = {
   search: (tier: StockTier, query: string, perPage: number) => Promise<AutofillCandidate[]>
   stockStopped: (tier: StockTier) => boolean
+  /** 출처를 아예 건너뛸 사유(키 없음 등). 있으면 그 사유를 notes 에 남기고 부르지 않는다 */
+  stockOffReason?: (tier: StockTier) => string | null
   /** 사진 풀(NCLOUD)에 올리고 저장본을 측정한다. DB 쓰기는 이 안에서만 일어난다. */
   commit: (c: AutofillCandidate, ctx: { kind: AutofillSlotKind; day: number | null; label: string }) => Promise<AcquireCommitResult>
   /** 외부 호출 전 간격+지터 */
@@ -118,13 +120,13 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
 
   let sights: string[] = [...(input.sights ?? [])]
   let cityTerms: string[] = [...(input.cityTerms ?? [])]
-  if (sights.length === 0 && input.dayFacts) {
-    const d = deriveDaySights(input.dayFacts, input.destinationText)
-    sights = d.sights
-    if (sights.length === 0) return fail(`no_sight:${d.reason}`, 'no visited sight in itinerary text', null, null, true)
+  const derived = input.dayFacts ? deriveDaySights(input.dayFacts, input.destinationText) : null
+  if (sights.length === 0 && derived) {
+    sights = derived.sights
+    if (sights.length === 0) return fail(`no_sight:${derived.reason}`, 'no visited sight in itinerary text', null, null, true)
   }
   if (sights.length === 0) return fail('no_sight:no_sight', 'no sight given', null, null, true)
-  if (input.dayFacts) cityTerms = [...new Set([...cityTerms, ...deriveDaySights(input.dayFacts, input.destinationText).cityTerms])]
+  if (derived) cityTerms = [...new Set([...cityTerms, ...derived.cityTerms])]
   const slotText = [input.dayFacts?.routeText, input.dayFacts?.title, input.dayFacts?.description, input.destinationText].filter(Boolean).join(' ')
 
   const exclude = input.exclude ?? new Set<string>()
@@ -237,9 +239,14 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
       if (pooled === 'cap') break
       if (pooled) return pooled
     }
-    // REGRESSION-FREEZE[photo-source-order-1127]: 풀 → Pexels → Openverse/Wikimedia CC0·PD → Unsplash → (전부 실패 시만) 생성 — manifest
-    const queries = sightSearchQueries(sight, cityTerms)
+    // REGRESSION-FREEZE[photo-source-order-1127]: 풀 → Pexels → Openverse/Wikimedia CC0·PD → Unsplash(→ Pixabay) — Pexels 멈춤 중엔 아래 free-src-1128 순서. 생성 없음 — manifest
+    const queries = sightSearchQueries(sight)
     const stockRound = async (tier: StockTier): Promise<AcquireOk | 'cap' | null> => {
+      const off = deps.stockOffReason?.(tier) ?? null
+      if (off) {
+        limitNotes.add(off)
+        return null
+      }
       for (const query of queries) {
         if (deps.stockStopped(tier)) {
           limitNotes.add(`${tier}_limit`)
@@ -265,10 +272,8 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
       }
       return null
     }
-    const pexels = await stockRound('pexels')
-    if (pexels === 'cap') break
-    if (pexels) return pexels
-    if (deps.searchCc0) {
+    const cc0Round = async (): Promise<AcquireOk | 'cap' | null> => {
+      if (!deps.searchCc0) return null
       let cc0Hit: AcquireOk | 'cap' | null = null
       for (const query of queries) {
         lastQuery = query
@@ -288,12 +293,36 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
         cc0Hit = await consider(cands, 'cc0', query, profile, sight)
         if (cc0Hit) break
       }
-      if (cc0Hit === 'cap') break
-      if (cc0Hit) return cc0Hit
+      return cc0Hit
     }
-    const unsplash = await stockRound('unsplash')
-    if (unsplash === 'cap') break
-    if (unsplash) return unsplash
+    // REGRESSION-FREEZE[free-src-1128]: 사장님 11/28 08:08·08:10 — Pexels 가 멈춘 동안(잔여 0) 풀 → Unsplash → Pixabay → Openverse/Wikimedia CC0·PD.
+    // Pexels 가 살아 있으면 풀 → Pexels → CC0·PD → Unsplash → Pixabay. 공공누리는 이 단계 밖(마지막) — manifest
+    const pexelsOff = deps.stockStopped('pexels')
+    if (pexelsOff) limitNotes.add('pexels_limit')
+    const order: Array<'pexels' | 'unsplash' | 'pixabay' | 'cc0'> = pexelsOff
+      ? ['unsplash', 'pixabay', 'cc0']
+      : ['pexels', 'cc0', 'unsplash', 'pixabay']
+    let capped = false
+    for (const step of order) {
+      let hit: AcquireOk | 'cap' | null = null
+      if (step === 'pexels') {
+        const pexels = await stockRound('pexels')
+        hit = pexels
+      } else if (step === 'unsplash') {
+        const unsplash = await stockRound('unsplash')
+        hit = unsplash
+      } else if (step === 'pixabay') {
+        hit = await stockRound('pixabay')
+      } else {
+        hit = await cc0Round()
+      }
+      if (hit === 'cap') {
+        capped = true
+        break
+      }
+      if (hit) return hit
+    }
+    if (capped) break
   }
 
   if (deps.generate && lastSight && input.kind !== 'cover') {

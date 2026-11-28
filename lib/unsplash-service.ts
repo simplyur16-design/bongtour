@@ -106,22 +106,75 @@ export async function searchUnsplashHeroCandidates(
   keyword: string,
   perPage: number,
   queryUsed: string,
-  deps: { env?: Record<string, string | undefined>; fetchImpl?: FetchLike; budget?: UnsplashCallBudget } = {}
+  deps: { env?: Record<string, string | undefined>; fetchImpl?: FetchLike; budget?: UnsplashCallBudget; cache?: boolean; now?: () => number } = {}
 ): Promise<UnsplashHeroCandidate[]> {
   const key = getUnsplashAccessKey(deps.env ?? process.env)
   if (!key) return []
   const query = keyword.trim()
   if (!query) return []
+  const take = Math.min(Math.max(perPage, 1), 30)
+  // REGRESSION-FREEZE[free-src-1128]: 자동 채움 경로(cache:true)는 같은 검색 24시간 보관 + 동시 같은 검색 1번 — 시간당 한도 절약 — manifest
+  const ck = `${query.toLowerCase()}|${take}`
+  const now = deps.now ?? Date.now
+  if (deps.cache) {
+    const hit = unsplashCache().get(ck)
+    if (hit && now() - hit.at < UNSPLASH_RESULT_CACHE_TTL_MS) return hit.rows.map((r) => ({ ...r, queryUsed }))
+    const pending = unsplashInflight().get(ck)
+    if (pending) return (await pending).map((r) => ({ ...r, queryUsed }))
+  }
   const budget = deps.budget ?? sharedUnsplashCallBudget()
   if (!budget.tryAcquire()) {
     console.warn('[unsplash] search skipped (hourly budget or stopped after 403/429)')
     return []
   }
-  const f = deps.fetchImpl ?? fetch
-  const take = Math.min(Math.max(perPage, 1), 30)
+  const run = searchUnsplashOnce(query, take, queryUsed, key, budget, deps.fetchImpl ?? fetch)
+  if (!deps.cache) return run
+  unsplashInflight().set(ck, run)
+  try {
+    const rows = await run
+    if (unsplashCache().size >= 2000) unsplashCache().clear()
+    unsplashCache().set(ck, { at: now(), rows })
+    return rows
+  } finally {
+    unsplashInflight().delete(ck)
+  }
+}
+
+export const UNSPLASH_RESULT_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+type UnsplashCacheEntry = { at: number; rows: UnsplashHeroCandidate[] }
+const ug = globalThis as unknown as { __btUnsplashCache?: Map<string, UnsplashCacheEntry>; __btUnsplashInflight?: Map<string, Promise<UnsplashHeroCandidate[]>> }
+function unsplashCache(): Map<string, UnsplashCacheEntry> {
+  return (ug.__btUnsplashCache ??= new Map())
+}
+function unsplashInflight(): Map<string, Promise<UnsplashHeroCandidate[]>> {
+  return (ug.__btUnsplashInflight ??= new Map())
+}
+/** 테스트용 */
+export function __resetUnsplashCacheForTest(): void {
+  unsplashCache().clear()
+  unsplashInflight().clear()
+}
+
+function readRemaining(res: Response): number | null {
+  const v = Number(res.headers?.get?.('x-ratelimit-remaining') ?? NaN)
+  return Number.isFinite(v) ? v : null
+}
+
+async function searchUnsplashOnce(
+  query: string,
+  take: number,
+  queryUsed: string,
+  key: string,
+  budget: UnsplashCallBudget,
+  f: FetchLike,
+): Promise<UnsplashHeroCandidate[]> {
   const url = `${API}/search/photos?query=${encodeURIComponent(query)}&per_page=${take}&orientation=landscape&content_filter=high`
   try {
     const res = await f(url, { headers: headers(key) })
+    const remaining = readRemaining(res)
+    budget.onQuotaHeaders(remaining)
+    // 호출마다 한 줄(키 없음)
+    console.log(JSON.stringify({ kind: 'unsplash-call', status: res.status, remaining, budgetLeft: budget.remaining() }))
     if (!res.ok) {
       budget.onStatus(res.status)
       console.warn(`[unsplash] search HTTP ${res.status}`)
@@ -176,7 +229,7 @@ export async function triggerUnsplashDownload(
     return false
   }
   if (u.protocol !== 'https:' || u.hostname !== 'api.unsplash.com') return false
-  // download_location 도 시간당 45번 예산에 든다
+  // download_location 도 시간당 예산에 든다(공용 900)
   const budget = deps.budget ?? sharedUnsplashCallBudget()
   if (!budget.tryAcquire()) {
     console.warn('[unsplash] download_location skipped (hourly budget or stopped after 403/429)')
@@ -185,6 +238,7 @@ export async function triggerUnsplashDownload(
   const f = deps.fetchImpl ?? fetch
   try {
     const res = await f(u.toString(), { headers: headers(key) })
+    budget.onQuotaHeaders(readRemaining(res))
     if (!res.ok) budget.onStatus(res.status)
     return res.ok
   } catch (e) {

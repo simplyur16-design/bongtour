@@ -146,7 +146,7 @@ export async function collectChainCandidates(
     return (await search(q, PHOTO_CHAIN_PEXELS_PER_QUERY, q)).map(fromPexels)
   }
   const search =
-    deps.searchUnsplash ?? ((k: string, n: number, used: string) => searchUnsplashHeroCandidates(k, n, used, { env: deps.env }))
+    deps.searchUnsplash ?? ((k: string, n: number, used: string) => searchUnsplashHeroCandidates(k, n, used, { env: deps.env, cache: true }))
   return (await search(q, 10, q)).map(fromUnsplash).filter((x): x is ChainCandidate => x != null)
 }
 

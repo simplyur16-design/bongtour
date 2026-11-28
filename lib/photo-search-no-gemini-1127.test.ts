@@ -33,11 +33,8 @@ describe('고유명 축약·대조 (photo-sight-core-1127)', () => {
     expect(sightCoreQuery('Changbai Mountain Heaven Lake')).toBe('Changbai Mountain')
     expect(sightCoreQuery('Bayon Temple Angkor Thom')).toBe('Bayon Temple')
     expect(sightCoreQuery('Wat Arun')).toBe('')
-    expect(sightSearchQueries('Karnak Temple Luxor Columns', ['luxor'])).toEqual([
-      'Karnak Temple Luxor Columns',
-      'Karnak Temple',
-      'Karnak Temple luxor',
-    ])
+    // 사장님 08:55: 도시를 자동으로 붙이지 않는다
+    expect(sightSearchQueries('Karnak Temple Luxor Columns')).toEqual(['Karnak Temple Luxor Columns', 'Karnak Temple'])
   })
 
   it('고유명 낱말이 있으면 설명 낱말이 없어도 일치, 고유명이 없으면 불일치', () => {
