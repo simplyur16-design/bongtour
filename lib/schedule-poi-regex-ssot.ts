@@ -85,7 +85,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /이화원|Summer\s*Palace/i, en: 'Summer Palace' },
   { re: /천안문|Tiananmen/i, en: 'Tiananmen Square' },
   { re: /스차하이|십찰해|什刹海|Shichahai/i, en: 'Shichahai' },
-  { re: /올림픽\s*경기장|새둥지|Bird'?s?\s*Nest|국가체육장/i, en: 'Beijing National Stadium' },
+  // REGRESSION-FREEZE[place-dict-1128]: 올림픽경기장은 북경 문맥에서만(바르셀로나 몬주익 오매핑) — manifest
+  { re: /새둥지|Bird'?s?\s*Nest|국가체육장|(?<=(?:북경|베이징|Beijing)[\s\S]{0,300})올림픽\s*경기장|올림픽\s*경기장(?=[\s\S]{0,300}(?:북경|베이징|Beijing))/i, en: 'Beijing National Stadium' },
+  { re: /대안탑|대자은사|Giant\s*Wild\s*Goose\s*Pagoda/i, en: 'Giant Wild Goose Pagoda' },
+  { re: /왕부정|왕푸징|Wangfujing/i, en: 'Wangfujing Street' },
   { re: /더\s*플레이스|The\s*Place/i, en: 'The Place Beijing' },
   { re: /파르테논|Parthenon/i, en: "Parthenon Athens Acropolis" },
   { re: /프로필레아|Propylaea|PROPYLAIA/i, en: "Propylaea Athens Acropolis" },
@@ -594,7 +597,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /글로스터|Gloucester/i, en: "Gloucester Cathedral England" },
   { re: /바이버리|Bibury/i, en: "Bibury Arlington Row Cotswolds" },
   { re: /코츠월드|Cotswolds?/i, en: "Cotswolds stone village England" },
-  { re: /^바스$|\bBath\b|로마\s*목욕탕|Roman\s*Baths/i, en: "Bath Roman Baths England" },
+  // REGRESSION-FREEZE[place-dict-1128]: Mud Bath(나트랑 머드 온천)는 영국 바스가 아니다 — manifest
+  { re: /^바스$|(?<!mud\s)\bBath\b(?!\s*(?:house|tub|room))|로마\s*목욕탕|Roman\s*Baths/i, en: "Bath Roman Baths England" },
   { re: /솔즈베리|Salisbury|스톤헨지|Stonehenge/i, en: "Stonehenge Salisbury Plain" },
   { re: /^런던$|^London$/i, en: "Tower Bridge London Thames" },
   { re: /바티칸\s*박물관|Vatican\s*Museums/i, en: "Vatican Museums spiral staircase Rome" },
@@ -679,6 +683,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /판시판|Fansipan|사파\s*정상/i, en: 'Fansipan Peak Sapa Vietnam' },
   { re: /깟깟|Cat\s*Cat/i, en: 'Cat Cat Village Sapa Vietnam' },
   { re: /하노이.{0,40}서호|서호(?=.{0,24}하노이)|West\s*Lake\s*Hanoi/iu, en: 'West Lake Hanoi' },
+  // REGRESSION-FREEZE[place-dict-1128]: 항주 문맥의 서호는 항주 서호(test10 pkg-yb-0219 4일차) — manifest
+  { re: /(?:항주|항저우|杭州).{0,80}서호|서호(?=.{0,80}(?:항주|항저우|杭州))/su, en: 'West Lake Hangzhou' },
   { re: /서호/u, en: 'West Lake Hanoi' },
   { re: /삼형제|Three\s*Brothers/i, en: 'Three Brothers Houses Riga Latvia' },
   { re: /이누야마|Inuyama/i, en: 'Inuyama Castle Japan' },
@@ -704,7 +710,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /맨메이드\s*포레스트|Man[\s-]*Made\s*Forest/i, en: 'Bohol Man Made Forest' },
   { re: /발리카삭|Balicasag/i, en: 'Bohol Balicasag Island' },
   { re: /알로나\s*비치|Alona\s*Beach/i, en: 'Bohol Alona Beach Panglao' },
-  { re: /오슬롭|고래상어|Oslob|Whale\s*Shark/i, en: 'Cebu Oslob Whale Shark' },
+  // REGRESSION-FREEZE[place-dict-1128]: 고래상어는 세부·오슬롭 문맥에서만(오사카 카이유칸 오매핑) — manifest
+  { re: /오슬롭|Oslob|(?<=(?:세부|오슬롭|Cebu|Oslob)[\s\S]{0,300})(?:고래상어|Whale\s*Shark)|(?:고래상어|Whale\s*Shark)(?=[\s\S]{0,300}(?:세부|오슬롭|Cebu|Oslob))/i, en: 'Cebu Oslob Whale Shark' },
   { re: /모알보알|Moalboal/i, en: 'Cebu Moalboal Sardine Run' },
   { re: /정어리\s*스노클링|Sardine\s*(?:Run|Snorkel)/i, en: 'Cebu Moalboal Sardine Run' },
   { re: /투말록\s*폭포|Tumalog/i, en: 'Cebu Tumalog Falls' },
@@ -1126,6 +1133,7 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /체스키\s*크(?:룸|롬)로프|Český\s*Krumlov|Cesky\s*Krumlov/i, en: "Cesky Krumlov Castle Czech Republic" },
   { re: /이발사\s*다리|Barber\s*Bridge/i, en: "Cesky Krumlov old town bridge" },
   { re: /미라벨|Mirabell/i, en: "Mirabell Gardens Salzburg" },
+  { re: /게트라이데|Getreidegasse/i, en: "Getreidegasse Salzburg" },
   { re: /모짜르트|Mozart/i, en: "Mozart birthplace Salzburg" },
   { re: /잘츠부르크|Salzburg|잘쯔부르크/i, en: "Hohensalzburg Fortress Salzburg" },
   { re: /자다르|Zadar/i, en: "Church of St Donatus Zadar Croatia" },
@@ -1188,6 +1196,10 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /브라가\s*대성당|Braga\s*Cathedral/i, en: "Braga Cathedral" },
   { re: /클레리구스|Cl[eé]rigos/i, en: "Clerigos Tower Porto" },
   { re: /포르투\s*대성당|Porto\s*Cathedral/i, en: "Porto Cathedral" },
+  // REGRESSION-FREEZE[place-dict-1128]: 포르투 동 루이스 1세 다리(test10 pkg-hn-0303 3일차 원문 첫 명소) — manifest
+  { re: /동\s*루이스\s*(?:1세\s*)?다리|Dom\s*Lu[ií]s\s*(?:I\s*)?Bridge|Ponte\s*(?:de\s*)?Dom\s*Lu[ií]s/i, en: "Dom Luis I Bridge" },
+  // REGRESSION-FREEZE[place-dict-1128]: 포트스테판 사막 = 스톡턴 비치 모래언덕(Worimi Conservation Lands, test10 pkg-vg-0056 3일차) — manifest
+  { re: /포트\s*스테판\s*(?:사막|모래\s*언덕|샌드\s*듄)|Stockton\s*(?:Beach\s*)?Sand\s*Dunes/i, en: "Stockton Bight Sand Dunes" },
   { re: /상\s*벤투|Sao\s*Bento/i, en: "Sao Bento Station Porto" },
   { re: /몰리세이루|Moliceiro/i, en: "Moliceiro boats Aveiro" },
   { re: /오비두스|Obidos/i, en: "Obidos medieval town Portugal" },
@@ -1216,7 +1228,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /그랜드\s*모스크|Sheikh\s*Zayed\s*Grand\s*Mosque|자이드\s*그랜드\s*모스크/i, en: "Sheikh Zayed Grand Mosque Abu Dhabi" },
   { re: /에티하드\s*타워|Etihad\s*Tower/i, en: "Etihad Towers Abu Dhabi" },
   { re: /두바이몰\s*분수|분수쇼\s*워크|Dubai\s*Fountain|두바이\s*분수/i, en: "Dubai Fountain Dubai Mall" },
-  { re: /도우\s*크루즈|Dhow\s*Cruise|크루즈\s*야경/i, en: "Dubai Creek Dhow Cruise" },
+  // REGRESSION-FREEZE[place-dict-1128]: 도우·야경 크루즈는 두바이 문맥에서만(호주 포트스테판 오매핑) — manifest
+  { re: /Dhow\s*Cruise|(?<=(?:두바이|Dubai)[\s\S]{0,300})(?:도우\s*크루즈|크루즈\s*야경)|(?:도우\s*크루즈|크루즈\s*야경)(?=[\s\S]{0,300}(?:두바이|Dubai))/i, en: "Dubai Creek Dhow Cruise" },
   { re: /버즈\s*칼리파|Burj\s*Khalifa/i, en: "Burj Khalifa Dubai skyline" },
   { re: /두바이\s*프레임|Dubai\s*Frame/i, en: "Dubai Frame Zabeel Park" },
   { re: /바스타키아|Al\s*Fahidi|알\s*파히디|Al\s*Seef|알\s*시프/i, en: "Al Fahidi Historical District Dubai" },
@@ -1433,7 +1446,8 @@ export const SCHEDULE_SPOT_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /타우포\s*호수|Lake\s*Taupo/i, en: "Lake Taupo" },
   { re: /후카\s*폭포|Huka\s*Falls/i, en: "Huka Falls" },
   { re: /와이키테|와이오타푸|Wai-O-Tapu/i, en: "Wai-O-Tapu geothermal Rotorua" },
-  { re: /레드우드|Redwoods\s*Whakarewarewa/i, en: "Redwoods Whakarewarewa Forest" },
+  // REGRESSION-FREEZE[place-dict-1128]: 레드우드는 로토루아·뉴질랜드 문맥에서만(미서부 레드우드 오매핑) — manifest
+  { re: /Redwoods\s*Whakarewarewa|(?<=(?:로토루아|뉴질랜드|Rotorua)[\s\S]{0,300})레드우드|레드우드(?=[\s\S]{0,300}(?:로토루아|뉴질랜드|Rotorua))/i, en: "Redwoods Whakarewarewa Forest" },
   { re: /와이토모|Waitomo/i, en: "Waitomo Glowworm Caves" },
   { re: /울루루|Uluru|Ayers\s*Rock/i, en: "Uluru Ayers Rock sunset" },
   { re: /그레이트\s*배리어\s*리프|Great\s*Barrier\s*Reef/i, en: "Great Barrier Reef aerial" },
@@ -1533,7 +1547,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /북경|베이징|北京/u, en: 'Beijing' },
   // REGRESSION-FREEZE[schedule-poi-regex-ssot]: India 도시허브 — 자이푸르≠Hawa Mahal 과매핑 금지 — manifest
   { re: /자이푸르|Jaipur/i, en: 'Jaipur' },
-  { re: /뉴\s*델리|뉴델리|델리|New\s*Delhi|\bDelhi\b/i, en: 'Delhi' },
+  // REGRESSION-FREEZE[place-dict-1128]: 낱말 속 '델리'(기라델리·델리만쥬)는 델리가 아니다 — manifest
+  { re: /뉴\s*델리|뉴델리|(?<![가-힣])델리(?!만쥬|카트|샌드)|New\s*Delhi|\bDelhi\b/i, en: 'Delhi' },
   { re: /아그라|\bAgra\b/i, en: 'Agra' },
   { re: /바라나시|Varanasi|Banaras/i, en: 'Varanasi' },
   { re: /광저우|광주|广州/u, en: "Guangzhou skyline night" },
@@ -1573,7 +1588,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /호이안|會安|Hoi\s*An/u, en: "Hoi An Ancient Town / lantern-lit street / eye-level" },
   // REGRESSION-FREEZE[pexels-normalize-da-nang-not-da]: 다낭 도시명 ≠ Da 조각 — manifest
   { re: /다낭/u, en: "Da Nang" },
-  { re: /위해|웨이하이|Weihai/i, en: "Weihai" },
+  // REGRESSION-FREEZE[place-dict-1128]: '~을/를 위해'는 웨이하이가 아니다 — manifest
+  { re: /웨이하이|Weihai|(?<![을를]\s?)(?<![가-힣])위해(?![가-힣])/i, en: "Weihai" },
   // 폴리네시안 안의 「시안」은 서안(Xi'an)이 아니다.
   { re: /(?:^|[\s\-·,/])서안(?:$|[\s\-·,/])|(?<![가-힣])시안(?![가-힣])|\bXian\b|Xi['’]?an/iu, en: "Xian" },
   { re: /하노이/u, en: "Hanoi Old Quarter" },
@@ -1685,7 +1701,8 @@ export const SCHEDULE_CITY_KO_REGEX_RULES: ReadonlyArray<{ re: RegExp; en: strin
   { re: /크라이스트\s*처치|Christchurch/i, en: "Christchurch Cathedral square" },
   { re: /골드\s*코스트|Gold\s*Coast/i, en: "Surfers Paradise Gold Coast beach" },
   { re: /케언즈|Cairns/i, en: "Cairns Great Barrier Reef gateway" },
-  { re: /퍼스|Perth/i, en: "Perth Kings Park skyline" },
+  // REGRESSION-FREEZE[place-dict-1128]: 낱말 속 '퍼스'(캠퍼스·슈퍼스타)는 퍼스가 아니다 — manifest
+  { re: /(?<![가-힣])퍼스(?![가-힣])|\bPerth\b/i, en: "Perth Kings Park skyline" },
   { re: /브리즈번|Brisbane/i, en: "Brisbane Story Bridge" },
   { re: /뉴질랜드|New\s*Zealand/i, en: "New Zealand Milford Sound landscape" },
   { re: /호주|Australia/i, en: "Australia Sydney Opera House harbour" },

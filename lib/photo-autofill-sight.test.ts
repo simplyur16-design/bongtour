@@ -38,7 +38,9 @@ describe('photo-autofill-sight: 그날 방문지 추출', () => {
   })
 
   it('검색어는 명소 → 명소+도시 순으로 최대 2개', () => {
-    expect(sightSearchQueries('Blue Mosque', ['istanbul'])).toEqual(['Blue Mosque', 'Blue Mosque istanbul'])
+    // 사장님 08:55: 검색어는 관광지명만(도시 자동 덧붙임 금지), 도시만은 검색어 아님
+    expect(sightSearchQueries('Blue Mosque')).toEqual(['Blue Mosque'])
+    expect(sightSearchQueries('Istanbul')).toEqual([])
   })
 })
 

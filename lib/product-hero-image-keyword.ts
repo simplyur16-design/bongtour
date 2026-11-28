@@ -48,7 +48,7 @@ export type SelectProductHeroPlaceKeywordResult = {
   candidates?: string[]
 }
 
-type DayCandidate = { day: number; keyword: string; key: string }
+type DayCandidate = { day: number; keyword: string; key: string; route: 'own' | 'city_rep' }
 
 /** 도시·나라·일반명사만인 이름은 대표 검색어가 아니다 */
 function isSightKeyword(kw: string): boolean {
@@ -73,7 +73,7 @@ export function heroKeywordCandidatesByDay(days: readonly ProductHeroItineraryDa
     [d.title, d.routeText, d.description, d.supplierText, d.poiNamesRaw, d.summaryText].filter(Boolean).join(' ')
   for (const d of sorted) {
     const hasRaw = Boolean(d.title || d.routeText || d.description || d.supplierText)
-    const { sights } = deriveDaySights({
+    const { sights, route } = deriveDaySights({
       title: d.title ?? null,
       routeText: hasRaw ? (d.routeText ?? null) : [d.poiNamesRaw, d.summaryText].filter(Boolean).join(' - ') || null,
       description: d.description ?? null,
@@ -89,10 +89,12 @@ export function heroKeywordCandidatesByDay(days: readonly ProductHeroItineraryDa
       const key = candidateKey(kw)
       if (!key || seenToday.has(key)) continue
       seenToday.add(key)
-      out.push({ day: d.day, keyword: kw, key })
+      out.push({ day: d.day, keyword: kw, key, route: route ?? 'own' })
     }
   }
-  return out
+  // REGRESSION-FREEZE[place-dict-1128] hero-route: 대표사진도 1순위 = 상품 일정 원문 명소, 원문 명소가 하나도 없을 때만 2순위(도시 대표 명소 사전) — manifest
+  const own = out.filter((c) => c.route === 'own')
+  return own.length > 0 ? own : out
 }
 
 /**

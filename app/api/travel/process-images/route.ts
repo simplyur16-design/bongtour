@@ -978,15 +978,8 @@ export async function POST(req: Request) {
       mainPhoto = { url: '', source: '', photographer: '', originalLink: '' }
       preserveHero = true
     } else if (strictAutofill && !preserveHero && !poolMain) {
-      const dayKeywords = (() => {
-        try {
-          const parsed = JSON.parse(String(product.schedule ?? '')) as unknown
-          if (!Array.isArray(parsed)) return []
-          return parsed.map((row) => String((row as { imageKeyword?: unknown })?.imageKeyword ?? '').trim()).filter(Boolean)
-        } catch {
-          return []
-        }
-      })()
+      // REGRESSION-FREEZE[place-dict-1128] cover-own-text: 사장님 08:55 — 대표사진도 일정 원문 관광지(규칙 후보, 일차 순)만. 원문 확인 안 된 imageKeyword 는 쓰지 않는다 — manifest
+      const dayKeywords = heroPick.candidates ?? []
       // REGRESSION-FREEZE[photo-cover-day-sight]: 도시만 있는 대표 검색어는 빼고 일차 명소를 쓴다 — manifest
       // 핵심 방문지(규칙 대표 검색어)를 먼저, 그다음 일차 명소 — 도시 이름만인 검색어는 coverSearchSights 가 뺀다
       const sights = coverSearchSights([mainQuery], [heroPick.keyword, ...dayKeywords])

@@ -120,13 +120,13 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
 
   let sights: string[] = [...(input.sights ?? [])]
   let cityTerms: string[] = [...(input.cityTerms ?? [])]
-  if (sights.length === 0 && input.dayFacts) {
-    const d = deriveDaySights(input.dayFacts, input.destinationText)
-    sights = d.sights
-    if (sights.length === 0) return fail(`no_sight:${d.reason}`, 'no visited sight in itinerary text', null, null, true)
+  const derived = input.dayFacts ? deriveDaySights(input.dayFacts, input.destinationText) : null
+  if (sights.length === 0 && derived) {
+    sights = derived.sights
+    if (sights.length === 0) return fail(`no_sight:${derived.reason}`, 'no visited sight in itinerary text', null, null, true)
   }
   if (sights.length === 0) return fail('no_sight:no_sight', 'no sight given', null, null, true)
-  if (input.dayFacts) cityTerms = [...new Set([...cityTerms, ...deriveDaySights(input.dayFacts, input.destinationText).cityTerms])]
+  if (derived) cityTerms = [...new Set([...cityTerms, ...derived.cityTerms])]
   const slotText = [input.dayFacts?.routeText, input.dayFacts?.title, input.dayFacts?.description, input.destinationText].filter(Boolean).join(' ')
 
   const exclude = input.exclude ?? new Set<string>()
@@ -240,7 +240,7 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
       if (pooled) return pooled
     }
     // REGRESSION-FREEZE[photo-source-order-1127]: 풀 → Pexels → Openverse/Wikimedia CC0·PD → Unsplash(→ Pixabay) — Pexels 멈춤 중엔 아래 free-src-1128 순서. 생성 없음 — manifest
-    const queries = sightSearchQueries(sight, cityTerms)
+    const queries = sightSearchQueries(sight)
     const stockRound = async (tier: StockTier): Promise<AcquireOk | 'cap' | null> => {
       const off = deps.stockOffReason?.(tier) ?? null
       if (off) {
