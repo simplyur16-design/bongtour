@@ -1,7 +1,7 @@
 import { LUXURY_FALLBACK_IMAGE_URL } from '@/lib/image-fallback'
 import { withPexelsRealisticQuery } from '@/lib/image-style'
 import { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
-import { sharedPexelsCallGuard, type PexelsCallGuard } from '@/lib/register-photo-stock-rate-guard'
+import { hydrateSharedPexelsStop, sharedPexelsCallGuard, type PexelsCallGuard } from '@/lib/register-photo-stock-rate-guard'
 
 export { pickPexelsCoverIngestUrl } from '@/lib/cover-image-quality'
 
@@ -63,6 +63,8 @@ export async function pexelsSearch(
   if (pending) return pending
   const guard = deps.guard ?? sharedPexelsCallGuard()
   const run = (async (): Promise<PexelsSearchResult | null> => {
+    // REGRESSION-FREEZE[pexels-stop-persist-1128]: 공용 가드를 쓰는 실제 호출은 저장된 멈춤을 먼저 복원한다(재시작 뒤 첫 호출이 한도 응답을 다시 맞지 않게) — manifest
+    if (!deps.guard) await hydrateSharedPexelsStop()
     if (guard.isStopped()) return { error: 'pexels_stopped' }
     if (deps.spaced && !(await guard.acquire())) return { error: 'pexels_stopped' }
     const f = deps.fetchImpl ?? fetch

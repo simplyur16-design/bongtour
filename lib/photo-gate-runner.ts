@@ -181,6 +181,7 @@ export async function runPhotoHealForProduct(
   productId: string,
   probe: PhotoProbe,
   takeRunBudget?: () => boolean,
+  healOpts?: { maxSlotsPerProduct?: number; allowClear?: boolean },
 ): Promise<{ blocks: number; heal: HealResult | null; exceptions: PhotoException[] }> {
   const p = (await prisma.product.findUnique({ where: { id: productId }, select: PHOTO_FACTS_SELECT })) as ProductPhotoFacts | null
   if (!p) return { blocks: 0, heal: null, exceptions: [] }
@@ -215,6 +216,8 @@ export async function runPhotoHealForProduct(
       recordReplace: recordReplaceLive,
       usage: evald.usage,
       takeRunBudget,
+      ...(healOpts?.maxSlotsPerProduct != null ? { maxSlotsPerProduct: healOpts.maxSlotsPerProduct } : {}),
+      ...(healOpts?.allowClear != null ? { allowClear: healOpts.allowClear } : {}),
     },
   )
   if (heal.replaced.length > 0) await revalidateAfterPhotoChange(productId)
@@ -226,32 +229,67 @@ export type PublicWrongPhotoReplaceResult = {
   targets: number
   replaced: Array<{ productId: string; kind: 'day' | 'cover'; day: number | null; reason: string }>
   kept: Array<{ productId: string; kind: 'day' | 'cover'; day: number | null; reason: string }>
+  /** 쿼터·시간 한도로 이번 단계에서 못 한 상품 수(기존 사진 그대로) */
   deferred: number
+  remainingProductIds: string[]
+  rounds: number
+  waitedMs: number
+  stopReason: 'done' | 'time_budget' | 'quota_wait_exceeds_budget' | 'max_rounds'
+}
+
+/** 한도(Unsplash·Pixabay)에 막혀 못 고친 칸이 있었는지 — acquire 예외 detail 의 notes 로 판정 */
+export function exceptionsHitStockQuota(exceptions: ReadonlyArray<{ detail?: string | null }>): boolean {
+  return exceptions.some((e) => /\b(unsplash|pixabay)_limit\b/.test(String(e.detail ?? '')))
 }
 
 /**
  * 공개 상품의 잘못 채워진 사진 칸 교체(사진 칸만, 관리자 선택 칸 제외, 못 찾으면 기존 유지).
+ * 전 공개 상품을 판정하고(DB 글만) 틀린 칸은 칸 수 상한 없이 한 실행에서 모두 처리한다.
+ * 쿼터에 막힌 칸은 한도 창이 풀릴 때까지 같은 실행에서 기다린 뒤 이어서 처리한다.
  * REGRESSION-FREEZE[photo-replace-wrong-1128]: 공개 상품 교체는 registered·같은 일정일 때만 쓰기 — manifest
+ * REGRESSION-FREEZE[self-heal-no-cap-1128]: 교체·판정 칸 수 상한 없음, 쿼터 대기 후 재개 — manifest
  */
 export async function runPublicWrongPhotoReplaceLive(
   prisma: PrismaClient,
   probe: PhotoProbe,
-  opts: { takeRunBudget: () => boolean; now?: Date; scanLimit?: number },
+  opts: { now?: Date; deadlineAtMs?: number; onlyProductIds?: readonly string[]; sleep?: (ms: number) => Promise<void> } = {},
 ): Promise<PublicWrongPhotoReplaceResult> {
-  const { publicWrongPhotoBlocks, rotateForHour, WRONG_PHOTO_REPLACE_PUBLIC_SCAN_PER_RUN } = await import('@/lib/photo-replace-wrong-1128')
-  const out: PublicWrongPhotoReplaceResult = { scanned: 0, targets: 0, replaced: [], kept: [], deferred: 0 }
+  const { publicWrongPhotoBlocks, rotateForHour, runWrongPhotoRounds, WRONG_PHOTO_REPLACE_TIME_BUDGET_MS } = await import('@/lib/photo-replace-wrong-1128')
+  const { stockQuotaResumeAtMs } = await import('@/lib/register-photo-stock-rate-guard')
+  const out: PublicWrongPhotoReplaceResult = {
+    scanned: 0,
+    targets: 0,
+    replaced: [],
+    kept: [],
+    deferred: 0,
+    remainingProductIds: [],
+    rounds: 0,
+    waitedMs: 0,
+    stopReason: 'done',
+  }
   const rows = (await prisma.product.findMany({
     where: { registrationStatus: 'registered' },
     select: PHOTO_FACTS_SELECT,
     orderBy: { id: 'asc' },
   })) as ProductPhotoFacts[]
   const usage = await loadPublicPhotoUsageCached(prisma)
-  for (const p of rotateForHour(rows, opts.now ?? new Date(), opts.scanLimit ?? WRONG_PHOTO_REPLACE_PUBLIC_SCAN_PER_RUN)) {
+  const only = opts.onlyProductIds ? new Set(opts.onlyProductIds) : null
+  const targetIds: string[] = []
+  // 전 상품 판정(사진 측정 없음, DB 글만) — 상한 없음. 틀린 칸이 있는 상품만 모은다.
+  for (const p of rotateForHour(rows, opts.now ?? new Date(), rows.length)) {
+    if (only && !only.has(p.id)) continue
     out.scanned++
-    // 판정은 DB 글로만(사진 측정 없음) — 용량·해상도는 기존 점검 몫
     const blocks = publicWrongPhotoBlocks(evaluateRegistrationPhotos(buildRegistrationPhotoInput(p, usage, {})).blocks)
     if (blocks.length === 0) continue
     out.targets += blocks.length
+    targetIds.push(p.id)
+  }
+  const processOne = async (productId: string) => {
+    // 이전 라운드에서 일정이 바뀌었을 수 있어 매번 새로 읽어 판정한다(이미 고친 칸은 빠진다)
+    const p = (await prisma.product.findFirst({ where: { id: productId, registrationStatus: 'registered' }, select: PHOTO_FACTS_SELECT })) as ProductPhotoFacts | null
+    if (!p) return { replaced: 0, quotaLimited: false }
+    const blocks = publicWrongPhotoBlocks(evaluateRegistrationPhotos(buildRegistrationPhotoInput(p, usage, {})).blocks)
+    if (blocks.length === 0) return { replaced: 0, quotaLimited: false }
     const { terms, cityTerms } = destinationTermsOf(p)
     const live = createLiveAcquireDeps({ prisma, destination: terms.join(' '), probe })
     const heal = await healBlockedSlots(
@@ -282,15 +320,124 @@ export async function runPublicWrongPhotoReplaceLive(
         recordException: (e) => recordPhotoException(e),
         recordReplace: recordReplaceLive,
         usage,
-        takeRunBudget: opts.takeRunBudget,
+        // 칸 수 상한 없음: 한 상품의 틀린 칸도 모두 고친다
+        maxSlotsPerProduct: Number.POSITIVE_INFINITY,
       },
     )
     for (const r of heal.replaced) out.replaced.push({ productId: p.id, ...r })
     for (const e of heal.exceptions) out.kept.push({ productId: p.id, kind: e.kind === 'cover' ? 'cover' : 'day', day: e.day ?? null, reason: String(e.reason) })
-    out.deferred += heal.deferred ?? 0
     if (heal.replaced.length > 0) await revalidateAfterPhotoChange(p.id)
-    if (heal.deferred) break
+    return { replaced: heal.replaced.length, quotaLimited: exceptionsHitStockQuota(heal.exceptions) }
   }
+  const r = await runWrongPhotoRounds({
+    productIds: targetIds,
+    processOne,
+    quotaResumeAtMs: stockQuotaResumeAtMs,
+    now: () => Date.now(),
+    sleep: opts.sleep ?? sleep,
+    deadlineAtMs: opts.deadlineAtMs ?? Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+  })
+  out.rounds = r.rounds
+  out.waitedMs = r.waitedMs
+  out.stopReason = r.stopReason
+  out.remainingProductIds = r.remaining
+  out.deferred = r.remaining.length
+  return out
+}
+
+export type PendingWrongPhotoReplaceResult = {
+  scanned: number
+  targets: number
+  targetProducts: number
+  replaced: number
+  kept: number
+  deferred: number
+  remainingProductIds: string[]
+  rounds: number
+  waitedMs: number
+  stopReason: 'done' | 'time_budget' | 'quota_wait_exceeds_budget' | 'max_rounds'
+}
+
+/**
+ * 등록대기(pending·pre_photo_blocked) 상품의 틀린 사진 칸 교체 — 공개 경로와 같은 구조.
+ * 전 등록대기 상품을 판정(DB 글만)하고, 틀린 칸이 있는 상품을 먼저·상한 없이 처리한다(50상품 창·교체 예산 12 없음).
+ * 외부 가드(Unsplash·Pixabay)에 막히면 창이 풀릴 때까지 같은 실행에서 기다린 뒤 이어서 처리한다. 칸을 비우지 않는다.
+ * auto_unpublished 는 범위 밖(건드리지 않음). 국내여행 등록대기 제외는 기존 규칙 그대로.
+ * REGRESSION-FREEZE[self-heal-no-cap-1128]: 등록대기도 상한 없이 틀린 칸 상품 우선·쿼터 대기 후 재개·비우기 0 — manifest
+ */
+export async function runPendingWrongPhotoReplaceLive(
+  prisma: PrismaClient,
+  probe: PhotoProbe,
+  opts: {
+    now?: Date
+    deadlineAtMs?: number
+    onlyProductIds?: readonly string[]
+    sleep?: (ms: number) => Promise<void>
+    /** 테스트용: 상품 하나를 고치는 함수. 기본은 runPhotoHealForProduct(무제한·비우기 금지). */
+    healOne?: (productId: string) => Promise<{ replaced: number; exceptions: ReadonlyArray<{ detail?: string | null }> }>
+    quotaResumeAtMs?: () => number | null
+  } = {},
+): Promise<PendingWrongPhotoReplaceResult> {
+  const { pendingWrongPhotoBlocks, rotateForHour, runWrongPhotoRounds, WRONG_PHOTO_REPLACE_TIME_BUDGET_MS } = await import('@/lib/photo-replace-wrong-1128')
+  const { stockQuotaResumeAtMs } = await import('@/lib/register-photo-stock-rate-guard')
+  const { REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE } = await import('@/lib/register-pre-photo-pending-queue-query')
+  const { isRegisterIngestDomesticKoreaProduct } = await import('@/lib/register-ingest-reject-domestic-korea')
+  const out: PendingWrongPhotoReplaceResult = {
+    scanned: 0,
+    targets: 0,
+    targetProducts: 0,
+    replaced: 0,
+    kept: 0,
+    deferred: 0,
+    remainingProductIds: [],
+    rounds: 0,
+    waitedMs: 0,
+    stopReason: 'done',
+  }
+  const rows = (await prisma.product.findMany({
+    // 기존 매시 작업의 등록대기 조회와 같은 조건(auto_unpublished 는 들어 있지 않다)
+    where: { OR: [REGISTER_PRE_PHOTO_PENDING_QUEUE_WHERE, { registrationStatus: 'pending' }, { registrationStatus: 'pre_photo_blocked' }] },
+    select: { ...PHOTO_FACTS_SELECT, title: true, countryKey: true },
+    orderBy: { id: 'asc' },
+  })) as Array<ProductPhotoFacts & { title: string | null; countryKey: string | null }>
+  const usage = await loadPublicPhotoUsageCached(prisma)
+  const only = opts.onlyProductIds ? new Set(opts.onlyProductIds) : null
+  const targetIds: string[] = []
+  for (const p of rotateForHour(rows, opts.now ?? new Date(), rows.length)) {
+    if (only && !only.has(p.id)) continue
+    if (isRegisterIngestDomesticKoreaProduct(p.title, p.destination, p.countryKey)) continue
+    out.scanned++
+    const blocks = pendingWrongPhotoBlocks(evaluateRegistrationPhotos(buildRegistrationPhotoInput(p, usage, {})).blocks)
+    if (blocks.length === 0) continue
+    out.targets += blocks.length
+    targetIds.push(p.id)
+  }
+  out.targetProducts = targetIds.length
+  const healOne =
+    opts.healOne ??
+    (async (id: string) => {
+      const h = await runPhotoHealForProduct(prisma, id, probe, undefined, { maxSlotsPerProduct: Number.POSITIVE_INFINITY, allowClear: false })
+      return { replaced: h.heal?.replaced.length ?? 0, exceptions: h.exceptions }
+    })
+  const r = await runWrongPhotoRounds({
+    productIds: targetIds,
+    processOne: async (id) => {
+      const h = await healOne(id)
+      out.replaced += h.replaced
+      out.kept += h.exceptions.length
+      if (h.replaced > 0) await revalidateAfterPhotoChange(id)
+      return { replaced: h.replaced, quotaLimited: exceptionsHitStockQuota(h.exceptions) }
+    },
+    quotaResumeAtMs: opts.quotaResumeAtMs ?? stockQuotaResumeAtMs,
+    now: () => Date.now(),
+    sleep: opts.sleep ?? sleep,
+    deadlineAtMs: opts.deadlineAtMs ?? Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+  })
+  out.rounds = r.rounds
+  out.waitedMs = r.waitedMs
+  out.stopReason = r.stopReason
+  out.remainingProductIds = r.remaining
+  out.deferred = r.remaining.length
   return out
 }
 

@@ -2,7 +2,7 @@
  * 사장님 11/27 21:31 '사진 코드 수정 검사 통과하면 병합·배포해' / '국내 6개는 등록대기에서 빼라'
  * REGRESSION-FREEZE[photo-sight-core-1127]: 고유명 축약 검색어·고유명 낱말 대조 — manifest
  * REGRESSION-FREEZE[photo-title-landmark-1127]: 빈·도시만 키워드는 제목 첫 명소로 검색 — manifest
- * REGRESSION-FREEZE[photo-source-order-1127]: 풀 → Pexels → CC0·PD → Unsplash. AI 생성 금지 — manifest
+ * REGRESSION-FREEZE[photo-source-order-1127]: 사장님 20:13·20:16(R03-25·R03-26) 풀 → Pexels → Pixabay → Openverse. AI 생성 금지. Unsplash·Wikimedia 호출 없음 — manifest
  * REGRESSION-FREEZE[photo-openverse-cc0-1127]: Openverse cc0·pdm 만 — manifest
  * REGRESSION-FREEZE[pool-origin-source-1127]: 풀 원 출처 기록(L2-OTHER-SOURCE 원인) — manifest
  * REGRESSION-FREEZE[pool-citymatch-1127]: 풀 채택 via=pool → cityMatch pool — manifest
@@ -105,7 +105,7 @@ describe('Unsplash 몫 분리 (unsplash-share-1127)', () => {
 })
 
 describe('출처 순서·풀 축약 조회 (photo-source-order-1127)', () => {
-  it('풀은 원래 이름과 축약 이름으로 찾고, Pexels → CC0 → Unsplash 순, 생성은 부르지 않는다', async () => {
+  it('풀은 원래 이름과 축약 이름으로 찾고, Pexels → Pixabay → CC0 순, Unsplash·생성은 부르지 않는다(R03-25·R03-26)', async () => {
     const order: string[] = []
     const deps: AcquireDeps = {
       stockStopped: () => false,
@@ -144,8 +144,9 @@ describe('출처 순서·풀 축약 조회 (photo-source-order-1127)', () => {
     expect(r.ok).toBe(false)
     expect(order.slice(0, 2)).toEqual(['pool:Karnak Temple Luxor Columns', 'pool:Karnak Temple'])
     const idx = (p: string) => order.findIndex((x) => x.startsWith(p))
-    expect(idx('pexels:')).toBeLessThan(idx('cc0:'))
-    expect(idx('cc0:')).toBeLessThan(idx('unsplash:'))
+    expect(idx('pexels:')).toBeLessThan(idx('pixabay:'))
+    expect(idx('pixabay:')).toBeLessThan(idx('cc0:'))
+    expect(idx('unsplash:')).toBe(-1)
     expect(order).not.toContain('generate')
     expect(order).toContain('pexels:Karnak Temple')
   })

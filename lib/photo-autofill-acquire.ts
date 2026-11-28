@@ -287,7 +287,7 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
       if (pooled === 'cap') break
       if (pooled) return pooled
     }
-    // REGRESSION-FREEZE[photo-source-order-1127]: 풀 → Pexels → Openverse/Wikimedia CC0·PD → Unsplash(→ Pixabay). Pexels 멈춤 중엔 free-src-1128(R03-17). AI 생성 없음 — manifest
+    // REGRESSION-FREEZE[photo-source-order-1127]: 사장님 2026-11-28 20:13·20:16(R03-25·R03-26)으로 순서 갱신 — 풀 → Pexels → Pixabay → Openverse(cc0·pdm). AI 생성 없음 — manifest
     const queries = sightSearchQueries(sight)
     const stockRound = async (tier: StockTier): Promise<AcquireOk | 'cap' | null> => {
       const off = deps.stockOffReason?.(tier) ?? null
@@ -343,22 +343,21 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
       }
       return cc0Hit
     }
-    // REGRESSION-FREEZE[free-src-1128]: 사장님 11/28 08:08·08:10 — Pexels 가 멈춘 동안(잔여 0) 풀 → Unsplash → Pixabay → Openverse/Wikimedia CC0·PD.
-    // Pexels 가 살아 있으면 풀 → Pexels → CC0·PD → Unsplash → Pixabay (R03-06). 멈춤 중엔 풀 → Unsplash → Pixabay → Openverse (R03-17). iStock·공공누리 연동 없음. AI 없음 — manifest
+    // REGRESSION-FREEZE[free-src-1128]: 사장님 2026-11-28 20:13 "난 봉투어에 위키피아 사진 넣지 않는다"(R03-25),
+    // 20:16 "Unsplash 자동 채움에서 빼"(R03-26). 11/28 08:08·08:10 의 Unsplash·Wikimedia 순서는 봉투어 자동 채움에서 대체.
+    // 풀(Unsplash·Wikimedia·CC BY 행 제외) → Pexels → Pixabay → Openverse(cc0·pdm, wikimedia 제외).
+    // Pexels 멈춤(잔여 0) 중: 풀 → Pixabay → Openverse. iStock·공공누리 연동 없음. AI 없음(R03-07). Unsplash·Wikimedia 검색 호출 없음 — manifest
     const pexelsOff = deps.stockStopped('pexels')
     if (pexelsOff) limitNotes.add('pexels_limit')
-    const order: Array<'pexels' | 'unsplash' | 'pixabay' | 'cc0'> = pexelsOff
-      ? ['unsplash', 'pixabay', 'cc0']
-      : ['pexels', 'cc0', 'unsplash', 'pixabay']
+    const order: Array<'pexels' | 'pixabay' | 'cc0'> = pexelsOff
+      ? ['pixabay', 'cc0']
+      : ['pexels', 'pixabay', 'cc0']
     let capped = false
     for (const step of order) {
       let hit: AcquireOk | 'cap' | null = null
       if (step === 'pexels') {
         const pexels = await stockRound('pexels')
         hit = pexels
-      } else if (step === 'unsplash') {
-        const unsplash = await stockRound('unsplash')
-        hit = unsplash
       } else if (step === 'pixabay') {
         hit = await stockRound('pixabay')
       } else {

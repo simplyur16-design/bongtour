@@ -23,7 +23,23 @@ export function isStockStopStatus(status: number): boolean {
 export class PexelsCallGuard {
   private nextAt = 0
   private stoppedUntil = 0
-  constructor(private readonly clock: StockGuardClock = realStockGuardClock, private readonly minIntervalMs = PEXELS_MIN_INTERVAL_MS) {}
+  /**
+   * onStopExtended: 멈춤 시각이 늘어난 순간(403·429·남은 한도 0) 부른다 — 영구 저장용(REGRESSION-FREEZE[pexels-stop-persist-1128]).
+   */
+  constructor(
+    private readonly clock: StockGuardClock = realStockGuardClock,
+    private readonly minIntervalMs = PEXELS_MIN_INTERVAL_MS,
+    private readonly onStopExtended?: (untilMs: number, nowMs: number) => void,
+  ) {}
+  private extend(untilMs: number): void {
+    const before = this.stoppedUntil
+    this.stoppedUntil = Math.max(this.stoppedUntil, untilMs)
+    if (this.stoppedUntil > before) this.onStopExtended?.(this.stoppedUntil, this.clock.now())
+  }
+  /** 저장소에서 읽은 멈춤 시각을 되살린다(늘리기만 한다, 저장은 다시 하지 않는다). */
+  hydrateStoppedUntil(untilMs: number): void {
+    if (Number.isFinite(untilMs)) this.stoppedUntil = Math.max(this.stoppedUntil, untilMs)
+  }
   isStopped(): boolean {
     return this.clock.now() < this.stoppedUntil
   }
@@ -37,7 +53,7 @@ export class PexelsCallGuard {
     return !this.isStopped()
   }
   onStatus(status: number): void {
-    if (isStockStopStatus(status)) this.stoppedUntil = Math.max(this.stoppedUntil, this.clock.now() + STOCK_STOP_AFTER_LIMIT_MS)
+    if (isStockStopStatus(status)) this.extend(this.clock.now() + STOCK_STOP_AFTER_LIMIT_MS)
   }
   /**
    * REGRESSION-FREEZE[pexels-quota-1128]: 응답 헤더 x-ratelimit-remaining 이 0 이면 x-ratelimit-reset 까지 Pexels 를 부르지 않는다
@@ -47,7 +63,7 @@ export class PexelsCallGuard {
     if (remaining == null || !Number.isFinite(remaining) || remaining > 0) return
     const now = this.clock.now()
     const resetMs = resetEpochSec != null && Number.isFinite(resetEpochSec) && resetEpochSec * 1000 > now ? resetEpochSec * 1000 : now + STOCK_STOP_AFTER_LIMIT_MS
-    this.stoppedUntil = Math.max(this.stoppedUntil, Math.min(resetMs, now + PEXELS_QUOTA_STOP_MAX_MS))
+    this.extend(Math.min(resetMs, now + PEXELS_QUOTA_STOP_MAX_MS))
   }
   stoppedUntilMs(): number {
     return this.stoppedUntil
@@ -89,6 +105,14 @@ export class UnsplashCallBudget {
   }
   stoppedUntilMs(): number {
     return this.stoppedUntil
+  }
+  /** 다음 호출이 가능해지는 시각(ms). 지금 가능하면 현재 시각. 자가치유가 한도 창이 풀릴 때까지 기다린 뒤 이어서 처리하는 데 쓴다. */
+  nextAvailableAtMs(): number {
+    const now = this.clock.now()
+    if (this.stoppedUntil > now) return this.stoppedUntil
+    if (this.remaining() > 0) return now
+    const oldest = Math.min(...this.calls)
+    return Number.isFinite(oldest) ? oldest + HOUR_MS : now
   }
 }
 
@@ -132,6 +156,14 @@ export class PixabayCallGuard {
     const waitMs = resetSec != null && Number.isFinite(resetSec) && resetSec > 0 ? Math.min(resetSec * 1000, HOUR_MS) : MINUTE_MS
     this.stoppedUntil = Math.max(this.stoppedUntil, this.clock.now() + waitMs)
   }
+  /** 다음 호출이 가능해지는 시각(ms). 지금 가능하면 현재 시각. */
+  nextAvailableAtMs(): number {
+    const now = this.clock.now()
+    if (this.stoppedUntil > now) return this.stoppedUntil
+    if (this.remaining() > 0) return now
+    const oldest = Math.min(...this.calls)
+    return Number.isFinite(oldest) ? oldest + MINUTE_MS : now
+  }
 }
 
 /** 사진 풀 보충(썸네일 top-up)이 쓸 수 있는 Unsplash 시간당 몫 — 나머지는 칸 검색 몫(사장님 11/27 21:31 한도 몫 분리) */
@@ -139,7 +171,20 @@ export const UNSPLASH_TOPUP_SHARE_PER_HOUR = 15
 
 const g = globalThis as unknown as { __btPexelsGuard?: PexelsCallGuard; __btUnsplashBudget?: UnsplashCallBudget; __btUnsplashTopUpShare?: UnsplashCallBudget; __btPixabayGuard?: PixabayCallGuard }
 export function sharedPexelsCallGuard(): PexelsCallGuard {
-  return (g.__btPexelsGuard ??= new PexelsCallGuard())
+  return (g.__btPexelsGuard ??= new PexelsCallGuard(realStockGuardClock, PEXELS_MIN_INTERVAL_MS, (untilMs, nowMs) => {
+    // 실제 한도로 멈춘 순간 저장 — 재배포·재시작·다른 프로세스(web·worker)도 그 시각까지 건너뛴다(저장 실패는 삼킨다)
+    void import('@/lib/stock-stop-persist').then((m) => m.persistStop(m.liveStockStopStore(), untilMs, nowMs)).catch(() => {})
+  }))
+}
+
+/** 시작 때·검색 직전에 저장된 Pexels 멈춤을 읽어 메모리 가드에 복원한다(TTL 안에서는 다시 읽지 않는다). 실패해도 막지 않는다. */
+export async function hydrateSharedPexelsStop(): Promise<void> {
+  try {
+    const m = await import('@/lib/stock-stop-persist')
+    await m.hydrateStopFromStore(sharedPexelsCallGuard(), m.liveStockStopStore())
+  } catch {
+    /* 복원 실패 — 프로세스 메모리 기준 */
+  }
 }
 export function sharedUnsplashCallBudget(): UnsplashCallBudget {
   return (g.__btUnsplashBudget ??= new UnsplashCallBudget(realStockGuardClock, UNSPLASH_PROD_MAX_CALLS_PER_HOUR))
@@ -152,4 +197,15 @@ export function sharedPixabayCallGuard(): PixabayCallGuard {
 /** 풀 보충용 Unsplash 몫(시간당 15). 전체 예산(900)은 실제 호출에서 따로 센다. */
 export function sharedUnsplashTopUpShare(): UnsplashCallBudget {
   return (g.__btUnsplashTopUpShare ??= new UnsplashCallBudget(realStockGuardClock, UNSPLASH_TOPUP_SHARE_PER_HOUR))
+}
+
+/**
+ * 한도에 막혀 못 한 칸을 같은 실행에서 이어 처리하려고 기다릴 시각(ms). Unsplash·Pixabay 한도 창이 풀리는 가장 빠른 시각.
+ * 둘 다 지금 호출 가능하면 null(한도 탓이 아니므로 기다릴 이유 없음). Pexels 는 월 한도라 기다리지 않는다.
+ * REGRESSION-FREEZE[self-heal-no-cap-1128]: 자가치유는 쿼터 창이 풀릴 때까지 같은 실행 안에서 기다린 뒤 이어서 처리 — manifest
+ */
+export function stockQuotaResumeAtMs(): number | null {
+  const now = realStockGuardClock.now()
+  const at = [sharedUnsplashCallBudget().nextAvailableAtMs(), sharedPixabayCallGuard().nextAvailableAtMs()].filter((t) => t > now)
+  return at.length > 0 ? Math.min(...at) : null
 }

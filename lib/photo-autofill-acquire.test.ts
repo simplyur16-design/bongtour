@@ -118,40 +118,38 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     }
   })
 
-  it('Pexels → Unsplash 순서, 검색은 순차(동시 호출 없음)·호출 전 pause', async () => {
+  it('Pexels → Pixabay 순서, 검색은 순차(동시 호출 없음)·호출 전 pause, Unsplash 호출 없음(R03-26)', async () => {
     const { deps, calls, stats } = makeDeps({ results: () => [] })
     const r = await acquireVerifiedPhoto(base(), deps)
     expect(r.ok).toBe(false)
     const searches = calls.filter((c) => c.type === 'search')
     expect(searches[0]!.tier).toBe('pexels')
-    expect(searches[1]!.tier).toBe('unsplash')
+    expect(searches[1]!.tier).toBe('pixabay')
+    expect(searches.every((c) => c.tier !== 'unsplash')).toBe(true)
     expect(stats().maxInFlight).toBe(1)
     calls.forEach((c, i) => {
       if (c.type === 'search') expect(calls[i - 1]?.type).toBe('pause')
     })
   })
 
-  // REGRESSION-FREEZE[photo-source-order-1127]: R03-06 풀 → Pexels → CC0·PD → Unsplash. AI 생성 금지 — manifest
-  it('Pexels·CC0 에 없으면 Unsplash 후보를 채택하고 생성은 부르지 않는다(CC0 는 Unsplash 보다 먼저)', async () => {
+  // REGRESSION-FREEZE[photo-source-order-1127]: 사장님 20:13·20:16(R03-25·R03-26) 풀 → Pexels → Pixabay → Openverse. AI 생성 금지. Unsplash 호출 없음 — manifest
+  it('Pexels 가 비면 Pixabay 후보를 채택하고 생성·Unsplash 는 부르지 않는다', async () => {
     const { deps, calls } = makeDeps({
-      results: (tier) => (tier === 'unsplash' ? [cand('u1', { source: 'Unsplash', url: 'https://images.unsplash.com/photo-u1', originalLink: 'https://unsplash.com/photos/blue-mosque-u1' })] : []),
+      results: (tier) => (tier === 'pixabay' ? [cand('pb1', { source: 'Pixabay', url: 'https://pixabay.com/get/blue-mosque-1.jpg', originalLink: 'https://pixabay.com/photos/blue-mosque-istanbul-1/' })] : []),
       cc0: () => [],
       generate: () => cand('g0', { source: 'AI 생성', altText: 'Blue Mosque in Istanbul' }),
     })
     const r = await acquireVerifiedPhoto(base(), deps)
     expect(r.ok).toBe(true)
-    if (r.ok) expect(r.photo.source).toBe('Unsplash')
-    const firstCc0 = calls.findIndex((c) => c.type === 'cc0')
-    const firstUnsplash = calls.findIndex((c) => c.type === 'search' && c.tier === 'unsplash')
-    expect(firstCc0).toBeGreaterThanOrEqual(0)
-    expect(firstCc0).toBeLessThan(firstUnsplash)
+    if (r.ok) expect(r.photo.source).toBe('Pixabay')
+    expect(calls.some((c) => c.type === 'search' && c.tier === 'unsplash')).toBe(false)
     expect(calls.some((c) => c.type === 'generate')).toBe(false)
   })
 
   it('CC0 후보가 맞으면 Unsplash 를 부르지 않고 CC0 를 채택한다(한도 아낌)', async () => {
     const { deps, calls } = makeDeps({
       results: () => [],
-      cc0: () => [cand('c0', { source: 'CC0', url: 'https://upload.wikimedia.org/c0.jpg', originalLink: 'https://commons.wikimedia.org/wiki/File:Blue_Mosque_Istanbul.jpg', altText: 'Blue Mosque in Istanbul' })],
+      cc0: () => [cand('c0', { source: 'CC0', url: 'https://openverse.org/image/c0.jpg', originalLink: 'https://openverse.org/image/c0', altText: 'Blue Mosque in Istanbul' })],
       generate: () => cand('g0', { source: 'AI 생성', altText: 'Blue Mosque in Istanbul' }),
     })
     const r = await acquireVerifiedPhoto(base(), deps)
@@ -164,7 +162,7 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
   it('Pexels·Unsplash 가 비면 CC0 를 채택하고 생성은 부르지 않는다', async () => {
     const { deps, calls } = makeDeps({
       results: () => [],
-      cc0: () => [cand('c0', { source: 'CC0', url: 'https://upload.wikimedia.org/a.jpg', originalLink: 'https://commons.wikimedia.org/wiki/File:Blue_Mosque.jpg', altText: 'Blue Mosque in Istanbul' })],
+      cc0: () => [cand('c0', { source: 'CC0', url: 'https://openverse.org/image/a.jpg', originalLink: 'https://openverse.org/image/a', altText: 'Blue Mosque in Istanbul' })],
       generate: () => cand('g0', { source: 'AI 생성' }),
     })
     const r = await acquireVerifiedPhoto(base({ sights: ['Blue Mosque'] }), deps)
@@ -190,18 +188,19 @@ describe('acquireVerifiedPhoto: 방문지 검증 채택', () => {
     const { deps, stats } = makeDeps({ results: () => new Error('boom') })
     const r = await acquireVerifiedPhoto(base({ sights: ['Blue Mosque'] }), deps)
     expect(r.ok).toBe(false)
-    // 검색어 1개('Blue Mosque' — 사장님 08:56 도시 덧붙임 금지, place-dict-1128) × 출처 3개(Pexels·Unsplash·Pixabay, free-src-1128) × (최초 + 재시도 1회)
-    expect(stats().searchCount).toBe(1 * 3 * 2)
+    // 검색어 1개('Blue Mosque' — 사장님 08:56 도시 덧붙임 금지, place-dict-1128) × 출처 2개(Pexels·Pixabay, R03-26 Unsplash 제외) × (최초 + 재시도 1회)
+    expect(stats().searchCount).toBe(1 * 2 * 2)
     if (!r.ok) expect(r.exception.detail).toContain('pexels_error')
   })
 
-  it('Unsplash 시간당 한도(중단)는 그 칸의 예외 사유로 남기고 계속 진행', async () => {
-    const { deps } = makeDeps({ results: () => [], stopped: (t) => t === 'unsplash' })
+  it('Pixabay 한도(중단)는 그 칸의 예외 사유로 남기고 계속 진행. Unsplash 한도는 자동 경로에서 더 이상 쓰지 않는다(R03-26)', async () => {
+    const { deps, calls } = makeDeps({ results: () => [], stopped: (t) => t === 'pixabay' || t === 'unsplash' })
     const r = await acquireVerifiedPhoto(base(), deps)
     expect(r.ok).toBe(false)
+    expect(calls.some((c) => c.type === 'search' && c.tier === 'unsplash')).toBe(false)
     if (!r.ok) {
       expect(r.skipped).toBe(false)
-      expect(r.exception.reason).toBe('unsplash_limit')
+      expect(r.exception.reason).toBe('pixabay_limit')
     }
   })
 
