@@ -90,6 +90,14 @@ export class UnsplashCallBudget {
   stoppedUntilMs(): number {
     return this.stoppedUntil
   }
+  /** 다음 호출이 가능해지는 시각(ms). 지금 가능하면 현재 시각. 자가치유가 한도 창이 풀릴 때까지 기다린 뒤 이어서 처리하는 데 쓴다. */
+  nextAvailableAtMs(): number {
+    const now = this.clock.now()
+    if (this.stoppedUntil > now) return this.stoppedUntil
+    if (this.remaining() > 0) return now
+    const oldest = Math.min(...this.calls)
+    return Number.isFinite(oldest) ? oldest + HOUR_MS : now
+  }
 }
 
 /**
@@ -132,6 +140,14 @@ export class PixabayCallGuard {
     const waitMs = resetSec != null && Number.isFinite(resetSec) && resetSec > 0 ? Math.min(resetSec * 1000, HOUR_MS) : MINUTE_MS
     this.stoppedUntil = Math.max(this.stoppedUntil, this.clock.now() + waitMs)
   }
+  /** 다음 호출이 가능해지는 시각(ms). 지금 가능하면 현재 시각. */
+  nextAvailableAtMs(): number {
+    const now = this.clock.now()
+    if (this.stoppedUntil > now) return this.stoppedUntil
+    if (this.remaining() > 0) return now
+    const oldest = Math.min(...this.calls)
+    return Number.isFinite(oldest) ? oldest + MINUTE_MS : now
+  }
 }
 
 /** 사진 풀 보충(썸네일 top-up)이 쓸 수 있는 Unsplash 시간당 몫 — 나머지는 칸 검색 몫(사장님 11/27 21:31 한도 몫 분리) */
@@ -152,4 +168,15 @@ export function sharedPixabayCallGuard(): PixabayCallGuard {
 /** 풀 보충용 Unsplash 몫(시간당 15). 전체 예산(900)은 실제 호출에서 따로 센다. */
 export function sharedUnsplashTopUpShare(): UnsplashCallBudget {
   return (g.__btUnsplashTopUpShare ??= new UnsplashCallBudget(realStockGuardClock, UNSPLASH_TOPUP_SHARE_PER_HOUR))
+}
+
+/**
+ * 한도에 막혀 못 한 칸을 같은 실행에서 이어 처리하려고 기다릴 시각(ms). Unsplash·Pixabay 한도 창이 풀리는 가장 빠른 시각.
+ * 둘 다 지금 호출 가능하면 null(한도 탓이 아니므로 기다릴 이유 없음). Pexels 는 월 한도라 기다리지 않는다.
+ * REGRESSION-FREEZE[self-heal-no-cap-1128]: 자가치유는 쿼터 창이 풀릴 때까지 같은 실행 안에서 기다린 뒤 이어서 처리 — manifest
+ */
+export function stockQuotaResumeAtMs(): number | null {
+  const now = realStockGuardClock.now()
+  const at = [sharedUnsplashCallBudget().nextAvailableAtMs(), sharedPixabayCallGuard().nextAvailableAtMs()].filter((t) => t > now)
+  return at.length > 0 ? Math.min(...at) : null
 }

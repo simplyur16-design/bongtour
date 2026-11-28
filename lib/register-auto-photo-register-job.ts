@@ -32,7 +32,7 @@ import { loadRegisterPublishFacts } from '@/lib/register-publish-facts'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
 import { rotatePublicMissingDayPicks, scheduleApplyingTravelDayKeywords } from '@/lib/register-day-photo-travel-day'
 import { buildRegistrationPhotoInput, runPhotoHealForProduct, runPublicPhotoNightlyAuditLive, runPublicWrongPhotoReplaceLive } from '@/lib/photo-gate-runner'
-import { createRunBudget, WRONG_PHOTO_REPLACE_MAX_PER_RUN, WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN } from '@/lib/photo-replace-wrong-1128'
+import { WRONG_PHOTO_REPLACE_TIME_BUDGET_MS } from '@/lib/photo-replace-wrong-1128'
 import { isNightlyAuditWindowKst } from '@/lib/photo-nightly-audit'
 import { summarizePhotoExceptions, type PhotoException } from '@/lib/photo-exception-list'
 import { evaluateRegistrationPhotos, registrationBlockCodes } from '@/lib/register-photo-registration-gate'
@@ -125,7 +125,7 @@ export type AutoPhotoRegisterRunResult = {
   publicScanned: number
   nightly: { ran: boolean; replaced: number; broken: number; duplicates: number; deferred: number; exceptions: number } | null
   /** 공개 상품의 잘못 채워진 사진 칸 교체(못 찾으면 기존 유지). 안 돌린 실행은 null */
-  wrongPhotoReplace?: { scanned: number; targets: number; replaced: number; kept: number; deferred: number } | null
+  wrongPhotoReplace?: { scanned: number; targets: number; replaced: number; kept: number; deferred: number; rounds: number; waitedMs: number; stopReason: string; continued?: { replaced: number; deferred: number } } | null
   /** 매시 자동 점검(사진·SEO·AEO) 합계. 점검을 안 돌린 실행은 null */
   siteHealth: { found: number; fixed: number; codeIssues: number } | null
 }
@@ -164,8 +164,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     siteHealth: null,
     wrongPhotoReplace: null,
   }
-  // REGRESSION-FREEZE[photo-replace-wrong-1128]: 잘못 채워진 칸 교체 실행 상한(등록대기 힐 + 공개 교체 합계) — manifest
-  const replaceBudget = createRunBudget(WRONG_PHOTO_REPLACE_MAX_PER_RUN)
+  // REGRESSION-FREEZE[self-heal-no-cap-1128]: 틀린 칸 교체 칸 수 상한 없음(등록대기 힐·공개 교체 모두) — manifest
 
   const idRows = await prisma.product.findMany({
     where: {
@@ -198,16 +197,17 @@ export async function runAutoPhotoRegisterJob(opts?: {
   }
   // 공개 상품 잘못 채워진 칸 교체: 사진 칸만, 실사진만, 못 찾으면 기존 유지 + 예외 사유
   // REGRESSION-FREEZE[photo-replace-wrong-1128]: 빈칸 채움 목록(점검 재채움 수백 개)보다 먼저 돈다 — 목록이 1시간을 넘겨 교체 단계에 닿지 못하던 01:30 실행 교정 — manifest
+  let wrongRemainingIds: string[] = []
   if (sw.fill && publicLimit > 0) {
-    const publicBudget = createRunBudget(WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN)
     try {
       const w = await runPublicWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
-        takeRunBudget: () => publicBudget.take() && replaceBudget.take(),
         now: opts?.now,
+        deadlineAtMs: Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
       })
-      result.wrongPhotoReplace = { scanned: w.scanned, targets: w.targets, replaced: w.replaced.length, kept: w.kept.length, deferred: w.deferred }
+      wrongRemainingIds = w.remainingProductIds
+      result.wrongPhotoReplace = { scanned: w.scanned, targets: w.targets, replaced: w.replaced.length, kept: w.kept.length, deferred: w.deferred, rounds: w.rounds, waitedMs: w.waitedMs, stopReason: w.stopReason }
       // 칸별 결과 한 줄(상품·일차·사유만, 키 없음) — 교체 결과 확인 근거
-      console.log(JSON.stringify({ kind: 'photo-replace-wrong-done', scanned: w.scanned, targets: w.targets, replaced: w.replaced, kept: w.kept, deferred: w.deferred }))
+      console.log(JSON.stringify({ kind: 'photo-replace-wrong-done', scanned: w.scanned, targets: w.targets, replaced: w.replaced, kept: w.kept, deferred: w.deferred, rounds: w.rounds, waitedMs: w.waitedMs, stopReason: w.stopReason }))
       result.photoExceptions += w.kept.length
     } catch (err) {
       logAutoPhotoAttempt({
@@ -362,7 +362,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
     let healExceptions: PhotoException[] = []
     if (sw.fill) {
       try {
-        const healed = await runPhotoHealForProduct(prisma, id, (u) => probeStoredImage(u, f), replaceBudget.take)
+        const healed = await runPhotoHealForProduct(prisma, id, (u) => probeStoredImage(u, f))
         result.healed += healed.heal?.replaced.length ?? 0
         result.photoExceptions += healed.exceptions.length
         healExceptions = healed.exceptions
@@ -533,6 +533,34 @@ export async function runAutoPhotoRegisterJob(opts?: {
         productId: 'nightly',
         day: null,
         gate: 'photo-nightly-audit',
+        providerErrorClass: providerErrorClass(err),
+        attemptAt: new Date().toISOString(),
+        result: 'failed',
+      })
+    }
+  }
+  // REGRESSION-FREEZE[self-heal-no-cap-1128]: 시간 한도·쿼터 대기로 못 한 틀린 칸은 다음 정기 실행을 기다리지 않고 이 작업 끝에서 바로 이어서 처리 — manifest
+  if (wrongRemainingIds.length > 0 && sw.fill) {
+    try {
+      const c = await runPublicWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
+        now: opts?.now,
+        onlyProductIds: wrongRemainingIds,
+        deadlineAtMs: Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+      })
+      if (result.wrongPhotoReplace) {
+        result.wrongPhotoReplace.continued = { replaced: c.replaced.length, deferred: c.deferred }
+        result.wrongPhotoReplace.replaced += c.replaced.length
+        result.wrongPhotoReplace.kept += c.kept.length
+        result.wrongPhotoReplace.deferred = c.deferred
+        result.wrongPhotoReplace.stopReason = c.stopReason
+      }
+      console.log(JSON.stringify({ kind: 'photo-replace-wrong-continued', replaced: c.replaced, kept: c.kept, deferred: c.deferred, rounds: c.rounds, waitedMs: c.waitedMs, stopReason: c.stopReason }))
+      result.photoExceptions += c.kept.length
+    } catch (err) {
+      logAutoPhotoAttempt({
+        productId: 'public-wrong-photo',
+        day: null,
+        gate: 'photo-replace-wrong-continue',
         providerErrorClass: providerErrorClass(err),
         attemptAt: new Date().toISOString(),
         result: 'failed',

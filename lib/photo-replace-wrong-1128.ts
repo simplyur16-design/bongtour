@@ -6,7 +6,7 @@
  * - 실사진을 못 찾으면 기존 사진을 지우지 않고 그대로 두며 예외 목록에 사유를 남긴다(빈칸으로 만들지 않음).
  * - 교체 전 값은 AssetUsageLog(heal-day / heal-cover, notes 의 prev)에 남는다(되돌림 가능).
  * - 공개 상품: 사진 칸만, 관리자가 고른 칸 제외, 저장 시 registered 상태·같은 일정일 때만 쓴다. 근거가 확실한 불일치만(저장된 명소가 그날 원문 명소에 없음).
- * - 한 실행 교체 상한으로 외부 검색 쿼터를 지킨다(Unsplash 45/h 등 기존 가드는 그대로).
+ * - 칸 수 상한은 없다(17:16). 외부 검색 쿼터는 기존 호출 가드(Unsplash 900/h·Pixabay 60/분·Pexels 멈춤)가 지키고, 막히면 창이 풀릴 때까지 기다려 이어서 처리한다.
  * REGRESSION-FREEZE[photo-replace-wrong-1128]: 기존 사진 판정·교체, 못 찾으면 유지, 실행 상한 — manifest
  */
 import {
@@ -16,12 +16,79 @@ import {
   type RegistrationPhotoBlock,
 } from '@/lib/register-photo-registration-gate'
 
-/** 한 실행에서 바꿀 수 있는 칸 수(등록대기 + 공개 합계) */
-export const WRONG_PHOTO_REPLACE_MAX_PER_RUN = 12
-/** 그중 공개 상품 몫 */
-export const WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN = 6
-/** 공개 상품을 한 실행에 판정하는 상품 수(사진 측정 없음, DB 글만). 판정이 상품당 ~0.1초라 60개씩 돌려 753개를 반나절에 한 바퀴 */
-export const WRONG_PHOTO_REPLACE_PUBLIC_SCAN_PER_RUN = 60
+/**
+ * 사장님 2026-11-28 17:16 '제대로 자가힐이 되게 하는 게 목적' — 교체 칸 수 상한(12·6)과 상품 판정 수 상한(60)을 없앴다.
+ * 틀린 칸은 한 실행에서 모두 고친다. 남는 제한은 외부 API 쿼터(Unsplash 900/h·Pixabay 60/분 등 기존 가드)뿐이고,
+ * 쿼터에 막힌 칸은 창이 풀릴 때까지 같은 실행 안에서 기다렸다가 이어서 처리한다(다음 정기 실행으로 미루지 않음).
+ * 시간 한도는 매시 :30 틱이 겹치지 않게 하는 안전 장치일 뿐이다. 넘기면 남은 칸을 같은 작업의 뒷단에서 한 번 더 이어서 처리한다.
+ * REGRESSION-FREEZE[self-heal-no-cap-1128]: 교체·판정 칸 수 상한 없음, 쿼터 대기 후 재개 — manifest
+ */
+export const WRONG_PHOTO_REPLACE_TIME_BUDGET_MS = 45 * 60 * 1000
+/** 쿼터를 기다리다 한 번 더 시도하는 최대 횟수(무한 대기 방지) */
+export const WRONG_PHOTO_REPLACE_MAX_ROUNDS = 6
+
+export type WrongPhotoProductOutcome = {
+  replaced: number
+  /** 한도(Unsplash·Pixabay)에 막혀 이번에 못 고친 칸이 있음 */
+  quotaLimited: boolean
+}
+
+export type WrongPhotoRoundsResult = {
+  rounds: number
+  /** 끝까지 처리한(더 할 일 없는) 상품 */
+  settled: string[]
+  /** 시간 한도·대기 한도로 이번 단계에서 못 한 상품 id */
+  remaining: string[]
+  waitedMs: number
+  stopReason: 'done' | 'time_budget' | 'quota_wait_exceeds_budget' | 'max_rounds'
+}
+
+/**
+ * 틀린 칸이 있는 상품을 모두 처리한다. 쿼터에 막힌 상품은 한도 창이 풀리는 시각까지 기다린 뒤 다시 처리한다.
+ * 기다림이 deadline 을 넘을 때만 멈추고 남은 상품을 돌려준다.
+ */
+export async function runWrongPhotoRounds(input: {
+  productIds: readonly string[]
+  processOne: (productId: string) => Promise<WrongPhotoProductOutcome>
+  quotaResumeAtMs: () => number | null
+  now: () => number
+  sleep: (ms: number) => Promise<void>
+  deadlineAtMs: number
+  maxRounds?: number
+}): Promise<WrongPhotoRoundsResult> {
+  const maxRounds = input.maxRounds ?? WRONG_PHOTO_REPLACE_MAX_ROUNDS
+  let queue = [...input.productIds]
+  const settled: string[] = []
+  let waitedMs = 0
+  let rounds = 0
+  while (queue.length > 0) {
+    rounds++
+    const limited: string[] = []
+    for (let i = 0; i < queue.length; i++) {
+      if (input.now() >= input.deadlineAtMs) {
+        return { rounds, settled, remaining: [...limited, ...queue.slice(i)], waitedMs, stopReason: 'time_budget' }
+      }
+      const id = queue[i]!
+      const out = await input.processOne(id)
+      if (out.quotaLimited) limited.push(id)
+      else settled.push(id)
+    }
+    if (limited.length === 0) return { rounds, settled, remaining: [], waitedMs, stopReason: 'done' }
+    const resumeAt = input.quotaResumeAtMs()
+    if (resumeAt == null) {
+      // 한도 탓이 아니라(이미 풀림·Pexels 월 한도) 기다려도 달라지지 않는다 — 한 번 더 돌지 않고 마친다
+      settled.push(...limited)
+      return { rounds, settled, remaining: [], waitedMs, stopReason: 'done' }
+    }
+    if (rounds >= maxRounds) return { rounds, settled, remaining: limited, waitedMs, stopReason: 'max_rounds' }
+    const wait = Math.max(0, resumeAt - input.now()) + 1000
+    if (input.now() + wait >= input.deadlineAtMs) return { rounds, settled, remaining: limited, waitedMs, stopReason: 'quota_wait_exceeds_budget' }
+    await input.sleep(wait)
+    waitedMs += wait
+    queue = limited
+  }
+  return { rounds, settled, remaining: [], waitedMs, stopReason: 'done' }
+}
 
 /** 실행 상한 카운터 */
 export function createRunBudget(max: number): { take: () => boolean; used: () => number } {
@@ -59,7 +126,7 @@ export function publicWrongPhotoBlocks(blocks: readonly RegistrationPhotoBlock[]
   })
 }
 
-/** 공개 상품 판정 순서: 시각마다 시작 위치를 돌려 같은 상품이 앞을 막지 않게 한다 */
+/** 공개 상품 처리 순서: 시각마다 시작 위치를 돌려 시간 한도에 걸려도 같은 상품이 늘 뒤로 밀리지 않게 한다(전체 판정, 칸 수 상한 없음) */
 export function rotateForHour<T>(rows: readonly T[], now: Date, take: number): T[] {
   if (rows.length === 0) return []
   const hour = Math.floor(now.getTime() / 3_600_000)

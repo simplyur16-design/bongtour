@@ -35279,14 +35279,12 @@
         "prebuild",
         "ci"
       ],
-      "summary": "이미 든 잘못된 사진(다른 일차 명소·지도·간판·AI 생성·흑백·상품 안 중복)도 판정해 실사진 경로로만 교체, 못 찾으면 유지+사유, 실행 상한 12(공개 6), 공개는 확실한 사유만",
+      "summary": "이미 든 잘못된 사진(다른 일차 명소·지도·간판·AI 생성·흑백·상품 안 중복)도 판정해 실사진 경로로만 교체, 못 찾으면 유지+사유, 공개는 확실한 사유만. 교체 칸 수 상한 없음(self-heal-no-cap-1128)",
       "checks": [
         {
           "file": "lib/photo-replace-wrong-1128.ts",
           "mustInclude": [
             "REGRESSION-FREEZE[photo-replace-wrong-1128]",
-            "WRONG_PHOTO_REPLACE_MAX_PER_RUN = 12",
-            "WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN = 6",
             "if (b.kind === 'cover') return b.reason === 'photo_ai_generated'",
             "b.detail.startsWith(STORED_SIGHT_MISMATCH_DETAIL)"
           ]
@@ -35328,7 +35326,6 @@
           "file": "lib/register-auto-photo-register-job.ts",
           "mustInclude": [
             "runPublicWrongPhotoReplaceLive",
-            "createRunBudget(WRONG_PHOTO_REPLACE_MAX_PER_RUN)",
             "목록이 1시간을 넘겨 교체 단계에 닿지 못하던 01:30 실행 교정"
           ]
         },
@@ -35337,6 +35334,56 @@
           "mustInclude": [
             "export async function runPublicWrongPhotoReplaceLive",
             "publicWrongPhotoBlocks"
+          ]
+        }
+      ],
+      "vitestSuites": [
+        "lib/photo-replace-wrong-1128.test.ts"
+      ]
+    },
+    {
+      "id": "self-heal-no-cap-1128",
+      "tier": [
+        "prebuild",
+        "ci"
+      ],
+      "summary": "사장님 11/28 17:16: 자가치유 교체 칸 수 상한(12·6)·판정 상품 수 상한(60)·상품당 8칸 상한 없음. 외부 쿼터(Unsplash·Pixabay)에 막히면 창이 풀릴 때까지 같은 실행에서 기다려 이어서 처리, 시간 한도 초과분은 같은 작업 끝에서 이어서 처리",
+      "checks": [
+        {
+          "file": "lib/photo-replace-wrong-1128.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[self-heal-no-cap-1128]",
+            "export async function runWrongPhotoRounds",
+            "WRONG_PHOTO_REPLACE_TIME_BUDGET_MS"
+          ]
+        },
+        {
+          "file": "lib/photo-gate-runner.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[self-heal-no-cap-1128]",
+            "maxSlotsPerProduct: Number.POSITIVE_INFINITY",
+            "exceptionsHitStockQuota"
+          ]
+        },
+        {
+          "file": "lib/photo-heal.ts",
+          "mustInclude": [
+            "maxSlotsPerProduct"
+          ]
+        },
+        {
+          "file": "lib/register-photo-stock-rate-guard.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[self-heal-no-cap-1128]",
+            "export function stockQuotaResumeAtMs",
+            "nextAvailableAtMs"
+          ]
+        },
+        {
+          "file": "lib/register-auto-photo-register-job.ts",
+          "mustInclude": [
+            "REGRESSION-FREEZE[self-heal-no-cap-1128]",
+            "photo-replace-wrong-continued"
           ]
         }
       ],

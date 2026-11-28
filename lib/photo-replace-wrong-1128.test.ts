@@ -13,10 +13,11 @@ import {
   createRunBudget,
   publicWrongPhotoBlocks,
   rotateForHour,
-  WRONG_PHOTO_REPLACE_MAX_PER_RUN,
-  WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN,
-  WRONG_PHOTO_REPLACE_PUBLIC_SCAN_PER_RUN,
+  runWrongPhotoRounds,
+  WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
 } from '@/lib/photo-replace-wrong-1128'
+import { exceptionsHitStockQuota } from '@/lib/photo-gate-runner'
+import { PexelsCallGuard, PixabayCallGuard, UnsplashCallBudget, type StockGuardClock } from '@/lib/register-photo-stock-rate-guard'
 import {
   evaluateRegistrationPhotos,
   photoSourceIsAiGenerated,
@@ -292,10 +293,7 @@ describe('photo-replace-wrong-1128: 교체·유지·상한', () => {
     expect(budget.used()).toBe(1)
   })
 
-  it('상한 상수와 카운터', () => {
-    expect(WRONG_PHOTO_REPLACE_MAX_PER_RUN).toBe(12)
-    expect(WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN).toBe(6)
-    expect(WRONG_PHOTO_REPLACE_PUBLIC_SCAN_PER_RUN).toBe(60)
+  it('실행 카운터(선택 사용, 자가치유 공개 경로는 쓰지 않음)', () => {
     const b = createRunBudget(2)
     expect([b.take(), b.take(), b.take()]).toEqual([true, true, false])
     expect(b.used()).toBe(2)
@@ -321,13 +319,161 @@ describe('photo-replace-wrong-1128: 정적 가드', () => {
   it('매시 작업이 공개 상품 교체를 상한과 함께 부른다', () => {
     const job = src('lib/register-auto-photo-register-job.ts')
     expect(job).toContain('runPublicWrongPhotoReplaceLive')
-    expect(job).toContain('createRunBudget(WRONG_PHOTO_REPLACE_MAX_PER_RUN)')
-    expect(job).toContain('WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN')
+    // 17:16 — 칸 수 상한(12·6)·판정 상품 수 상한(60) 없음
+    expect(job).not.toContain('WRONG_PHOTO_REPLACE_MAX_PER_RUN')
+    expect(job).not.toContain('WRONG_PHOTO_REPLACE_PUBLIC_MAX_PER_RUN')
+    expect(job).not.toContain('takeRunBudget')
+    expect(job).toContain('photo-replace-wrong-continued')
     // 빈칸 채움 목록(1시간 넘게 걸림)보다 먼저 교체 단계가 돈다
     expect(job.indexOf('await runPublicWrongPhotoReplaceLive(')).toBeGreaterThan(0)
     expect(job.indexOf('await runPublicWrongPhotoReplaceLive(')).toBeLessThan(job.indexOf('for (const row of queue)'))
     const runner = src('lib/photo-gate-runner.ts')
     expect(runner).toContain("registrationStatus: 'registered'")
     expect(runner).toContain('publicWrongPhotoBlocks')
+    expect(runner).not.toContain('takeRunBudget: opts.takeRunBudget')
+    expect(runner).toContain('maxSlotsPerProduct: Number.POSITIVE_INFINITY')
+  })
+})
+
+describe('self-heal-no-cap-1128: 상한 없이 한 실행에서 모두 처리, 쿼터는 기다렸다 이어서', () => {
+  const mk = (start = 0) => {
+    let t = start
+    const slept: number[] = []
+    return {
+      now: () => t,
+      sleep: async (ms: number) => {
+        slept.push(ms)
+        t += ms
+      },
+      slept,
+    }
+  }
+
+  it('틀린 칸 상품 103개를 한 라운드에 모두 처리한다(60·6 상한 없음)', async () => {
+    const c = mk()
+    const ids = Array.from({ length: 103 }, (_, i) => `p${i}`)
+    const seen: string[] = []
+    const r = await runWrongPhotoRounds({
+      productIds: ids,
+      processOne: async (id) => (seen.push(id), { replaced: 1, quotaLimited: false }),
+      quotaResumeAtMs: () => null,
+      now: c.now,
+      sleep: c.sleep,
+      deadlineAtMs: WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+    })
+    expect(seen).toHaveLength(103)
+    expect(r.settled).toHaveLength(103)
+    expect(r.remaining).toEqual([])
+    expect(r.stopReason).toBe('done')
+    expect(c.slept).toEqual([])
+  })
+
+  it('쿼터에 막힌 상품은 한도 창이 풀릴 때까지 같은 실행에서 기다린 뒤 이어서 처리한다', async () => {
+    const c = mk()
+    const resume = 20 * 60 * 1000
+    const calls: Record<string, number> = {}
+    const r = await runWrongPhotoRounds({
+      productIds: ['a', 'b', 'c'],
+      processOne: async (id) => {
+        calls[id] = (calls[id] ?? 0) + 1
+        // b 는 첫 시도에서 한도에 막히고 창이 풀린 뒤(두 번째)에 고쳐진다
+        if (id === 'b' && calls[id] === 1) return { replaced: 0, quotaLimited: true }
+        return { replaced: 1, quotaLimited: false }
+      },
+      quotaResumeAtMs: () => (c.now() < resume ? resume : null),
+      now: c.now,
+      sleep: c.sleep,
+      deadlineAtMs: WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+    })
+    expect(calls).toEqual({ a: 1, b: 2, c: 1 })
+    expect(r.rounds).toBe(2)
+    expect(r.waitedMs).toBeGreaterThanOrEqual(resume)
+    expect(r.remaining).toEqual([])
+    expect(r.stopReason).toBe('done')
+  })
+
+  it('기다림이 시간 한도를 넘으면 남은 상품을 돌려주고 멈춘다(작업 끝에서 이어 처리)', async () => {
+    const c = mk()
+    const r = await runWrongPhotoRounds({
+      productIds: ['a', 'b'],
+      processOne: async (id) => ({ replaced: 0, quotaLimited: id === 'b' }),
+      quotaResumeAtMs: () => 60 * 60 * 1000,
+      now: c.now,
+      sleep: c.sleep,
+      deadlineAtMs: WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+    })
+    expect(r.remaining).toEqual(['b'])
+    expect(r.stopReason).toBe('quota_wait_exceeds_budget')
+    expect(c.slept).toEqual([])
+  })
+
+  it('한도 탓이 아닌 실패(기다려도 같음)는 기다리지 않고 마친다', async () => {
+    const c = mk()
+    const r = await runWrongPhotoRounds({
+      productIds: ['a'],
+      processOne: async () => ({ replaced: 0, quotaLimited: true }),
+      quotaResumeAtMs: () => null,
+      now: c.now,
+      sleep: c.sleep,
+      deadlineAtMs: WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+    })
+    expect(r.rounds).toBe(1)
+    expect(r.remaining).toEqual([])
+    expect(c.slept).toEqual([])
+  })
+
+  it('시간 한도가 지나면 아직 시작 안 한 상품을 남긴다', async () => {
+    const c = mk()
+    const r = await runWrongPhotoRounds({
+      productIds: ['a', 'b', 'c'],
+      processOne: async () => {
+        await c.sleep(30 * 60 * 1000)
+        return { replaced: 1, quotaLimited: false }
+      },
+      quotaResumeAtMs: () => null,
+      now: c.now,
+      sleep: c.sleep,
+      deadlineAtMs: WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+    })
+    expect(r.settled).toEqual(['a', 'b'])
+    expect(r.remaining).toEqual(['c'])
+    expect(r.stopReason).toBe('time_budget')
+  })
+
+  it('Unsplash·Pixabay 한도 메모를 쿼터 막힘으로 읽고, Pexels 월 한도는 기다리지 않는다', () => {
+    expect(exceptionsHitStockQuota([{ detail: 'rejects=- evaluated=0/5 notes=unsplash_limit,no_real_photo' }])).toBe(true)
+    expect(exceptionsHitStockQuota([{ detail: 'notes=pixabay_limit' }])).toBe(true)
+    expect(exceptionsHitStockQuota([{ detail: 'notes=pexels_limit,no_real_photo' }])).toBe(false)
+    expect(exceptionsHitStockQuota([{ detail: 'rejects=text_or_map:3' }])).toBe(false)
+  })
+
+  it('가드는 다음 호출 가능 시각을 돌려준다(시간당·분당 창)', () => {
+    let t = 1_000_000
+    const clock: StockGuardClock = { now: () => t, sleep: async () => {} }
+    const u = new UnsplashCallBudget(clock, 2)
+    expect(u.nextAvailableAtMs()).toBe(t)
+    u.tryAcquire()
+    t += 1000
+    u.tryAcquire()
+    expect(u.nextAvailableAtMs()).toBe(1_000_000 + 60 * 60 * 1000)
+    const px = new PixabayCallGuard(clock, 1)
+    px.tryAcquire()
+    expect(px.nextAvailableAtMs()).toBe(t + 60 * 1000)
+    expect(new PexelsCallGuard(clock).isStopped()).toBe(false)
+  })
+
+  it('상품당 칸 수 상한은 override 로만 풀린다(기본 8 유지, 공개 자가치유는 무제한)', async () => {
+    let n = 0
+    const capped = harness(() => okResult(`c${++n}`))
+    capped.deps.maxSlotsPerProduct = 1
+    const rc = await healBlockedSlots(healInput([1, 2, 3].map((d) => aiBlock(d))), capped.deps)
+    expect(rc.replaced).toHaveLength(1)
+    expect(rc.exceptions.filter((e) => e.reason === 'heal_cap')).toHaveLength(2)
+
+    const free = harness(() => okResult(`f${++n}`))
+    free.deps.maxSlotsPerProduct = Number.POSITIVE_INFINITY
+    const rf = await healBlockedSlots(healInput([1, 2, 3].map((d) => aiBlock(d))), free.deps)
+    expect(rf.replaced).toHaveLength(3)
+    expect(rf.exceptions.filter((e) => e.reason === 'heal_cap')).toHaveLength(0)
   })
 })

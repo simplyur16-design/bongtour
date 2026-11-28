@@ -41,6 +41,8 @@ export type HealDeps = {
   now?: () => Date
   /** 한 실행 전체 교체 상한(외부 검색 쿼터 보호). false 면 이 칸은 다음 실행으로 미룬다(기존 사진 유지). */
   takeRunBudget?: () => boolean
+  /** 한 상품에서 한 번에 고치는 칸 수 상한(기본 8). 공개 상품 자가치유는 틀린 칸을 모두 고치려고 무제한으로 넘긴다. */
+  maxSlotsPerProduct?: number
 }
 
 export type HealCover = {
@@ -117,7 +119,7 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
   const dest = input.destinationTerms.join(' ')
 
   for (const { block, reasons } of byKey.values()) {
-    if (healed >= HEAL_MAX_SLOTS_PER_PRODUCT) {
+    if (healed >= (deps.maxSlotsPerProduct ?? HEAL_MAX_SLOTS_PER_PRODUCT)) {
       await addException({ productId: input.productId, day: block.day, kind: block.kind, sight: null, query: null, reason: 'heal_cap', detail: `max ${HEAL_MAX_SLOTS_PER_PRODUCT} slots per product`, origin: 'heal', at })
       continue
     }

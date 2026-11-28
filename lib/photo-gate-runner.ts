@@ -226,32 +226,67 @@ export type PublicWrongPhotoReplaceResult = {
   targets: number
   replaced: Array<{ productId: string; kind: 'day' | 'cover'; day: number | null; reason: string }>
   kept: Array<{ productId: string; kind: 'day' | 'cover'; day: number | null; reason: string }>
+  /** 쿼터·시간 한도로 이번 단계에서 못 한 상품 수(기존 사진 그대로) */
   deferred: number
+  remainingProductIds: string[]
+  rounds: number
+  waitedMs: number
+  stopReason: 'done' | 'time_budget' | 'quota_wait_exceeds_budget' | 'max_rounds'
+}
+
+/** 한도(Unsplash·Pixabay)에 막혀 못 고친 칸이 있었는지 — acquire 예외 detail 의 notes 로 판정 */
+export function exceptionsHitStockQuota(exceptions: ReadonlyArray<{ detail?: string | null }>): boolean {
+  return exceptions.some((e) => /\b(unsplash|pixabay)_limit\b/.test(String(e.detail ?? '')))
 }
 
 /**
  * 공개 상품의 잘못 채워진 사진 칸 교체(사진 칸만, 관리자 선택 칸 제외, 못 찾으면 기존 유지).
+ * 전 공개 상품을 판정하고(DB 글만) 틀린 칸은 칸 수 상한 없이 한 실행에서 모두 처리한다.
+ * 쿼터에 막힌 칸은 한도 창이 풀릴 때까지 같은 실행에서 기다린 뒤 이어서 처리한다.
  * REGRESSION-FREEZE[photo-replace-wrong-1128]: 공개 상품 교체는 registered·같은 일정일 때만 쓰기 — manifest
+ * REGRESSION-FREEZE[self-heal-no-cap-1128]: 교체·판정 칸 수 상한 없음, 쿼터 대기 후 재개 — manifest
  */
 export async function runPublicWrongPhotoReplaceLive(
   prisma: PrismaClient,
   probe: PhotoProbe,
-  opts: { takeRunBudget: () => boolean; now?: Date; scanLimit?: number },
+  opts: { now?: Date; deadlineAtMs?: number; onlyProductIds?: readonly string[]; sleep?: (ms: number) => Promise<void> } = {},
 ): Promise<PublicWrongPhotoReplaceResult> {
-  const { publicWrongPhotoBlocks, rotateForHour, WRONG_PHOTO_REPLACE_PUBLIC_SCAN_PER_RUN } = await import('@/lib/photo-replace-wrong-1128')
-  const out: PublicWrongPhotoReplaceResult = { scanned: 0, targets: 0, replaced: [], kept: [], deferred: 0 }
+  const { publicWrongPhotoBlocks, rotateForHour, runWrongPhotoRounds, WRONG_PHOTO_REPLACE_TIME_BUDGET_MS } = await import('@/lib/photo-replace-wrong-1128')
+  const { stockQuotaResumeAtMs } = await import('@/lib/register-photo-stock-rate-guard')
+  const out: PublicWrongPhotoReplaceResult = {
+    scanned: 0,
+    targets: 0,
+    replaced: [],
+    kept: [],
+    deferred: 0,
+    remainingProductIds: [],
+    rounds: 0,
+    waitedMs: 0,
+    stopReason: 'done',
+  }
   const rows = (await prisma.product.findMany({
     where: { registrationStatus: 'registered' },
     select: PHOTO_FACTS_SELECT,
     orderBy: { id: 'asc' },
   })) as ProductPhotoFacts[]
   const usage = await loadPublicPhotoUsageCached(prisma)
-  for (const p of rotateForHour(rows, opts.now ?? new Date(), opts.scanLimit ?? WRONG_PHOTO_REPLACE_PUBLIC_SCAN_PER_RUN)) {
+  const only = opts.onlyProductIds ? new Set(opts.onlyProductIds) : null
+  const targetIds: string[] = []
+  // 전 상품 판정(사진 측정 없음, DB 글만) — 상한 없음. 틀린 칸이 있는 상품만 모은다.
+  for (const p of rotateForHour(rows, opts.now ?? new Date(), rows.length)) {
+    if (only && !only.has(p.id)) continue
     out.scanned++
-    // 판정은 DB 글로만(사진 측정 없음) — 용량·해상도는 기존 점검 몫
     const blocks = publicWrongPhotoBlocks(evaluateRegistrationPhotos(buildRegistrationPhotoInput(p, usage, {})).blocks)
     if (blocks.length === 0) continue
     out.targets += blocks.length
+    targetIds.push(p.id)
+  }
+  const processOne = async (productId: string) => {
+    // 이전 라운드에서 일정이 바뀌었을 수 있어 매번 새로 읽어 판정한다(이미 고친 칸은 빠진다)
+    const p = (await prisma.product.findFirst({ where: { id: productId, registrationStatus: 'registered' }, select: PHOTO_FACTS_SELECT })) as ProductPhotoFacts | null
+    if (!p) return { replaced: 0, quotaLimited: false }
+    const blocks = publicWrongPhotoBlocks(evaluateRegistrationPhotos(buildRegistrationPhotoInput(p, usage, {})).blocks)
+    if (blocks.length === 0) return { replaced: 0, quotaLimited: false }
     const { terms, cityTerms } = destinationTermsOf(p)
     const live = createLiveAcquireDeps({ prisma, destination: terms.join(' '), probe })
     const heal = await healBlockedSlots(
@@ -282,15 +317,28 @@ export async function runPublicWrongPhotoReplaceLive(
         recordException: (e) => recordPhotoException(e),
         recordReplace: recordReplaceLive,
         usage,
-        takeRunBudget: opts.takeRunBudget,
+        // 칸 수 상한 없음: 한 상품의 틀린 칸도 모두 고친다
+        maxSlotsPerProduct: Number.POSITIVE_INFINITY,
       },
     )
     for (const r of heal.replaced) out.replaced.push({ productId: p.id, ...r })
     for (const e of heal.exceptions) out.kept.push({ productId: p.id, kind: e.kind === 'cover' ? 'cover' : 'day', day: e.day ?? null, reason: String(e.reason) })
-    out.deferred += heal.deferred ?? 0
     if (heal.replaced.length > 0) await revalidateAfterPhotoChange(p.id)
-    if (heal.deferred) break
+    return { replaced: heal.replaced.length, quotaLimited: exceptionsHitStockQuota(heal.exceptions) }
   }
+  const r = await runWrongPhotoRounds({
+    productIds: targetIds,
+    processOne,
+    quotaResumeAtMs: stockQuotaResumeAtMs,
+    now: () => Date.now(),
+    sleep: opts.sleep ?? sleep,
+    deadlineAtMs: opts.deadlineAtMs ?? Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+  })
+  out.rounds = r.rounds
+  out.waitedMs = r.waitedMs
+  out.stopReason = r.stopReason
+  out.remainingProductIds = r.remaining
+  out.deferred = r.remaining.length
   return out
 }
 
