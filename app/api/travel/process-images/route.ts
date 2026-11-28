@@ -1288,6 +1288,7 @@ export async function POST(req: Request) {
             dayFacts: dayFactsForPlan,
             sights: plan.sights,
             maxDay: scheduleMaxDay,
+            allRows: workingSchedule as never,
             cityTerms: strictTerms.cityTerms,
             destinationText: [...strictTerms.terms, itRow?.city ?? ''].join(' ').trim(),
             usage: strictPublicUsage!,

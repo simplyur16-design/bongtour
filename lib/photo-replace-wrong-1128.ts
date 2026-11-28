@@ -2,13 +2,14 @@
  * 잘못 채워진 사진 칸 교체(사장님 2026-11-28 00:03 '잘못 채워진 칸 교체 구조 고쳐서 검사 통과하면 병합·배포해').
  * - 빈칸만이 아니라 이미 든 사진도 판정한다: 그날 공급사 원문 명소와 다른 사진, 지도·간판·노선도 등 글 위주 사진,
  *   AI(Gemini) 생성 사진, 흑백 표시 사진, 상품 안 중복 사진.
- * - 교체는 실사진 경로(풀 → Pexels → Openverse/Wikimedia CC0·PD → Unsplash)만 쓴다. 이미지 생성 없음.
- * - 실사진을 못 찾으면 기존 사진을 지우지 않고 그대로 두며 예외 목록에 사유를 남긴다(빈칸으로 만들지 않음).
+ * - 교체는 실사진 경로(풀 → Pexels → Pixabay → Openverse cc0·pdm, Wikimedia 제외·Unsplash 자동 채움 제외: R03-25·R03-26)만 쓴다. 이미지 생성 없음.
+ * - 실사진을 못 찾으면 기존 사진을 그대로 두고 예외 목록에 사유를 남긴다. 단 공개 단계의 Wikimedia 등 쓰지 않는 출처·확정 명소 불일치 칸은 비운다(shouldClearWhenUnreplaceable, 사장님 2026-11-29 00:14).
  * - 교체 전 값은 AssetUsageLog(heal-day / heal-cover, notes 의 prev)에 남는다(되돌림 가능).
  * - 공개 상품: 사진 칸만, 관리자가 고른 칸 제외, 저장 시 registered 상태·같은 일정일 때만 쓴다. 근거가 확실한 불일치만(저장된 명소가 그날 원문 명소에 없음).
  * - 칸 수 상한은 없다(17:16). 외부 검색 쿼터는 기존 호출 가드(Unsplash 900/h·Pixabay 60/분·Pexels 멈춤)가 지키고, 막히면 창이 풀릴 때까지 기다려 이어서 처리한다.
  * REGRESSION-FREEZE[photo-replace-wrong-1128]: 기존 사진 판정·교체, 못 찾으면 유지, 실행 상한 — manifest
  */
+import { photoIsConfirmedWrong } from '@/lib/photo-banned-source-1129'
 import {
   SOURCE_META_MISMATCH_DETAIL,
   STORED_SIGHT_MISMATCH_DETAIL,
@@ -24,6 +25,20 @@ import {
  * REGRESSION-FREEZE[self-heal-no-cap-1128]: 교체·판정 칸 수 상한 없음, 쿼터 대기 후 재개 — manifest
  */
 export const WRONG_PHOTO_REPLACE_TIME_BUDGET_MS = 45 * 60 * 1000
+/**
+ * 등록대기(pending) 틀린 칸 단계 전용 시간 한도. 공개 단계와 한도를 나누지 않으면(22:30 회차 2026-11-28) 공개 단계가 한도를 거의 다 써서
+ * 등록대기 단계가 첫 상품 전에 time_budget 으로 끝나 43칸을 한 칸도 못 고쳤다. 공개 단계가 끝난 시각부터 새로 센다.
+ * REGRESSION-FREEZE[photo-run-budget-judge-1129]: 등록대기 단계 전용 시간 한도 — manifest
+ */
+export const PENDING_WRONG_PHOTO_REPLACE_TIME_BUDGET_MS = 45 * 60 * 1000
+/** 공개 단계를 시작하는 시각 기준 한도 끝(ms) */
+export function publicWrongPhotoDeadlineAtMs(nowMs: number): number {
+  return nowMs + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS
+}
+/** 등록대기 단계를 시작하는 시각 기준 한도 끝(ms) — 공개 단계가 쓴 시간과 무관 */
+export function pendingWrongPhotoDeadlineAtMs(nowMs: number): number {
+  return nowMs + PENDING_WRONG_PHOTO_REPLACE_TIME_BUDGET_MS
+}
 /** 쿼터를 기다리다 한 번 더 시도하는 최대 횟수(무한 대기 방지) */
 export const WRONG_PHOTO_REPLACE_MAX_ROUNDS = 6
 
@@ -118,12 +133,32 @@ export function publicWrongPhotoBlocks(blocks: readonly RegistrationPhotoBlock[]
     }
     // 일차 공개 중복은 틀린 사진이 아니다(사장님 12:01). 목록 카드 대표 중복만 대상이나, 공개 상품 대표는 AI만 교체.
     if (b.reason === 'photo_public_duplicate') return false
-    if (b.kind === 'cover') return b.reason === 'photo_ai_generated'
+    if (b.kind === 'cover') return b.reason === 'photo_ai_generated' || b.reason === 'photo_banned_source'
     if (b.reason === 'photo_sight_mismatch') {
       return b.detail.startsWith(STORED_SIGHT_MISMATCH_DETAIL) || b.detail.startsWith(SOURCE_META_MISMATCH_DETAIL)
     }
     return true
   })
+}
+
+/**
+ * 맞는 사진을 못 찾았을 때 칸을 비우는 대상(틀린·쓰지 않는 출처 사진을 공개 상품에 두지 않는다, 사장님 2026-11-29 00:14).
+ * - Wikimedia·Wikipedia·Commons 출처(photo_banned_source)
+ * - 저장된 명소 이름표가 그날 정답 명소에 없는 확정 불일치(STORED_SIGHT_MISMATCH)
+ * - 91칸 재판정에서 확정된 기존 오답(CONFIRMED_WRONG_PHOTOS_1129: 상품·일차·사진이 같을 때만)
+ * 출처 메타가 일반 단어뿐이라 확인이 안 되는 경우(SOURCE_META_MISMATCH)는 비우지 않고 기존대로 유지한다.
+ * REGRESSION-FREEZE[photo-run-budget-judge-1129]: 맞는 사진이 없으면 빈칸 — manifest
+ */
+export function shouldClearWhenUnreplaceable(ctx: {
+  productId: string
+  day: number | null
+  reasons: readonly string[]
+  details: readonly string[]
+  externalId?: unknown
+}): boolean {
+  if (ctx.reasons.includes('photo_banned_source')) return true
+  if (ctx.details.some((d) => d.startsWith(STORED_SIGHT_MISMATCH_DETAIL))) return true
+  return photoIsConfirmedWrong(ctx.productId, ctx.day, ctx.externalId)
 }
 
 /** 공개 상품 처리 순서: 시각마다 시작 위치를 돌려 시간 한도에 걸려도 같은 상품이 늘 뒤로 밀리지 않게 한다(전체 판정, 칸 수 상한 없음) */

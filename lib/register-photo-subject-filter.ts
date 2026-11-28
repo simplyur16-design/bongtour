@@ -100,7 +100,15 @@ export function photoCandidateText(parts: ReadonlyArray<string | null | undefine
         /* 그대로 */
       }
       try {
-        if (/^https?:\/\//i.test(s)) s = new URL(s).pathname
+        if (/^https?:\/\//i.test(s)) {
+          s = new URL(s).pathname
+          // URL.pathname 은 비ASCII(ü·š)를 다시 %C3%BC·%C5%A1 로 인코딩한다 — 한 번 더 풀어야 명소 이름(Rüdesheim·Špilberk)과 같은 낱말로 비교된다
+          try {
+            s = decodeURIComponent(s)
+          } catch {
+            /* 그대로 */
+          }
+        }
       } catch {
         /* 그대로 */
       }

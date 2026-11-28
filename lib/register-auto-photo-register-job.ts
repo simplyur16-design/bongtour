@@ -33,7 +33,8 @@ import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
 import { rotatePublicMissingDayPicks, scheduleApplyingTravelDayKeywords } from '@/lib/register-day-photo-travel-day'
 import { hydrateSharedPexelsStop } from '@/lib/register-photo-stock-rate-guard'
 import { buildRegistrationPhotoInput, runPendingWrongPhotoReplaceLive, runPhotoHealForProduct, runPublicPhotoNightlyAuditLive, runPublicWrongPhotoReplaceLive } from '@/lib/photo-gate-runner'
-import { WRONG_PHOTO_REPLACE_TIME_BUDGET_MS } from '@/lib/photo-replace-wrong-1128'
+import { pendingWrongPhotoDeadlineAtMs, publicWrongPhotoDeadlineAtMs } from '@/lib/photo-replace-wrong-1128'
+import { createPhotoRunRecorder, liveRunStateStore, type RunStateStore } from '@/lib/photo-run-state-1129'
 import { isNightlyAuditWindowKst } from '@/lib/photo-nightly-audit'
 import { summarizePhotoExceptions, type PhotoException } from '@/lib/photo-exception-list'
 import { evaluateRegistrationPhotos, registrationBlockCodes } from '@/lib/register-photo-registration-gate'
@@ -143,8 +144,14 @@ export async function runAutoPhotoRegisterJob(opts?: {
   now?: Date
   /** 매시 cron 만 true: 채움 앞에서 사진·SEO·AEO 점검(lib/site-health-run.ts)을 돌린다 */
   siteHealth?: boolean
+  /** 회차·단계 상태 기록 저장소(테스트용). 기본은 ScraperSupplierState 행. */
+  runStateStore?: RunStateStore
 }): Promise<AutoPhotoRegisterRunResult> {
   const env = opts?.env ?? process.env
+  // REGRESSION-FREEZE[photo-run-budget-judge-1129]: 회차 ID·시작/종료·단계별 stopReason 을 ScraperSupplierState 행에 남긴다(SELECT 로 확인, 실패해도 계속) — manifest
+  const runRec = createPhotoRunRecorder(opts?.runStateStore ?? liveRunStateStore())
+  await runRec.start()
+  console.log(JSON.stringify({ kind: 'auto-photo-run-start', runId: runRec.runId }))
   // REGRESSION-FREEZE[pexels-stop-persist-1128]: 재배포·재시작 직후에도 저장된 Pexels 멈춤을 먼저 복원 — 이 실행의 모든 칸이 처음부터 Unsplash→Pixabay→Openverse 순서로 간다(R03-06/17) — manifest
   if (String(env.PEXELS_API_KEY ?? '').trim()) await hydrateSharedPexelsStop()
   const f = opts?.fetchImpl ?? fetch
@@ -204,20 +211,22 @@ export async function runAutoPhotoRegisterJob(opts?: {
   // REGRESSION-FREEZE[photo-replace-wrong-1128]: 빈칸 채움 목록(점검 재채움 수백 개)보다 먼저 돈다 — 목록이 1시간을 넘겨 교체 단계에 닿지 못하던 01:30 실행 교정 — manifest
   let wrongRemainingIds: string[] = []
   let pendingRemainingIds: string[] = []
-  // 공개·등록대기 틀린 칸 단계가 함께 쓰는 시간 한도(남은 건 작업 끝에서 새 한도로 이어서)
-  const wrongDeadlineAtMs = Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS
+  // REGRESSION-FREEZE[photo-run-budget-judge-1129]: 공개·등록대기 틀린 칸 단계는 시간 한도를 나눠 쓴다(등록대기는 공개 단계가 끝난 시각부터 새 한도) — 공유하던 한도를 공개가 다 써서 등록대기가 0건이던 22:30 회차 교정 — manifest
   if (sw.fill && publicLimit > 0) {
+    const publicStartedAtMs = Date.now()
     try {
       const w = await runPublicWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
         now: opts?.now,
-        deadlineAtMs: wrongDeadlineAtMs,
+        deadlineAtMs: publicWrongPhotoDeadlineAtMs(publicStartedAtMs),
       })
+      await runRec.stage('public-wrong', w.stopReason, publicStartedAtMs)
       wrongRemainingIds = w.remainingProductIds
       result.wrongPhotoReplace = { scanned: w.scanned, targets: w.targets, replaced: w.replaced.length, kept: w.kept.length, deferred: w.deferred, rounds: w.rounds, waitedMs: w.waitedMs, stopReason: w.stopReason }
       // 칸별 결과 한 줄(상품·일차·사유만, 키 없음) — 교체 결과 확인 근거
       console.log(JSON.stringify({ kind: 'photo-replace-wrong-done', scanned: w.scanned, targets: w.targets, replaced: w.replaced, kept: w.kept, deferred: w.deferred, rounds: w.rounds, waitedMs: w.waitedMs, stopReason: w.stopReason }))
       result.photoExceptions += w.kept.length
     } catch (err) {
+      await runRec.stage('public-wrong', 'error', publicStartedAtMs)
       logAutoPhotoAttempt({
         productId: 'public-wrong-photo',
         day: null,
@@ -232,17 +241,52 @@ export async function runAutoPhotoRegisterJob(opts?: {
   // 등록대기(pending) 틀린 칸 교체 — 공개 경로와 같은 원칙: 50상품 창·교체 예산 없이, 틀린 칸 가진 상품 먼저, 가드에 막히면 대기 후 재개. auto_unpublished 는 범위 밖.
   // REGRESSION-FREEZE[self-heal-no-cap-1128]: 등록대기도 상한 없이 틀린 칸 상품 우선 — 빈칸 채움 반복문보다 먼저 돈다 — manifest
   if (sw.fill) {
+    const pendingStartedAtMs = Date.now()
     try {
-      const pw = await runPendingWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), { now: opts?.now, deadlineAtMs: wrongDeadlineAtMs })
+      const pw = await runPendingWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), { now: opts?.now, deadlineAtMs: pendingWrongPhotoDeadlineAtMs(pendingStartedAtMs) })
+      await runRec.stage('pending-wrong', pw.stopReason, pendingStartedAtMs)
       pendingRemainingIds = pw.remainingProductIds
       result.pendingWrongPhotoReplace = { scanned: pw.scanned, targetProducts: pw.targetProducts, targets: pw.targets, replaced: pw.replaced, kept: pw.kept, deferred: pw.deferred, rounds: pw.rounds, waitedMs: pw.waitedMs, stopReason: pw.stopReason }
       console.log(JSON.stringify({ kind: 'photo-replace-wrong-pending-done', ...result.pendingWrongPhotoReplace }))
       result.photoExceptions += pw.kept
     } catch (err) {
+      await runRec.stage('pending-wrong', 'error', pendingStartedAtMs)
       logAutoPhotoAttempt({
         productId: 'pending-wrong-photo',
         day: null,
         gate: 'photo-replace-wrong-pending',
+        providerErrorClass: providerErrorClass(err),
+        attemptAt: new Date().toISOString(),
+        result: 'failed',
+      })
+    }
+  }
+
+  // REGRESSION-FREEZE[photo-run-budget-judge-1129]: 등록대기 이어서 처리는 빈칸 채움 반복문 앞에서(반복문이 1시간을 넘겨도 등록대기가 먼저 처리된다) — manifest
+  if (pendingRemainingIds.length > 0 && sw.fill) {
+    const pendingContinuedStartedAtMs = Date.now()
+    try {
+      const c = await runPendingWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
+        now: opts?.now,
+        onlyProductIds: pendingRemainingIds,
+        deadlineAtMs: pendingWrongPhotoDeadlineAtMs(pendingContinuedStartedAtMs),
+      })
+      await runRec.stage('pending-wrong-continued', c.stopReason, pendingContinuedStartedAtMs)
+      if (result.pendingWrongPhotoReplace) {
+        result.pendingWrongPhotoReplace.continued = { replaced: c.replaced, deferred: c.deferred }
+        result.pendingWrongPhotoReplace.replaced += c.replaced
+        result.pendingWrongPhotoReplace.kept += c.kept
+        result.pendingWrongPhotoReplace.deferred = c.deferred
+        result.pendingWrongPhotoReplace.stopReason = c.stopReason
+      }
+      console.log(JSON.stringify({ kind: 'photo-replace-wrong-pending-continued', replaced: c.replaced, kept: c.kept, deferred: c.deferred, rounds: c.rounds, waitedMs: c.waitedMs, stopReason: c.stopReason }))
+      result.photoExceptions += c.kept
+    } catch (err) {
+      await runRec.stage('pending-wrong-continued', 'error', pendingContinuedStartedAtMs)
+      logAutoPhotoAttempt({
+        productId: 'pending-wrong-photo',
+        day: null,
+        gate: 'photo-replace-wrong-pending-continue',
         providerErrorClass: providerErrorClass(err),
         attemptAt: new Date().toISOString(),
         result: 'failed',
@@ -257,6 +301,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
   // REGRESSION-FREEZE[cleared-slot-queue-front-1122]: 비운 칸 공개 상품을 등록대기보다 먼저 채운다 — manifest
   const queue: Array<(typeof ids)[number] & { publicRow: boolean }> = orderQueueClearedSlotsFirst(ids, picked.rows, picked.frontIds)
 
+  const fillStartedAtMs = Date.now()
   for (const row of queue) {
     const { id, bgImageUrl } = row
     let schedule = row.schedule
@@ -543,6 +588,8 @@ export async function runAutoPhotoRegisterJob(opts?: {
     }
   }
 
+  await runRec.stage('fill', 'done', fillStartedAtMs)
+
   // 야간 점검: 기존 스케줄(KST 22시~06시 구간 실행)에 붙는 단계. 공개 상품은 사진 칸만 교체하고, 외부 장애는 건너뛴다.
   // REGRESSION-FREEZE[photo-nightly-audit]: 야간 구간에서만, 실패해도 job 은 계속 — manifest
   if (sw.fill && isNightlyAuditWindowKst(new Date())) {
@@ -570,12 +617,14 @@ export async function runAutoPhotoRegisterJob(opts?: {
   }
   // REGRESSION-FREEZE[self-heal-no-cap-1128]: 시간 한도·쿼터 대기로 못 한 틀린 칸은 다음 정기 실행을 기다리지 않고 이 작업 끝에서 바로 이어서 처리 — manifest
   if (wrongRemainingIds.length > 0 && sw.fill) {
+    const publicContinuedStartedAtMs = Date.now()
     try {
       const c = await runPublicWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
         now: opts?.now,
         onlyProductIds: wrongRemainingIds,
-        deadlineAtMs: Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
+        deadlineAtMs: publicWrongPhotoDeadlineAtMs(publicContinuedStartedAtMs),
       })
+      await runRec.stage('public-wrong-continued', c.stopReason, publicContinuedStartedAtMs)
       if (result.wrongPhotoReplace) {
         result.wrongPhotoReplace.continued = { replaced: c.replaced.length, deferred: c.deferred }
         result.wrongPhotoReplace.replaced += c.replaced.length
@@ -586,6 +635,7 @@ export async function runAutoPhotoRegisterJob(opts?: {
       console.log(JSON.stringify({ kind: 'photo-replace-wrong-continued', replaced: c.replaced, kept: c.kept, deferred: c.deferred, rounds: c.rounds, waitedMs: c.waitedMs, stopReason: c.stopReason }))
       result.photoExceptions += c.kept.length
     } catch (err) {
+      await runRec.stage('public-wrong-continued', 'error', publicContinuedStartedAtMs)
       logAutoPhotoAttempt({
         productId: 'public-wrong-photo',
         day: null,
@@ -596,37 +646,12 @@ export async function runAutoPhotoRegisterJob(opts?: {
       })
     }
   }
-  if (pendingRemainingIds.length > 0 && sw.fill) {
-    try {
-      const c = await runPendingWrongPhotoReplaceLive(prisma, (u) => probeStoredImage(u, f), {
-        now: opts?.now,
-        onlyProductIds: pendingRemainingIds,
-        deadlineAtMs: Date.now() + WRONG_PHOTO_REPLACE_TIME_BUDGET_MS,
-      })
-      if (result.pendingWrongPhotoReplace) {
-        result.pendingWrongPhotoReplace.continued = { replaced: c.replaced, deferred: c.deferred }
-        result.pendingWrongPhotoReplace.replaced += c.replaced
-        result.pendingWrongPhotoReplace.kept += c.kept
-        result.pendingWrongPhotoReplace.deferred = c.deferred
-        result.pendingWrongPhotoReplace.stopReason = c.stopReason
-      }
-      console.log(JSON.stringify({ kind: 'photo-replace-wrong-pending-continued', replaced: c.replaced, kept: c.kept, deferred: c.deferred, rounds: c.rounds, waitedMs: c.waitedMs, stopReason: c.stopReason }))
-      result.photoExceptions += c.kept
-    } catch (err) {
-      logAutoPhotoAttempt({
-        productId: 'pending-wrong-photo',
-        day: null,
-        gate: 'photo-replace-wrong-pending-continue',
-        providerErrorClass: providerErrorClass(err),
-        attemptAt: new Date().toISOString(),
-        result: 'failed',
-      })
-    }
-  }
+  await runRec.finish()
   // 시도 한 줄(auto-photo-attempt)과 같이 stdout 에 남긴다. HTTP 202 ACK 는 이 요약보다 먼저 돌아간다.
   console.log(
     JSON.stringify({
       kind: 'auto-photo-done',
+      runId: runRec.runId,
       scanned: result.scanned,
       filled: result.filled,
       fillFailed: result.fillFailed,

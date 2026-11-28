@@ -31,6 +31,7 @@ export function applyDayPhotoReplacement(
   day: number,
   photo: ReplacementPhoto,
   origin: 'heal' | 'nightly',
+  opts?: { overrideManual?: boolean },
 ): { schedule: string; previous: PreviousSlotValue } | { error: 'no_schedule' | 'day_not_found' | 'manual_locked' } {
   if (!scheduleJson) return { error: 'no_schedule' }
   let rows: unknown
@@ -43,7 +44,7 @@ export function applyDayPhotoReplacement(
   const idx = rows.findIndex((r, i) => Math.floor(Number((r as Record<string, unknown>)?.day)) === day || (!Number.isFinite(Number((r as Record<string, unknown>)?.day)) && i + 1 === day))
   if (idx < 0) return { error: 'day_not_found' }
   const row = rows[idx] as Record<string, unknown>
-  if (row.imageManualSelected === true) return { error: 'manual_locked' }
+  if (row.imageManualSelected === true && !opts?.overrideManual) return { error: 'manual_locked' }
   const prevSource = row.imageSource && typeof row.imageSource === 'object' ? (row.imageSource as Record<string, unknown>) : null
   const previous: PreviousSlotValue = {
     imageUrl: typeof row.imageUrl === 'string' ? row.imageUrl : null,
@@ -70,6 +71,8 @@ export function applyDayPhotoReplacement(
           imagePhotographer: photo.photographer,
           imageSourcePageUrl: photo.originalLink,
           imageCandidateOrigin: origin,
+          // Wikimedia 등 쓰지 않는 출처를 관리자 선택 칸에서 바꿀 때만(photo-banned-source-1129) 수동 선택 표시를 내린다
+          ...(opts?.overrideManual && (r as Record<string, unknown>).imageManualSelected === true ? { imageManualSelected: false } : {}),
           // 실사진 교체 — AI 생성 표시는 내린다(photo-replace-wrong-1128)
           ...('imageIsGenerated' in (r as Record<string, unknown>) ? { imageIsGenerated: false } : {}),
         },
@@ -82,6 +85,7 @@ export function applyDayPhotoReplacement(
 export function applyDayPhotoClear(
   scheduleJson: string | null,
   day: number,
+  opts?: { overrideManual?: boolean },
 ): { schedule: string; previous: PreviousSlotValue } | { error: 'no_schedule' | 'day_not_found' | 'manual_locked' } {
   if (!scheduleJson) return { error: 'no_schedule' }
   let rows: unknown
@@ -94,7 +98,7 @@ export function applyDayPhotoClear(
   const idx = rows.findIndex((r, i) => Math.floor(Number((r as Record<string, unknown>)?.day)) === day || (!Number.isFinite(Number((r as Record<string, unknown>)?.day)) && i + 1 === day))
   if (idx < 0) return { error: 'day_not_found' }
   const row = rows[idx] as Record<string, unknown>
-  if (row.imageManualSelected === true) return { error: 'manual_locked' }
+  if (row.imageManualSelected === true && !opts?.overrideManual) return { error: 'manual_locked' }
   const prevSource = row.imageSource && typeof row.imageSource === 'object' ? (row.imageSource as Record<string, unknown>) : null
   const previous: PreviousSlotValue = {
     imageUrl: typeof row.imageUrl === 'string' ? row.imageUrl : null,
@@ -113,6 +117,7 @@ export function applyDayPhotoClear(
           imagePhotographer: null,
           imageSourcePageUrl: null,
           imageCandidateOrigin: 'heal-clear',
+          ...(opts?.overrideManual && (r as Record<string, unknown>).imageManualSelected === true ? { imageManualSelected: false } : {}),
           ...('imageIsGenerated' in (r as Record<string, unknown>) ? { imageIsGenerated: false } : {}),
         },
   )
@@ -131,6 +136,24 @@ export type CoverPreviousValue = {
 export function coverReplacementData(photo: ReplacementPhoto): Record<string, unknown> {
   // REGRESSION-FREEZE[photo-replace-wrong-1128]: 실사진으로 바꾸면 AI 생성 표시도 내린다(다음 실행 재교체 방지) — manifest
   return { bgImageUrl: photo.url, ...resolveProductBgImageFieldsFromPhoto(photo), bgImageIsGenerated: false }
+}
+
+/** 대표 사진 칸을 비우는 갱신 값(맞는 사진이 없을 때 틀린·쓰지 않는 출처 사진을 두지 않는다). 다른 칸은 건드리지 않는다. */
+export function coverClearData(): Record<string, unknown> {
+  return {
+    bgImageUrl: null,
+    bgImageSource: null,
+    bgImageSourceType: null,
+    bgImagePhotographer: null,
+    bgImageSourceUrl: null,
+    bgImageExternalId: null,
+    bgImageStoragePath: null,
+    bgImageStorageBucket: null,
+    bgImageRehostSearchLabel: null,
+    bgImagePlaceName: null,
+    bgImageCityName: null,
+    bgImageIsGenerated: false,
+  }
 }
 
 export type ReplaceNote = {

@@ -8,8 +8,9 @@
 import type { AcquireInput, AcquireResult } from '@/lib/photo-autofill-acquire'
 import { photoIdentityKeys, type PublicPhotoUsage } from '@/lib/photo-autofill-gate'
 import type { RegistrationPhotoBlock, RegistrationPhotoReason } from '@/lib/register-photo-registration-gate'
-import { scheduleOtherDaysText, scheduleRowSupplierText } from '@/lib/photo-autofill-sight'
-import { applyDayPhotoClear, applyDayPhotoReplacement, coverReplacementData, replaceNote, type ReplacementPhoto } from '@/lib/photo-slot-apply'
+import { isCityOnlySight, scheduleOtherDaysText, scheduleRowSupplierText, sightProfile, sightsOverlap } from '@/lib/photo-autofill-sight'
+import { applyDayPhotoClear, applyDayPhotoReplacement, coverClearData, coverReplacementData, replaceNote, type ReplacementPhoto } from '@/lib/photo-slot-apply'
+import { photoIsBannedSource } from '@/lib/photo-banned-source-1129'
 import { planDayPhotoSave } from '@/lib/photo-day-save-gate-1128'
 import type { PhotoException } from '@/lib/photo-exception-list'
 
@@ -27,6 +28,8 @@ const HEALABLE: ReadonlySet<RegistrationPhotoReason> = new Set([
   'photo_monochrome_text',
   'photo_in_product_duplicate',
   'photo_travel_day_empty',
+  // REGRESSION-FREEZE[photo-run-budget-judge-1129]: Wikimedia·Wikipedia·Commons 사진은 교체(못 찾으면 공개 단계만 빈칸) — manifest
+  'photo_banned_source',
 ])
 
 export type HealDeps = {
@@ -45,6 +48,11 @@ export type HealDeps = {
   maxSlotsPerProduct?: number
   /** false 면 칸을 비우는 처리(이동·공항만의 날)를 하지 않고 건너뛴다(틀린 칸 교체 단계는 비우기 0). 기본 true. */
   allowClear?: boolean
+  /**
+   * 맞는 사진을 못 찾았을 때 이 칸을 비울지 정한다(공개 상품 교체 단계만 넘긴다. 등록대기 단계는 넘기지 않아 교체만 한다).
+   * 틀린·쓰지 않는 출처(Wikimedia 등) 사진을 그대로 두지 않기 위한 것(사장님 2026-11-29 00:14).
+   */
+  clearUnreplaceable?: (ctx: { productId: string; day: number | null; reasons: readonly string[]; details: readonly string[]; externalId?: unknown }) => boolean
 }
 
 export type HealCover = {
@@ -73,6 +81,8 @@ export type HealResult = {
   schedule: string | null
   /** 실행 상한으로 미룬 칸(기존 사진 그대로) */
   deferred?: number
+  /** 맞는 사진을 못 찾아 비운 칸 수(replaced 에도 포함) */
+  cleared?: number
 }
 
 function slotKey(b: RegistrationPhotoBlock): string {
@@ -104,14 +114,16 @@ function keysOfSchedule(schedule: string | null, exceptDay: number | null): Set<
 export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promise<HealResult> {
   const at = (deps.now?.() ?? new Date()).toISOString()
   const result: HealResult = { replaced: [], exceptions: [], schedule: input.schedule }
-  const byKey = new Map<string, { block: RegistrationPhotoBlock; reasons: string[] }>()
+  const byKey = new Map<string, { block: RegistrationPhotoBlock; reasons: string[]; details: string[] }>()
   for (const b of input.blocks) {
     if (!HEALABLE.has(b.reason)) continue
     // REGRESSION-FREEZE[photo-wrong-path-1128]: 다른 상품과 같은 파일도 교체·비움 대상 — manifest
     const k = slotKey(b)
     const cur = byKey.get(k)
-    if (cur) cur.reasons.push(b.reason)
-    else byKey.set(k, { block: b, reasons: [b.reason] })
+    if (cur) {
+      cur.reasons.push(b.reason)
+      cur.details.push(b.detail)
+    } else byKey.set(k, { block: b, reasons: [b.reason], details: [b.detail] })
   }
   let healed = 0
   const addException = async (e: PhotoException) => {
@@ -120,7 +132,7 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
   }
   const dest = input.destinationTerms.join(' ')
 
-  for (const { block, reasons } of byKey.values()) {
+  for (const { block, reasons, details } of byKey.values()) {
     if (healed >= (deps.maxSlotsPerProduct ?? HEAL_MAX_SLOTS_PER_PRODUCT)) {
       await addException({ productId: input.productId, day: block.day, kind: block.kind, sight: null, query: null, reason: 'heal_cap', detail: `max ${HEAL_MAX_SLOTS_PER_PRODUCT} slots per product`, origin: 'heal', at })
       continue
@@ -134,6 +146,36 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
 
     if (block.kind === 'cover') {
       const cover = input.cover
+      // 교체 사진을 못 찾았을 때 대표 칸을 비운다(공개 단계 전용·쓰지 않는 출처 등). 교체 전 값은 되돌릴 수 있게 기록한다.
+      const clearCover = async (why: string): Promise<void> => {
+        if (!deps.clearUnreplaceable?.({ productId: input.productId, day: null, reasons, details, externalId: cover?.externalId })) return
+        const ok = await deps.writeCover(input.productId, coverClearData())
+        if (!ok) {
+          await addException({ productId: input.productId, day: null, kind: 'cover', sight: null, query: null, reason: 'write_failed', detail: `${reasonText}; clear`, origin: 'heal', at })
+          return
+        }
+        await addException({ productId: input.productId, day: null, kind: 'cover', sight: null, query: null, reason: 'cleared_no_replacement', detail: `${reasonText}; ${why}`.slice(0, 200), origin: 'heal', at })
+        await deps.recordReplace({
+          productId: input.productId,
+          day: 1,
+          assetPath: '',
+          sourceType: 'heal-cover-clear',
+          notes: replaceNote({
+            reason: reasonText,
+            slot: 'cover',
+            origin: 'heal',
+            prev: {
+              bgImageUrl: cover?.url ?? null,
+              bgImageExternalId: cover?.externalId ?? null,
+              bgImageSource: cover?.source ?? null,
+              bgImagePhotographer: cover?.photographer ?? null,
+              bgImageSourceUrl: cover?.sourceUrl ?? cover?.originalLink ?? null,
+            },
+          }),
+        })
+        result.replaced.push({ kind: 'cover', day: null, reason: `${reasonText}:cleared_no_replacement` })
+        result.cleared = (result.cleared ?? 0) + 1
+      }
       const exclude = keysOfSchedule(result.schedule, null)
       if (cover) for (const k of photoIdentityKeys({ url: cover.url, externalId: cover.externalId, originalLink: cover.originalLink })) exclude.add(k)
       const res = await deps.acquire({
@@ -149,6 +191,13 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
       })
       if (!res.ok) {
         await addException({ ...res.exception, detail: `${reasonText}; ${res.exception.detail}` })
+        await clearCover('no_candidate')
+        continue
+      }
+      // 쓰지 않는 출처(Wikimedia 등)는 후보로 와도 쓰지 않는다
+      if (photoIsBannedSource(res.photo)) {
+        await addException({ productId: input.productId, day: null, kind: 'cover', sight: res.photo.sight, query: res.photo.query, reason: 'banned_source_candidate', detail: reasonText, origin: 'heal', at })
+        await clearCover('banned_source_candidate')
         continue
       }
       const photo: ReplacementPhoto = res.photo
@@ -188,7 +237,9 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
       await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: 'day_not_found', detail: reasonText, origin: 'heal', at })
       continue
     }
-    if (row.imageManualSelected === true) continue
+    // 관리자가 고른 칸은 건드리지 않는다. 단 Wikimedia 등 쓰지 않는 출처(R03-25)는 선택 칸이어도 교체한다(사장님 2026-11-29 00:14 '전부').
+    const overrideManual = reasons.includes('photo_banned_source')
+    if (row.imageManualSelected === true && !overrideManual) continue
     const rowsNow = parseRows(result.schedule)
     const maxDay = Math.max(1, ...rowsNow.map((r, i) => (Math.floor(Number(r.day)) > 0 ? Math.floor(Number(r.day)) : i + 1)))
     const plan = planDayPhotoSave(
@@ -210,7 +261,7 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
         await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: 'clear_skipped', detail: `${reasonText}; clear not allowed in wrong-photo replace stage`, origin: 'heal', at })
         continue
       }
-      const applied = applyDayPhotoClear(result.schedule, day)
+      const applied = applyDayPhotoClear(result.schedule, day, { overrideManual })
       if ('error' in applied) {
         await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: `apply_${applied.error}`, detail: reasonText, origin: 'heal', at })
         continue
@@ -230,6 +281,32 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
       })
       result.replaced.push({ kind: 'day', day, reason: reasonText })
       continue
+    }
+    const curSrc0 = row.imageSource && typeof row.imageSource === 'object' ? (row.imageSource as Record<string, unknown>) : {}
+    // 맞는 사진을 못 찾았을 때 칸을 비운다(공개 단계 전용: 쓰지 않는 출처·확정 명소 불일치·확정 오답). 되돌릴 수 있게 교체 전 값을 남긴다.
+    const clearDay = async (why: string): Promise<void> => {
+      if (!deps.clearUnreplaceable?.({ productId: input.productId, day, reasons, details, externalId: curSrc0.externalId })) return
+      const applied = applyDayPhotoClear(result.schedule, day, { overrideManual })
+      if ('error' in applied) {
+        await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: `apply_${applied.error}`, detail: `${reasonText}; clear`, origin: 'heal', at })
+        return
+      }
+      const wrote = await deps.writeSchedule(input.productId, result.schedule, applied.schedule)
+      if (!wrote) {
+        await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: 'write_conflict', detail: `${reasonText}; clear`, origin: 'heal', at })
+        return
+      }
+      result.schedule = applied.schedule
+      await addException({ productId: input.productId, day, kind: 'day', sight: null, query: null, reason: 'cleared_no_replacement', detail: `${reasonText}; ${why}`.slice(0, 200), origin: 'heal', at })
+      await deps.recordReplace({
+        productId: input.productId,
+        day,
+        assetPath: '',
+        sourceType: 'heal-clear',
+        notes: replaceNote({ reason: reasonText, slot: 'day', origin: 'heal', prev: applied.previous }),
+      })
+      result.replaced.push({ kind: 'day', day, reason: `${reasonText}:cleared_no_replacement` })
+      result.cleared = (result.cleared ?? 0) + 1
     }
     const exclude = keysOfSchedule(result.schedule, day)
     const curSrc = row.imageSource && typeof row.imageSource === 'object' ? (row.imageSource as Record<string, unknown>) : {}
@@ -251,15 +328,41 @@ export async function healBlockedSlots(input: HealInput, deps: HealDeps): Promis
       },
       cityTerms: input.cityTerms,
       destinationText: dest,
+      // 등록 게이트와 같은 계획(일정 전체·마지막 일차)으로 명소를 정한다 — 안 넘기면 마지막 일차=이 일차로 보고 다른 명소를 골라 게이트가 다시 불일치로 판정한다.
+      maxDay,
+      allRows: rowsNow,
       usage: deps.usage,
       exclude,
       origin: 'heal',
     })
     if (!res.ok) {
       await addException({ ...res.exception, detail: `${reasonText}; ${res.exception.detail}` })
+      await clearDay('no_candidate')
       continue
     }
-    const applied = applyDayPhotoReplacement(result.schedule, day, res.photo, 'heal')
+    if (photoIsBannedSource(res.photo)) {
+      await addException({ productId: input.productId, day, kind: 'day', sight: res.photo.sight, query: res.photo.query, reason: 'banned_source_candidate', detail: reasonText, origin: 'heal', at })
+      await clearDay('banned_source_candidate')
+      continue
+    }
+    // 엄격 확인: 고른 사진의 명소 이름표가 게이트 계획(그날 공식 명소)에 없으면 쓰지 않는다(도시명·다른 명소 라벨 불허, R03-01/02/23).
+    const gateSights = (plan.action === 'search' ? plan.sights : []).filter((s) => !isCityOnlySight(s) && sightProfile(s).kind !== 'city')
+    if (gateSights.length > 0 && (isCityOnlySight(res.photo.sight) || !gateSights.some((s) => sightsOverlap(sightProfile(s), sightProfile(res.photo.sight))))) {
+      await addException({
+        productId: input.productId,
+        day,
+        kind: 'day',
+        sight: res.photo.sight,
+        query: res.photo.query,
+        reason: 'sight_not_in_day_plan',
+        detail: `${reasonText}; "${res.photo.sight.slice(0, 40)}" vs ${gateSights.slice(0, 2).join(' / ').slice(0, 60)}`,
+        origin: 'heal',
+        at,
+      })
+      await clearDay('sight_not_in_day_plan')
+      continue
+    }
+    const applied = applyDayPhotoReplacement(result.schedule, day, res.photo, 'heal', { overrideManual })
     if ('error' in applied) {
       await addException({ productId: input.productId, day, kind: 'day', sight: res.photo.sight, query: res.photo.query, reason: `apply_${applied.error}`, detail: reasonText, origin: 'heal', at })
       continue
