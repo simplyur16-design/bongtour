@@ -26,6 +26,7 @@ import {
   type DaySightInput,
 } from '@/lib/photo-autofill-sight'
 import { planDayPhotoSave } from '@/lib/photo-day-save-gate-1128'
+import { sourcePageEvidenceText } from '@/lib/photo-pool-evidence-1122'
 import type { PhotoException, PhotoExceptionOrigin } from '@/lib/photo-exception-list'
 import { orderThumbnailCandidates } from '@/lib/thumbnail-pick'
 
@@ -229,6 +230,37 @@ export async function acquireVerifiedPhoto(input: AcquireInput, deps: AcquireDep
         for (const r of size) bump(`stored_${r}`)
         tried.push({ tier, query, id: p.candidate.id, outcome: 'stored_rejected', reasons: size })
         continue
+      }
+      // 커밋이 다른 원본(풀 행 교체)을 돌려주면 출처 메타를 다시 검사한다. 같은 원본이면 커밋 전 통과를 유지한다.
+      const prevLink = String(p.candidate.originalLink || '').trim()
+      const storedLink = String(res.originalLink || prevLink)
+      const prevId = String(p.candidate.id || '').trim()
+      const storedId = String(res.externalId || '').trim()
+      const swapped = (storedLink && prevLink && storedLink !== prevLink) || (storedId && prevId && storedId !== prevId)
+      if (swapped) {
+        const storedVerdict = evaluateAutofillCandidate({
+          candidate: {
+            ...p.candidate,
+            url: res.url,
+            originalLink: storedLink,
+            altText: sourcePageEvidenceText(storedLink),
+            title: null,
+            tags: [],
+          },
+          sight: profile,
+          cityTerms,
+          slotText,
+          slotKind: input.kind,
+          productId: input.productId,
+          usage: input.usage,
+        })
+        if (!storedVerdict.ok) {
+          for (const r of storedVerdict.reasons) bump(`stored_${r}`)
+          tried.push({ tier, query, id: p.candidate.id, outcome: 'stored_rejected', reasons: storedVerdict.reasons })
+          continue
+        }
+        tried.push({ tier, query, id: p.candidate.id, outcome: 'adopted', reasons: [] })
+        return { ok: true, tried, photo: { ...res, sight: sightLabel, matched: storedVerdict.matched ?? p.matched ?? sightLabel, query, via: tier } }
       }
       tried.push({ tier, query, id: p.candidate.id, outcome: 'adopted', reasons: [] })
       return { ok: true, tried, photo: { ...res, sight: sightLabel, matched: p.matched ?? sightLabel, query, via: tier } }

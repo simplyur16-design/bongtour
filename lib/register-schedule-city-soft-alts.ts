@@ -273,7 +273,7 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
     cityRe: /계림|Guilin|양삭|Yangshuo|이강|Li\s*River|여의봉|상비산|첩채산|세외도원|복파산|정양가|루이봉/i,
     alts: [
       'Li River Guilin cruise',
-      'Elephant Trunk Hill Guilin',
+      'Xiangbi Shan',
       'Yangshuo countryside Guilin',
       'Reed Flute Cave Guilin',
       'Longji Rice Terraces Guilin',
@@ -1493,6 +1493,23 @@ const CITY_SOFT_ALT_RULES: ReadonlyArray<{ cityRe: RegExp; alts: readonly string
       'Waimea Canyon Kauai',
       'Poipu Beach Kauai',
       'Hanalei Bay Kauai',
+    ],
+  },
+  {
+    // REGRESSION-FREEZE[photo-wrong-slot-reinspect-1128]: 나고야·도하는 도시명 검색 금지, 대표명소만 — manifest
+    cityRe: /나고야|Nagoya|나고야성|아쓰타/i,
+    alts: [
+      'Nagoya Castle',
+      'Atsuta Shrine',
+      'Nagoya TV Tower',
+    ],
+  },
+  {
+    cityRe: /도하|Doha|수크\s*와키프|Souq\s*Waqif/i,
+    alts: [
+      'Souq Waqif',
+      'Museum of Islamic Art',
+      'Doha Corniche',
     ],
   },
 ]

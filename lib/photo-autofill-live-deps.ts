@@ -14,7 +14,7 @@ import { searchNoAttributionCc0 } from '@/lib/photo-autofill-openverse'
 import { isPixabayStopped, searchPixabayCandidates } from '@/lib/pixabay-service'
 import type { AcquireDeps, StockTier } from '@/lib/photo-autofill-acquire'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, type AutofillCandidate } from '@/lib/photo-autofill-gate'
-import { sightMatchInText, sightProfile } from '@/lib/photo-autofill-sight'
+import { sightMatchInText, sightProfile, sightSearchQueries } from '@/lib/photo-autofill-sight'
 import { poolCandidateEvidence, sourcePageEvidenceText } from '@/lib/photo-pool-evidence-1122'
 import { claimThumbnailTopUpSlot, thumbnailPoolFetchCount, topUpThumbnailPlacePool } from '@/lib/thumbnail-pool-topup'
 import { isExistingIstockImage } from '@/lib/product-image-source-policy'
@@ -92,6 +92,7 @@ export function createLiveAcquireDeps(opts: LiveDepsOptions): AcquireDeps {
     pause: () => sleep(AUTOFILL_PAUSE_BASE_MS + Math.floor(random() * AUTOFILL_PAUSE_JITTER_MS)),
     lookupPool: async (sight) => {
       if (typeof opts.prisma?.photoPool?.findMany !== 'function') return []
+      if (sightSearchQueries(sight).length === 0) return []
       const loadRows = () => findPhotoPoolByPlaceName(opts.prisma, sight, 20)
       let rows = await loadRows()
       if (rows.length < 10 && thumbnailPoolFetchCount(rows.length) > 0 && claimThumbnailTopUpSlot()) {

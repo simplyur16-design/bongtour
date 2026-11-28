@@ -29,9 +29,9 @@ export type PhotoSubjectBlockReason =
 const OBJECT_RE =
   /\b(watch|wristwatch|clock|airplane|aeroplane|plane|aircraft|jet|airliner|airport|runway|car|cars|phone|smartphone|laptop|keyboard|camera|passport|luggage|suitcase|ticket)\b/
 const ANIMAL_RE =
-  /\b(elephant|elephants|tiger|tigers|lion|monkey|monkeys|dog|dogs|cat|cats|bird|birds|horse|horses|camel|camels|panda|pandas|deer|cow|cows|snake|fish|dolphin|whale|bear|bears)\b/
+  /\b(elephant|elephants|tiger|tigers|lion|monkey|monkeys|dog|dogs|cat|cats|bird|birds|horse|horses|camel|camels|panda|pandas|deer|cow|cows|snake|fish|shark|sharks|dolphin|whale|bear|bears)\b/
 const INTERIOR_RE =
-  /\b(hallway|corridor|interior|indoor|room|bedroom|lobby|office|bookstore|bookshop|library|bookshelf|bookshelves|shelf|shelves|mall|escalator|staircase|stairs|kitchen|bathroom)\b/
+  /\b(hallway|corridor|interior|indoor|room|bedroom|lobby|office|bookstore|bookshop|library|bookshelf|bookshelves|shelf|shelves|mall|escalator|staircase|stairs|kitchen|bathroom|yoshinoya|hanamaru(?:udon)?|(?:convenience\s+)?store)\b/
 
 /** 대표적인 여행지 도시(영문) — 후보 설명에 상품과 다른 도시가 보이면 탈락 */
 export const KNOWN_DESTINATION_CITIES_EN = [
@@ -46,16 +46,26 @@ export const KNOWN_DESTINATION_CITIES_EN = [
 const ANIMAL_KO: Record<string, string> = {
   elephant: '코끼리', tiger: '호랑이', lion: '사자', monkey: '원숭이', dog: '강아지', cat: '고양이', bird: '새 공원',
   horse: '승마', camel: '낙타', panda: '판다', deer: '사슴', cow: '소 목장', snake: '뱀', fish: '물고기',
-  dolphin: '돌고래', whale: '고래', bear: '곰',
+  dolphin: '돌고래', whale: '고래', bear: '곰', shark: '상어',
 }
+
+/** 지명 안에만 있는 동물 낱말(호도협 Tiger Leaping, 코끼리코 언덕 Elephant Trunk)은 동물 체험이 아니다 */
+const PLACE_ANIMAL_STRIP_RE = /tiger leaping(?: gorge)?|호도협|elephant trunk(?: hill)?|코끼리코(?:\s*언덕)?/gi
 
 /** 일정에 그 동물 체험이 실제로 있나 — 'Tiger Leaping Gorge'(호도협) 같은 지명 속 단어는 제외 */
 export function itineraryMentionsAnimal(productText: string, animal: string): boolean {
   const base = animal.toLowerCase().replace(/s$/, '')
-  const p = productText.toLowerCase().replace(/tiger leaping( gorge)?/g, ' ').replace(/호도협/g, ' ')
+  const p = productText.toLowerCase().replace(PLACE_ANIMAL_STRIP_RE, ' ')
   if (new RegExp(`\\b${base}s?\\b`).test(p)) return true
   const ko = ANIMAL_KO[base]
   return Boolean(ko && p.includes(ko))
+}
+
+/** 후보 설명에서 동물 낱말이 명소 이름 밖에도 남아 있으면(elephant animal mammal) 동물 사진으로 본다 */
+export function candidateAnimalOutsidePlaceName(candidateText: string, query: string | null | undefined, animal: string): boolean {
+  const base = animal.toLowerCase().replace(/s$/, '')
+  const stripped = `${candidateText} ${query ?? ''}`.toLowerCase().replace(PLACE_ANIMAL_STRIP_RE, ' ').replace(String(query ?? '').toLowerCase(), ' ')
+  return new RegExp(`\\b${base}s?\\b`).test(stripped)
 }
 
 /** 명소·구역 → 소속 도시 (도톤보리는 오사카 상품이면 정상) */
@@ -122,7 +132,9 @@ export function photoSubjectBlockReason(
   const obj = hit(OBJECT_RE)
   if (obj) return 'unrelated_object'
   const animal = hit(ANIMAL_RE)
-  if (animal && !itineraryMentionsAnimal(product, animal)) return 'animal_not_in_itinerary'
+  if (animal && !itineraryMentionsAnimal(product, animal) && candidateAnimalOutsidePlaceName(candidateText, ctx.query, animal)) {
+    return 'animal_not_in_itinerary'
+  }
   if (hit(INTERIOR_RE)) return 'interior_not_place'
   for (const city of KNOWN_DESTINATION_CITIES_EN) {
     if (!t.includes(` ${city} `)) continue

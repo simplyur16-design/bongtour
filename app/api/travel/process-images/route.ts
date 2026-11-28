@@ -101,7 +101,7 @@ import { dayPhotoAiLabel, type DayPhotoAiLabel } from '@/lib/register-day-photo-
 import { acquireVerifiedPhoto } from '@/lib/photo-autofill-acquire'
 import { acquireOrRecordError, dayPolicyDropException } from '@/lib/autofill-silent-record-1122'
 import { AUTOFILL_COVER_MAX_BYTES, AUTOFILL_DAY_MAX_BYTES, photoIdentityKeys } from '@/lib/photo-autofill-gate'
-import { coverSearchSights, scheduleOtherDaysText, scheduleRowSupplierText, sightProfile } from '@/lib/photo-autofill-sight'
+import { coverSearchSights, scheduleOtherDaysText, scheduleRowSupplierText, sightProfile, sightSearchQueries } from '@/lib/photo-autofill-sight'
 import { isSupplierPhotoSource, isSupplierPhotoUrl } from '@/lib/thumbnail-pick'
 import { createLiveAcquireDeps } from '@/lib/photo-autofill-live-deps'
 import { loadPublicPhotoUsageCached } from '@/lib/photo-autofill-public-usage'
@@ -1346,7 +1346,7 @@ export async function POST(req: Request) {
             normalizeToPlaceName(sched?.imageKeyword ?? '') ||
             (/^day \d+$/.test(keywordUsed) ? '' : normalizeToPlaceName(keywordUsed)) ||
             normalizeToPlaceName(firstMatchingScheduleSpotEn(String(sched?.routeText ?? '')) ?? '')
-          if (!chainKw || !photoChainV2) return null
+          if (!chainKw || !photoChainV2 || sightSearchQueries(chainKw).length === 0) return null
           const stock = await runChain(
             `day${dayNum}`,
             chainKw,
